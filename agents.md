@@ -5,17 +5,20 @@ This repository contains reusable AI agent skills that can be applied across pro
 ## Repository Structure
 
 ```
-skills/           # Skill definitions (markdown files)
-tests/            # Tests for repository integrity
-claude.md         # AI agent instructions (Claude)
-agents.md         # AI agent instructions (Codex) — must be identical to claude.md
+skills/                       # Skill definitions (Agent Skills spec directories)
+  design-system/SKILL.md      # Architectural Minimalist design system
+tests/                        # Tests for repository integrity
+claude.md                     # AI agent instructions (Claude)
+agents.md                     # AI agent instructions (Codex) — must be identical to claude.md
 ```
+
+Skills follow the [Agent Skills specification](https://agentskills.io/specification). Each skill is a directory containing a `SKILL.md` file with YAML frontmatter (`name`, `description`) and markdown instructions.
 
 ## Available Skills
 
 ### Design System — Architectural Minimalist
 
-**File:** `skills/design-system.md`
+**Skill:** `skills/design-system/SKILL.md`
 
 A comprehensive design system skill that applies the "Architectural Minimalist" aesthetic to any web project. It features:
 
@@ -29,10 +32,11 @@ A comprehensive design system skill that applies the "Architectural Minimalist" 
 
 #### How to use this skill in another project
 
-Include the contents of `skills/design-system.md` in the target project's `claude.md` or `agents.md`, or reference it when prompting an AI coding agent to style a project.
+Include the contents of `skills/design-system/SKILL.md` in the target project's `claude.md` or `agents.md`, or reference it when prompting an AI coding agent to style a project.
 
 ## Rules
 
 1. **claude.md and agents.md must always be byte-for-byte identical.** Both files serve the same purpose for different AI agents (Claude and Codex). Any edit to one must be applied to the other. Run `tests/test-identity.sh` to verify.
-2. **Skills are self-contained.** Each skill file in `skills/` must contain all instructions needed to apply that skill to a project, with no external dependencies on other skill files.
-3. **Keep skills actionable.** Write skills as step-by-step instructions an AI agent can follow, not as abstract documentation.
+2. **Skills follow the Agent Skills spec.** Each skill is a directory under `skills/` containing a `SKILL.md` with valid YAML frontmatter. Run `tests/test_skills_spec.py` to verify.
+3. **Skills are self-contained.** Each skill must contain all instructions needed to apply it to a project, with no external dependencies on other skill files.
+4. **Keep skills actionable.** Write skills as step-by-step instructions an AI agent can follow, not as abstract documentation.

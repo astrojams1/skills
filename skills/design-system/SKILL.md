@@ -1,3 +1,13 @@
+---
+name: design-system
+description: >-
+  Apply the Architectural Minimalist design system to web projects. Features
+  warm organic colors (sage, terracotta, stone), sharp geometry (rounded-none),
+  DM Sans and Tenor Sans typography, and full light/dark mode support with
+  Tailwind CSS. Use when styling a web project or when the user mentions design
+  systems, theming, or visual styling.
+---
+
 # Skill: Apply the Architectural Minimalist Design System
 
 ## Overview
