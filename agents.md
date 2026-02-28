@@ -12,6 +12,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/layout.md                   # Detailed layout and global style patterns
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  skill-orchestrator/
+    SKILL.md                               # Wire another repo to this skills submodule
 tests/                                     # Tests for repository integrity
 claude.md                                  # AI agent instructions (Claude)
 agents.md                                  # AI agent instructions (Codex) — must be identical to claude.md
@@ -57,6 +59,21 @@ A structured workflow orchestration skill that establishes disciplined developme
 #### How to use this skill in another project
 
 Include the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from `skills/workflow-orchestration/SKILL.md` in the target project's `claude.md` or `agents.md`.
+
+### Skill Orchestrator
+
+**Skill:** `skills/skill-orchestrator/SKILL.md`
+
+A meta-skill that connects any AI agent project to this repository via a git submodule. It covers:
+
+- Adding `astrojams1/skills` as a submodule at `skills/` in the target project
+- Configuring the submodule to track `main` for automatic syncing
+- Ensuring fresh clones get the submodule with `--recurse-submodules`
+- Updating the target project's `claude.md` and `agents.md` so the agent knows how to read and apply skills from the submodule path
+
+#### How to use this skill in another project
+
+Read `skills/skill-orchestrator/SKILL.md` and follow Steps 1–5 from the root of the target project. The skill includes the exact text to paste into that project's `claude.md` and `agents.md`.
 
 ## Rules
 
