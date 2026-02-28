@@ -132,6 +132,50 @@ git submodule update --remote --merge skills
 git add skills
 git commit -m "chore: sync skills submodule to latest main"
 ```
+
+### Contributing Skill Improvements
+
+If you discover a gap, error, or better approach in any skill while working here, improve it upstream rather than working around it locally:
+
+1. `cd skills` — enter the submodule
+2. `git checkout -b improve/<skill-name>-<brief-description>`
+3. Edit `skills/<skill-name>/SKILL.md` or its reference files
+4. `git add <files> && git commit -m "improve(<skill-name>): <what and why>"`
+5. `git push -u origin improve/<skill-name>-<brief-description>`
+6. Open a PR against `astrojams1/skills` main, then return: `cd ..`
+
+After the PR merges, sync this project:
+
+```bash
+git submodule update --remote --merge skills
+git add skills
+git commit -m "chore: sync skills after upstream improvement"
+```
+```
+
+## Step 6: Contribute Skill Improvements Back
+
+When working in any project that uses this submodule, if you notice a gap, error, or better approach in a skill, **improve it upstream** rather than working around it locally. This propagates the fix to all projects using the submodule.
+
+From the root of the target project:
+
+```bash
+cd skills
+git checkout -b improve/<skill-name>-<brief-description>
+# edit skills/<skill-name>/SKILL.md or reference files
+git add <changed-files>
+git commit -m "improve(<skill-name>): <what changed and why>"
+git push -u origin improve/<skill-name>-<brief-description>
+# open a PR at https://github.com/astrojams1/skills
+cd ..
+```
+
+After the upstream PR merges, bring the fix into this project:
+
+```bash
+git submodule update --remote --merge skills
+git add skills
+git commit -m "chore: sync skills after upstream improvement"
 ```
 
 ## Summary Checklist
@@ -139,6 +183,7 @@ git commit -m "chore: sync skills submodule to latest main"
 - [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
 - [ ] Team README updated with clone instructions
-- [ ] `claude.md` updated with Skills section
+- [ ] `claude.md` updated with Skills section (includes contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
 - [ ] Verified `ls skills/skills/` shows skill directories
+- [ ] (Ongoing) Improve skills upstream when gaps or errors are found
