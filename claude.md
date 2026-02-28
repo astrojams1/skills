@@ -32,7 +32,31 @@ A comprehensive design system skill that applies the "Architectural Minimalist" 
 
 #### How to use this skill in another project
 
-Include the contents of `skills/design-system/SKILL.md` in the target project's `claude.md` or `agents.md`, or reference it when prompting an AI coding agent to style a project.
+**Recommended: Git submodule (stays in sync automatically)**
+
+Add this repository as a submodule in your target project:
+
+```bash
+git submodule add https://github.com/astrojams1/skills .skills
+```
+
+Then reference the skill in your project's `claude.md` or `agents.md`:
+
+```markdown
+## Design System
+Follow the design system instructions in `.skills/skills/design-system/SKILL.md`
+```
+
+To pull the latest skill updates into your project:
+
+```bash
+git submodule update --remote
+git commit -am "Update skills submodule"
+```
+
+**Alternative: Copy (no sync)**
+
+Copy the contents of `skills/design-system/SKILL.md` directly into the target project's `claude.md` or `agents.md`. Simple but requires manual updates when the skill changes.
 
 ## Rules
 
