@@ -232,8 +232,8 @@ class SpecValidator:
                 f"Unknown frontmatter fields: {', '.join(sorted(unknown))}"
             )
 
-    def validate_body(self, body_lines):
-        """Check body length recommendation."""
+    def validate_body(self, body_lines, skill_dir):
+        """Check body length recommendation and file references."""
         if body_lines is None:
             return
         count = len(body_lines)
@@ -243,6 +243,20 @@ class SpecValidator:
             )
         else:
             self.passed(f"SKILL.md body is within recommended length ({count} lines)")
+
+        # Validate that referenced files exist (markdown links to local files)
+        body_text = "\n".join(body_lines)
+        link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+        for match in link_pattern.finditer(body_text):
+            target = match.group(2)
+            # Skip URLs and anchors
+            if target.startswith(("http://", "https://", "#")):
+                continue
+            ref_path = os.path.join(skill_dir, target)
+            if os.path.isfile(ref_path):
+                self.passed(f"Referenced file exists: {target}")
+            else:
+                self.failed(f"Referenced file not found: {target}")
 
     # ── Top-level validation ─────────────────────────────────────────
 
@@ -281,8 +295,8 @@ class SpecValidator:
         # Optional fields
         self.validate_optional_fields(frontmatter)
 
-        # Body length
-        self.validate_body(body_lines)
+        # Body length and file references
+        self.validate_body(body_lines, skill_dir)
 
     def run(self):
         """Discover and validate all skills."""

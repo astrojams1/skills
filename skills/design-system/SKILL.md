@@ -10,24 +10,18 @@ description: >-
 
 # Skill: Apply the Architectural Minimalist Design System
 
-## Overview
-
-Apply the **Architectural Minimalist** design system to the current project. This design system combines a warm, organic color palette with sharp, architectural geometry. It feels like a professional tool for interior designers — precise, structured, yet inviting.
+Apply the **Architectural Minimalist** design system to the current project. Warm organic palette, sharp architectural geometry, precise yet inviting.
 
 Reference implementation: https://pinch-pleat-simulator-731832823064.us-west1.run.app/
 
 ## Core Principles
 
-1. **Sharp geometry everywhere.** Use `rounded-none` (0px border radius) on all standard buttons, inputs, cards, and containers. The only exception is icon-only buttons, which use `rounded-full`.
-2. **Borders define structure, not shadows.** Use thin 1px borders (`border border-border`) to create a precise grid-like layout. Shadows are used sparingly and only for depth on overlaying elements (e.g., sidebars, floating controls).
-3. **Warm organic palette.** All colors are rooted in nature — sage green, terracotta, stone, parchment. No cool blues or saturated primaries. Both light and dark modes maintain warm undertones.
-4. **High information density** with clear hierarchical separation. Pack content tightly but use typography scale, weight, and uppercase micro-labels to maintain readability.
+1. **Sharp geometry everywhere.** `rounded-none` on all buttons, inputs, cards, containers. Exception: icon-only buttons use `rounded-full`.
+2. **Borders define structure, not shadows.** Thin 1px borders (`border border-border`). Shadows only on overlaying elements (sidebar, floating controls).
+3. **Warm organic palette.** Sage green, terracotta, stone, parchment. No cool blues or saturated primaries. Both themes maintain warm undertones.
+4. **High information density** with clear hierarchy via typography scale, weight, and uppercase micro-labels.
 
 ## Step 1: Install Fonts
-
-Add DM Sans (body) and Tenor Sans (headers) from Google Fonts.
-
-In `<head>` or via CSS `@import`:
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,299 +29,109 @@ In `<head>` or via CSS `@import`:
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Tenor+Sans&display=swap" rel="stylesheet">
 ```
 
-## Step 2: Configure CSS Custom Properties
-
-Define the full color palette as CSS custom properties on `:root` for light mode and inside a `.dark` class (or `@media (prefers-color-scheme: dark)`) for dark mode.
+## Step 2: Color Palette (CSS Custom Properties)
 
 ```css
 :root {
-  --c-background: #F9F8F6;
-  --c-surface: #FFFFFF;
-  --c-primary: #7C9082;
-  --c-primary-hover: #627367;
-  --c-accent: #C67D63;
-  --c-accent-hover: #A8654F;
-  --c-secondary: #EBE9E4;
+  --c-bg: #F9F8F6;  --c-surface: #FFFFFF;
+  --c-secondary: #EBE9E4;  --c-secondary-hover: #DDD9D2;
+  --c-primary: #7C9082;  --c-primary-hover: #627367;
+  --c-accent: #C67D63;  --c-accent-hover: #A8654F;
   --c-border: #D4D4D4;
-  --c-text-main: #2D2D2D;
-  --c-text-muted: #666666;
+  --c-text-main: #2D2D2D;  --c-text-muted: #666666;  --c-text-light: #9CA3AF;
 }
 
 .dark {
-  --c-background: #1A1918;
-  --c-surface: #2A2928;
-  --c-primary: #8CA092;
-  --c-primary-hover: #7A9184;
-  --c-accent: #C67D63;
-  --c-accent-hover: #D4907A;
-  --c-secondary: #3A3938;
-  --c-border: #4A4948;
-  --c-text-main: #ECEBE9;
-  --c-text-muted: #A6A5A2;
+  --c-bg: #1A1918;  --c-surface: #2A2928;
+  --c-secondary: #2A2928;  --c-secondary-hover: #353432;
+  --c-primary: #8CA092;  --c-primary-hover: #7C9082;
+  --c-accent: #C67D63;  --c-accent-hover: #B56D53;
+  --c-border: #3E3C3A;
+  --c-text-main: #ECEBE9;  --c-text-muted: #A6A5A2;  --c-text-light: #8A8986;
 }
 ```
 
-Add smooth theme transitions on the body and main layout containers:
+Apply to `body`: `margin: 0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; background-color: var(--c-bg); color: var(--c-text-main); transition: background-color 0.3s ease, color 0.3s ease;`
 
-```css
-body {
-  background-color: var(--c-background);
-  color: var(--c-text-main);
-  transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
-}
-```
-
-## Step 3: Configure Tailwind CSS
-
-Extend the Tailwind config to map CSS custom properties into Tailwind utilities. If the project does not use Tailwind, implement equivalent CSS classes manually.
+## Step 3: Tailwind CSS Config
 
 ```js
-// tailwind.config.js
 export default {
   darkMode: 'class',
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        background: 'var(--c-background)',
-        surface: 'var(--c-surface)',
-        primary: {
-          DEFAULT: 'var(--c-primary)',
-          hover: 'var(--c-primary-hover)',
-        },
-        accent: {
-          DEFAULT: 'var(--c-accent)',
-          hover: 'var(--c-accent-hover)',
-        },
-        secondary: 'var(--c-secondary)',
+        background: 'var(--c-bg)', surface: 'var(--c-surface)',
+        primary: 'var(--c-primary)', primaryHover: 'var(--c-primary-hover)',
+        accent: 'var(--c-accent)', accentHover: 'var(--c-accent-hover)',
+        secondary: 'var(--c-secondary)', secondaryHover: 'var(--c-secondary-hover)',
         border: 'var(--c-border)',
-        text: {
-          main: 'var(--c-text-main)',
-          muted: 'var(--c-text-muted)',
-        },
+        text: { main: 'var(--c-text-main)', muted: 'var(--c-text-muted)', light: 'var(--c-text-light)' },
       },
-      fontFamily: {
-        sans: ['"DM Sans"', 'sans-serif'],
-        header: ['"Tenor Sans"', 'sans-serif'],
-      },
-      borderRadius: {
-        none: '0px',
-      },
+      fontFamily: { sans: ['"DM Sans"', 'sans-serif'], header: ['"Tenor Sans"', 'sans-serif'] },
     },
   },
-  plugins: [],
 }
 ```
 
-## Step 4: Apply Typography
+## Step 4: Typography
 
-### Headings
+| Role | Tailwind Classes |
+|------|-----------------|
+| **Page title** | `text-[26px] font-header font-medium text-text-main leading-tight mb-2` |
+| **Section heading** | `font-header text-[15px] uppercase tracking-[0.1em] text-text-main` (active: `text-primary`) |
+| **Body text** | `font-sans text-sm to text-base text-text-main` |
+| **Micro-label** | `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1.5 block` |
+| **Helper text** | `text-[12px] text-text-muted mt-2 leading-relaxed` |
 
-Use Tenor Sans for all section headings and page titles. Apply uppercase and letter-spacing for an architectural "technical drawing" feel:
+## Step 5: Components
 
-```
-font-family: 'Tenor Sans', sans-serif    → font-header
-font-size: 15px                           → text-[15px]
-text-transform: uppercase                 → uppercase
-letter-spacing: 0.1em                     → tracking-[0.1em]
-color: var(--c-text-main)                → text-text-main
-```
+| Component | Key Classes | Details |
+|-----------|-------------|---------|
+| **Primary btn** | `bg-primary text-white hover:bg-primaryHover shadow-sm px-6 py-2.5 rounded-none` | |
+| **Secondary btn** | `bg-surface border border-border hover:bg-secondaryHover shadow-sm px-6 py-2.5 rounded-none` | |
+| **Accent btn** | `bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 rounded-none` | |
+| **Ghost btn** | `bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 rounded-none` | |
+| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none |
+| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs add `font-mono` + suffix badge |
+| **Toggle group** | `bg-secondary/50 p-1 gap-1 border border-border` | Active: `bg-surface shadow-sm border-black/5` |
+| **Slider** | 2px track (`--c-border`), 16px circular thumb (`--c-accent`), border `var(--c-surface)` | Hover: `scale(1.1)` |
+| **Card** | `bg-surface border border-border rounded-none p-4` | |
+| **Computed value** | `bg-secondary/30 border border-border p-3` | Label + `font-mono` value |
 
-### Body Text
+All buttons share base: `inline-flex items-center justify-center font-medium transition-all duration-200 focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed`
 
-Use DM Sans for all body text, inputs, descriptions, and general UI:
+**Signature component — Control Input:** A labeled number input + synced range slider + optional suffix/tip/action. Labels transition to `text-primary` on group hover.
 
-```
-font-family: 'DM Sans', sans-serif       → font-sans (default)
-font-size: 14px                           → text-sm
-color: var(--c-text-main)                → text-text-main
-```
+See [references/components.md](references/components.md) for full HTML/CSS patterns for every component.
 
-### Micro-Labels (Input Labels, Field Labels)
+## Step 6: Layout
 
-A distinctive pattern of this design system. All input/field labels use this exact style:
+| Pattern | Key Details |
+|---------|-------------|
+| **Sidebar** | `w-[400px] bg-background border-r shadow-2xl`, slide animation via `translate-x-0` / `-translate-x-full` |
+| **Accordion** | Grid-row animation (`grid-rows-[1fr]`/`[0fr]`), chevron `rotate-180`, title to `text-primary` when open |
+| **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` |
 
-```
-font-size: 11px                           → text-[11px]
-font-weight: bold                         → font-bold
-text-transform: uppercase                 → uppercase
-letter-spacing: 0.15em                    → tracking-[0.15em]
-color: var(--c-text-muted)               → text-text-muted
-```
+See [references/layout.md](references/layout.md) for full HTML patterns and global styles.
 
-Combined Tailwind class: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
+## Step 7: Global Styles
 
-## Step 5: Style Components
-
-### Buttons
-
-**Primary Button:**
-```html
-<button class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-none text-sm font-medium transition-colors duration-200">
-  Save Changes
-</button>
-```
-
-**Secondary Button:**
-```html
-<button class="bg-surface border border-border hover:bg-secondary/50 text-text-main px-4 py-2 rounded-none text-sm font-medium transition-colors duration-200">
-  Cancel
-</button>
-```
-
-**Accent Button (Call-to-Action):**
-```html
-<button class="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-none text-sm font-medium transition-colors duration-200">
-  Get Started
-</button>
-```
-
-**Icon Button (Exception — uses rounded-full):**
-```html
-<button class="p-2 rounded-full hover:bg-secondary/50 text-text-muted transition-colors duration-200">
-  <svg>...</svg>
-</button>
-```
-
-### Inputs
-
-All text inputs, selects, and textareas use sharp corners, a subtle border, and a primary-colored focus ring:
-
-```html
-<div>
-  <label class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1 block">
-    Field Label
-  </label>
-  <input class="w-full bg-surface border border-border px-3 py-2 rounded-none text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors duration-200" />
-</div>
-```
-
-### Toggle Groups (Segmented Controls)
-
-A segmented control where the active item is elevated on a surface background:
-
-```html
-<div class="bg-secondary/50 border border-border p-1 flex rounded-none">
-  <button class="bg-surface text-text-main shadow-sm border border-black/5 px-3 py-1.5 text-sm font-medium">
-    Active
-  </button>
-  <button class="text-text-muted hover:text-text-main px-3 py-1.5 text-sm font-medium transition-colors duration-200">
-    Inactive
-  </button>
-</div>
-```
-
-### Sliders (Range Inputs)
-
-Style range inputs with the terracotta accent thumb:
-
-```css
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 2px;
-  background: var(--c-border);
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--c-accent);
-  border: 2px solid white;
-  cursor: pointer;
-  transition: transform 200ms ease-in-out;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
-```
-
-### Cards and Containers
-
-Cards use sharp corners, a surface background, and thin borders:
-
-```html
-<div class="bg-surface border border-border rounded-none p-4">
-  <!-- Card content -->
-</div>
-```
-
-## Step 6: Layout Patterns
-
-### Sidebar
-
-If the application has a sidebar, use this pattern:
-
-```html
-<aside class="w-[400px] bg-background border-r border-border shadow-2xl h-screen overflow-y-auto">
-  <!-- Sidebar content -->
-</aside>
-```
-
-### Collapsible Sections (Accordions)
-
-Use Tenor Sans headers with smooth grid-row animation:
-
-```html
-<div class="border-b border-border">
-  <button class="w-full flex justify-between items-center py-3 px-4">
-    <span class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main">
-      Section Title
-    </span>
-    <svg class="transition-transform duration-200" ...><!-- Chevron --></svg>
-  </button>
-  <div class="grid transition-[grid-template-rows] duration-300 ease-in-out"
-       style="grid-template-rows: 0fr;">
-    <div class="overflow-hidden">
-      <div class="p-4">
-        <!-- Section content -->
-      </div>
-    </div>
-  </div>
-</div>
-```
-
-When expanded, set `grid-template-rows: 1fr`.
-
-### Floating Controls (Bottom Bar)
-
-For sticky bottom controls or toolbars:
-
-```html
-<div class="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border shadow-lg px-4 py-3">
-  <!-- Controls -->
-</div>
-```
-
-## Step 7: Dark Mode Toggle
-
-Implement dark mode by toggling a `dark` class on the `<html>` or `<body>` element. All colors will automatically update through the CSS custom properties defined in Step 2.
-
-```js
-function toggleDarkMode() {
-  document.documentElement.classList.toggle('dark');
-}
-```
+- **Selection:** `selection:bg-accent/20` on outermost container
+- **Scrollbars:** `scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
+- **Theme transition:** `transition-colors duration-300` on all color-changing elements
+- **Dark mode:** Toggle `dark` class on `<html>` — all colors update via CSS custom properties
 
 ## Checklist
 
-After applying the design system, verify:
-
-- [ ] DM Sans is loading and applied as the default body font
-- [ ] Tenor Sans is loading and applied to all section headings
-- [ ] All standard buttons and inputs use `rounded-none` (sharp corners)
-- [ ] Icon-only buttons use `rounded-full`
-- [ ] Micro-labels use the exact style: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
-- [ ] Light mode uses warm off-white background (#F9F8F6), not pure white
-- [ ] Dark mode uses warm charcoal (#1A1918), not pure black
-- [ ] Terracotta accent (#C67D63) is consistent across both light and dark modes
-- [ ] Borders are thin (1px) and used to define layout structure
-- [ ] Shadows are used sparingly (only sidebar `shadow-2xl`, active toggles `shadow-sm`, floating controls `shadow-lg`)
-- [ ] Theme switching transitions smoothly with `transition-colors duration-300`
-- [ ] No cool blues, saturated primaries, or default Tailwind colors leak through
+- [ ] DM Sans (body) and Tenor Sans (headings) are loading
+- [ ] All buttons/inputs use `rounded-none`; icon buttons use `rounded-full`
+- [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
+- [ ] Light bg is #F9F8F6 (warm off-white), dark bg is #1A1918 (warm charcoal)
+- [ ] Terracotta accent #C67D63 is consistent across both themes
+- [ ] Slider thumb border uses `var(--c-surface)`, not hardcoded white
+- [ ] Number inputs use `font-mono`
+- [ ] Borders are 1px; shadows only on sidebar/toggles/floating bar
+- [ ] Buttons have focus rings and disabled states
+- [ ] Labels hover to `text-primary`; selection uses `selection:bg-accent/20`
+- [ ] Theme switches smoothly; no cool blues or default Tailwind colors leak through
