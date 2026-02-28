@@ -10,6 +10,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Main skill instructions (concise)
     references/components.md               # Detailed component HTML/CSS patterns
     references/layout.md                   # Detailed layout and global style patterns
+  workflow-orchestration/
+    SKILL.md                               # Workflow orchestration practices for AI agents
 tests/                                     # Tests for repository integrity
 claude.md                                  # AI agent instructions (Claude)
 agents.md                                  # AI agent instructions (Codex) — must be identical to claude.md
@@ -38,6 +40,23 @@ A comprehensive design system skill that applies the "Architectural Minimalist" 
 #### How to use this skill in another project
 
 Include the contents of `skills/design-system/SKILL.md` in the target project's `claude.md` or `agents.md`, or reference it when prompting an AI coding agent to style a project.
+
+### Workflow Orchestration
+
+**Skill:** `skills/workflow-orchestration/SKILL.md`
+
+A structured workflow orchestration skill that establishes disciplined development habits for AI agents tackling complex tasks. It features:
+
+- Plan-first development with mandatory re-planning on failure
+- Subagent strategy to keep the main context window clean
+- Self-improvement loop via `tasks/lessons.md` after every correction
+- Verification gates before marking any task complete
+- Balanced elegance checks to avoid both hackiness and over-engineering
+- Autonomous bug fixing without requiring user hand-holding
+
+#### How to use this skill in another project
+
+Include the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from `skills/workflow-orchestration/SKILL.md` in the target project's `claude.md` or `agents.md`.
 
 ## Rules
 
