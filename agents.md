@@ -75,11 +75,11 @@ A meta-skill that connects any AI agent project to this repository via a git sub
 
 #### How to use this skill in another project
 
-**Quickest path:** Run `bin/manage.sh install /path/to/target-project` to add the submodule, then follow Step 5 in the SKILL.md for agent instructions.
+When the user asks to add skills to a project, read `skills/skill-orchestrator/SKILL.md` and execute the steps autonomously. The agent runs all commands — the user does not need to touch the terminal.
 
-**Manual:** Read `skills/skill-orchestrator/SKILL.md` and follow Steps 1–5 from the root of the target project.
-
-**Verify an existing install:** From the target project, run `./skills/bin/manage.sh check` to verify skills are initialized, unmodified, and up-to-date.
+- **Add skills:** Run `bin/manage.sh install /path/to/target-project` (or the manual git commands in Step 1)
+- **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
+- **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
 
 ## Rules
 

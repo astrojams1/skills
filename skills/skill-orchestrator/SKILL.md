@@ -16,106 +16,64 @@ Wire a target project to the `astrojams1/skills` repository via a git submodule 
 - Syncing to latest is a single command (no manual copy-paste)
 - Fresh clones automatically include all skills
 - The AI agent in the target project knows where and how to read skills
-- A built-in CLI can verify integrity and detect outdated or corrupted skills
+- A built-in CLI verifies integrity and detects outdated or corrupted skills automatically
 
-## Quick Start (Automated)
-
-The `bin/manage.sh` CLI automates installation, verification, and syncing. From the **root of the target project**:
-
-```bash
-# Install (add submodule, configure branch tracking)
-/path/to/skills/bin/manage.sh install .
-
-# Or if you already have the submodule:
-./skills/bin/manage.sh check    # verify integrity
-./skills/bin/manage.sh sync     # pull latest
-./skills/bin/manage.sh status   # see what you have
-```
-
-The CLI handles all the git plumbing described in the manual steps below.
+**All commands below are run by the AI agent, not the user.** The user simply asks for what they want (e.g. "add skills to this project", "check if skills are current") and the agent executes the appropriate steps.
 
 ## Step 1: Add the Skills Submodule
 
-**Automated:** `manage.sh install` (does Steps 1–2 in one command)
+When the user asks to add skills to a project, run from the **root of the target project**:
 
-**Manual:** From the **root of the target project**, run:
+```bash
+./skills/bin/manage.sh install .
+```
+
+This does everything: adds the submodule, configures it to track `main`, and stages the changes.
+
+If `manage.sh` is not yet available (first install), run:
 
 ```bash
 git submodule add https://github.com/astrojams1/skills.git skills
 git submodule update --init --recursive
-```
-
-This creates:
-- `skills/` — the submodule directory (do not edit files here directly)
-- `.gitmodules` — submodule registry file
-
-Commit the initial addition:
-
-```bash
+git config -f .gitmodules submodule.skills.branch main
 git add .gitmodules skills
-git commit -m "chore: add astrojams1/skills as submodule"
+git commit -m "chore: add astrojams1/skills submodule"
 ```
 
-## Step 2: Configure the Submodule to Track `main`
+## Step 2: Verify Skills Integrity
 
-**Automated:** `manage.sh install` already configures this.
-
-**Manual:** Open `.gitmodules` and add `branch = main`:
-
-```ini
-[submodule "skills"]
-    path = skills
-    url = https://github.com/astrojams1/skills.git
-    branch = main
-```
-
-Commit:
+When the user asks to check, verify, or troubleshoot skills, run:
 
 ```bash
-git add .gitmodules
-git commit -m "chore: configure skills submodule to track main"
+./skills/bin/manage.sh check
 ```
 
-## Step 3: Sync Skills to Latest `main`
-
-**Automated:** `./skills/bin/manage.sh sync`
-
-**Manual:** Whenever you want the latest skills from upstream, run:
-
-```bash
-git submodule update --remote --merge skills
-git add skills
-git commit -m "chore: sync skills submodule to latest main"
-```
-
-No manual tracking, no pinning to a specific commit by hand — one command pulls the latest.
-
-## Step 3.5: Verify Skills Integrity
-
-Run `./skills/bin/manage.sh check` to verify that skills are:
+This verifies:
 
 - **Initialized** — submodule is populated, not empty
 - **Unmodified** — no local edits that could corrupt skill definitions
 - **Up-to-date** — current commit matches upstream `main`
 - **Spec-compliant** — all SKILL.md files pass the Agent Skills spec validator
 
-This is useful for CI pipelines, onboarding new repos, and diagnosing issues when skills aren't behaving as expected.
+Report findings to the user. If issues are found, fix them (sync if behind, restore if modified).
+
+## Step 3: Sync Skills to Latest
+
+When the user asks to update or sync skills, run:
+
+```bash
+./skills/bin/manage.sh sync
+```
+
+Then commit the update:
+
+```bash
+git commit -m "chore: sync skills submodule to latest main"
+```
 
 ## Step 4: Ensure Fresh Clones Get the Submodule
 
-Teammates and CI must clone with:
-
-```bash
-git clone --recurse-submodules <repo-url>
-```
-
-For existing clones that are missing the submodule contents:
-
-```bash
-git submodule update --init --recursive
-```
-
-Add a note to the project `README.md`:
+After installing the submodule, add a note to the project `README.md`:
 
 ```markdown
 ## Setup
@@ -144,13 +102,18 @@ This project uses the `skills/` submodule from [astrojams1/skills](https://githu
 
 ### Session Start
 
-At the beginning of every session, ensure the submodule is initialized and populated before reading any skills:
+At the beginning of every session, run:
 
 ```bash
 git submodule update --init --recursive
+./skills/bin/manage.sh check
 ```
 
-If `skills/skills/` is empty or missing, this command fetches the latest skills from upstream.
+If `check` reports warnings or failures, fix them before proceeding:
+- **Not initialized** → the `git submodule update` above should fix this
+- **Behind upstream** → run `./skills/bin/manage.sh sync` then `git add skills && git commit -m "chore: sync skills to latest"`
+- **Local modifications** → run `git -C skills checkout .` to restore clean state
+- **Spec failures** → report to the user, likely a corrupted submodule; re-sync
 
 Skills live in `skills/skills/`. To apply a skill:
 
@@ -169,20 +132,12 @@ Skills live in `skills/skills/`. To apply a skill:
 
 ### Keeping Skills Up to Date
 
-To sync to the latest skills from upstream:
+When the user asks to update skills, or when `check` reports the submodule is behind:
 
 ```bash
 ./skills/bin/manage.sh sync
-# Or manually:
-git submodule update --remote --merge skills
 git add skills
 git commit -m "chore: sync skills submodule to latest main"
-```
-
-To verify skills are not corrupted or outdated:
-
-```bash
-./skills/bin/manage.sh check
 ```
 
 ### Contributing Skill Improvements
@@ -199,7 +154,7 @@ If you discover a gap, error, or better approach in any skill while working here
 After the PR merges, sync this project:
 
 ```bash
-git submodule update --remote --merge skills
+./skills/bin/manage.sh sync
 git add skills
 git commit -m "chore: sync skills after upstream improvement"
 ```
@@ -225,18 +180,19 @@ cd ..
 After the upstream PR merges, bring the fix into this project:
 
 ```bash
-git submodule update --remote --merge skills
+./skills/bin/manage.sh sync
 git add skills
 git commit -m "chore: sync skills after upstream improvement"
 ```
 
 ## Summary Checklist
 
-- [ ] Submodule added at `skills/` and committed (`manage.sh install` or manual)
+- [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
 - [ ] Team README updated with clone instructions
-- [ ] `claude.md` updated with Skills section (includes session-start init and contributing instructions)
+- [ ] `claude.md` updated with Skills section (includes session-start check and contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
 - [ ] `./skills/bin/manage.sh check` passes all checks
-- [ ] (Ongoing) Run `./skills/bin/manage.sh sync` periodically to stay current
+- [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues
+- [ ] (Ongoing) Agent runs `sync` when user requests updates
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found
