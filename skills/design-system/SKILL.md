@@ -16,10 +16,20 @@ Reference implementation: https://pinch-pleat-simulator-731832823064.us-west1.ru
 
 ## Core Principles
 
-1. **Sharp geometry everywhere.** `rounded-none` on all buttons, inputs, cards, containers. Exception: icon-only buttons use `rounded-full`.
-2. **Borders define structure, not shadows.** Thin 1px borders (`border border-border`). Shadows only on overlaying elements (sidebar, floating controls).
+1. **Sharp geometry everywhere.** `rounded-none` on all buttons, inputs, cards, containers. Exception: icon-only buttons use `rounded-full`. Strip all `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-full` (except icon buttons) from the entire project.
+2. **Borders define structure, not shadows.** Thin 1px borders (`border border-border`). Shadows only on overlaying elements (sidebar, floating controls). Remove all `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl` from cards, sections, and containers.
 3. **Warm organic palette.** Sage green, terracotta, stone, parchment. No cool blues or saturated primaries. Both themes maintain warm undertones.
-4. **High information density** with clear hierarchy via typography scale, weight, and uppercase micro-labels.
+4. **Warm neutrals dominate.** Background (`#F9F8F6`) and surface (`#FFFFFF`) should cover 85%+ of the visible area. Primary (sage) and accent (terracotta) are for buttons, links, active states, slider thumbs, and micro-accents only — never as large background fills for headers, banners, hero sections, or cards.
+5. **High information density** with clear hierarchy via typography scale, weight, and uppercase micro-labels.
+
+## Anti-patterns — Never Do These
+
+- **Never use primary/accent as a header or banner background.** Headers use `bg-background` or `bg-surface` with a `border-b border-border`, not a colored fill.
+- **Never leave default framework colors.** Replace all Tailwind blue (`blue-500`, `indigo-600`, etc.), gray (`gray-*`), and other cool-toned defaults with the design system tokens.
+- **Never mix rounded and sharp corners.** Every element must use `rounded-none` (except icon-only buttons which use `rounded-full`). If the project uses a component library with rounded defaults, override them globally.
+- **Never use drop shadows for structure.** Cards, panels, and sections are bordered, not shadowed. Shadows are reserved exclusively for overlaying elements (sidebar overlay, floating control bar, active toggle).
+- **Never use `bg-primary` or `bg-accent` on containers, sections, or page regions.** These colors are strictly for interactive elements (buttons, links, active indicators, slider thumbs).
+- **Never skip the CSS custom properties.** Even if Tailwind classes are used, the `:root` / `.dark` variables must be defined so that all theme colors resolve correctly.
 
 ## Step 1: Install Fonts
 
@@ -109,9 +119,13 @@ See [references/components.md](references/components.md) for full HTML/CSS patte
 
 | Pattern | Key Details |
 |---------|-------------|
+| **Header / navbar** | `bg-background border-b border-border` — always neutral background, never colored fill. Title uses `font-header`. |
 | **Sidebar** | `w-[400px] bg-background border-r shadow-2xl`, slide animation via `translate-x-0` / `-translate-x-full` |
+| **Card grid / dashboard** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
 | **Accordion** | Grid-row animation (`grid-rows-[1fr]`/`[0fr]`), chevron `rotate-180`, title to `text-primary` when open |
 | **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` |
+
+**Adapting to any layout:** This design system works with any app structure — sidebar, top-nav, card grid, dashboard, single page. The visual identity comes from the color palette, typography, sharp geometry, and border-based structure, not from a specific layout pattern. When adapting, keep the warm neutral background dominant, use borders instead of shadows for structural elements, and ensure primary/accent colors appear only on interactive elements.
 
 See [references/layout.md](references/layout.md) for full HTML patterns and global styles.
 
@@ -122,16 +136,39 @@ See [references/layout.md](references/layout.md) for full HTML patterns and glob
 - **Theme transition:** `transition-colors duration-300` on all color-changing elements
 - **Dark mode:** Toggle `dark` class on `<html>` — all colors update via CSS custom properties
 
+## When Applying to an Existing Project
+
+1. **Audit existing colors.** Search for all hardcoded colors (`blue-`, `gray-`, `indigo-`, `#3B82F6`, etc.) and replace with design system tokens.
+2. **Strip all border-radius.** Find and remove all `rounded-*` classes (except `rounded-full` on icon buttons). Add `rounded-none` explicitly where needed.
+3. **Replace shadow-based structure with borders.** Remove `shadow-*` from cards, panels, and containers. Add `border border-border` instead.
+4. **Check headers/navbars.** If any header uses a colored background (`bg-blue-*`, `bg-primary`, `bg-accent`, `bg-green-*`, etc.), replace with `bg-background border-b border-border`.
+5. **Install the fonts and CSS custom properties** — these are mandatory, not optional.
+
 ## Checklist
 
+**Foundations:**
 - [ ] DM Sans (body) and Tenor Sans (headings) are loading
-- [ ] All buttons/inputs use `rounded-none`; icon buttons use `rounded-full`
-- [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
+- [ ] CSS custom properties (`:root` and `.dark`) are defined
 - [ ] Light bg is #F9F8F6 (warm off-white), dark bg is #1A1918 (warm charcoal)
 - [ ] Terracotta accent #C67D63 is consistent across both themes
-- [ ] Slider thumb border uses `var(--c-surface)`, not hardcoded white
+- [ ] Theme switches smoothly; no cool blues or default Tailwind colors leak through
+
+**Geometry and Structure:**
+- [ ] All buttons/inputs/cards/containers use `rounded-none`; icon buttons use `rounded-full`
+- [ ] No `rounded-sm` through `rounded-2xl` classes remain in the project (except icon buttons)
+- [ ] Cards and sections use `border border-border`, not `shadow-*`
+- [ ] Shadows only on sidebar overlay, floating bar, and active toggle items
+
+**Color Distribution:**
+- [ ] Background/surface (warm neutrals) covers 85%+ of visible area
+- [ ] No headers, banners, or sections use `bg-primary` or `bg-accent` as a background fill
+- [ ] Primary (sage) appears only on buttons, links, active states, and hover indicators
+- [ ] Accent (terracotta) appears only on CTA buttons, slider thumbs, and small highlights
+- [ ] No default Tailwind blue, indigo, or gray colors remain
+
+**Typography and Details:**
+- [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
 - [ ] Number inputs use `font-mono`
-- [ ] Borders are 1px; shadows only on sidebar/toggles/floating bar
+- [ ] Slider thumb border uses `var(--c-surface)`, not hardcoded white
 - [ ] Buttons have focus rings and disabled states
 - [ ] Labels hover to `text-primary`; selection uses `selection:bg-accent/20`
-- [ ] Theme switches smoothly; no cool blues or default Tailwind colors leak through

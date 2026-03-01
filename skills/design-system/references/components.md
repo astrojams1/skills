@@ -2,6 +2,43 @@
 
 Detailed HTML/CSS patterns for every component in the Architectural Minimalist design system.
 
+**Color usage rule:** Primary (sage) and accent (terracotta) are strictly for interactive elements — buttons, links, active states, slider thumbs. They must never be used as background fills for headers, banners, cards, or page sections. All structural backgrounds use `bg-background` or `bg-surface`.
+
+## Headers and Navigation
+
+Headers and navbars always use a neutral background with a bottom border — never a colored fill.
+
+```html
+<!-- Top navigation bar -->
+<header class="bg-background border-b border-border px-8 py-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-[26px] font-header font-medium text-text-main leading-tight">
+      App Title
+    </h1>
+    <nav class="flex items-center gap-2">
+      <!-- Use ghost buttons for nav links -->
+      <button class="inline-flex items-center justify-center font-medium transition-all duration-200
+        bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 text-sm rounded-none">
+        Nav Item
+      </button>
+      <!-- Icon buttons for actions -->
+      <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover
+        bg-transparent transition-all duration-200">
+        <svg class="w-5 h-5">...</svg>
+      </button>
+    </nav>
+  </div>
+</header>
+```
+
+**Anti-pattern — never do this:**
+```html
+<!-- WRONG: colored header background -->
+<header class="bg-primary text-white ...">
+<header class="bg-accent text-white ...">
+<header class="bg-green-600 text-white ...">
+```
+
 ## Buttons
 
 All buttons share a common base:
@@ -177,12 +214,20 @@ input[type=range]:focus::-moz-range-thumb {
 
 ## Cards and Containers
 
-Cards use sharp corners, a surface background, and thin borders:
+Cards use sharp corners, a surface background, and thin borders — never shadows for structure:
 
 ```html
 <div class="bg-surface border border-border rounded-none p-4">
   <!-- Card content -->
 </div>
+```
+
+**Anti-pattern — never do this:**
+```html
+<!-- WRONG: rounded corners and shadow-based structure -->
+<div class="bg-white rounded-lg shadow-md p-4">
+<!-- WRONG: colored card background -->
+<div class="bg-primary/10 rounded-xl shadow-sm p-4">
 ```
 
 ## Computed Value Display
