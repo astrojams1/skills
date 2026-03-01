@@ -12,8 +12,9 @@
 #
 # Commands:
 #   install [dir]  Add the skills submodule to a target repo (defaults to cwd)
-#   check          Verify skills are initialized, unmodified, and up-to-date
-#   sync           Pull latest skills from upstream main
+#                  and create .claude/skills/ symlinks for Claude Code discovery
+#   check          Verify skills are initialized, unmodified, up-to-date, and linked
+#   sync           Pull latest skills from upstream main and refresh symlinks
 #   status         Show current skills state (commit, branch, available skills)
 
 set -euo pipefail
@@ -66,6 +67,108 @@ skills_dir() {
     echo "$root/$SUBMODULE_PATH/skills"
 }
 
+# Create/update .claude/skills/ symlinks so Claude Code discovers skills natively.
+# Each skill in skills/skills/<name>/ gets a symlink at .claude/skills/<name>/.
+link_skills() {
+    local root="$1"
+    local sdir
+    sdir="$(skills_dir "$root")"
+
+    if [ ! -d "$sdir" ]; then
+        yellow "No skills directory found at $sdir — skipping symlink creation"
+        return
+    fi
+
+    mkdir -p "$root/.claude/skills"
+
+    local linked=0
+    for skill in "$sdir"/*/; do
+        [ -d "$skill" ] || continue
+        [ -f "$skill/SKILL.md" ] || continue
+
+        local name
+        name="$(basename "$skill")"
+        local link_path="$root/.claude/skills/$name"
+        local target="../../$SUBMODULE_PATH/skills/$name"
+
+        if [ -L "$link_path" ]; then
+            # Symlink exists — verify it points to the right place
+            local current_target
+            current_target="$(readlink "$link_path")"
+            if [ "$current_target" = "$target" ]; then
+                continue
+            fi
+            # Wrong target — remove and re-create
+            rm "$link_path"
+        elif [ -e "$link_path" ]; then
+            # Non-symlink file/dir exists — skip to avoid overwriting user content
+            yellow "SKIP: $link_path exists and is not a symlink (won't overwrite)"
+            continue
+        fi
+
+        ln -s "$target" "$link_path"
+        linked=$((linked + 1))
+    done
+
+    # Remove stale symlinks (skills that were removed upstream)
+    for link in "$root/.claude/skills"/*/; do
+        [ -L "${link%/}" ] || continue
+        local name
+        name="$(basename "$link")"
+        if [ ! -d "$sdir/$name" ]; then
+            rm "${link%/}"
+            yellow "Removed stale symlink: .claude/skills/$name"
+        fi
+    done
+
+    if [ "$linked" -gt 0 ]; then
+        green "Linked $linked skill(s) into .claude/skills/"
+    fi
+}
+
+# Check that .claude/skills/ symlinks are correct
+check_skill_links() {
+    local root="$1"
+    local sdir
+    sdir="$(skills_dir "$root")"
+    local issues=0
+
+    if [ ! -d "$root/.claude/skills" ]; then
+        red "FAIL: .claude/skills/ directory missing — Claude Code cannot discover skills"
+        echo "  Run: $(basename "$0") install  (or sync to recreate links)"
+        return 1
+    fi
+
+    for skill in "$sdir"/*/; do
+        [ -d "$skill" ] || continue
+        [ -f "$skill/SKILL.md" ] || continue
+
+        local name
+        name="$(basename "$skill")"
+        local link_path="$root/.claude/skills/$name"
+        local expected_target="../../$SUBMODULE_PATH/skills/$name"
+
+        if [ ! -e "$link_path" ]; then
+            red "FAIL: Missing symlink .claude/skills/$name"
+            issues=$((issues + 1))
+        elif [ ! -L "$link_path" ]; then
+            yellow "WARN: .claude/skills/$name exists but is not a symlink"
+            issues=$((issues + 1))
+        else
+            local actual_target
+            actual_target="$(readlink "$link_path")"
+            if [ "$actual_target" != "$expected_target" ]; then
+                red "FAIL: .claude/skills/$name points to wrong target"
+                echo "  Expected: $expected_target"
+                echo "  Actual:   $actual_target"
+                issues=$((issues + 1))
+            fi
+        fi
+    done
+
+    return "$issues"
+}
+
 # ── Commands ─────────────────────────────────────────────────────────
 
 cmd_install() {
@@ -105,8 +208,16 @@ cmd_install() {
         git -C "$target" config -f .gitmodules "submodule.$SUBMODULE_PATH.branch" main
     fi
 
+    # Create .claude/skills/ symlinks so Claude Code discovers skills natively
+    bold "Linking skills into .claude/skills/ for Claude Code discovery..."
+    link_skills "$target"
+
     # Stage changes
     git -C "$target" add .gitmodules "$SUBMODULE_PATH"
+    # Stage .claude/skills/ symlinks (if .claude/ dir exists)
+    if [ -d "$target/.claude/skills" ]; then
+        git -C "$target" add .claude/skills
+    fi
 
     green "Skills submodule installed successfully."
     echo ""
@@ -213,6 +324,15 @@ cmd_check() {
         warnings=$((warnings + 1))
     fi
 
+    # 8. Claude Code skill symlinks
+    if check_skill_links "$root"; then
+        green "PASS: .claude/skills/ symlinks are correct"
+    else
+        red "FAIL: .claude/skills/ symlinks are missing or broken"
+        echo "  Run: $(basename "$0") sync  (recreates symlinks)"
+        failures=$((failures + 1))
+    fi
+
     # Summary
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -271,6 +391,13 @@ cmd_sync() {
         echo ""
         bold "Staged. To commit:"
         echo "  git commit -m \"chore: sync skills submodule to latest main\""
+    fi
+
+    # Refresh .claude/skills/ symlinks (picks up new/removed skills)
+    bold "Refreshing .claude/skills/ symlinks..."
+    link_skills "$root"
+    if [ -d "$root/.claude/skills" ]; then
+        git -C "$root" add .claude/skills
     fi
 }
 
