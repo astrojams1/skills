@@ -68,7 +68,8 @@ skills_dir() {
 }
 
 # Create/update .claude/skills/ symlinks so Claude Code discovers skills natively.
-# Each skill in skills/skills/<name>/ gets a symlink at .claude/skills/<name>/.
+# Each skill gets a file symlink: .claude/skills/<name>.md → ../../skills/skills/<name>/SKILL.md
+# Claude Code discovers skills by scanning for .md files in .claude/skills/.
 link_skills() {
     local root="$1"
     local sdir
@@ -88,8 +89,14 @@ link_skills() {
 
         local name
         name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name"
-        local target="../../$SUBMODULE_PATH/skills/$name"
+        local link_path="$root/.claude/skills/$name.md"
+        local target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
+
+        # Migrate old directory symlinks to new file symlinks
+        local old_link="$root/.claude/skills/$name"
+        if [ -L "$old_link" ]; then
+            rm "$old_link"
+        fi
 
         if [ -L "$link_path" ]; then
             # Symlink exists — verify it points to the right place
@@ -111,13 +118,13 @@ link_skills() {
     done
 
     # Remove stale symlinks (skills that were removed upstream)
-    for link in "$root/.claude/skills"/*/; do
-        [ -L "${link%/}" ] || continue
+    for link in "$root/.claude/skills"/*.md; do
+        [ -L "$link" ] || continue
         local name
-        name="$(basename "$link")"
+        name="$(basename "$link" .md)"
         if [ ! -d "$sdir/$name" ]; then
-            rm "${link%/}"
-            yellow "Removed stale symlink: .claude/skills/$name"
+            rm "$link"
+            yellow "Removed stale symlink: .claude/skills/$name.md"
         fi
     done
 
@@ -145,20 +152,20 @@ check_skill_links() {
 
         local name
         name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name"
-        local expected_target="../../$SUBMODULE_PATH/skills/$name"
+        local link_path="$root/.claude/skills/$name.md"
+        local expected_target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
 
         if [ ! -e "$link_path" ]; then
-            red "FAIL: Missing symlink .claude/skills/$name"
+            red "FAIL: Missing symlink .claude/skills/$name.md"
             issues=$((issues + 1))
         elif [ ! -L "$link_path" ]; then
-            yellow "WARN: .claude/skills/$name exists but is not a symlink"
+            yellow "WARN: .claude/skills/$name.md exists but is not a symlink"
             issues=$((issues + 1))
         else
             local actual_target
             actual_target="$(readlink "$link_path")"
             if [ "$actual_target" != "$expected_target" ]; then
-                red "FAIL: .claude/skills/$name points to wrong target"
+                red "FAIL: .claude/skills/$name.md points to wrong target"
                 echo "  Expected: $expected_target"
                 echo "  Actual:   $actual_target"
                 issues=$((issues + 1))
