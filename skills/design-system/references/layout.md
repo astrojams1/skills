@@ -2,6 +2,55 @@
 
 Detailed HTML patterns for layout components and global styles in the Architectural Minimalist design system.
 
+**Key principle:** This design system works with any app structure — sidebar, top-nav, card grid, dashboard, single-page. The visual identity comes from warm neutral backgrounds, border-based structure, sharp geometry, and restrained use of color — not from any specific layout pattern. When adapting, keep the warm neutral background dominant across 85%+ of the visible area.
+
+## Top Navigation (Header-Based Layout)
+
+For apps that use a top navigation bar instead of a sidebar:
+
+```html
+<div class="min-h-screen bg-background">
+  <!-- Header: always neutral background, border-based separation -->
+  <header class="bg-background border-b border-border px-8 py-4">
+    <div class="flex items-center justify-between max-w-7xl mx-auto">
+      <h1 class="text-[26px] font-header font-medium text-text-main leading-tight">
+        App Title
+      </h1>
+      <nav class="flex items-center gap-2">
+        <!-- Ghost buttons for nav -->
+        <button class="bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 text-sm rounded-none font-medium transition-all duration-200">
+          Section
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main content area -->
+  <main class="max-w-7xl mx-auto p-8">
+    <!-- Content sections use micro-label headings -->
+    <div class="mb-8">
+      <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-4">Section Title</h2>
+      <!-- Cards in a grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-surface border border-border rounded-none p-4">
+          <!-- Card content -->
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+```
+
+**Anti-pattern — never do this:**
+```html
+<!-- WRONG: colored header backgrounds -->
+<header class="bg-primary text-white ...">
+<header class="bg-accent text-white ...">
+<header class="bg-green-600 text-white p-6 ...">
+<!-- WRONG: hero sections with colored fills -->
+<section class="bg-primary/20 py-16 ...">
+```
+
 ## Sidebar
 
 Collapsible sidebar with slide animation:
@@ -107,3 +156,13 @@ function toggleDarkMode() {
   document.documentElement.classList.toggle('dark');
 }
 ```
+
+## Adapting Existing Projects
+
+When applying this design system to a project that already has styling:
+
+1. **Replace the header** — if it has a colored background (`bg-blue-*`, `bg-green-*`, `bg-primary`, gradient), change to `bg-background border-b border-border`.
+2. **Strip all rounded corners** — search for `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl` and replace with `rounded-none`.
+3. **Replace shadows with borders** — on cards, panels, and containers, remove `shadow-*` and add `border border-border`.
+4. **Replace cool colors** — find all `blue-*`, `indigo-*`, `gray-*`, `slate-*` references and map them to the warm design system tokens.
+5. **Check color distribution** — after all changes, the page should be overwhelmingly warm neutral (off-white/white). Sage and terracotta should only appear on small interactive elements.
