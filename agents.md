@@ -5,6 +5,8 @@ This repository contains reusable AI agent skills that can be applied across pro
 ## Repository Structure
 
 ```
+bin/
+  manage.sh                                # CLI: install, check, sync, status for skill management
 skills/                                    # Skill definitions (Agent Skills spec)
   design-system/
     SKILL.md                               # Main skill instructions (concise)
@@ -73,7 +75,11 @@ A meta-skill that connects any AI agent project to this repository via a git sub
 
 #### How to use this skill in another project
 
-Read `skills/skill-orchestrator/SKILL.md` and follow Steps 1–5 from the root of the target project. The skill includes the exact text to paste into that project's `claude.md` and `agents.md`.
+When the user asks to add skills to a project, read `skills/skill-orchestrator/SKILL.md` and execute the steps autonomously. The agent runs all commands — the user does not need to touch the terminal.
+
+- **Add skills:** Run `bin/manage.sh install /path/to/target-project` (or the manual git commands in Step 1)
+- **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
+- **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
 
 ## Rules
 
