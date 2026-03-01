@@ -124,11 +124,13 @@ A segmented control where the active item is elevated on a surface background:
 <div class="flex bg-secondary/50 rounded-none p-1 gap-1 border border-border">
   <!-- Active option -->
   <button class="flex-1 py-2 px-3 text-[14px] font-medium transition-all duration-200
+    focus:outline-none focus:ring-1 focus:ring-primary/20
     bg-surface text-text-main shadow-sm border border-black/5">
     Active
   </button>
   <!-- Inactive option -->
   <button class="flex-1 py-2 px-3 text-[14px] font-medium transition-all duration-200
+    focus:outline-none focus:ring-1 focus:ring-primary/20
     text-text-muted hover:text-text-main hover:bg-surface/50 border border-transparent">
     Inactive
   </button>
