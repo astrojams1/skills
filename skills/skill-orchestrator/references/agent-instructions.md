@@ -19,11 +19,16 @@ git submodule update --init --recursive
 
 If `check` reports warnings or failures, fix them before proceeding:
 - **Not initialized** — the `git submodule update` above should fix this
-- **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills && git commit -m "chore: sync skills to latest"`
+- **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills .claude/skills && git commit -m "chore: sync skills to latest"`
 - **Local modifications** — run `git -C skills checkout .` to restore clean state
 - **Spec failures** — report to the user, likely a corrupted submodule; re-sync
+- **Broken symlinks** — run `./skills/bin/manage.sh sync` to recreate `.claude/skills/` symlinks
 
-Skills live in `skills/skills/`. To apply a skill:
+### How Skills Are Discovered
+
+Skills are exposed to Claude Code via symlinks in `.claude/skills/`. Each skill at `skills/skills/<name>/` has a corresponding symlink at `.claude/skills/<name>/` pointing into the submodule. This lets Claude Code discover and invoke skills natively (via `/skill-name` or automatic invocation).
+
+The `install` and `sync` commands create and maintain these symlinks automatically. To apply a skill manually:
 
 1. Read `skills/skills/<skill-name>/SKILL.md` for step-by-step instructions
 2. Load any supplementary files from `skills/skills/<skill-name>/references/` on demand
@@ -44,7 +49,7 @@ When the user asks to update skills, or when `check` reports the submodule is be
 
 ```bash
 ./skills/bin/manage.sh sync
-git add skills
+git add skills .claude/skills
 git commit -m "chore: sync skills submodule to latest main"
 ```
 
