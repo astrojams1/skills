@@ -10,23 +10,25 @@ This project uses the `skills/` submodule from [astrojams1/skills](https://githu
 
 ### Session Start
 
-At the beginning of every session, run:
+The skills submodule is automatically initialized at session start via a `SessionStart` hook in `.claude/settings.json`. This runs `git submodule update --init --recursive` before the first turn, so skill symlinks are always resolved.
+
+If skills aren't loading, verify integrity:
 
 ```bash
-git submodule update --init --recursive
 ./skills/bin/manage.sh check
 ```
 
 If `check` reports warnings or failures, fix them before proceeding:
-- **Not initialized** — the `git submodule update` above should fix this
-- **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills .claude/skills && git commit -m "chore: sync skills to latest"`
+- **Not initialized** — run `git submodule update --init --recursive`
+- **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills .claude && git commit -m "chore: sync skills to latest"`
 - **Local modifications** — run `git -C skills checkout .` to restore clean state
 - **Spec failures** — report to the user, likely a corrupted submodule; re-sync
 - **Broken symlinks** — run `./skills/bin/manage.sh sync` to recreate `.claude/skills/` symlinks
+- **Missing hook** — run `./skills/bin/manage.sh sync` to add the SessionStart hook
 
 ### How Skills Are Discovered
 
-Skills are exposed to Claude Code via symlinks in `.claude/skills/`. Each skill at `skills/skills/<name>/` has a corresponding symlink at `.claude/skills/<name>/` pointing into the submodule. This lets Claude Code discover and invoke skills natively (via `/skill-name` or automatic invocation).
+Skills are exposed to Claude Code via `.md` file symlinks in `.claude/skills/`. Each skill at `skills/skills/<name>/SKILL.md` has a corresponding symlink at `.claude/skills/<name>.md` pointing into the submodule. This lets Claude Code discover and invoke skills natively (via `/skill-name` or automatic invocation).
 
 The `install` and `sync` commands create and maintain these symlinks automatically. To apply a skill manually:
 

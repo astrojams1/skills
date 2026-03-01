@@ -29,7 +29,7 @@ When the user asks to add skills to a project, run from the **root of the target
 ./skills/bin/manage.sh install .
 ```
 
-This does everything: adds the submodule, configures it to track `main`, creates `.claude/skills/` symlinks for native Claude Code discovery, and stages the changes.
+This does everything: adds the submodule, configures it to track `main`, creates `.claude/skills/` symlinks for native Claude Code discovery, adds a `SessionStart` hook to `.claude/settings.json` so submodules are auto-initialized in every session, and stages the changes.
 
 If `manage.sh` is not yet available (first install), run:
 
@@ -56,6 +56,7 @@ This verifies:
 - **Up-to-date** — current commit matches upstream `main`
 - **Spec-compliant** — all SKILL.md files pass the Agent Skills spec validator
 - **Linked** — `.claude/skills/` symlinks exist and point to the correct targets
+- **Hooked** — `.claude/settings.json` has a `SessionStart` hook for submodule init
 
 Report findings to the user. If issues are found, fix them (sync if behind, restore if modified).
 
@@ -133,6 +134,7 @@ git commit -m "chore: sync skills after upstream improvement"
 - [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
 - [ ] `.claude/skills/` symlinks committed (created automatically by `install`)
+- [ ] `.claude/settings.json` has `SessionStart` hook (created automatically by `install`)
 - [ ] Team README updated with clone instructions
 - [ ] `claude.md` updated with Skills section (includes session-start check and contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
