@@ -108,6 +108,16 @@ Add the following section to **both** `claude.md` and `agents.md` in the target 
 
 This project uses the `skills/` submodule from [astrojams1/skills](https://github.com/astrojams1/skills).
 
+### Session Start
+
+At the beginning of every session, ensure the submodule is initialized and populated before reading any skills:
+
+```bash
+git submodule update --init --recursive
+```
+
+If `skills/skills/` is empty or missing, this command fetches the latest skills from upstream.
+
 Skills live in `skills/skills/`. To apply a skill:
 
 1. Read `skills/skills/<skill-name>/SKILL.md` for step-by-step instructions
@@ -183,7 +193,7 @@ git commit -m "chore: sync skills after upstream improvement"
 - [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
 - [ ] Team README updated with clone instructions
-- [ ] `claude.md` updated with Skills section (includes contributing instructions)
+- [ ] `claude.md` updated with Skills section (includes session-start init and contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
 - [ ] Verified `ls skills/skills/` shows skill directories
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found
