@@ -179,6 +179,12 @@ check_skill_links() {
 # Ensure .claude/settings.json has a SessionStart hook that initializes
 # the skills submodule. Without this, symlinks are broken on fresh clones
 # until the submodule is manually initialized.
+#
+# Claude Code expects the nested format:
+#   hooks.SessionStart = [{ matcher: "", hooks: [{ type, command }] }]
+# Older versions of this script wrote a flat format (without matcher/hooks
+# nesting) which Claude Code silently ignores.  This function detects and
+# migrates the old format automatically.
 ensure_session_hook() {
     local root="$1"
     local settings="$root/.claude/settings.json"
@@ -195,13 +201,33 @@ if os.path.isfile(settings_path):
         data = json.load(f)
 hooks = data.setdefault('hooks', {})
 session_hooks = hooks.setdefault('SessionStart', [])
-if any(h.get('type') == 'command' and h.get('command') == hook_cmd for h in session_hooks):
-    sys.exit(0)
-session_hooks.insert(0, {'type': 'command', 'command': hook_cmd})
+
+# Check if hook already exists in correct nested format
+for group in session_hooks:
+    if isinstance(group, dict) and 'hooks' in group:
+        for h in group.get('hooks', []):
+            if h.get('type') == 'command' and h.get('command') == hook_cmd:
+                sys.exit(0)
+
+# Remove any old flat-format entries (type+command without nesting)
+remaining = [
+    e for e in session_hooks
+    if not (isinstance(e, dict) and 'hooks' not in e
+            and e.get('type') == 'command' and e.get('command') == hook_cmd)
+]
+was_flat = len(remaining) < len(session_hooks)
+
+# Insert hook in correct nested format
+remaining.insert(0, {
+    'matcher': '',
+    'hooks': [{'type': 'command', 'command': hook_cmd}]
+})
+hooks['SessionStart'] = remaining
+
 with open(settings_path, 'w') as f:
     json.dump(data, f, indent=2)
     f.write('\n')
-print('added')
+print('migrated' if was_flat else 'added')
 " "$settings" "$hook_cmd"
 }
 
@@ -375,21 +401,43 @@ cmd_check() {
         warnings=$((warnings + 1))
     fi
 
-    # 8. SessionStart hook
+    # 8. SessionStart hook (must be in nested matcher/hooks format)
     local settings_file="$root/.claude/settings.json"
-    if [ -f "$settings_file" ] && python3 -c "
+    local hook_status=""
+    if [ -f "$settings_file" ]; then
+        hook_status="$(python3 -c "
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
-hooks = data.get('hooks', {}).get('SessionStart', [])
-sys.exit(0 if any(h.get('command') == 'git submodule update --init --recursive' for h in hooks) else 1)
-" "$settings_file" 2>/dev/null; then
-        green "PASS: SessionStart hook initializes submodule"
-    else
-        yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
-        echo "  Run: $(basename "$0") sync  (adds the hook automatically)"
-        warnings=$((warnings + 1))
+target = 'git submodule update --init --recursive'
+for group in data.get('hooks', {}).get('SessionStart', []):
+    if isinstance(group, dict) and 'hooks' in group:
+        for h in group.get('hooks', []):
+            if h.get('command') == target:
+                print('ok')
+                sys.exit(0)
+    # Detect old flat format (type+command without nesting)
+    if isinstance(group, dict) and 'hooks' not in group and group.get('command') == target:
+        print('flat')
+        sys.exit(0)
+print('missing')
+" "$settings_file" 2>/dev/null)"
     fi
+    case "$hook_status" in
+        ok)
+            green "PASS: SessionStart hook initializes submodule"
+            ;;
+        flat)
+            yellow "WARN: SessionStart hook uses old flat format (Claude Code ignores it)"
+            echo "  Run: $(basename "$0") sync  (migrates to correct format)"
+            warnings=$((warnings + 1))
+            ;;
+        *)
+            yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
+            echo "  Run: $(basename "$0") sync  (adds the hook automatically)"
+            warnings=$((warnings + 1))
+            ;;
+    esac
 
     # 9. Claude Code skill symlinks
     if check_skill_links "$root"; then
