@@ -68,7 +68,8 @@ skills_dir() {
 }
 
 # Create/update .claude/skills/ symlinks so Claude Code discovers skills natively.
-# Each skill in skills/skills/<name>/ gets a symlink at .claude/skills/<name>/.
+# Each skill gets a file symlink: .claude/skills/<name>.md → ../../skills/skills/<name>/SKILL.md
+# Claude Code discovers skills by scanning for .md files in .claude/skills/.
 link_skills() {
     local root="$1"
     local sdir
@@ -88,8 +89,14 @@ link_skills() {
 
         local name
         name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name"
-        local target="../../$SUBMODULE_PATH/skills/$name"
+        local link_path="$root/.claude/skills/$name.md"
+        local target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
+
+        # Migrate old directory symlinks to new file symlinks
+        local old_link="$root/.claude/skills/$name"
+        if [ -L "$old_link" ]; then
+            rm "$old_link"
+        fi
 
         if [ -L "$link_path" ]; then
             # Symlink exists — verify it points to the right place
@@ -111,13 +118,13 @@ link_skills() {
     done
 
     # Remove stale symlinks (skills that were removed upstream)
-    for link in "$root/.claude/skills"/*/; do
-        [ -L "${link%/}" ] || continue
+    for link in "$root/.claude/skills"/*.md; do
+        [ -L "$link" ] || continue
         local name
-        name="$(basename "$link")"
+        name="$(basename "$link" .md)"
         if [ ! -d "$sdir/$name" ]; then
-            rm "${link%/}"
-            yellow "Removed stale symlink: .claude/skills/$name"
+            rm "$link"
+            yellow "Removed stale symlink: .claude/skills/$name.md"
         fi
     done
 
@@ -145,20 +152,20 @@ check_skill_links() {
 
         local name
         name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name"
-        local expected_target="../../$SUBMODULE_PATH/skills/$name"
+        local link_path="$root/.claude/skills/$name.md"
+        local expected_target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
 
         if [ ! -e "$link_path" ]; then
-            red "FAIL: Missing symlink .claude/skills/$name"
+            red "FAIL: Missing symlink .claude/skills/$name.md"
             issues=$((issues + 1))
         elif [ ! -L "$link_path" ]; then
-            yellow "WARN: .claude/skills/$name exists but is not a symlink"
+            yellow "WARN: .claude/skills/$name.md exists but is not a symlink"
             issues=$((issues + 1))
         else
             local actual_target
             actual_target="$(readlink "$link_path")"
             if [ "$actual_target" != "$expected_target" ]; then
-                red "FAIL: .claude/skills/$name points to wrong target"
+                red "FAIL: .claude/skills/$name.md points to wrong target"
                 echo "  Expected: $expected_target"
                 echo "  Actual:   $actual_target"
                 issues=$((issues + 1))
@@ -167,6 +174,35 @@ check_skill_links() {
     done
 
     return "$issues"
+}
+
+# Ensure .claude/settings.json has a SessionStart hook that initializes
+# the skills submodule. Without this, symlinks are broken on fresh clones
+# until the submodule is manually initialized.
+ensure_session_hook() {
+    local root="$1"
+    local settings="$root/.claude/settings.json"
+    local hook_cmd="git submodule update --init --recursive"
+
+    mkdir -p "$root/.claude"
+
+    python3 -c "
+import json, sys, os
+settings_path, hook_cmd = sys.argv[1], sys.argv[2]
+data = {}
+if os.path.isfile(settings_path):
+    with open(settings_path) as f:
+        data = json.load(f)
+hooks = data.setdefault('hooks', {})
+session_hooks = hooks.setdefault('SessionStart', [])
+if any(h.get('type') == 'command' and h.get('command') == hook_cmd for h in session_hooks):
+    sys.exit(0)
+session_hooks.insert(0, {'type': 'command', 'command': hook_cmd})
+with open(settings_path, 'w') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+print('added')
+" "$settings" "$hook_cmd"
 }
 
 # ── Commands ─────────────────────────────────────────────────────────
@@ -186,11 +222,22 @@ cmd_install() {
     if submodule_exists "$target"; then
         if submodule_initialized "$target"; then
             yellow "Skills submodule already installed and initialized."
+            # Ensure hook and symlinks are current (idempotent)
+            link_skills "$target"
+            ensure_session_hook "$target"
+            if [ -d "$target/.claude" ]; then
+                git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
+            fi
             yellow "Run 'check' to verify integrity or 'sync' to update."
             exit 0
         else
             bold "Submodule registered but not initialized. Initializing..."
             git -C "$target" submodule update --init --recursive
+            link_skills "$target"
+            ensure_session_hook "$target"
+            if [ -d "$target/.claude" ]; then
+                git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
+            fi
             green "Submodule initialized."
             exit 0
         fi
@@ -212,11 +259,15 @@ cmd_install() {
     bold "Linking skills into .claude/skills/ for Claude Code discovery..."
     link_skills "$target"
 
+    # Add SessionStart hook to auto-initialize submodule in new sessions
+    bold "Adding SessionStart hook for automatic submodule initialization..."
+    ensure_session_hook "$target"
+
     # Stage changes
     git -C "$target" add .gitmodules "$SUBMODULE_PATH"
-    # Stage .claude/skills/ symlinks (if .claude/ dir exists)
-    if [ -d "$target/.claude/skills" ]; then
-        git -C "$target" add .claude/skills
+    # Stage .claude/ config (symlinks + settings.json)
+    if [ -d "$target/.claude" ]; then
+        git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
     fi
 
     green "Skills submodule installed successfully."
@@ -324,7 +375,23 @@ cmd_check() {
         warnings=$((warnings + 1))
     fi
 
-    # 8. Claude Code skill symlinks
+    # 8. SessionStart hook
+    local settings_file="$root/.claude/settings.json"
+    if [ -f "$settings_file" ] && python3 -c "
+import json, sys
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+hooks = data.get('hooks', {}).get('SessionStart', [])
+sys.exit(0 if any(h.get('command') == 'git submodule update --init --recursive' for h in hooks) else 1)
+" "$settings_file" 2>/dev/null; then
+        green "PASS: SessionStart hook initializes submodule"
+    else
+        yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
+        echo "  Run: $(basename "$0") sync  (adds the hook automatically)"
+        warnings=$((warnings + 1))
+    fi
+
+    # 9. Claude Code skill symlinks
     if check_skill_links "$root"; then
         green "PASS: .claude/skills/ symlinks are correct"
     else
@@ -396,8 +463,12 @@ cmd_sync() {
     # Refresh .claude/skills/ symlinks (picks up new/removed skills)
     bold "Refreshing .claude/skills/ symlinks..."
     link_skills "$root"
-    if [ -d "$root/.claude/skills" ]; then
-        git -C "$root" add .claude/skills
+
+    # Ensure SessionStart hook exists (migrates older installs)
+    ensure_session_hook "$root"
+
+    if [ -d "$root/.claude" ]; then
+        git -C "$root" add .claude/skills .claude/settings.json 2>/dev/null || true
     fi
 }
 
