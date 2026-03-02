@@ -14,7 +14,9 @@
 #   install [dir]  Add the skills submodule to a target repo (defaults to cwd)
 #                  and create .claude/skills/ symlinks for Claude Code discovery
 #   check          Verify skills are initialized, unmodified, up-to-date, and linked
+#                  Auto-fixes missing symlinks and stale hooks in place
 #   sync           Pull latest skills from upstream main and refresh symlinks
+#   link           Recreate .claude/skills/ symlinks (no network, no staging)
 #   status         Show current skills state (commit, branch, available skills)
 
 set -euo pipefail
@@ -188,13 +190,14 @@ check_skill_links() {
 ensure_session_hook() {
     local root="$1"
     local settings="$root/.claude/settings.json"
-    local hook_cmd="git submodule update --init --recursive"
+    local hook_cmd="git submodule update --init --recursive && ./skills/bin/manage.sh link"
 
     mkdir -p "$root/.claude"
 
     python3 -c "
 import json, sys, os
 settings_path, hook_cmd = sys.argv[1], sys.argv[2]
+old_cmd = 'git submodule update --init --recursive'
 data = {}
 if os.path.isfile(settings_path):
     with open(settings_path) as f:
@@ -209,13 +212,27 @@ for group in session_hooks:
             if h.get('type') == 'command' and h.get('command') == hook_cmd:
                 sys.exit(0)
 
-# Remove any old flat-format entries (type+command without nesting)
-remaining = [
-    e for e in session_hooks
-    if not (isinstance(e, dict) and 'hooks' not in e
-            and e.get('type') == 'command' and e.get('command') == hook_cmd)
-]
-was_flat = len(remaining) < len(session_hooks)
+# Remove stale skill hooks — old simple command or new compound command
+# in either flat format (type+command without nesting) or nested format
+stale = {old_cmd, hook_cmd}
+remaining = []
+was_migrated = False
+for e in session_hooks:
+    if isinstance(e, dict) and 'hooks' not in e:
+        # Flat-format entry
+        if e.get('type') == 'command' and e.get('command') in stale:
+            was_migrated = True
+            continue
+    elif isinstance(e, dict) and 'hooks' in e:
+        # Nested-format entry — drop stale inner hooks
+        kept = [h for h in e['hooks']
+                if not (h.get('type') == 'command' and h.get('command') in stale)]
+        if len(kept) < len(e['hooks']):
+            was_migrated = True
+        if not kept:
+            continue
+        e = dict(e, hooks=kept)
+    remaining.append(e)
 
 # Insert hook in correct nested format
 remaining.insert(0, {
@@ -227,7 +244,7 @@ hooks['SessionStart'] = remaining
 with open(settings_path, 'w') as f:
     json.dump(data, f, indent=2)
     f.write('\n')
-print('migrated' if was_flat else 'added')
+print('migrated' if was_migrated else 'added')
 " "$settings" "$hook_cmd"
 }
 
@@ -401,7 +418,7 @@ cmd_check() {
         warnings=$((warnings + 1))
     fi
 
-    # 8. SessionStart hook (must be in nested matcher/hooks format)
+    # 8. SessionStart hook (must be in nested matcher/hooks format with compound command)
     local settings_file="$root/.claude/settings.json"
     local hook_status=""
     if [ -f "$settings_file" ]; then
@@ -409,43 +426,67 @@ cmd_check() {
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
-target = 'git submodule update --init --recursive'
+new_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
+old_cmd = 'git submodule update --init --recursive'
 for group in data.get('hooks', {}).get('SessionStart', []):
     if isinstance(group, dict) and 'hooks' in group:
         for h in group.get('hooks', []):
-            if h.get('command') == target:
+            if h.get('command') == new_cmd:
                 print('ok')
                 sys.exit(0)
+            if h.get('command') == old_cmd:
+                print('old_nested')
+                sys.exit(0)
     # Detect old flat format (type+command without nesting)
-    if isinstance(group, dict) and 'hooks' not in group and group.get('command') == target:
-        print('flat')
-        sys.exit(0)
+    if isinstance(group, dict) and 'hooks' not in group:
+        if group.get('command') in (new_cmd, old_cmd):
+            print('flat')
+            sys.exit(0)
 print('missing')
 " "$settings_file" 2>/dev/null)"
     fi
     case "$hook_status" in
         ok)
-            green "PASS: SessionStart hook initializes submodule"
+            green "PASS: SessionStart hook initializes submodule and recreates symlinks"
+            ;;
+        old_nested)
+            yellow "WARN: SessionStart hook does not recreate symlinks (old command)"
+            bold "  Auto-fixing: updating hook to include symlink recreation..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook updated"
+            warnings=$((warnings + 1))
             ;;
         flat)
             yellow "WARN: SessionStart hook uses old flat format (Claude Code ignores it)"
-            echo "  Run: $(basename "$0") sync  (migrates to correct format)"
+            bold "  Auto-fixing: migrating hook to correct nested format..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook migrated"
             warnings=$((warnings + 1))
             ;;
         *)
             yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
-            echo "  Run: $(basename "$0") sync  (adds the hook automatically)"
+            bold "  Auto-fixing: adding SessionStart hook..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook added"
             warnings=$((warnings + 1))
             ;;
     esac
 
-    # 9. Claude Code skill symlinks
+    # 9. Claude Code skill symlinks (auto-fix if missing or broken)
     if check_skill_links "$root"; then
         green "PASS: .claude/skills/ symlinks are correct"
     else
-        red "FAIL: .claude/skills/ symlinks are missing or broken"
-        echo "  Run: $(basename "$0") sync  (recreates symlinks)"
-        failures=$((failures + 1))
+        yellow "WARN: .claude/skills/ symlinks are missing or broken — auto-fixing..."
+        link_skills "$root"
+        # Re-check after fix
+        if check_skill_links "$root" 2>/dev/null; then
+            green "  FIXED: .claude/skills/ symlinks recreated"
+            warnings=$((warnings + 1))
+        else
+            red "FAIL: .claude/skills/ symlinks could not be auto-fixed"
+            echo "  Run: $(basename "$0") sync  (recreates symlinks)"
+            failures=$((failures + 1))
+        fi
     fi
 
     # Summary
@@ -518,6 +559,21 @@ cmd_sync() {
     if [ -d "$root/.claude" ]; then
         git -C "$root" add .claude/skills .claude/settings.json 2>/dev/null || true
     fi
+}
+
+cmd_link() {
+    local root
+    root="$(find_project_root)"
+
+    if ! submodule_exists "$root"; then
+        die "No skills submodule found. Run: $(basename "$0") install"
+    fi
+
+    if ! submodule_initialized "$root"; then
+        die "Skills submodule not initialized. Run: git submodule update --init --recursive"
+    fi
+
+    link_skills "$root"
 }
 
 cmd_status() {
@@ -603,7 +659,9 @@ Usage: manage.sh <command> [options]
 Commands:
   install [dir]   Add the skills submodule to a target repo (defaults to cwd)
   check           Verify skills are initialized, unmodified, and up-to-date
+                  Auto-fixes missing symlinks and stale hooks in place
   sync            Pull latest skills from upstream main and stage the update
+  link            Recreate .claude/skills/ symlinks (no network, no staging)
   status          Show current skills state, commit info, and available skills
   help            Show this help message
 
@@ -635,6 +693,7 @@ main() {
         install) cmd_install "$@" ;;
         check)   cmd_check "$@" ;;
         sync)    cmd_sync "$@" ;;
+        link)    cmd_link "$@" ;;
         status)  cmd_status "$@" ;;
         help|-h|--help) cmd_help ;;
         *)

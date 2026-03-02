@@ -104,6 +104,8 @@ This template tells the agent in the target project how to:
 - Sync to latest with `manage.sh sync`
 - Contribute improvements back upstream
 
+**Critical:** After install, verify that `.claude/skills/` symlinks are committed to version control — not just created locally. If symlinks are missing from the commit, other developers and CI environments will not discover skills. Run `./skills/bin/manage.sh check` immediately after install to confirm everything is wired correctly. The `check` command auto-fixes missing symlinks and stale hooks, so it doubles as a self-healing step.
+
 ## Step 6: Contribute Skill Improvements Back
 
 When working in any project that uses this submodule, if you notice a gap, error, or better approach in a skill, **improve it upstream** rather than working around it locally. This propagates the fix to all projects using the submodule.
@@ -133,12 +135,12 @@ git commit -m "chore: sync skills after upstream improvement"
 
 - [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
-- [ ] `.claude/skills/` symlinks committed (created automatically by `install`)
-- [ ] `.claude/settings.json` has `SessionStart` hook (created automatically by `install`)
+- [ ] `.claude/skills/` symlinks **committed to the repo** (not just created locally — verify with `git status`)
+- [ ] `.claude/settings.json` has `SessionStart` hook that initializes submodule **and** recreates symlinks
+- [ ] `./skills/bin/manage.sh check` passes all checks (run immediately after install to verify)
 - [ ] Team README updated with clone instructions
 - [ ] `claude.md` updated with Skills section (includes session-start check and contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
-- [ ] `./skills/bin/manage.sh check` passes all checks
-- [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues
+- [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues (symlinks, hooks)
 - [ ] (Ongoing) Agent runs `sync` when user requests updates
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found
