@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 # Test: Validate bin/manage.sh works correctly.
-#
-# Creates a temporary git repo, installs the skills submodule via manage.sh,
-# then runs check, status, and sync to verify each command.
 
 set -euo pipefail
 
@@ -13,18 +10,19 @@ MANAGE="$REPO_ROOT/bin/manage.sh"
 PASSED=0
 FAILED=0
 TMPDIR=""
+TMP_INSTALL=""
 
 pass() { PASSED=$((PASSED + 1)); echo "  PASS: $1"; }
 fail() { FAILED=$((FAILED + 1)); echo "  FAIL: $1"; }
 
 cleanup() {
-    if [ -n "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
-        rm -rf "$TMPDIR"
-    fi
+    for d in "$TMPDIR" "$TMP_INSTALL"; do
+        if [ -n "$d" ] && [ -d "$d" ]; then
+            rm -rf "$d"
+        fi
+    done
 }
 trap cleanup EXIT
-
-# ── Test: manage.sh exists and is executable ─────────────────────────
 
 echo "Testing manage.sh basics..."
 
@@ -42,38 +40,17 @@ else
     fail "bin/manage.sh is not executable"
 fi
 
-# ── Test: help command ───────────────────────────────────────────────
-
 echo ""
 echo "Testing help command..."
 
 help_output="$(bash "$MANAGE" help 2>&1)"
-
-if echo "$help_output" | grep -q "install"; then
-    pass "help mentions install command"
-else
-    fail "help does not mention install command"
-fi
-
-if echo "$help_output" | grep -q "check"; then
-    pass "help mentions check command"
-else
-    fail "help does not mention check command"
-fi
-
-if echo "$help_output" | grep -q "sync"; then
-    pass "help mentions sync command"
-else
-    fail "help does not mention sync command"
-fi
-
-if echo "$help_output" | grep -q "status"; then
-    pass "help mentions status command"
-else
-    fail "help does not mention status command"
-fi
-
-# ── Test: unknown command exits non-zero ─────────────────────────────
+for cmd in install check sync status; do
+    if echo "$help_output" | grep -q "$cmd"; then
+        pass "help mentions $cmd command"
+    else
+        fail "help does not mention $cmd command"
+    fi
+done
 
 echo ""
 echo "Testing error handling..."
@@ -84,25 +61,74 @@ else
     fail "unknown command should exit non-zero"
 fi
 
-# ── Test: status on non-submodule repo reports NOT INSTALLED ─────────
-
 echo ""
 echo "Testing status on bare repo..."
 
 TMPDIR="$(mktemp -d)"
 git -C "$TMPDIR" init --quiet
-
-status_output="$(bash "$MANAGE" status 2>&1)" || true
+status_output="$(cd "$TMPDIR" && bash "$MANAGE" status 2>&1)" || true
 if echo "$status_output" | grep -qi "not installed"; then
     pass "status reports NOT INSTALLED when no submodule"
 else
     fail "status should report NOT INSTALLED on repo without submodule"
 fi
 
-cleanup
-TMPDIR=""
+echo ""
+echo "Testing install/link self-healing behavior..."
 
-# ── Summary ──────────────────────────────────────────────────────────
+TMP_INSTALL="$(mktemp -d)"
+git -C "$TMP_INSTALL" init --quiet
+
+git -C "$TMP_INSTALL" config user.email "test@example.com"
+git -C "$TMP_INSTALL" config user.name "Test User"
+
+GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" install "$TMP_INSTALL" >/dev/null
+
+if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    pass "install creates .claude skill file"
+else
+    fail "install did not create .claude skill file"
+fi
+
+if [ ! -L "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    pass "skill discovery file is a real file (not symlink)"
+else
+    fail "skill discovery file should be a real file"
+fi
+
+if cmp -s "$TMP_INSTALL/skills/skills/design-system/SKILL.md" "$TMP_INSTALL/.claude/skills/design-system.md"; then
+    pass "copied skill file matches source SKILL.md"
+else
+    fail "copied skill file does not match SKILL.md"
+fi
+
+hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link'
+if python3 - <<PY
+import json
+from pathlib import Path
+settings = Path("$TMP_INSTALL/.claude/settings.json")
+data = json.loads(settings.read_text())
+hooks = data.get("hooks", {}).get("SessionStart", [])
+for group in hooks:
+    for hook in group.get("hooks", []):
+        if hook.get("command") == '$hook_cmd':
+            raise SystemExit(0)
+raise SystemExit(1)
+PY
+then
+    pass "SessionStart hook uses cwd-independent command"
+else
+    fail "SessionStart hook command missing or stale"
+fi
+
+# link should heal if file is missing
+rm -f "$TMP_INSTALL/.claude/skills/design-system.md"
+(cd "$TMP_INSTALL" && ./skills/bin/manage.sh link >/dev/null)
+if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    pass "link recreates missing skill file"
+else
+    fail "link failed to recreate missing skill file"
+fi
 
 echo ""
 echo "=================================================="
