@@ -15,7 +15,7 @@ Wire a target project to the `astrojams1/skills` repository via a git submodule 
 - Skills are versioned alongside the project
 - Syncing to latest is a single command (no manual copy-paste)
 - Fresh clones automatically include all skills
-- Claude Code discovers skills natively via `.claude/skills/` symlinks
+- Claude Code discovers skills natively via `.claude/skills/` mirrored markdown files
 - The AI agent in the target project knows where and how to read skills
 - A built-in CLI verifies integrity and detects outdated or corrupted skills automatically
 
@@ -29,7 +29,7 @@ When the user asks to add skills to a project, run from the **root of the target
 ./skills/bin/manage.sh install .
 ```
 
-This does everything: adds the submodule, configures it to track `main`, creates `.claude/skills/` symlinks for native Claude Code discovery, adds a `SessionStart` hook to `.claude/settings.json` so submodules are auto-initialized in every session, and stages the changes.
+This does everything: adds the submodule, configures it to track `main`, creates `.claude/skills/` mirrored markdown files for native Claude Code discovery, adds a `SessionStart` hook to `.claude/settings.json` so submodules are auto-initialized in every session, and stages the changes.
 
 If `manage.sh` is not yet available (first install), run:
 
@@ -55,7 +55,7 @@ This verifies:
 - **Unmodified** — no local edits that could corrupt skill definitions
 - **Up-to-date** — current commit matches upstream `main`
 - **Spec-compliant** — all SKILL.md files pass the Agent Skills spec validator
-- **Linked** — `.claude/skills/` symlinks exist and point to the correct targets
+- **Linked** — `.claude/skills/` skill files exist and match the source SKILL.md content
 - **Hooked** — `.claude/settings.json` has a `SessionStart` hook for submodule init
 
 Report findings to the user. If issues are found, fix them (sync if behind, restore if modified).
@@ -104,7 +104,7 @@ This template tells the agent in the target project how to:
 - Sync to latest with `manage.sh sync`
 - Contribute improvements back upstream
 
-**Critical:** After install, verify that `.claude/skills/` symlinks are committed to version control — not just created locally. If symlinks are missing from the commit, other developers and CI environments will not discover skills. Run `./skills/bin/manage.sh check` immediately after install to confirm everything is wired correctly. The `check` command auto-fixes missing symlinks and stale hooks, so it doubles as a self-healing step.
+**Critical:** After install, verify that `.claude/skills/` skill files are committed to version control — not just created locally. If skill files are missing from the commit, other developers and CI environments will not discover skills. Run `./skills/bin/manage.sh check` immediately after install to confirm everything is wired correctly. The `check` command auto-fixes missing skill files and stale hooks, so it doubles as a self-healing step.
 
 ## Step 6: Contribute Skill Improvements Back
 
@@ -135,12 +135,12 @@ git commit -m "chore: sync skills after upstream improvement"
 
 - [ ] Submodule added at `skills/` and committed
 - [ ] `.gitmodules` has `branch = main`
-- [ ] `.claude/skills/` symlinks **committed to the repo** (not just created locally — verify with `git status`)
-- [ ] `.claude/settings.json` has `SessionStart` hook that initializes submodule **and** recreates symlinks
+- [ ] `.claude/skills/` skill files **committed to the repo** (not just created locally — verify with `git status`)
+- [ ] `.claude/settings.json` has `SessionStart` hook that initializes submodule **and** refreshes skill files
 - [ ] `./skills/bin/manage.sh check` passes all checks (run immediately after install to verify)
 - [ ] Team README updated with clone instructions
 - [ ] `claude.md` updated with Skills section (includes session-start check and contributing instructions)
 - [ ] `agents.md` updated identically to `claude.md`
-- [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues (symlinks, hooks)
+- [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues (skill files, hooks)
 - [ ] (Ongoing) Agent runs `sync` when user requests updates
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found

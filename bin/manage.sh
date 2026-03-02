@@ -12,16 +12,16 @@
 #
 # Commands:
 #   install [dir]  Add the skills submodule to a target repo (defaults to cwd)
-#                  and create .claude/skills/ symlinks for Claude Code discovery
+#                  and materialize .claude/skills/ markdown files for Claude Code discovery
 #   check          Verify skills are initialized, unmodified, up-to-date, and linked
-#                  Auto-fixes missing symlinks and stale hooks in place
-#   sync           Pull latest skills from upstream main and refresh symlinks
-#   link           Recreate .claude/skills/ symlinks (no network, no staging)
+#                  Auto-fixes missing skill files and stale hooks in place
+#   sync           Pull latest skills from upstream main and refresh skill files
+#   link           Recreate .claude/skills/ skill files (no network, no staging)
 #   status         Show current skills state (commit, branch, available skills)
 
 set -euo pipefail
 
-SKILLS_REMOTE="https://github.com/astrojams1/skills.git"
+SKILLS_REMOTE="${SKILLS_REMOTE:-https://github.com/astrojams1/skills.git}"
 SUBMODULE_PATH="skills"
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -69,16 +69,17 @@ skills_dir() {
     echo "$root/$SUBMODULE_PATH/skills"
 }
 
-# Create/update .claude/skills/ symlinks so Claude Code discovers skills natively.
-# Each skill gets a file symlink: .claude/skills/<name>.md → ../../skills/skills/<name>/SKILL.md
-# Claude Code discovers skills by scanning for .md files in .claude/skills/.
+# Create/update .claude/skills/ files so Claude Code discovers skills natively.
+# Each skill is copied to: .claude/skills/<name>.md from skills/skills/<name>/SKILL.md.
+# Copies are used (instead of symlinks) because some environments do not resolve
+# symlinks during skill discovery.
 link_skills() {
     local root="$1"
     local sdir
     sdir="$(skills_dir "$root")"
 
     if [ ! -d "$sdir" ]; then
-        yellow "No skills directory found at $sdir — skipping symlink creation"
+        yellow "No skills directory found at $sdir — skipping skill file creation"
         return
     fi
 
@@ -92,50 +93,47 @@ link_skills() {
         local name
         name="$(basename "$skill")"
         local link_path="$root/.claude/skills/$name.md"
-        local target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
+        local source="$sdir/$name/SKILL.md"
 
-        # Migrate old directory symlinks to new file symlinks
+        # Migrate old directory symlinks to managed markdown files
         local old_link="$root/.claude/skills/$name"
         if [ -L "$old_link" ]; then
             rm "$old_link"
         fi
 
+        # Replace old symlinks with real files
         if [ -L "$link_path" ]; then
-            # Symlink exists — verify it points to the right place
-            local current_target
-            current_target="$(readlink "$link_path")"
-            if [ "$current_target" = "$target" ]; then
-                continue
-            fi
-            # Wrong target — remove and re-create
             rm "$link_path"
-        elif [ -e "$link_path" ]; then
-            # Non-symlink file/dir exists — skip to avoid overwriting user content
-            yellow "SKIP: $link_path exists and is not a symlink (won't overwrite)"
+        elif [ -d "$link_path" ]; then
+            yellow "SKIP: $link_path is a directory (won't overwrite)"
             continue
         fi
 
-        ln -s "$target" "$link_path"
+        if [ -f "$link_path" ] && cmp -s "$source" "$link_path"; then
+            continue
+        fi
+
+        cp "$source" "$link_path"
         linked=$((linked + 1))
     done
 
-    # Remove stale symlinks (skills that were removed upstream)
+    # Remove stale managed skill files (skills removed upstream)
     for link in "$root/.claude/skills"/*.md; do
-        [ -L "$link" ] || continue
+        [ -e "$link" ] || continue
         local name
         name="$(basename "$link" .md)"
         if [ ! -d "$sdir/$name" ]; then
             rm "$link"
-            yellow "Removed stale symlink: .claude/skills/$name.md"
+            yellow "Removed stale skill file: .claude/skills/$name.md"
         fi
     done
 
     if [ "$linked" -gt 0 ]; then
-        green "Linked $linked skill(s) into .claude/skills/"
+        green "Refreshed $linked skill file(s) in .claude/skills/"
     fi
 }
 
-# Check that .claude/skills/ symlinks are correct
+# Check that .claude/skills/ files mirror SKILL.md sources
 check_skill_links() {
     local root="$1"
     local sdir
@@ -155,23 +153,17 @@ check_skill_links() {
         local name
         name="$(basename "$skill")"
         local link_path="$root/.claude/skills/$name.md"
-        local expected_target="../../$SUBMODULE_PATH/skills/$name/SKILL.md"
+        local source="$sdir/$name/SKILL.md"
 
         if [ ! -e "$link_path" ]; then
-            red "FAIL: Missing symlink .claude/skills/$name.md"
+            red "FAIL: Missing skill file .claude/skills/$name.md"
             issues=$((issues + 1))
-        elif [ ! -L "$link_path" ]; then
-            yellow "WARN: .claude/skills/$name.md exists but is not a symlink"
+        elif [ -d "$link_path" ]; then
+            yellow "WARN: .claude/skills/$name.md is a directory"
             issues=$((issues + 1))
-        else
-            local actual_target
-            actual_target="$(readlink "$link_path")"
-            if [ "$actual_target" != "$expected_target" ]; then
-                red "FAIL: .claude/skills/$name.md points to wrong target"
-                echo "  Expected: $expected_target"
-                echo "  Actual:   $actual_target"
-                issues=$((issues + 1))
-            fi
+        elif ! cmp -s "$source" "$link_path"; then
+            red "FAIL: .claude/skills/$name.md content is stale"
+            issues=$((issues + 1))
         fi
     done
 
@@ -179,7 +171,7 @@ check_skill_links() {
 }
 
 # Ensure .claude/settings.json has a SessionStart hook that initializes
-# the skills submodule. Without this, symlinks are broken on fresh clones
+# the skills submodule. Without this, .claude/skills can break on fresh clones
 # until the submodule is manually initialized.
 #
 # Claude Code expects the nested format:
@@ -190,7 +182,7 @@ check_skill_links() {
 ensure_session_hook() {
     local root="$1"
     local settings="$root/.claude/settings.json"
-    local hook_cmd="git submodule update --init --recursive && ./skills/bin/manage.sh link"
+    local hook_cmd="ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link"
 
     mkdir -p "$root/.claude"
 
@@ -198,6 +190,7 @@ ensure_session_hook() {
 import json, sys, os
 settings_path, hook_cmd = sys.argv[1], sys.argv[2]
 old_cmd = 'git submodule update --init --recursive'
+old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
 data = {}
 if os.path.isfile(settings_path):
     with open(settings_path) as f:
@@ -214,7 +207,7 @@ for group in session_hooks:
 
 # Remove stale skill hooks — old simple command or new compound command
 # in either flat format (type+command without nesting) or nested format
-stale = {old_cmd, hook_cmd}
+stale = {old_cmd, old_compound_cmd, hook_cmd}
 remaining = []
 was_migrated = False
 for e in session_hooks:
@@ -265,7 +258,7 @@ cmd_install() {
     if submodule_exists "$target"; then
         if submodule_initialized "$target"; then
             yellow "Skills submodule already installed and initialized."
-            # Ensure hook and symlinks are current (idempotent)
+            # Ensure hook and skill files are current (idempotent)
             link_skills "$target"
             ensure_session_hook "$target"
             if [ -d "$target/.claude" ]; then
@@ -298,7 +291,7 @@ cmd_install() {
         git -C "$target" config -f .gitmodules "submodule.$SUBMODULE_PATH.branch" main
     fi
 
-    # Create .claude/skills/ symlinks so Claude Code discovers skills natively
+    # Create .claude/skills/ files so Claude Code discovers skills natively
     bold "Linking skills into .claude/skills/ for Claude Code discovery..."
     link_skills "$target"
 
@@ -308,7 +301,7 @@ cmd_install() {
 
     # Stage changes
     git -C "$target" add .gitmodules "$SUBMODULE_PATH"
-    # Stage .claude/ config (symlinks + settings.json)
+    # Stage .claude/ config (skill files + settings.json)
     if [ -d "$target/.claude" ]; then
         git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
     fi
@@ -426,7 +419,8 @@ cmd_check() {
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
-new_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
+new_cmd = 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link'
+old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
 old_cmd = 'git submodule update --init --recursive'
 for group in data.get('hooks', {}).get('SessionStart', []):
     if isinstance(group, dict) and 'hooks' in group:
@@ -434,12 +428,12 @@ for group in data.get('hooks', {}).get('SessionStart', []):
             if h.get('command') == new_cmd:
                 print('ok')
                 sys.exit(0)
-            if h.get('command') == old_cmd:
+            if h.get('command') in (old_cmd, old_compound_cmd):
                 print('old_nested')
                 sys.exit(0)
     # Detect old flat format (type+command without nesting)
     if isinstance(group, dict) and 'hooks' not in group:
-        if group.get('command') in (new_cmd, old_cmd):
+        if group.get('command') in (new_cmd, old_cmd, old_compound_cmd):
             print('flat')
             sys.exit(0)
 print('missing')
@@ -447,11 +441,11 @@ print('missing')
     fi
     case "$hook_status" in
         ok)
-            green "PASS: SessionStart hook initializes submodule and recreates symlinks"
+            green "PASS: SessionStart hook initializes submodule and refreshes skill files"
             ;;
         old_nested)
-            yellow "WARN: SessionStart hook does not recreate symlinks (old command)"
-            bold "  Auto-fixing: updating hook to include symlink recreation..."
+            yellow "WARN: SessionStart hook does not refresh skill files (old command)"
+            bold "  Auto-fixing: updating hook to include skill file refresh..."
             ensure_session_hook "$root"
             green "  FIXED: SessionStart hook updated"
             warnings=$((warnings + 1))
@@ -472,19 +466,19 @@ print('missing')
             ;;
     esac
 
-    # 9. Claude Code skill symlinks (auto-fix if missing or broken)
+    # 9. Claude Code skill files (auto-fix if missing or stale)
     if check_skill_links "$root"; then
-        green "PASS: .claude/skills/ symlinks are correct"
+        green "PASS: .claude/skills/ files are current"
     else
-        yellow "WARN: .claude/skills/ symlinks are missing or broken — auto-fixing..."
+        yellow "WARN: .claude/skills/ files are missing or stale — auto-fixing..."
         link_skills "$root"
         # Re-check after fix
         if check_skill_links "$root" 2>/dev/null; then
-            green "  FIXED: .claude/skills/ symlinks recreated"
+            green "  FIXED: .claude/skills/ files refreshed"
             warnings=$((warnings + 1))
         else
-            red "FAIL: .claude/skills/ symlinks could not be auto-fixed"
-            echo "  Run: $(basename "$0") sync  (recreates symlinks)"
+            red "FAIL: .claude/skills/ files could not be auto-fixed"
+            echo "  Run: $(basename "$0") sync  (refreshes .claude skill files)"
             failures=$((failures + 1))
         fi
     fi
@@ -549,8 +543,8 @@ cmd_sync() {
         echo "  git commit -m \"chore: sync skills submodule to latest main\""
     fi
 
-    # Refresh .claude/skills/ symlinks (picks up new/removed skills)
-    bold "Refreshing .claude/skills/ symlinks..."
+    # Refresh .claude/skills/ files (picks up new/removed skills)
+    bold "Refreshing .claude/skills/ skill files..."
     link_skills "$root"
 
     # Ensure SessionStart hook exists (migrates older installs)
@@ -659,9 +653,9 @@ Usage: manage.sh <command> [options]
 Commands:
   install [dir]   Add the skills submodule to a target repo (defaults to cwd)
   check           Verify skills are initialized, unmodified, and up-to-date
-                  Auto-fixes missing symlinks and stale hooks in place
+                  Auto-fixes missing skill files and stale hooks in place
   sync            Pull latest skills from upstream main and stage the update
-  link            Recreate .claude/skills/ symlinks (no network, no staging)
+  link            Recreate .claude/skills/ skill files (no network, no staging)
   status          Show current skills state, commit info, and available skills
   help            Show this help message
 

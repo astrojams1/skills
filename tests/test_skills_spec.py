@@ -20,7 +20,6 @@ import os
 import re
 import sys
 
-import yaml
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = os.path.join(REPO_ROOT, "skills")
@@ -86,18 +85,86 @@ class SpecValidator:
         frontmatter_text = "\n".join(lines[1:closing_idx])
         body_lines = lines[closing_idx + 1 :]
 
-        try:
-            frontmatter = yaml.safe_load(frontmatter_text)
-        except yaml.YAMLError as e:
-            return None, None, f"Invalid YAML in frontmatter: {e}"
-
-        if frontmatter is None:
-            return None, None, "Frontmatter is empty"
-
-        if not isinstance(frontmatter, dict):
-            return None, None, "Frontmatter is not a YAML mapping"
+        frontmatter, error = self.parse_simple_yaml(frontmatter_text)
+        if error:
+            return None, None, error
 
         return frontmatter, body_lines, None
+
+
+    def parse_simple_yaml(self, text):
+        """Parse a constrained YAML subset used by SKILL frontmatter."""
+        data = {}
+        lines = text.splitlines()
+        i = 0
+
+        def parse_scalar(raw):
+            raw = raw.strip()
+            if raw in {"", "null", "~"}:
+                return ""
+            if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'" ) and raw.endswith("'")):
+                return raw[1:-1]
+            return raw
+
+        while i < len(lines):
+            line = lines[i]
+            if not line.strip():
+                i += 1
+                continue
+            if line.startswith(' ') or line.startswith('	'):
+                return None, f"Invalid YAML in frontmatter: unexpected indentation on line {i + 1}"
+            if ':' not in line:
+                return None, f"Invalid YAML in frontmatter: missing ':' on line {i + 1}"
+
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+
+            if not key:
+                return None, f"Invalid YAML in frontmatter: empty key on line {i + 1}"
+
+            if value in {'>-', '|-', '>', '|'}:
+                i += 1
+                block = []
+                while i < len(lines):
+                    blk_line = lines[i]
+                    if not blk_line.strip():
+                        block.append('')
+                        i += 1
+                        continue
+                    if blk_line.startswith('  '):
+                        block.append(blk_line[2:])
+                        i += 1
+                        continue
+                    break
+                data[key] = ' '.join(part.strip() for part in block if part.strip())
+                continue
+
+            if value == '':
+                i += 1
+                nested = {}
+                while i < len(lines):
+                    nested_line = lines[i]
+                    if not nested_line.strip():
+                        i += 1
+                        continue
+                    if not nested_line.startswith('  '):
+                        break
+                    entry = nested_line[2:]
+                    if ':' not in entry:
+                        return None, f"Invalid YAML in frontmatter: missing ':' on line {i + 1}"
+                    nk, nv = entry.split(':', 1)
+                    nested[nk.strip()] = parse_scalar(nv)
+                    i += 1
+                data[key] = nested
+                continue
+
+            data[key] = parse_scalar(value)
+            i += 1
+
+        if not isinstance(data, dict) or not data:
+            return None, "Frontmatter is empty"
+        return data, None
 
     # ── Field validators ─────────────────────────────────────────────
 
