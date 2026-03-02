@@ -10,27 +10,27 @@ This project uses the `skills/` submodule from [astrojams1/skills](https://githu
 
 ### Session Start
 
-The skills submodule is automatically initialized at session start via a `SessionStart` hook in `.claude/settings.json`. This runs `git submodule update --init --recursive` before the first turn, so skill symlinks are always resolved.
+The skills submodule is automatically initialized at session start via a `SessionStart` hook in `.claude/settings.json`. This runs `git submodule update --init --recursive && ./skills/bin/manage.sh link` before the first turn, which initializes the submodule **and** recreates any missing `.claude/skills/` symlinks.
 
-If skills aren't loading, verify integrity:
+Run `./skills/bin/manage.sh check` to verify integrity. The `check` command auto-fixes missing symlinks and stale hooks in place, so most issues self-heal without intervention.
 
 ```bash
 ./skills/bin/manage.sh check
 ```
 
-If `check` reports warnings or failures, fix them before proceeding:
+If `check` reports warnings or failures that it cannot auto-fix, address them before proceeding:
 - **Not initialized** — run `git submodule update --init --recursive`
 - **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills .claude && git commit -m "chore: sync skills to latest"`
 - **Local modifications** — run `git -C skills checkout .` to restore clean state
 - **Spec failures** — report to the user, likely a corrupted submodule; re-sync
-- **Broken symlinks** — run `./skills/bin/manage.sh sync` to recreate `.claude/skills/` symlinks
-- **Missing hook** — run `./skills/bin/manage.sh sync` to add the SessionStart hook
+
+**Important:** `.claude/skills/` symlinks must be committed to the repo, not just created locally. If symlinks are missing from version control, other developers and CI environments will not discover skills. After install or sync, always verify with `git status` that `.claude/skills/` symlinks are staged and committed.
 
 ### How Skills Are Discovered
 
 Skills are exposed to Claude Code via `.md` file symlinks in `.claude/skills/`. Each skill at `skills/skills/<name>/SKILL.md` has a corresponding symlink at `.claude/skills/<name>.md` pointing into the submodule. This lets Claude Code discover and invoke skills natively (via `/skill-name` or automatic invocation).
 
-The `install` and `sync` commands create and maintain these symlinks automatically. To apply a skill manually:
+These symlinks **must be committed to version control** so that every clone has them. The `install`, `sync`, and `link` commands create and maintain these symlinks automatically. The `SessionStart` hook also recreates them on every session start as a safety net. To apply a skill manually:
 
 1. Read `skills/skills/<skill-name>/SKILL.md` for step-by-step instructions
 2. Load any supplementary files from `skills/skills/<skill-name>/references/` on demand
