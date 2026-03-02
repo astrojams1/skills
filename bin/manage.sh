@@ -489,6 +489,22 @@ print('missing')
         fi
     fi
 
+    # Stage auto-fixed files so the consumer can just commit
+    if [ "$warnings" -gt 0 ]; then
+        local staged=()
+        if [ -d "$root/.claude/skills" ]; then
+            git -C "$root" add .claude/skills 2>/dev/null && staged+=(".claude/skills/")
+        fi
+        if [ -f "$root/.claude/settings.json" ]; then
+            git -C "$root" add .claude/settings.json 2>/dev/null && staged+=(".claude/settings.json")
+        fi
+        if [ ${#staged[@]} -gt 0 ]; then
+            echo ""
+            bold "Auto-fixed files staged: ${staged[*]}"
+            echo "  Commit with: git commit -m \"chore: auto-fix skills symlinks and hooks\""
+        fi
+    fi
+
     # Summary
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
