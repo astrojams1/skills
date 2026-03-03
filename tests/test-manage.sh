@@ -74,6 +74,16 @@ else
 fi
 
 echo ""
+echo "Testing standalone skills repo guidance..."
+
+standalone_check_output="$(cd "$REPO_ROOT" && bash "$MANAGE" check 2>&1 || true)"
+if echo "$standalone_check_output" | grep -qi "standalone skills repository"; then
+    pass "check explains standalone-skills-repo usage"
+else
+    fail "check should explain how to run from a consumer repo"
+fi
+
+echo ""
 echo "Testing install/link self-healing behavior..."
 
 TMP_INSTALL="$(mktemp -d)"
