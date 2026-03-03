@@ -104,11 +104,13 @@ link_skills() {
         local name
         name="$(basename "$skill")"
 
-        # Migrate old flat-file copies (.claude/skills/<name>.md) to directories
-        local old_flat="$root/.claude/skills/$name.md"
-        if [ -f "$old_flat" ] && [ ! -d "$old_flat" ]; then
-            rm "$old_flat"
-        fi
+        # Migrate old flat-file copies (<name>.md) to directories
+        for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
+            local old_flat="$discovery_dir/$name.md"
+            if [ -f "$old_flat" ] && [ ! -d "$old_flat" ]; then
+                rm "$old_flat"
+            fi
+        done
         # Remove old symlinks (any format)
         if [ -L "$root/.claude/skills/$name" ]; then
             rm "$root/.claude/skills/$name"
@@ -345,6 +347,43 @@ print('cleaned')
 " "$settings" 2>/dev/null || true
 }
 
+# Detect and clean up stale lowercase agent instruction files.
+# Older conventions used claude.md / agents.md; current convention
+# is uppercase CLAUDE.md / AGENTS.md.
+# Returns 0 if changes were made, 1 if nothing to do.
+cleanup_lowercase_agent_files() {
+    local root="$1"
+    local cleaned=false
+
+    # Explicit pairs: lowercase → UPPERCASE (avoids tr mangling the extension)
+    local pair
+    for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
+        local lc_file="${pair%%:*}"
+        local uc_file="${pair##*:}"
+
+        if [ -f "$root/$lc_file" ]; then
+            if [ -f "$root/$uc_file" ]; then
+                # Both exist — remove the lowercase one (superseded)
+                yellow "WARN: Stale lowercase $lc_file found alongside $uc_file"
+                rm "$root/$lc_file"
+                green "  FIXED: Removed $lc_file (superseded by $uc_file)"
+                cleaned=true
+            else
+                # Only lowercase exists — rename to uppercase
+                yellow "WARN: Found lowercase $lc_file (should be $uc_file)"
+                mv "$root/$lc_file" "$root/$uc_file"
+                green "  FIXED: Renamed $lc_file → $uc_file"
+                cleaned=true
+            fi
+        fi
+    done
+
+    if [ "$cleaned" = true ]; then
+        return 0
+    fi
+    return 1
+}
+
 # ── Commands ─────────────────────────────────────────────────────────
 
 cmd_install() {
@@ -408,6 +447,9 @@ cmd_install() {
     # Add SessionStart hook to auto-initialize submodule in new sessions
     bold "Adding SessionStart hook for automatic submodule initialization..."
     ensure_session_hook "$target"
+
+    # Clean up stale lowercase agent instruction files (claude.md → CLAUDE.md)
+    cleanup_lowercase_agent_files "$target" || true
 
     # Stage changes
     git -C "$target" add .gitmodules "$SUBMODULE_PATH"
@@ -619,7 +661,14 @@ cmd_check() {
             yellow "WARN: Skills are $behind commit(s) behind upstream"
             echo "  Local:  ${local_sha:0:8}"
             echo "  Remote: ${remote_sha:0:8}"
-            echo "  Run: $(basename "$0") sync"
+            bold "  Auto-fixing: syncing submodule to upstream main..."
+            if git -C "$root" submodule update --remote --merge "$SUBMODULE_PATH" 2>/dev/null; then
+                local new_sha
+                new_sha="$(git -C "$skills_path" rev-parse HEAD 2>/dev/null)"
+                green "  FIXED: Updated ${local_sha:0:8} → ${new_sha:0:8}"
+            else
+                yellow "  Could not auto-sync (network issue?). Run manually: $(basename "$0") sync"
+            fi
             warnings=$((warnings + 1))
         fi
     else
@@ -715,6 +764,11 @@ print('missing')
             echo "  Run: $(basename "$0") sync  (refreshes skill directories)"
             failures=$((failures + 1))
         fi
+    fi
+
+    # 10. Stale lowercase agent instruction files
+    if cleanup_lowercase_agent_files "$root"; then
+        warnings=$((warnings + 1))
     fi
 
     # Summary

@@ -219,6 +219,76 @@ else
 fi
 
 echo ""
+echo "Testing flat .md file cleanup in .agents/skills/..."
+
+# Create stale flat .md files in both discovery dirs
+echo "stale" > "$TMP_INSTALL/.claude/skills/design-system.md"
+echo "stale" > "$TMP_INSTALL/.agents/skills/design-system.md"
+
+# link should clean them up
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null 2>&1)
+
+if [ ! -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    pass "link removes flat .md files from .claude/skills/"
+else
+    fail "link did not remove flat .md file from .claude/skills/"
+fi
+
+if [ ! -f "$TMP_INSTALL/.agents/skills/design-system.md" ]; then
+    pass "link removes flat .md files from .agents/skills/"
+else
+    fail "link did not remove flat .md file from .agents/skills/"
+fi
+
+echo ""
+echo "Testing lowercase agent file cleanup..."
+
+# Create stale lowercase files alongside uppercase ones
+echo "stale lowercase" > "$TMP_INSTALL/claude.md"
+echo "stale lowercase" > "$TMP_INSTALL/agents.md"
+echo "REAL UPPERCASE" > "$TMP_INSTALL/CLAUDE.md"
+echo "REAL UPPERCASE" > "$TMP_INSTALL/AGENTS.md"
+
+# check should clean them up (tolerate check exit code since submodule may be behind)
+(cd "$TMP_INSTALL" && bash "$MANAGE" check >/dev/null 2>&1) || true
+
+if [ ! -f "$TMP_INSTALL/claude.md" ]; then
+    pass "check removes stale lowercase claude.md when CLAUDE.md exists"
+else
+    fail "check did not remove stale lowercase claude.md"
+fi
+
+if [ ! -f "$TMP_INSTALL/agents.md" ]; then
+    pass "check removes stale lowercase agents.md when AGENTS.md exists"
+else
+    fail "check did not remove stale lowercase agents.md"
+fi
+
+# Verify uppercase files are untouched
+if [ -f "$TMP_INSTALL/CLAUDE.md" ] && [ "$(cat "$TMP_INSTALL/CLAUDE.md")" = "REAL UPPERCASE" ]; then
+    pass "check preserves CLAUDE.md content"
+else
+    fail "check damaged or removed CLAUDE.md"
+fi
+
+echo ""
+echo "Testing lowercase rename (only lowercase exists)..."
+
+rm -f "$TMP_INSTALL/CLAUDE.md"
+echo "should become uppercase" > "$TMP_INSTALL/claude.md"
+
+(cd "$TMP_INSTALL" && bash "$MANAGE" check >/dev/null 2>&1) || true
+
+if [ -f "$TMP_INSTALL/CLAUDE.md" ] && [ ! -f "$TMP_INSTALL/claude.md" ]; then
+    pass "check renames claude.md → CLAUDE.md when no uppercase exists"
+else
+    fail "check did not rename claude.md to CLAUDE.md"
+fi
+
+# Clean up test files
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md"
+
+echo ""
 echo "Testing uninstall command..."
 
 # uninstall should remove the submodule and all artifacts
