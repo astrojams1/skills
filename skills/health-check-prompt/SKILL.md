@@ -47,6 +47,7 @@ Run a full diagnostic of the skills integration in this repo and return a struct
 7. Commands 13 and 14 below already strip ANSI color codes. If you run any additional commands, strip them too: `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
 8. If `git submodule status` output starts with `+` before the SHA, note this explicitly — it means the checked-out commit differs from the recorded pointer in the parent repo.
 9. Copy the template structure exactly. Do not rename sections, reorder them, merge them, or add extra sections.
+10. In command 8 diff output, entries like `Only in skills/skills/: <name>` for skills that have `internal: true` in their SKILL.md frontmatter are **expected** — internal skills are intentionally not copied to discovery dirs. Do not count these as issues in the Discovery Directories verdict.
 
 ### Commands to run (run each one and capture the output)
 
@@ -207,3 +208,4 @@ When the consumer agent returns the report, check for these common issues:
 | `manage.sh status` lists internal skills (e.g. health-check-prompt) as available | Old manage.sh lacked `internal: true` filtering in the status command | Run `manage.sh sync` to get the latest version, then re-run `status` |
 | manage.sh check behaves differently across agents | Agents are running different manage.sh versions because submodule is at different commits | Sync submodule first (`manage.sh sync`), then re-run diagnostic |
 | `manage.sh status` shows `>-` or `>- >-` instead of skill descriptions | Old manage.sh description extraction doesn't strip YAML block scalar indicators (`>-`, `|`) | Run `manage.sh sync` to get the fix |
+| `check` reports PASS on discovery dirs despite content mismatches in diff output | Old manage.sh used existence-only checks, not diff-based content verification | Run `manage.sh sync` to get the latest check logic, then re-run `check` |
