@@ -74,13 +74,13 @@ else
 fi
 
 echo ""
-echo "Testing standalone skills repo guidance..."
+echo "Testing standalone skills repo link..."
 
-standalone_check_output="$(cd "$REPO_ROOT" && bash "$MANAGE" check 2>&1 || true)"
-if echo "$standalone_check_output" | grep -qi "standalone skills repository"; then
-    pass "check explains standalone-skills-repo usage"
+standalone_link_output="$(cd "$REPO_ROOT" && bash "$MANAGE" link 2>&1)" || true
+if echo "$standalone_link_output" | grep -qi "standalone"; then
+    pass "link detects standalone skills repo"
 else
-    fail "check should explain how to run from a consumer repo"
+    fail "link should detect standalone skills repo context"
 fi
 
 echo ""
@@ -94,22 +94,70 @@ git -C "$TMP_INSTALL" config user.name "Test User"
 
 GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" install "$TMP_INSTALL" >/dev/null
 
-if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
-    pass "install creates .claude skill file"
+# Claude Code discovery: .claude/skills/<name>/SKILL.md (directory, not flat file)
+if [ -d "$TMP_INSTALL/.claude/skills/design-system" ] && [ -f "$TMP_INSTALL/.claude/skills/design-system/SKILL.md" ]; then
+    pass "install creates .claude/skills/<name>/SKILL.md directory"
 else
-    fail "install did not create .claude skill file"
+    fail "install did not create .claude/skills/design-system/SKILL.md directory"
 fi
 
-if [ ! -L "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
-    pass "skill discovery file is a real file (not symlink)"
+# Codex discovery: .agents/skills/<name>/SKILL.md (directory)
+if [ -d "$TMP_INSTALL/.agents/skills/design-system" ] && [ -f "$TMP_INSTALL/.agents/skills/design-system/SKILL.md" ]; then
+    pass "install creates .agents/skills/<name>/SKILL.md directory"
 else
-    fail "skill discovery file should be a real file"
+    fail "install did not create .agents/skills/design-system/SKILL.md directory"
 fi
 
-if cmp -s "$TMP_INSTALL/skills/skills/design-system/SKILL.md" "$TMP_INSTALL/.claude/skills/design-system.md"; then
-    pass "copied skill file matches source SKILL.md"
+# Verify no flat .md files remain (old format)
+if ls "$TMP_INSTALL/.claude/skills"/*.md 2>/dev/null | grep -qv '/SKILL\.md$'; then
+    fail "flat .md files found in .claude/skills/ (old format not cleaned up)"
 else
-    fail "copied skill file does not match SKILL.md"
+    pass "no flat .md files in .claude/skills/ (clean directory structure)"
+fi
+
+# Verify the copied SKILL.md matches the source
+if cmp -s "$TMP_INSTALL/skills/skills/design-system/SKILL.md" "$TMP_INSTALL/.claude/skills/design-system/SKILL.md"; then
+    pass "claude skill directory SKILL.md matches source"
+else
+    fail "claude skill directory SKILL.md does not match source"
+fi
+
+if cmp -s "$TMP_INSTALL/skills/skills/design-system/SKILL.md" "$TMP_INSTALL/.agents/skills/design-system/SKILL.md"; then
+    pass "codex skill directory SKILL.md matches source"
+else
+    fail "codex skill directory SKILL.md does not match source"
+fi
+
+# Verify references/ are preserved in copies (design-system has references/)
+if [ -d "$TMP_INSTALL/.claude/skills/design-system/references" ]; then
+    pass "claude skill directory preserves references/ subdirectory"
+else
+    fail "claude skill directory missing references/ subdirectory"
+fi
+
+if [ -f "$TMP_INSTALL/.claude/skills/design-system/references/components.md" ]; then
+    pass "claude skill directory includes references/components.md"
+else
+    fail "claude skill directory missing references/components.md"
+fi
+
+if [ -d "$TMP_INSTALL/.agents/skills/design-system/references" ]; then
+    pass "codex skill directory preserves references/ subdirectory"
+else
+    fail "codex skill directory missing references/ subdirectory"
+fi
+
+# Verify skill directories are real directories, not symlinks
+if [ ! -L "$TMP_INSTALL/.claude/skills/design-system" ]; then
+    pass "claude skill directory is a real directory (not symlink)"
+else
+    fail "claude skill directory should be a real directory"
+fi
+
+if [ ! -L "$TMP_INSTALL/.agents/skills/design-system" ]; then
+    pass "codex skill directory is a real directory (not symlink)"
+else
+    fail "codex skill directory should be a real directory"
 fi
 
 hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link'
@@ -131,13 +179,24 @@ else
     fail "SessionStart hook command missing or stale"
 fi
 
-# link should heal if file is missing
-rm -f "$TMP_INSTALL/.claude/skills/design-system.md"
-(cd "$TMP_INSTALL" && ./skills/bin/manage.sh link >/dev/null)
-if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
-    pass "link recreates missing skill file"
+# link should heal if skill directory is missing
+# Note: uses working-tree manage.sh ($MANAGE) because the submodule contains
+# the previously-committed version which may not match the code under test.
+rm -rf "$TMP_INSTALL/.claude/skills/design-system"
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null)
+if [ -f "$TMP_INSTALL/.claude/skills/design-system/SKILL.md" ]; then
+    pass "link recreates missing skill directory"
 else
-    fail "link failed to recreate missing skill file"
+    fail "link failed to recreate missing skill directory"
+fi
+
+# link should also heal .agents/skills/
+rm -rf "$TMP_INSTALL/.agents/skills/design-system"
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null)
+if [ -f "$TMP_INSTALL/.agents/skills/design-system/SKILL.md" ]; then
+    pass "link recreates missing codex skill directory"
+else
+    fail "link failed to recreate missing codex skill directory"
 fi
 
 echo ""
@@ -175,6 +234,12 @@ if [ ! -d "$TMP_INSTALL/.claude/skills" ]; then
     pass "uninstall removes .claude/skills/ directory"
 else
     fail "uninstall did not remove .claude/skills/ directory"
+fi
+
+if [ ! -d "$TMP_INSTALL/.agents/skills" ]; then
+    pass "uninstall removes .agents/skills/ directory"
+else
+    fail "uninstall did not remove .agents/skills/ directory"
 fi
 
 if [ ! -d "$TMP_INSTALL/.git/modules/skills" ]; then
@@ -218,10 +283,16 @@ echo "Testing reinstall command..."
 # reinstall on the now-empty repo should add everything back
 GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" reinstall "$TMP_INSTALL" >/dev/null 2>&1
 
-if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
-    pass "reinstall recreates .claude skill files"
+if [ -d "$TMP_INSTALL/.claude/skills/design-system" ] && [ -f "$TMP_INSTALL/.claude/skills/design-system/SKILL.md" ]; then
+    pass "reinstall recreates .claude skill directories"
 else
-    fail "reinstall did not recreate .claude skill files"
+    fail "reinstall did not recreate .claude skill directories"
+fi
+
+if [ -d "$TMP_INSTALL/.agents/skills/design-system" ] && [ -f "$TMP_INSTALL/.agents/skills/design-system/SKILL.md" ]; then
+    pass "reinstall recreates .agents skill directories"
+else
+    fail "reinstall did not recreate .agents skill directories"
 fi
 
 if [ -f "$TMP_INSTALL/skills/bin/manage.sh" ]; then
