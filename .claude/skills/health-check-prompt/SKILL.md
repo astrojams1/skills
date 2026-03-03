@@ -105,6 +105,9 @@ git -C skills log --oneline -1 -- bin/manage.sh
 
 # 15. Spec validation
 python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
+
+# 16. Recent consumer repo commits (situational awareness for reviewer)
+git log --oneline -10
 ```
 
 ### Report format
@@ -179,7 +182,11 @@ For items marked `<verbatim ...>`, include the raw command output indented by 4 
 - **Output:**
 <verbatim tail of test output>
 
-### 11. Summary
+### 11. Recent Activity
+- **Last 10 commits:**
+<verbatim git log output>
+
+### 12. Summary
 - **Overall:** <ALL PASS | N issues found (M auto-fixed)>
 - **Action items:**
   1. <specific action with exact command, or "none">
