@@ -59,6 +59,13 @@ submodule_exists() {
     [ -f "$root/.gitmodules" ] && grep -q "path = $SUBMODULE_PATH" "$root/.gitmodules" 2>/dev/null
 }
 
+# Detect when this script is being run from the standalone skills source repo
+# (instead of from a consumer repo that mounts skills/ as a submodule).
+is_standalone_skills_repo() {
+    local root="$1"
+    [ -f "$root/bin/manage.sh" ] && [ -d "$root/skills" ] && ! submodule_exists "$root"
+}
+
 submodule_initialized() {
     local root="$1"
     [ -d "$root/$SUBMODULE_PATH/.git" ] || [ -f "$root/$SUBMODULE_PATH/.git" ]
@@ -325,6 +332,11 @@ cmd_check() {
 
     # 1. Submodule registered?
     if ! submodule_exists "$root"; then
+        if is_standalone_skills_repo "$root"; then
+            red "FAIL: This appears to be the standalone skills repository, not a consumer repo"
+            echo "  Run this from your project root instead: ./skills/bin/manage.sh check"
+            exit 1
+        fi
         red "FAIL: No skills submodule found in .gitmodules"
         echo "  Run: $(basename "$0") install"
         exit 1
@@ -505,6 +517,9 @@ cmd_sync() {
     bold "Syncing skills to latest upstream main..."
 
     if ! submodule_exists "$root"; then
+        if is_standalone_skills_repo "$root"; then
+            die "This appears to be the standalone skills repository. Run sync from your consumer repo root: ./skills/bin/manage.sh sync"
+        fi
         die "No skills submodule found. Run: $(basename "$0") install"
     fi
 
@@ -560,6 +575,9 @@ cmd_link() {
     root="$(find_project_root)"
 
     if ! submodule_exists "$root"; then
+        if is_standalone_skills_repo "$root"; then
+            die "This appears to be the standalone skills repository. Run link from your consumer repo root: ./skills/bin/manage.sh link"
+        fi
         die "No skills submodule found. Run: $(basename "$0") install"
     fi
 
