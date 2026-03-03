@@ -107,9 +107,15 @@ Always end your response to the user with a structured summary using this format
 
 ### Next Steps — Consumer Repo (<project name>)
 
-1. <step with exact command to run>
-2. <step with exact command to run>
-...
+If there are consumer repo actions, output them as a **single agent prompt** inside a fenced code block (quadruple backticks) that the user can copy-paste directly to an agent running in the consumer repo. The prompt must be self-contained — include all context, exact commands, and expected outcomes so the receiving agent can execute without further clarification.
+
+````
+<Complete, self-contained prompt for the consumer repo agent.
+Include: context about what was found, exact commands to run,
+expected outcomes, and verification steps.>
+````
+
+(or "None — no consumer repo actions needed.")
 ```
 
 ### Step 7: Commit and Push
