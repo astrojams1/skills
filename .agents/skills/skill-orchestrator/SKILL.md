@@ -50,16 +50,17 @@ When the user asks to check, verify, or troubleshoot skills, run:
 ./skills/bin/manage.sh check
 ```
 
-This verifies:
+This verifies and auto-fixes:
 
 - **Initialized** — submodule is populated, not empty
 - **Unmodified** — no local edits that could corrupt skill definitions
-- **Up-to-date** — current commit matches upstream `main`
+- **Up-to-date** — auto-syncs submodule to upstream `main` if behind
 - **Spec-compliant** — all SKILL.md files pass the Agent Skills spec validator
-- **Linked** — `.claude/skills/` and `.agents/skills/` directories exist and match source content
-- **Hooked** — `.claude/settings.json` has a `SessionStart` hook for submodule init
+- **Linked** — auto-refreshes `.claude/skills/` and `.agents/skills/` directories if stale
+- **Hooked** — auto-migrates `.claude/settings.json` hook to current format
+- **Clean** — removes stale lowercase `claude.md`/`agents.md` and legacy flat skill files
 
-Report findings to the user. If issues are found, fix them (sync if behind, restore if modified).
+Report findings to the user. After auto-fixes, stage and commit the changes.
 
 ## Step 3: Sync Skills to Latest
 

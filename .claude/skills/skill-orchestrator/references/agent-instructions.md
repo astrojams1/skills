@@ -20,11 +20,22 @@ Run `./skills/bin/manage.sh check` to verify integrity. The `check` command auto
 ./skills/bin/manage.sh check
 ```
 
+The `check` command auto-fixes most issues it detects:
+- **Behind upstream** — automatically syncs the submodule to latest upstream main
+- **Missing/stale discovery dirs** — automatically refreshes `.claude/skills/` and `.agents/skills/`
+- **Stale hooks** — automatically migrates to the current hook format
+- **Stale lowercase files** — automatically removes `claude.md`/`agents.md` if uppercase versions exist
+
 If `check` reports warnings or failures that it cannot auto-fix, address them before proceeding:
 - **Not initialized** — run `git submodule update --init --recursive`
-- **Behind upstream** — run `./skills/bin/manage.sh sync` then `git add skills .claude .agents && git commit -m "chore: sync skills to latest"`
 - **Local modifications** — run `git -C skills checkout .` to restore clean state
 - **Spec failures** — report to the user, likely a corrupted submodule; re-sync
+
+After `check` auto-fixes issues, stage and commit the changes:
+```bash
+git add skills .claude .agents
+git commit -m "chore: auto-fix skills integration issues"
+```
 
 **Important:** `.claude/skills/` and `.agents/skills/` directories must be committed to the repo, not just created locally. If these directories are missing from version control, other developers and CI environments will not discover skills.
 
