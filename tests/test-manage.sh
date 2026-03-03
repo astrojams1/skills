@@ -131,6 +131,18 @@ else
 fi
 
 echo ""
+echo "Testing check command ROOT handling..."
+
+check_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" || true
+if echo "$check_output" | grep -q "ROOT: unbound variable"; then
+    fail "check should not fail with ROOT: unbound variable"
+elif echo "$check_output" | grep -q "CHECK FAILED"; then
+    fail "check unexpectedly failed"
+else
+    pass "check handles hook validation without ROOT unbound-variable errors"
+fi
+
+echo ""
 echo "=================================================="
 echo "Results: $PASSED passed, $FAILED failed"
 

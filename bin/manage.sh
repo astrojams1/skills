@@ -419,7 +419,7 @@ cmd_check() {
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
-new_cmd = 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link'
+new_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "\$ROOT" submodule update --init --recursive && "\$ROOT"/skills/bin/manage.sh link'
 old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
 old_cmd = 'git submodule update --init --recursive'
 for group in data.get('hooks', {}).get('SessionStart', []):
