@@ -425,13 +425,15 @@ cmd_check() {
 
     # 8. SessionStart hook (must be in nested matcher/hooks format with compound command)
     local settings_file="$root/.claude/settings.json"
+    local expected_hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "${ROOT}" submodule update --init --recursive && "${ROOT}"/skills/bin/manage.sh link'
+    expected_hook_cmd=${expected_hook_cmd//\$\{ROOT\}/\$ROOT}
     local hook_status=""
     if [ -f "$settings_file" ]; then
         hook_status="$(python3 -c "
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
-new_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "\$ROOT" submodule update --init --recursive && "\$ROOT"/skills/bin/manage.sh link'
+new_cmd = sys.argv[2]
 old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
 old_cmd = 'git submodule update --init --recursive'
 for group in data.get('hooks', {}).get('SessionStart', []):
@@ -449,7 +451,7 @@ for group in data.get('hooks', {}).get('SessionStart', []):
             print('flat')
             sys.exit(0)
 print('missing')
-" "$settings_file" 2>/dev/null)"
+" "$settings_file" "$expected_hook_cmd" 2>/dev/null)"
     fi
     case "$hook_status" in
         ok)
