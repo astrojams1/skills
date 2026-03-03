@@ -32,14 +32,20 @@ This skill provides a copy-paste prompt for diagnosing the skills integration in
 
 Run a full diagnostic of the skills integration in this repo and return a structured health report. Execute the commands below and collect their EXACT output. Do NOT paraphrase or summarize command output — include it verbatim. If a command fails, include the error message.
 
+**CONSTRAINTS — read before doing anything:**
+1. **Report only.** Do NOT commit, push, create PRs, or modify any files yourself.
+2. `manage.sh check` (command 13) auto-fixes some issues as a side effect — that is expected behavior, not something you should do. Report its output verbatim.
+3. After collecting all command output, return the structured report below and STOP.
+
 ### Commands to run (run each one and capture the output)
 
 ```bash
 # 1. Project identity
 basename "$(git rev-parse --show-toplevel)"
 
-# 2. Git submodule state
+# 2. Git submodule state (actual checkout vs recorded pointer)
 git submodule status skills
+git ls-tree HEAD skills
 
 # 3. .gitmodules entry for skills
 git config -f .gitmodules --get submodule.skills.url
@@ -76,13 +82,16 @@ cmp -s CLAUDE.md AGENTS.md && echo "IDENTICAL" || echo "DIFFER"
 # 11. Skills section in CLAUDE.md
 grep -n -i "skills" CLAUDE.md 2>/dev/null | head -20
 
-# 12. manage.sh check (the main integrity check)
+# 12. manage.sh version (which code is actually running)
+git -C skills log --oneline -1 -- bin/manage.sh
+
+# 13. manage.sh check (the main integrity check — auto-fixes as side effect)
 ./skills/bin/manage.sh check 2>&1
 
-# 13. manage.sh status
+# 14. manage.sh status
 ./skills/bin/manage.sh status 2>&1
 
-# 14. Spec validation
+# 15. Spec validation
 python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
 ```
 
@@ -102,6 +111,7 @@ Return the report using EXACTLY this structure. Fill in each section with the ve
 - **URL:** <output of .gitmodules url>
 - **Branch tracking:** <output of .gitmodules branch>
 - **Status line:** <output of git submodule status>
+- **Recorded commit:** <output of git ls-tree HEAD skills>
 
 ### 2. Submodule Version
 - **Verdict:** <PASS|WARN — behind N commits|FAIL>
@@ -132,25 +142,26 @@ Return the report using EXACTLY this structure. Fill in each section with the ve
 - **Identical:** <IDENTICAL or DIFFER>
 - **Skills section present:** <yes/no, with grep output>
 
-### 7. manage.sh check
+### 7. manage.sh version
+- **Last commit touching manage.sh:** <output of command 12>
+
+### 8. manage.sh check
 - **Verdict:** <PASS|WARN|FAIL>
 - **Full output:**
 <verbatim output of manage.sh check>
 
-### 8. manage.sh status
+### 9. manage.sh status
 - **Full output:**
 <verbatim output of manage.sh status>
 
-### 9. Spec Validation
+### 10. Spec Validation
 - **Verdict:** <PASS|FAIL>
 - **Output:** <verbatim tail of test output>
 
-### 10. Summary
+### 11. Summary
 - **Overall:** <ALL PASS | N issues found>
 - **Action items:** <numbered list of anything that needs fixing, or "none">
 ```
-
-Important: Do NOT fix any issues. Only report. I need the raw diagnostic data.
 
 ---END---
 
@@ -169,3 +180,7 @@ When the consumer agent returns the report, check for these common issues:
 | CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Copy one to the other |
 | No "Skills" section in CLAUDE.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
 | Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
+| `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with flat path) | Submodule is far behind; running an old manage.sh that lacks auto-sync and directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |
+| Internal skill (e.g. health-check-prompt) in consumer discovery dirs | Old manage.sh copied it before `internal: true` filtering existed | Run `manage.sh check` (latest version removes internal skills automatically) |
+| Claude and Codex report different submodule SHAs on same checkout | Claude's SessionStart hook ran `git submodule update` before diagnostic, changing the submodule to the recorded commit | Compare "Recorded commit" (git ls-tree) with "Status line" — if they match, the hook already ran |
+| manage.sh check behaves differently across agents | Agents are running different manage.sh versions because submodule is at different commits | Sync submodule first (`manage.sh sync`), then re-run diagnostic |
