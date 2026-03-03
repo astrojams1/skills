@@ -1017,6 +1017,12 @@ cmd_status() {
             local name desc skill_md
             name="$(basename "$skill")"
             skill_md="$skill/SKILL.md"
+
+            # Skip internal skills — they are only for the skills repo itself
+            if _is_internal_skill "$skill"; then
+                continue
+            fi
+
             if [ -f "$skill_md" ]; then
                 # Extract description from frontmatter
                 desc="$(sed -n '/^---$/,/^---$/{ /^description:/,/^[a-z]/{ s/^description: *//p; s/^ *//p; } }' "$skill_md" | head -2 | tr '\n' ' ' | sed 's/ *$//')"
