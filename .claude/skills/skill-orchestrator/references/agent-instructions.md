@@ -12,7 +12,7 @@ This project uses the `skills/` submodule from [astrojams1/skills](https://githu
 
 **Claude Code:** The skills submodule is automatically initialized at session start via a `SessionStart` hook in `.claude/settings.json`. This runs `ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link` before the first turn, which initializes the submodule **and** refreshes skill directories.
 
-**Codex:** Run `./skills/bin/manage.sh check` at the start of each session to verify integrity and auto-fix any issues.
+**Codex:** Run `git submodule update --init --recursive && ./skills/bin/manage.sh check` at the start of each session. The submodule update ensures you run the latest manage.sh before check verifies integrity and auto-fixes any issues.
 
 Run `./skills/bin/manage.sh check` to verify integrity. The `check` command auto-fixes missing or stale skill directories and stale hooks in place, so most issues self-heal without intervention.
 
