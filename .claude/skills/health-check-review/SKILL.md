@@ -80,6 +80,8 @@ Edit `skills/health-check-prompt/SKILL.md` with any improvements.
 
 ### Step 6: Deliver Next Steps
 
+**Goal:** The consumer repo should produce a clean health report — every section PASS, zero warnings, zero failures. Next steps exist only to close the gap between the current report and that goal.
+
 Always end your response to the user with a structured summary using this format:
 
 ```
@@ -109,13 +111,48 @@ Always end your response to the user with a structured summary using this format
 
 If there are consumer repo actions, output them as a **single agent prompt** inside a fenced code block (quadruple backticks) that the user can copy-paste directly to an agent running in the consumer repo. The prompt must be self-contained — include all context, exact commands, and expected outcomes so the receiving agent can execute without further clarification.
 
+**Ordering rules for the consumer prompt** — remediation steps must follow this sequence because each step depends on the previous one:
+
+1. `./skills/bin/manage.sh sync` — update the submodule first so all subsequent commands use the latest manage.sh
+2. `./skills/bin/manage.sh check` — auto-fix hooks, discovery dirs, and internal skill leaks using the updated code
+3. Stage and commit — persist all auto-fixes (`git add .claude .agents skills && git commit`)
+4. Manual fixes — anything `check` cannot auto-fix (e.g., CLAUDE.md/AGENTS.md content, missing skills section)
+5. Stage and commit manual fixes
+6. **Verification re-run** — always end the prompt with the full health check diagnostic commands from `skills/health-check-prompt/SKILL.md` so the agent produces a new report proving all sections PASS
+
+**Template for the consumer prompt:**
+
 ````
-<Complete, self-contained prompt for the consumer repo agent.
-Include: context about what was found, exact commands to run,
-expected outcomes, and verification steps.>
+<Context: what the health report found and what needs fixing>
+
+Run the following steps IN ORDER. Do not skip or reorder steps.
+
+## Step 1: Sync submodule to latest
+./skills/bin/manage.sh sync
+
+## Step 2: Run integrity check (auto-fixes hooks and discovery dirs)
+./skills/bin/manage.sh check 2>&1 | sed 's/\x1b\[[0-9;]*m//g'
+
+## Step 3: Commit auto-fixes
+git add .claude .agents skills
+git status
+git diff --cached --stat
+git commit -m "chore: sync skills and apply auto-fixes"
+
+## Step 4: Manual fixes (if any)
+<specific instructions for issues check cannot auto-fix, or "No manual fixes needed.">
+
+## Step 5: Verify — re-run the full health check
+<paste the complete command list from health-check-prompt SKILL.md>
+
+Return the health report using the standard format. Every section should now show PASS.
 ````
 
-(or "None — no consumer repo actions needed.")
+If the report was already clean (all PASS, no warnings), output:
+
+```
+None — report is clean. No consumer repo actions needed.
+```
 ```
 
 ### Step 7: Commit and Push
