@@ -18,6 +18,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Wire another repo to this skills submodule
   health-check-prompt/
     SKILL.md                               # Diagnostic prompt for consumer repo integration
+  health-check-review/
+    SKILL.md                               # Process health check reports and fix issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
 tests/                                     # Tests for repository integrity
@@ -101,6 +103,16 @@ A diagnostic prompt for the skills repo author to copy-paste to a Claude or Code
 #### How to use
 
 Read `skills/health-check-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the consumer repo. Review the returned report using the diagnostic table in the skill.
+
+### Health Check Review
+
+**Skill:** `skills/health-check-review/SKILL.md`
+
+Processes health check reports pasted from consumer repos. Analyzes report data, identifies bugs in `manage.sh` or skills code, suggests improvements to the health-check-prompt, and provides step-by-step next steps for both the skills repo and the consumer repo.
+
+#### How to use
+
+Paste one or more health check reports into the conversation. The skill activates automatically and walks through diagnosis, fixes, and next steps.
 
 ## Rules
 

@@ -32,10 +32,20 @@ This skill provides a copy-paste prompt for diagnosing the skills integration in
 
 Run a full diagnostic of the skills integration in this repo and return a structured health report. Execute the commands below and collect their EXACT output. Do NOT paraphrase or summarize command output — include it verbatim. If a command fails, include the error message.
 
-**CONSTRAINTS — read before doing anything:**
+**CONSTRAINTS — read these before doing anything:**
 1. **Report only.** Do NOT commit, push, create PRs, or modify any files yourself.
 2. `manage.sh check` (command 13) auto-fixes some issues as a side effect — that is expected behavior, not something you should do. Report its output verbatim.
 3. After collecting all command output, return the structured report below and STOP.
+
+**FORMAT RULES — follow these exactly when writing the report:**
+1. Use standard GitHub-flavored markdown: `**bold**` (not `__bold__`), `-` for list items.
+2. Use `##` for the report title and `###` for each numbered section — exactly as shown in the template.
+3. Use `- **Key:** value` for single-line data items.
+4. Wrap multi-line command output (more than one line) in fenced code blocks (triple backticks).
+5. All command output must be verbatim after ANSI stripping — never paraphrase, summarize, or reformat.
+6. Commands 13 and 14 below already strip ANSI color codes. If you run any additional commands, strip them too: `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
+7. If `git submodule status` output starts with `+` before the SHA, note this explicitly — it means the checked-out commit differs from the recorded pointer in the parent repo.
+8. Copy the template structure exactly. Do not rename sections, reorder them, merge them, or add extra sections.
 
 ### Commands to run (run each one and capture the output)
 
@@ -86,10 +96,10 @@ grep -n -i "skills" CLAUDE.md 2>/dev/null | head -20
 git -C skills log --oneline -1 -- bin/manage.sh
 
 # 13. manage.sh check (the main integrity check — auto-fixes as side effect)
-./skills/bin/manage.sh check 2>&1
+./skills/bin/manage.sh check 2>&1 | sed 's/\x1b\[[0-9;]*m//g'
 
 # 14. manage.sh status
-./skills/bin/manage.sh status 2>&1
+./skills/bin/manage.sh status 2>&1 | sed 's/\x1b\[[0-9;]*m//g'
 
 # 15. Spec validation
 python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
@@ -97,70 +107,80 @@ python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
 
 ### Report format
 
-Return the report using EXACTLY this structure. Fill in each section with the verbatim command output. Use `PASS`, `WARN`, or `FAIL` for each verdict.
+Return the report using EXACTLY this structure. Copy the headers and bullet format character-for-character, only replacing `<...>` placeholders with actual data. Use `PASS`, `WARN`, or `FAIL` for each verdict.
+
+For items marked `<verbatim ...>`, include the raw command output inside a fenced code block (triple backticks). For single-value items, put the value on the same line after the colon.
 
 ```
 ## Skills Health Report
 
 **Project:** <output of command 1>
-**Date:** <current date>
+**Date:** <YYYY-MM-DD>
 **Agent:** <Claude or Codex>
 
 ### 1. Submodule Registration
-- **Verdict:** <PASS|FAIL>
+- **Verdict:** <PASS if url and branch are set, FAIL otherwise>
 - **URL:** <output of .gitmodules url>
 - **Branch tracking:** <output of .gitmodules branch>
-- **Status line:** <output of git submodule status>
+- **Status line:** <full output of git submodule status — note if line starts with + or ->
 - **Recorded commit:** <output of git ls-tree HEAD skills>
 
 ### 2. Submodule Version
-- **Verdict:** <PASS|WARN — behind N commits|FAIL>
-- **Local SHA:** <HEAD sha>
-- **Remote SHA:** <origin/main sha>
-- **Commits behind:** <count>
+- **Verdict:** <PASS if up-to-date | WARN — behind N commits>
+- **Local SHA:** <full 40-char HEAD sha>
+- **Remote SHA:** <full 40-char origin/main sha>
+- **Commits behind:** <integer>
 
 ### 3. Submodule Cleanliness
-- **Verdict:** <PASS|WARN|FAIL>
-- **Modified files:** <list or "none">
-- **Untracked files:** <list or "none">
+- **Verdict:** <PASS if both empty | WARN or FAIL otherwise>
+- **Modified files:** <file list or "none">
+- **Untracked files:** <file list or "none">
 
 ### 4. Discovery Directories
-- **Verdict:** <PASS|FAIL>
-- **.claude/skills/ files:** <file listing>
-- **.agents/skills/ files:** <file listing>
-- **Committed to VCS:** <yes/no, with git ls-files output>
-- **Content match vs source:** <diff output or "all match">
+- **Verdict:** <PASS if all match | FAIL if missing, stale, or extra files>
+- **.claude/skills/ files:**
+<verbatim file listing from find, one path per line>
+- **.agents/skills/ files:**
+<verbatim file listing from find, one path per line>
+- **Committed to VCS:** <yes/no>
+<verbatim git ls-files output>
+- **Content match vs source:**
+<verbatim diff -rq output, or "all match" if no differences>
 
 ### 5. SessionStart Hook
-- **Verdict:** <PASS|WARN — old format|FAIL — missing>
-- **settings.json contents:** <full JSON>
+- **Verdict:** <PASS if correct nested format | WARN — old format | FAIL — missing>
+- **settings.json contents:**
+<verbatim JSON from cat .claude/settings.json>
 
 ### 6. Agent Instruction Files
-- **Verdict:** <PASS|WARN|FAIL>
-- **CLAUDE.md exists:** <yes/no>
-- **AGENTS.md exists:** <yes/no>
+- **Verdict:** <PASS if both exist, identical, and have skills section>
+- **CLAUDE.md exists:** <yes with ls -la output | no>
+- **AGENTS.md exists:** <yes with ls -la output | no>
 - **Identical:** <IDENTICAL or DIFFER>
-- **Skills section present:** <yes/no, with grep output>
+- **Skills section present:** <yes/no>
+<verbatim grep output>
 
 ### 7. manage.sh version
 - **Last commit touching manage.sh:** <output of command 12>
 
 ### 8. manage.sh check
-- **Verdict:** <PASS|WARN|FAIL>
+- **Verdict:** <PASS | WARN — N warnings | FAIL>
 - **Full output:**
-<verbatim output of manage.sh check>
+<verbatim output of manage.sh check — already ANSI-stripped>
 
 ### 9. manage.sh status
 - **Full output:**
-<verbatim output of manage.sh status>
+<verbatim output of manage.sh status — already ANSI-stripped>
 
 ### 10. Spec Validation
-- **Verdict:** <PASS|FAIL>
-- **Output:** <verbatim tail of test output>
+- **Verdict:** <PASS | FAIL>
+- **Output:**
+<verbatim tail of test output>
 
 ### 11. Summary
-- **Overall:** <ALL PASS | N issues found>
-- **Action items:** <numbered list of anything that needs fixing, or "none">
+- **Overall:** <ALL PASS | N issues found (M auto-fixed)>
+- **Action items:**
+  1. <specific action with exact command, or "none">
 ```
 
 ---END---
