@@ -24,7 +24,7 @@ This skill provides a copy-paste prompt for diagnosing the skills integration in
 
 **Proactive trigger:** If the user mentions running a health check, diagnosing a consumer repo, or checking a skills integration — immediately output the full prompt below. Do NOT wait for them to explicitly ask for it. The whole point of this skill is to hand over the prompt quickly so the user can paste it into the consumer repo agent.
 
-**Output rules:** Print everything between the `---START---` and `---END---` markers as a fenced code block so it is easy to copy. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them.
+**Output rules:** Print everything between the `---START---` and `---END---` markers inside a single fenced code block using **quadruple backticks** (i.e., four backtick characters) so the user can copy the entire prompt in one action. The inner triple backticks will render correctly inside the quadruple-backtick fence. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them.
 
 ## The Prompt
 
@@ -38,14 +38,15 @@ Run a full diagnostic of the skills integration in this repo and return a struct
 3. After collecting all command output, return the structured report below and STOP.
 
 **FORMAT RULES — follow these exactly when writing the report:**
-1. Use standard GitHub-flavored markdown: `**bold**` (not `__bold__`), `-` for list items.
-2. Use `##` for the report title and `###` for each numbered section — exactly as shown in the template.
-3. Use `- **Key:** value` for single-line data items.
-4. Wrap multi-line command output (more than one line) in fenced code blocks (triple backticks).
-5. All command output must be verbatim after ANSI stripping — never paraphrase, summarize, or reformat.
-6. Commands 13 and 14 below already strip ANSI color codes. If you run any additional commands, strip them too: `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
-7. If `git submodule status` output starts with `+` before the SHA, note this explicitly — it means the checked-out commit differs from the recorded pointer in the parent repo.
-8. Copy the template structure exactly. Do not rename sections, reorder them, merge them, or add extra sections.
+1. **Single block output:** Wrap the **entire** report in a single fenced code block (triple backticks with `markdown` language tag) so the user can copy it in one action.
+2. Inside the report use standard GitHub-flavored markdown: `**bold**` (not `__bold__`), `-` for list items.
+3. Use `##` for the report title and `###` for each numbered section — exactly as shown in the template.
+4. Use `- **Key:** value` for single-line data items.
+5. Indent multi-line command output by 4 spaces instead of using fenced code blocks (fenced code blocks cannot nest inside the outer fence).
+6. All command output must be verbatim after ANSI stripping — never paraphrase, summarize, or reformat.
+7. Commands 13 and 14 below already strip ANSI color codes. If you run any additional commands, strip them too: `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
+8. If `git submodule status` output starts with `+` before the SHA, note this explicitly — it means the checked-out commit differs from the recorded pointer in the parent repo.
+9. Copy the template structure exactly. Do not rename sections, reorder them, merge them, or add extra sections.
 
 ### Commands to run (run each one and capture the output)
 
@@ -109,7 +110,7 @@ python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
 
 Return the report using EXACTLY this structure. Copy the headers and bullet format character-for-character, only replacing `<...>` placeholders with actual data. Use `PASS`, `WARN`, or `FAIL` for each verdict.
 
-For items marked `<verbatim ...>`, include the raw command output inside a fenced code block (triple backticks). For single-value items, put the value on the same line after the colon.
+For items marked `<verbatim ...>`, include the raw command output indented by 4 spaces (NOT in fenced code blocks — the entire report is already inside a single fence). For single-value items, put the value on the same line after the colon.
 
 ```
 ## Skills Health Report
