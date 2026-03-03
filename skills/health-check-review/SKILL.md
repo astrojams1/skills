@@ -14,7 +14,7 @@ Process one or more health check reports pasted by the user from consumer repos.
 
 ## Proactive Trigger
 
-Activate this skill when the user pastes text containing a Skills Health Report (look for "Skills Health Report", numbered sections like "Submodule Registration", "Discovery Directories", "manage.sh check", etc.) or mentions reviewing or analyzing a health check report.
+Activate this skill when the user pastes text containing a Skills Health Report (look for "Skills Health Report", numbered sections like "Submodule Registration", "Discovery Directories", "manage.sh check", etc.) or mentions reviewing or analyzing a health check report. Reports arrive wrapped in a single fenced code block — parse the markdown content inside the fence.
 
 ## Workflow
 
