@@ -1025,7 +1025,7 @@ cmd_status() {
 
             if [ -f "$skill_md" ]; then
                 # Extract description from frontmatter
-                desc="$(sed -n '/^---$/,/^---$/{ /^description:/,/^[a-z]/{ s/^description: *//p; s/^ *//p; } }' "$skill_md" | head -2 | tr '\n' ' ' | sed 's/ *$//')"
+                desc="$(sed -n '/^---$/,/^---$/{ /^description:/,/^[a-z]/{ s/^description: *//p; s/^ *//p; } }' "$skill_md" | sed '/^[>|]-\{0,1\}$/d' | head -2 | tr '\n' ' ' | sed 's/ *$//')"
                 # Truncate long descriptions
                 if [ ${#desc} -gt 80 ]; then
                     desc="${desc:0:77}..."
