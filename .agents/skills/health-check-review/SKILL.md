@@ -118,7 +118,7 @@ If there are consumer repo actions, output them as a **single agent prompt** ins
 3. Stage and commit — persist all auto-fixes (`git add .claude .agents skills && git commit`)
 4. Manual fixes — anything `check` cannot auto-fix (e.g., CLAUDE.md/AGENTS.md content, missing skills section)
 5. Stage and commit manual fixes
-6. **Verification re-run** — always end the prompt with the full health check diagnostic commands from `skills/health-check-prompt/SKILL.md` so the agent produces a new report proving all sections PASS
+6. **Verification re-run** — always end the prompt with the full health check diagnostic (commands, format rules, and report template) from `skills/health-check-prompt/SKILL.md` so the agent produces a new report proving all sections PASS
 
 **Template for the consumer prompt:**
 
@@ -143,9 +143,9 @@ git commit -m "chore: sync skills and apply auto-fixes"
 <specific instructions for issues check cannot auto-fix, or "No manual fixes needed.">
 
 ## Step 5: Verify — re-run the full health check
-<paste the complete command list from health-check-prompt SKILL.md>
+<paste the full verification prompt from health-check-prompt SKILL.md: the "Commands to run" section, the "Report format" section (including format rules and the complete report template). The consumer agent does NOT have access to health-check-prompt — everything it needs to produce a correctly formatted report must be inlined here.>
 
-Return the health report using the standard format. Every section should now show PASS.
+Every section should now show PASS.
 ````
 
 If the report was already clean (all PASS, no warnings), output:
