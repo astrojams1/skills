@@ -13,6 +13,7 @@ Checks per skill directory:
   - Optional 'compatibility': 1-500 chars if present
   - Optional 'metadata': map of string keys to string values if present
   - Optional 'allowed-tools': must be a string if present
+  - Optional 'internal': boolean, marks skills as repo-internal (not distributed)
   - Body (after frontmatter) recommended under 500 lines
 """
 
@@ -31,6 +32,7 @@ KNOWN_FIELDS = {
     "compatibility",
     "metadata",
     "allowed-tools",
+    "internal",
 }
 
 # Matches valid names: lowercase alphanumeric segments separated by single hyphens
