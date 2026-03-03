@@ -152,6 +152,13 @@ else
     pass "check handles hook validation without ROOT unbound-variable errors"
 fi
 
+second_check_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" || true
+if echo "$second_check_output" | grep -Eq "WARN: SessionStart hook|FIXED: SessionStart hook"; then
+    fail "check should not repeatedly warn and auto-fix SessionStart hook"
+else
+    pass "check does not re-apply SessionStart hook fix on subsequent runs"
+fi
+
 echo ""
 echo "=================================================="
 echo "Results: $PASSED passed, $FAILED failed"
