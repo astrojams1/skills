@@ -10,7 +10,7 @@ description: >-
 
 # Skill: Health Check Prompt
 
-This skill provides a copy-paste prompt for diagnosing the skills integration in any consumer repo. Give the prompt below to a Claude or Codex agent running in the consumer repo. The agent will gather data and return a structured report you can use to identify issues.
+This skill provides a copy-paste prompt for diagnosing the skills integration in any consumer repo. Give the prompt to a Claude or Codex agent running in the consumer repo. The agent will gather data and return a structured report you can use to identify issues.
 
 ## When to Use
 
@@ -19,9 +19,11 @@ This skill provides a copy-paste prompt for diagnosing the skills integration in
 - At the start of a support session to get a baseline
 - After a `manage.sh sync` to confirm the update landed
 
-## The Prompt
+## Agent Instructions
 
-Copy everything between the `---START---` and `---END---` markers and paste it to the agent in the consumer repo.
+When this skill is invoked, **output the full prompt** (everything between the `---START---` and `---END---` markers below) directly in your response so the user can copy it. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them. Print the prompt as a fenced code block so it is easy to copy.
+
+## The Prompt
 
 ---START---
 
