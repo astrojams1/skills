@@ -76,10 +76,14 @@ skills_dir() {
     echo "$root/$SUBMODULE_PATH/skills"
 }
 
-# Create/update .claude/skills/ files so Claude Code discovers skills natively.
-# Each skill is copied to: .claude/skills/<name>.md from skills/skills/<name>/SKILL.md.
-# Copies are used (instead of symlinks) because some environments do not resolve
-# symlinks during skill discovery.
+# Copy skill directories so Claude Code and Codex discover skills natively.
+#
+# Claude Code scans: .claude/skills/<name>/SKILL.md
+# Codex scans:       .agents/skills/<name>/SKILL.md
+#
+# Full directory copies (not symlinks) because Claude Code has a confirmed bug
+# where skill discovery does not resolve symlinks
+# (https://github.com/anthropics/claude-code/issues/14836).
 link_skills() {
     local root="$1"
     local sdir
@@ -90,88 +94,115 @@ link_skills() {
         return
     fi
 
-    mkdir -p "$root/.claude/skills"
+    mkdir -p "$root/.claude/skills" "$root/.agents/skills"
 
-    local linked=0
+    local refreshed=0
     for skill in "$sdir"/*/; do
         [ -d "$skill" ] || continue
         [ -f "$skill/SKILL.md" ] || continue
 
         local name
         name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name.md"
-        local source="$sdir/$name/SKILL.md"
 
-        # Migrate old directory symlinks to managed markdown files
-        local old_link="$root/.claude/skills/$name"
-        if [ -L "$old_link" ]; then
-            rm "$old_link"
+        # Migrate old flat-file copies (.claude/skills/<name>.md) to directories
+        local old_flat="$root/.claude/skills/$name.md"
+        if [ -f "$old_flat" ] && [ ! -d "$old_flat" ]; then
+            rm "$old_flat"
+        fi
+        # Remove old symlinks (any format)
+        if [ -L "$root/.claude/skills/$name" ]; then
+            rm "$root/.claude/skills/$name"
+        fi
+        if [ -L "$root/.agents/skills/$name" ]; then
+            rm "$root/.agents/skills/$name"
         fi
 
-        # Replace old symlinks with real files
-        if [ -L "$link_path" ]; then
-            rm "$link_path"
-        elif [ -d "$link_path" ]; then
-            yellow "SKIP: $link_path is a directory (won't overwrite)"
-            continue
-        fi
+        # Copy to .claude/skills/<name>/  (for Claude Code)
+        _sync_skill_dir "$sdir/$name" "$root/.claude/skills/$name" && refreshed=$((refreshed + 1))
 
-        if [ -f "$link_path" ] && cmp -s "$source" "$link_path"; then
-            continue
-        fi
-
-        cp "$source" "$link_path"
-        linked=$((linked + 1))
+        # Copy to .agents/skills/<name>/  (for Codex)
+        _sync_skill_dir "$sdir/$name" "$root/.agents/skills/$name" && refreshed=$((refreshed + 1))
     done
 
-    # Remove stale managed skill files (skills removed upstream)
-    for link in "$root/.claude/skills"/*.md; do
-        [ -e "$link" ] || continue
-        local name
-        name="$(basename "$link" .md)"
-        if [ ! -d "$sdir/$name" ]; then
-            rm "$link"
-            yellow "Removed stale skill file: .claude/skills/$name.md"
-        fi
-    done
+    # Remove stale skill directories (skills removed upstream)
+    _remove_stale_skills "$sdir" "$root/.claude/skills"
+    _remove_stale_skills "$sdir" "$root/.agents/skills"
 
-    if [ "$linked" -gt 0 ]; then
-        green "Refreshed $linked skill file(s) in .claude/skills/"
+    if [ "$refreshed" -gt 0 ]; then
+        green "Refreshed skills in .claude/skills/ and .agents/skills/"
     fi
 }
 
-# Check that .claude/skills/ files mirror SKILL.md sources
+# Sync a single skill directory: cp -r source to dest if content differs.
+# Returns 0 (true) if the copy was refreshed, 1 if already up-to-date.
+_sync_skill_dir() {
+    local src="$1" dest="$2"
+    if [ -d "$dest" ] && diff -rq "$src" "$dest" >/dev/null 2>&1; then
+        return 1  # already up-to-date
+    fi
+    rm -rf "$dest"
+    cp -r "$src" "$dest"
+    return 0
+}
+
+# Remove skill directories under $target_dir that no longer exist in $source_dir.
+_remove_stale_skills() {
+    local source_dir="$1" target_dir="$2"
+    [ -d "$target_dir" ] || return 0
+    for entry in "$target_dir"/*/; do
+        [ -d "$entry" ] || continue
+        local name
+        name="$(basename "$entry")"
+        if [ ! -d "$source_dir/$name" ]; then
+            rm -rf "$entry"
+            yellow "Removed stale skill directory: $entry"
+        fi
+    done
+    # Also clean up any leftover flat .md files from older versions
+    for flat in "$target_dir"/*.md; do
+        [ -f "$flat" ] || continue
+        rm "$flat"
+        yellow "Removed legacy flat skill file: $flat"
+    done
+}
+
+# Check that .claude/skills/ and .agents/skills/ directories mirror source skills
 check_skill_links() {
     local root="$1"
     local sdir
     sdir="$(skills_dir "$root")"
     local issues=0
 
-    if [ ! -d "$root/.claude/skills" ]; then
-        red "FAIL: .claude/skills/ directory missing — Claude Code cannot discover skills"
-        echo "  Run: $(basename "$0") install  (or sync to recreate links)"
-        return 1
-    fi
+    for target_dir in "$root/.claude/skills" "$root/.agents/skills"; do
+        local label
+        label="$(echo "$target_dir" | sed "s|$root/||")"
 
-    for skill in "$sdir"/*/; do
-        [ -d "$skill" ] || continue
-        [ -f "$skill/SKILL.md" ] || continue
-
-        local name
-        name="$(basename "$skill")"
-        local link_path="$root/.claude/skills/$name.md"
-        local source="$sdir/$name/SKILL.md"
-
-        if [ ! -e "$link_path" ]; then
-            red "FAIL: Missing skill file .claude/skills/$name.md"
+        if [ ! -d "$target_dir" ]; then
+            red "FAIL: $label/ directory missing"
+            echo "  Run: $(basename "$0") install  (or sync to recreate)"
             issues=$((issues + 1))
-        elif [ -d "$link_path" ]; then
-            yellow "WARN: .claude/skills/$name.md is a directory"
-            issues=$((issues + 1))
-        elif ! cmp -s "$source" "$link_path"; then
-            red "FAIL: .claude/skills/$name.md content is stale"
-            issues=$((issues + 1))
+            continue
         fi
+
+        for skill in "$sdir"/*/; do
+            [ -d "$skill" ] || continue
+            [ -f "$skill/SKILL.md" ] || continue
+
+            local name
+            name="$(basename "$skill")"
+            local dest="$target_dir/$name"
+
+            if [ ! -d "$dest" ]; then
+                red "FAIL: Missing skill directory $label/$name/"
+                issues=$((issues + 1))
+            elif [ ! -f "$dest/SKILL.md" ]; then
+                red "FAIL: $label/$name/ exists but has no SKILL.md"
+                issues=$((issues + 1))
+            elif ! diff -rq "$sdir/$name" "$dest" >/dev/null 2>&1; then
+                red "FAIL: $label/$name/ content is stale"
+                issues=$((issues + 1))
+            fi
+        done
     done
 
     return "$issues"
@@ -337,6 +368,9 @@ cmd_install() {
             if [ -d "$target/.claude" ]; then
                 git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
             fi
+            if [ -d "$target/.agents" ]; then
+                git -C "$target" add .agents/skills 2>/dev/null || true
+            fi
             yellow "Run 'check' to verify integrity or 'sync' to update."
             exit 0
         else
@@ -346,6 +380,9 @@ cmd_install() {
             ensure_session_hook "$target"
             if [ -d "$target/.claude" ]; then
                 git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
+            fi
+            if [ -d "$target/.agents" ]; then
+                git -C "$target" add .agents/skills 2>/dev/null || true
             fi
             green "Submodule initialized."
             exit 0
@@ -364,8 +401,8 @@ cmd_install() {
         git -C "$target" config -f .gitmodules "submodule.$SUBMODULE_PATH.branch" main
     fi
 
-    # Create .claude/skills/ files so Claude Code discovers skills natively
-    bold "Linking skills into .claude/skills/ for Claude Code discovery..."
+    # Copy skill directories for Claude Code and Codex discovery
+    bold "Copying skills into .claude/skills/ and .agents/skills/ for agent discovery..."
     link_skills "$target"
 
     # Add SessionStart hook to auto-initialize submodule in new sessions
@@ -374,16 +411,19 @@ cmd_install() {
 
     # Stage changes
     git -C "$target" add .gitmodules "$SUBMODULE_PATH"
-    # Stage .claude/ config (skill files + settings.json)
+    # Stage skill discovery directories and settings
     if [ -d "$target/.claude" ]; then
         git -C "$target" add .claude/skills .claude/settings.json 2>/dev/null || true
+    fi
+    if [ -d "$target/.agents" ]; then
+        git -C "$target" add .agents/skills 2>/dev/null || true
     fi
 
     green "Skills submodule installed successfully."
     echo ""
     bold "Next steps:"
     echo "  1. Commit:  git commit -m \"chore: add astrojams1/skills submodule\""
-    echo "  2. Update your claude.md and agents.md (see skill-orchestrator SKILL.md Step 5)"
+    echo "  2. Update your CLAUDE.md and AGENTS.md (see skill-orchestrator SKILL.md Step 5)"
     echo "  3. Run:     ./skills/bin/manage.sh status"
 }
 
@@ -404,6 +444,10 @@ cmd_uninstall() {
         local cleaned=false
         if [ -d "$root/.claude/skills" ]; then
             rm -rf "$root/.claude/skills"
+            cleaned=true
+        fi
+        if [ -d "$root/.agents/skills" ]; then
+            rm -rf "$root/.agents/skills"
             cleaned=true
         fi
         if [ -f "$root/.claude/settings.json" ]; then
@@ -441,9 +485,12 @@ cmd_uninstall() {
     # 4. Clean cached module data
     rm -rf "$root/.git/modules/$SUBMODULE_PATH"
 
-    # 5. Remove .claude/skills/ skill files
+    # 5. Remove skill discovery directories
     if [ -d "$root/.claude/skills" ]; then
         rm -rf "$root/.claude/skills"
+    fi
+    if [ -d "$root/.agents/skills" ]; then
+        rm -rf "$root/.agents/skills"
     fi
 
     # 6. Remove SessionStart hook
@@ -455,6 +502,9 @@ cmd_uninstall() {
     fi
     if [ -d "$root/.claude" ]; then
         git -C "$root" add .claude/ 2>/dev/null || true
+    fi
+    if [ -d "$root/.agents" ]; then
+        git -C "$root" add .agents/ 2>/dev/null || true
     fi
 
     green "Skills uninstalled successfully."
@@ -650,19 +700,19 @@ print('missing')
             ;;
     esac
 
-    # 9. Claude Code skill files (auto-fix if missing or stale)
+    # 9. Skill discovery directories (auto-fix if missing or stale)
     if check_skill_links "$root"; then
-        green "PASS: .claude/skills/ files are current"
+        green "PASS: .claude/skills/ and .agents/skills/ are current"
     else
-        yellow "WARN: .claude/skills/ files are missing or stale — auto-fixing..."
+        yellow "WARN: Skill discovery directories are missing or stale — auto-fixing..."
         link_skills "$root"
         # Re-check after fix
         if check_skill_links "$root" 2>/dev/null; then
-            green "  FIXED: .claude/skills/ files refreshed"
+            green "  FIXED: skill directories refreshed"
             warnings=$((warnings + 1))
         else
-            red "FAIL: .claude/skills/ files could not be auto-fixed"
-            echo "  Run: $(basename "$0") sync  (refreshes .claude skill files)"
+            red "FAIL: Skill discovery directories could not be auto-fixed"
+            echo "  Run: $(basename "$0") sync  (refreshes skill directories)"
             failures=$((failures + 1))
         fi
     fi
@@ -730,8 +780,8 @@ cmd_sync() {
         echo "  git commit -m \"chore: sync skills submodule to latest main\""
     fi
 
-    # Refresh .claude/skills/ files (picks up new/removed skills)
-    bold "Refreshing .claude/skills/ skill files..."
+    # Refresh skill directories (picks up new/removed skills)
+    bold "Refreshing skill directories..."
     link_skills "$root"
 
     # Ensure SessionStart hook exists (migrates older installs)
@@ -740,16 +790,23 @@ cmd_sync() {
     if [ -d "$root/.claude" ]; then
         git -C "$root" add .claude/skills .claude/settings.json 2>/dev/null || true
     fi
+    if [ -d "$root/.agents" ]; then
+        git -C "$root" add .agents/skills 2>/dev/null || true
+    fi
 }
 
 cmd_link() {
     local root
     root="$(find_project_root)"
 
+    if is_standalone_skills_repo "$root"; then
+        # In the author repo: copy skills/ into .claude/skills/ and .agents/skills/
+        bold "Standalone skills repo detected — linking skills for local discovery..."
+        link_skills_standalone "$root"
+        return
+    fi
+
     if ! submodule_exists "$root"; then
-        if is_standalone_skills_repo "$root"; then
-            die "This appears to be the standalone skills repository. Run link from your consumer repo root: ./skills/bin/manage.sh link"
-        fi
         die "No skills submodule found. Run: $(basename "$0") install"
     fi
 
@@ -758,6 +815,43 @@ cmd_link() {
     fi
 
     link_skills "$root"
+}
+
+# Copy skill directories from skills/ into .claude/skills/ and .agents/skills/
+# for the standalone author repo (where skills/ is NOT a submodule).
+link_skills_standalone() {
+    local root="$1"
+    local sdir="$root/skills"
+
+    if [ ! -d "$sdir" ]; then
+        die "No skills/ directory found at $root"
+    fi
+
+    mkdir -p "$root/.claude/skills" "$root/.agents/skills"
+
+    local refreshed=0
+    for skill in "$sdir"/*/; do
+        [ -d "$skill" ] || continue
+        [ -f "$skill/SKILL.md" ] || continue
+
+        local name
+        name="$(basename "$skill")"
+
+        # Copy to .claude/skills/<name>/  (for Claude Code)
+        _sync_skill_dir "$sdir/$name" "$root/.claude/skills/$name" && refreshed=$((refreshed + 1))
+
+        # Copy to .agents/skills/<name>/  (for Codex)
+        _sync_skill_dir "$sdir/$name" "$root/.agents/skills/$name" && refreshed=$((refreshed + 1))
+    done
+
+    _remove_stale_skills "$sdir" "$root/.claude/skills"
+    _remove_stale_skills "$sdir" "$root/.agents/skills"
+
+    if [ "$refreshed" -gt 0 ]; then
+        green "Refreshed skills in .claude/skills/ and .agents/skills/"
+    else
+        green "Skills in .claude/skills/ and .agents/skills/ are up-to-date"
+    fi
 }
 
 cmd_status() {
