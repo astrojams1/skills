@@ -21,7 +21,9 @@ This skill provides a copy-paste prompt for diagnosing the skills integration in
 
 ## Agent Instructions
 
-When this skill is invoked, **output the full prompt** (everything between the `---START---` and `---END---` markers below) directly in your response so the user can copy it. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them. Print the prompt as a fenced code block so it is easy to copy.
+**Proactive trigger:** If the user mentions running a health check, diagnosing a consumer repo, or checking a skills integration — immediately output the full prompt below. Do NOT wait for them to explicitly ask for it. The whole point of this skill is to hand over the prompt quickly so the user can paste it into the consumer repo agent.
+
+**Output rules:** Print everything between the `---START---` and `---END---` markers as a fenced code block so it is easy to copy. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them.
 
 ## The Prompt
 
