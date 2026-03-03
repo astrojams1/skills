@@ -1,5 +1,6 @@
 ---
 name: health-check-prompt
+internal: true
 description: >-
   A diagnostic prompt for the skills repo author to give to Claude or Codex
   agents in consumer repos. The agent runs commands and inspects files, then
