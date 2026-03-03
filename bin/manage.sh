@@ -798,7 +798,28 @@ print('missing')
         fi
     fi
 
-    # 10. Stale lowercase agent instruction files
+    # 10. Internal skills leaked into consumer discovery dirs
+    # (check_skill_links skips internal skills, so link_skills cleanup may
+    #  never run if all non-internal skills are fine — clean up explicitly)
+    local sdir
+    sdir="$(skills_dir "$root")"
+    for skill in "$sdir"/*/; do
+        [ -d "$skill" ] || continue
+        if _is_internal_skill "$skill"; then
+            local name
+            name="$(basename "$skill")"
+            for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
+                if [ -d "$discovery_dir/$name" ]; then
+                    yellow "WARN: Internal skill '$name' found in consumer discovery dir"
+                    rm -rf "$discovery_dir/$name"
+                    green "  FIXED: Removed $discovery_dir/$name"
+                    warnings=$((warnings + 1))
+                fi
+            done
+        fi
+    done
+
+    # 11. Stale lowercase agent instruction files
     if cleanup_lowercase_agent_files "$root"; then
         warnings=$((warnings + 1))
     fi

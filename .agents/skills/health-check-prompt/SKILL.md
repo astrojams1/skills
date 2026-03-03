@@ -169,3 +169,5 @@ When the consumer agent returns the report, check for these common issues:
 | CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Copy one to the other |
 | No "Skills" section in CLAUDE.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
 | Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
+| `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with flat path) | Submodule is far behind; running an old manage.sh that lacks auto-sync and directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |
+| Internal skill (e.g. health-check-prompt) in consumer discovery dirs | Old manage.sh copied it before `internal: true` filtering existed | Run `manage.sh check` (latest version removes internal skills automatically) |
