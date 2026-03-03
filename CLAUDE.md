@@ -16,6 +16,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Workflow orchestration practices for AI agents
   skill-orchestrator/
     SKILL.md                               # Wire another repo to this skills submodule
+  health-check-prompt/
+    SKILL.md                               # Diagnostic prompt for consumer repo integration
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
 tests/                                     # Tests for repository integrity
@@ -85,6 +87,16 @@ When the user asks to add skills to a project, read `skills/skill-orchestrator/S
 - **Add skills:** Run `bin/manage.sh install /path/to/target-project` (or the manual git commands in Step 1)
 - **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
 - **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
+
+### Health Check Prompt
+
+**Skill:** `skills/health-check-prompt/SKILL.md`
+
+A diagnostic prompt you copy-paste to a Claude or Codex agent running in a consumer repo. The agent gathers data and returns a structured health report covering submodule state, discovery directories, hooks, agent instructions, and spec compliance.
+
+#### How to use
+
+Read `skills/health-check-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the consumer repo. Review the returned report using the diagnostic table in the skill.
 
 ## Rules
 

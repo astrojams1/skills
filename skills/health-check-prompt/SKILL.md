@@ -1,0 +1,166 @@
+---
+name: health-check-prompt
+description: >-
+  A diagnostic prompt for the skills repo author to give to Claude or Codex
+  agents in consumer repos. The agent runs commands and inspects files, then
+  returns a structured health report covering every aspect of the skills
+  integration. Use when you need to verify a consumer repo's integration or
+  debug issues remotely.
+---
+
+# Skill: Health Check Prompt
+
+This skill provides a copy-paste prompt for diagnosing the skills integration in any consumer repo. Give the prompt below to a Claude or Codex agent running in the consumer repo. The agent will gather data and return a structured report you can use to identify issues.
+
+## When to Use
+
+- After initial `manage.sh install` to verify everything is wired correctly
+- When a consumer repo reports skills not loading or being stale
+- At the start of a support session to get a baseline
+- After a `manage.sh sync` to confirm the update landed
+
+## The Prompt
+
+Copy everything between the `---START---` and `---END---` markers and paste it to the agent in the consumer repo.
+
+---START---
+
+Run a full diagnostic of the skills integration in this repo and return a structured health report. Execute the commands below and collect their EXACT output. Do NOT paraphrase or summarize command output — include it verbatim. If a command fails, include the error message.
+
+### Commands to run (run each one and capture the output)
+
+```bash
+# 1. Project identity
+basename "$(git rev-parse --show-toplevel)"
+
+# 2. Git submodule state
+git submodule status skills
+
+# 3. .gitmodules entry for skills
+git config -f .gitmodules --get submodule.skills.url
+git config -f .gitmodules --get submodule.skills.branch
+
+# 4. Submodule remote comparison
+git -C skills rev-parse HEAD
+git -C skills fetch origin main --quiet 2>&1 && git -C skills rev-parse origin/main
+git -C skills rev-list --count HEAD..origin/main 2>/dev/null || echo "N/A"
+
+# 5. Local modifications in submodule
+git -C skills diff --name-only
+git -C skills ls-files --others --exclude-standard
+
+# 6. Discovery directory listing
+find .claude/skills -type f 2>/dev/null | sort
+find .agents/skills -type f 2>/dev/null | sort
+
+# 7. Discovery dirs committed to VCS (not just local)
+git ls-files .claude/skills | head -30
+git ls-files .agents/skills | head -30
+
+# 8. Content match: discovery dirs vs submodule source
+diff -rq skills/skills/ .claude/skills/ 2>&1 | head -20
+diff -rq skills/skills/ .agents/skills/ 2>&1 | head -20
+
+# 9. SessionStart hook
+cat .claude/settings.json 2>/dev/null || echo "FILE NOT FOUND"
+
+# 10. Agent instruction files
+ls -la CLAUDE.md AGENTS.md 2>/dev/null
+cmp -s CLAUDE.md AGENTS.md && echo "IDENTICAL" || echo "DIFFER"
+
+# 11. Skills section in CLAUDE.md
+grep -n -i "skills" CLAUDE.md 2>/dev/null | head -20
+
+# 12. manage.sh check (the main integrity check)
+./skills/bin/manage.sh check 2>&1
+
+# 13. manage.sh status
+./skills/bin/manage.sh status 2>&1
+
+# 14. Spec validation
+python3 ./skills/tests/test_skills_spec.py 2>&1 | tail -20
+```
+
+### Report format
+
+Return the report using EXACTLY this structure. Fill in each section with the verbatim command output. Use `PASS`, `WARN`, or `FAIL` for each verdict.
+
+```
+## Skills Health Report
+
+**Project:** <output of command 1>
+**Date:** <current date>
+**Agent:** <Claude or Codex>
+
+### 1. Submodule Registration
+- **Verdict:** <PASS|FAIL>
+- **URL:** <output of .gitmodules url>
+- **Branch tracking:** <output of .gitmodules branch>
+- **Status line:** <output of git submodule status>
+
+### 2. Submodule Version
+- **Verdict:** <PASS|WARN — behind N commits|FAIL>
+- **Local SHA:** <HEAD sha>
+- **Remote SHA:** <origin/main sha>
+- **Commits behind:** <count>
+
+### 3. Submodule Cleanliness
+- **Verdict:** <PASS|WARN|FAIL>
+- **Modified files:** <list or "none">
+- **Untracked files:** <list or "none">
+
+### 4. Discovery Directories
+- **Verdict:** <PASS|FAIL>
+- **.claude/skills/ files:** <file listing>
+- **.agents/skills/ files:** <file listing>
+- **Committed to VCS:** <yes/no, with git ls-files output>
+- **Content match vs source:** <diff output or "all match">
+
+### 5. SessionStart Hook
+- **Verdict:** <PASS|WARN — old format|FAIL — missing>
+- **settings.json contents:** <full JSON>
+
+### 6. Agent Instruction Files
+- **Verdict:** <PASS|WARN|FAIL>
+- **CLAUDE.md exists:** <yes/no>
+- **AGENTS.md exists:** <yes/no>
+- **Identical:** <IDENTICAL or DIFFER>
+- **Skills section present:** <yes/no, with grep output>
+
+### 7. manage.sh check
+- **Verdict:** <PASS|WARN|FAIL>
+- **Full output:**
+<verbatim output of manage.sh check>
+
+### 8. manage.sh status
+- **Full output:**
+<verbatim output of manage.sh status>
+
+### 9. Spec Validation
+- **Verdict:** <PASS|FAIL>
+- **Output:** <verbatim tail of test output>
+
+### 10. Summary
+- **Overall:** <ALL PASS | N issues found>
+- **Action items:** <numbered list of anything that needs fixing, or "none">
+```
+
+Important: Do NOT fix any issues. Only report. I need the raw diagnostic data.
+
+---END---
+
+## Reading the Report
+
+When the consumer agent returns the report, check for these common issues:
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Submodule FAIL — not registered | `manage.sh install` was never run | Run `manage.sh install .` |
+| Commits behind > 0 | Submodule not synced recently | Run `manage.sh sync` |
+| Modified files in submodule | Someone edited skills locally | `git -C skills checkout .` |
+| Discovery dirs missing or not in VCS | `git add .claude .agents` was skipped | Run `manage.sh link` then commit |
+| Content mismatch in discovery dirs | Stale copies after a sync | Run `manage.sh link` |
+| SessionStart hook missing/old format | Old install or manual settings edit | Run `manage.sh check` (auto-fixes) |
+| CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Copy one to the other |
+| No "Skills" section in CLAUDE.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
+| Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
