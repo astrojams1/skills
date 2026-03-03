@@ -143,9 +143,7 @@ git commit -m "chore: sync skills and apply auto-fixes"
 <specific instructions for issues check cannot auto-fix, or "No manual fixes needed.">
 
 ## Step 5: Verify — re-run the full health check
-<paste the complete command list from health-check-prompt SKILL.md>
-
-Return the health report using the standard format. Every section should now show PASS.
+<paste the complete command list AND report format template from health-check-prompt SKILL.md — the consumer agent needs both the commands to run and the exact report structure to follow>
 ````
 
 If the report was already clean (all PASS, no warnings), output:
