@@ -88,11 +88,15 @@ When the user asks to add skills to a project, read `skills/skill-orchestrator/S
 - **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
 - **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
 
+## Internal Skills
+
+These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
+
 ### Health Check Prompt
 
 **Skill:** `skills/health-check-prompt/SKILL.md`
 
-A diagnostic prompt you copy-paste to a Claude or Codex agent running in a consumer repo. The agent gathers data and returns a structured health report covering submodule state, discovery directories, hooks, agent instructions, and spec compliance.
+A diagnostic prompt for the skills repo author to copy-paste to a Claude or Codex agent running in a consumer repo. The agent gathers data and returns a structured health report covering submodule state, discovery directories, hooks, agent instructions, and spec compliance.
 
 #### How to use
 

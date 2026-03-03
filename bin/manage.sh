@@ -76,6 +76,13 @@ skills_dir() {
     echo "$root/$SUBMODULE_PATH/skills"
 }
 
+# Check if a skill is marked as internal (not for consumer repos).
+# Internal skills have `internal: true` in their SKILL.md frontmatter.
+_is_internal_skill() {
+    local skill_dir="$1"
+    [ -f "$skill_dir/SKILL.md" ] && sed -n '/^---$/,/^---$/p' "$skill_dir/SKILL.md" | grep -q '^internal: *true'
+}
+
 # Copy skill directories so Claude Code and Codex discover skills natively.
 #
 # Claude Code scans: .claude/skills/<name>/SKILL.md
@@ -100,6 +107,11 @@ link_skills() {
     for skill in "$sdir"/*/; do
         [ -d "$skill" ] || continue
         [ -f "$skill/SKILL.md" ] || continue
+
+        # Skip internal skills — they are only for the skills repo itself
+        if _is_internal_skill "$skill"; then
+            continue
+        fi
 
         local name
         name="$(basename "$skill")"
@@ -129,6 +141,21 @@ link_skills() {
     # Remove stale skill directories (skills removed upstream)
     _remove_stale_skills "$sdir" "$root/.claude/skills"
     _remove_stale_skills "$sdir" "$root/.agents/skills"
+
+    # Remove internal skills from consumer discovery dirs (may exist from older installs)
+    for skill in "$sdir"/*/; do
+        [ -d "$skill" ] || continue
+        if _is_internal_skill "$skill"; then
+            local name
+            name="$(basename "$skill")"
+            for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
+                if [ -d "$discovery_dir/$name" ]; then
+                    rm -rf "$discovery_dir/$name"
+                    yellow "Removed internal skill from consumer discovery: $discovery_dir/$name"
+                fi
+            done
+        fi
+    done
 
     if [ "$refreshed" -gt 0 ]; then
         green "Refreshed skills in .claude/skills/ and .agents/skills/"
@@ -189,6 +216,11 @@ check_skill_links() {
         for skill in "$sdir"/*/; do
             [ -d "$skill" ] || continue
             [ -f "$skill/SKILL.md" ] || continue
+
+            # Skip internal skills — they are only for the skills repo itself
+            if _is_internal_skill "$skill"; then
+                continue
+            fi
 
             local name
             name="$(basename "$skill")"
