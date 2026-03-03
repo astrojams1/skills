@@ -248,6 +248,72 @@ print('migrated' if was_migrated else 'added')
 " "$settings" "$hook_cmd"
 }
 
+# Remove the skills SessionStart hook from .claude/settings.json.
+# Preserves all other hooks and settings.  Deletes settings.json if it
+# becomes empty after removal.
+remove_session_hook() {
+    local root="$1"
+    local settings="$root/.claude/settings.json"
+
+    [ -f "$settings" ] || return 0
+
+    python3 -c "
+import json, sys, os
+
+settings_path = sys.argv[1]
+if not os.path.isfile(settings_path):
+    sys.exit(0)
+
+with open(settings_path) as f:
+    data = json.load(f)
+
+hooks = data.get('hooks', {})
+session_hooks = hooks.get('SessionStart', [])
+
+# Remove all skills-related hooks (any command referencing skills/bin/manage.sh
+# or the legacy submodule-only commands)
+legacy_cmds = {
+    'git submodule update --init --recursive',
+    'git submodule update --init --recursive && ./skills/bin/manage.sh link',
+}
+
+remaining = []
+for e in session_hooks:
+    if isinstance(e, dict) and 'hooks' in e:
+        kept = [h for h in e['hooks']
+                if not (h.get('type') == 'command' and
+                        (h.get('command', '') in legacy_cmds or
+                         'skills/bin/manage.sh' in h.get('command', '')))]
+        if kept:
+            remaining.append(dict(e, hooks=kept))
+    elif isinstance(e, dict) and 'hooks' not in e:
+        cmd = e.get('command', '')
+        if cmd in legacy_cmds or 'skills/bin/manage.sh' in cmd:
+            continue
+        remaining.append(e)
+    else:
+        remaining.append(e)
+
+if remaining:
+    hooks['SessionStart'] = remaining
+else:
+    hooks.pop('SessionStart', None)
+
+if not hooks:
+    data.pop('hooks', None)
+
+if data:
+    with open(settings_path, 'w') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
+else:
+    os.remove(settings_path)
+    print('removed')
+    sys.exit(0)
+print('cleaned')
+" "$settings" 2>/dev/null || true
+}
+
 # ── Commands ─────────────────────────────────────────────────────────
 
 cmd_install() {
@@ -319,6 +385,110 @@ cmd_install() {
     echo "  1. Commit:  git commit -m \"chore: add astrojams1/skills submodule\""
     echo "  2. Update your claude.md and agents.md (see skill-orchestrator SKILL.md Step 5)"
     echo "  3. Run:     ./skills/bin/manage.sh status"
+}
+
+cmd_uninstall() {
+    local target="${1:-}"
+    local root
+
+    if [ -n "$target" ]; then
+        root="$(cd "$target" && pwd)"
+    else
+        root="$(find_project_root)"
+    fi
+
+    bold "Uninstalling skills from: $root"
+
+    if ! submodule_exists "$root"; then
+        # No submodule registered — still clean up any leftover artifacts
+        local cleaned=false
+        if [ -d "$root/.claude/skills" ]; then
+            rm -rf "$root/.claude/skills"
+            cleaned=true
+        fi
+        if [ -f "$root/.claude/settings.json" ]; then
+            remove_session_hook "$root"
+            cleaned=true
+        fi
+        # Remove leftover skills directory (orphaned from a partial removal)
+        if [ -d "$root/$SUBMODULE_PATH" ]; then
+            rm -rf "$root/$SUBMODULE_PATH"
+            cleaned=true
+        fi
+        if [ "$cleaned" = true ]; then
+            green "Cleaned up leftover artifacts (no submodule was registered)"
+        else
+            yellow "Nothing to uninstall — no skills submodule or artifacts found"
+        fi
+        return 0
+    fi
+
+    # Warn about local modifications
+    local skills_path="$root/$SUBMODULE_PATH"
+    if submodule_initialized "$root" && ! git -C "$skills_path" diff --quiet 2>/dev/null; then
+        yellow "Warning: skills submodule has local modifications that will be lost"
+    fi
+
+    # 1. Deinitialize the submodule
+    git -C "$root" submodule deinit -f "$SUBMODULE_PATH" 2>/dev/null || true
+
+    # 2. Remove from git index and .gitmodules
+    git -C "$root" rm -f "$SUBMODULE_PATH" 2>/dev/null || true
+
+    # 3. Remove leftover directory (git rm may not clean everything)
+    rm -rf "$root/$SUBMODULE_PATH"
+
+    # 4. Clean cached module data
+    rm -rf "$root/.git/modules/$SUBMODULE_PATH"
+
+    # 5. Remove .claude/skills/ skill files
+    if [ -d "$root/.claude/skills" ]; then
+        rm -rf "$root/.claude/skills"
+    fi
+
+    # 6. Remove SessionStart hook
+    remove_session_hook "$root"
+
+    # Stage the cleanup
+    if [ -f "$root/.gitmodules" ]; then
+        git -C "$root" add .gitmodules 2>/dev/null || true
+    fi
+    if [ -d "$root/.claude" ]; then
+        git -C "$root" add .claude/ 2>/dev/null || true
+    fi
+
+    green "Skills uninstalled successfully."
+    bold "Changes are staged. To commit:"
+    echo "  git commit -m \"chore: remove skills submodule\""
+}
+
+cmd_reinstall() {
+    local target="${1:-}"
+    local root
+
+    if [ -n "$target" ]; then
+        root="$(cd "$target" && pwd)"
+    else
+        root="$(find_project_root)"
+    fi
+
+    bold "Reinstalling skills in: $root"
+    echo ""
+
+    # Preserve the configured remote URL before uninstalling
+    local remote_url="$SKILLS_REMOTE"
+    if submodule_exists "$root"; then
+        remote_url="$(git -C "$root" config -f .gitmodules "submodule.$SUBMODULE_PATH.url" 2>/dev/null || echo "$SKILLS_REMOTE")"
+    fi
+
+    # Step 1: Uninstall
+    bold "Step 1/2: Removing existing integration..."
+    cmd_uninstall "$root"
+    echo ""
+
+    # Step 2: Fresh install (SKILLS_REMOTE carries the preserved URL)
+    bold "Step 2/2: Installing fresh..."
+    SKILLS_REMOTE="$remote_url" cmd_install "$root"
 }
 
 cmd_check() {
@@ -671,13 +841,15 @@ Skills Management CLI
 Usage: manage.sh <command> [options]
 
 Commands:
-  install [dir]   Add the skills submodule to a target repo (defaults to cwd)
-  check           Verify skills are initialized, unmodified, and up-to-date
-                  Auto-fixes missing skill files and stale hooks in place
-  sync            Pull latest skills from upstream main and stage the update
-  link            Recreate .claude/skills/ skill files (no network, no staging)
-  status          Show current skills state, commit info, and available skills
-  help            Show this help message
+  install [dir]     Add the skills submodule to a target repo (defaults to cwd)
+  uninstall [dir]   Completely remove the skills submodule and all artifacts
+  reinstall [dir]   Wipe existing integration and rebuild from scratch
+  check             Verify skills are initialized, unmodified, and up-to-date
+                    Auto-fixes missing skill files and stale hooks in place
+  sync              Pull latest skills from upstream main and stage the update
+  link              Recreate .claude/skills/ skill files (no network, no staging)
+  status            Show current skills state, commit info, and available skills
+  help              Show this help message
 
 Examples:
   # Install into current project
@@ -692,6 +864,12 @@ Examples:
   # Update to latest
   ./skills/bin/manage.sh sync
 
+  # Wipe and rebuild a broken integration
+  ./skills/bin/manage.sh reinstall
+
+  # Completely remove skills from a project
+  ./skills/bin/manage.sh uninstall
+
   # See what you have
   ./skills/bin/manage.sh status
 HELP
@@ -704,11 +882,13 @@ main() {
     shift || true
 
     case "$cmd" in
-        install) cmd_install "$@" ;;
-        check)   cmd_check "$@" ;;
-        sync)    cmd_sync "$@" ;;
-        link)    cmd_link "$@" ;;
-        status)  cmd_status "$@" ;;
+        install)   cmd_install "$@" ;;
+        uninstall) cmd_uninstall "$@" ;;
+        reinstall) cmd_reinstall "$@" ;;
+        check)     cmd_check "$@" ;;
+        sync)      cmd_sync "$@" ;;
+        link)      cmd_link "$@" ;;
+        status)    cmd_status "$@" ;;
         help|-h|--help) cmd_help ;;
         *)
             red "Unknown command: $cmd"

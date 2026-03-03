@@ -44,7 +44,7 @@ echo ""
 echo "Testing help command..."
 
 help_output="$(bash "$MANAGE" help 2>&1)"
-for cmd in install check sync status; do
+for cmd in install uninstall reinstall check sync status; do
     if echo "$help_output" | grep -q "$cmd"; then
         pass "help mentions $cmd command"
     else
@@ -157,6 +157,94 @@ if echo "$second_check_output" | grep -Eq "WARN: SessionStart hook|FIXED: Sessio
     fail "check should not repeatedly warn and auto-fix SessionStart hook"
 else
     pass "check does not re-apply SessionStart hook fix on subsequent runs"
+fi
+
+echo ""
+echo "Testing uninstall command..."
+
+# uninstall should remove the submodule and all artifacts
+(cd "$TMP_INSTALL" && bash "$MANAGE" uninstall >/dev/null 2>&1) || true
+
+if [ ! -d "$TMP_INSTALL/skills" ]; then
+    pass "uninstall removes skills/ directory"
+else
+    fail "uninstall did not remove skills/ directory"
+fi
+
+if [ ! -d "$TMP_INSTALL/.claude/skills" ]; then
+    pass "uninstall removes .claude/skills/ directory"
+else
+    fail "uninstall did not remove .claude/skills/ directory"
+fi
+
+if [ ! -d "$TMP_INSTALL/.git/modules/skills" ]; then
+    pass "uninstall removes .git/modules/skills cache"
+else
+    fail "uninstall did not remove .git/modules/skills cache"
+fi
+
+# Check that the hook was removed from settings.json
+if [ -f "$TMP_INSTALL/.claude/settings.json" ]; then
+    if python3 -c "
+import json, sys
+from pathlib import Path
+settings = Path('$TMP_INSTALL/.claude/settings.json')
+data = json.loads(settings.read_text())
+hooks = data.get('hooks', {}).get('SessionStart', [])
+for group in hooks:
+    for hook in group.get('hooks', []):
+        if 'skills' in hook.get('command', ''):
+            sys.exit(1)
+sys.exit(0)
+" 2>/dev/null; then
+        pass "uninstall removes SessionStart hook from settings.json"
+    else
+        fail "uninstall left skills hook in settings.json"
+    fi
+else
+    pass "uninstall cleaned up settings.json (file removed since empty)"
+fi
+
+# uninstall should be idempotent (no error on second run)
+if (cd "$TMP_INSTALL" && bash "$MANAGE" uninstall >/dev/null 2>&1); then
+    pass "uninstall is idempotent (no error on already-uninstalled repo)"
+else
+    fail "uninstall should not error on an already-uninstalled repo"
+fi
+
+echo ""
+echo "Testing reinstall command..."
+
+# reinstall on the now-empty repo should add everything back
+GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" reinstall "$TMP_INSTALL" >/dev/null 2>&1
+
+if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    pass "reinstall recreates .claude skill files"
+else
+    fail "reinstall did not recreate .claude skill files"
+fi
+
+if [ -f "$TMP_INSTALL/skills/bin/manage.sh" ]; then
+    pass "reinstall re-adds the skills submodule"
+else
+    fail "reinstall did not re-add the skills submodule"
+fi
+
+if python3 -c "
+import json, sys
+from pathlib import Path
+settings = Path('$TMP_INSTALL/.claude/settings.json')
+data = json.loads(settings.read_text())
+hooks = data.get('hooks', {}).get('SessionStart', [])
+for group in hooks:
+    for hook in group.get('hooks', []):
+        if 'skills/bin/manage.sh' in hook.get('command', ''):
+            sys.exit(0)
+sys.exit(1)
+" 2>/dev/null; then
+    pass "reinstall re-adds SessionStart hook"
+else
+    fail "reinstall did not re-add SessionStart hook"
 fi
 
 echo ""
