@@ -16,6 +16,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Workflow orchestration practices for AI agents
   skill-orchestrator/
     SKILL.md                               # Wire another repo to this skills submodule
+  design-system-migration-prompt/
+    SKILL.md                               # Migration prompt to swap in the design system
   health-check-prompt/
     SKILL.md                               # Diagnostic prompt for consumer repo integration
   health-check-review/
@@ -93,6 +95,16 @@ When the user asks to add skills to a project, read `skills/skill-orchestrator/S
 ## Internal Skills
 
 These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
+
+### Design System Migration Prompt
+
+**Skill:** `skills/design-system-migration-prompt/SKILL.md`
+
+A self-contained migration prompt for the skills repo author to copy-paste to an AI agent in a consumer repo. The agent audits the existing design system, strips it completely, and replaces it with the Architectural Minimalist design system. The prompt embeds the full spec so the consumer agent needs no access to this repository.
+
+#### How to use
+
+Read `skills/design-system-migration-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the consumer repo. The agent will audit, strip, replace, and verify autonomously.
 
 ### Health Check Prompt
 
