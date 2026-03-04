@@ -6,6 +6,8 @@ description: >-
   DM Sans and Tenor Sans typography, and full light/dark mode support with
   Tailwind CSS. Use when styling a web project or when the user mentions design
   systems, theming, or visual styling.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Apply the Architectural Minimalist Design System
