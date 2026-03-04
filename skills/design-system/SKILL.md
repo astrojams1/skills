@@ -100,7 +100,7 @@ export default {
 
 All icon buttons use a single consistent icon size (`w-5 h-5`). The button's padding and dimensions control the hit target, not the icon size.
 
-**Icon button styling:** Sidebar header icon buttons use `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200`. The `hover:text-primary` (sage green) is mandatory — do NOT use `hover:text-text-main` or other hover colors. See full patterns in `references/components.md` → Sidebar Header.
+**Icon button styling:** Sidebar header icon buttons use `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200`. The `hover:text-primary` (sage green) is mandatory — do NOT use `hover:text-text-main` or other hover colors. The `w-5 h-5` icon size, `p-2.5` padding, and `items-start` on the parent flex container are a **tuned set** for optical alignment — the icon centers align with the title's cap-height. Changing any one value breaks the alignment. See `references/components.md` → Sidebar Header for the full explanation.
 
 **You MUST explicitly set `className="w-5 h-5"` (or `size={20}`) on every Lucide icon component.** Lucide React defaults to 24px — omitting the size class produces oversized icons that break sidebar header alignment. This is the most common styling mistake when applying this design system.
 

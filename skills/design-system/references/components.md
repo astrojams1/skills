@@ -134,10 +134,22 @@ The sidebar header contains the app name and a row of icon buttons (action butto
 
 The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with `text-text-muted` (neutral gray) as their default color, hovering to `text-primary` with a `bg-secondaryHover` background. All icons are `w-5 h-5` (20px).
 
+**Optical alignment — these three values are a tuned set:**
+
+The icon buttons must visually align with the app name's cap-height (the top of the capital letters). This requires three values working together — changing any one breaks the alignment:
+
+| Property | Required value | Why |
+|----------|---------------|-----|
+| Icon size | `w-5 h-5` (20px) | Lucide defaults to 24px — oversized icons sit too high |
+| Button padding | `p-2.5` (10px) | Centers the 20px icon in a 40px button; icon midpoint aligns with the title's cap-height |
+| Flex alignment | `items-start` | Top-aligns the button box with the title box so the padding offset produces the correct optical position |
+
+With `items-start`, the button's top edge aligns with the title's top edge. The 10px top padding then pushes the icon center down to ~20px, which matches the cap-height of `text-[26px]` Tenor Sans. Using `items-center` instead would push buttons down because the title's `leading-tight` line-height is taller than the button, and the icons would sit too low.
+
 **Common mistakes that break the sidebar header:**
-1. **Missing icon size** — Lucide React defaults to 24px. Every icon MUST have `className="w-5 h-5"` or it will be oversized and misaligned.
-2. **Wrong flex alignment** — The parent must use `items-start`, not `items-center`. The title's larger line-height pushes centered buttons down.
-3. **Missing `p-2.5`** — The icon button wrapper needs `p-2.5` for the correct touch target size. Using `p-1`, `p-2`, or no padding produces cramped or oversized buttons.
+1. **Missing icon size** — Lucide React defaults to 24px. Every icon MUST have `className="w-5 h-5"` or it will be oversized and misaligned with the title text.
+2. **Wrong flex alignment** — The parent must use `items-start`, not `items-center`. With `items-center`, the title's larger line-height pushes the smaller buttons down, breaking optical alignment with the cap-height.
+3. **Missing `p-2.5`** — The icon button wrapper needs `p-2.5` for correct optical alignment AND touch target size. Using `p-1` or `p-2` shifts the icon center up relative to the title text; no padding makes buttons tiny and misaligned.
 4. **Wrong hover color** — Icon buttons MUST use `hover:text-primary` (sage green), NOT `hover:text-text-main`. The hover transition from `text-text-muted` → `text-primary` is a core interactive pattern — it signals interactivity with the accent color. Using `hover:text-text-main` makes buttons feel dead.
 
 ## Buttons
