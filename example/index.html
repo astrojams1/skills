@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architectural Minimalist — Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Tenor+Sans&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: 'var(--c-bg)',
+            surface: 'var(--c-surface)',
+            primary: 'var(--c-primary)',
+            primaryHover: 'var(--c-primary-hover)',
+            accent: 'var(--c-accent)',
+            accentHover: 'var(--c-accent-hover)',
+            secondary: 'var(--c-secondary)',
+            secondaryHover: 'var(--c-secondary-hover)',
+            border: 'var(--c-border)',
+            text: {
+              main: 'var(--c-text-main)',
+              muted: 'var(--c-text-muted)',
+              light: 'var(--c-text-light)',
+            },
+          },
+          fontFamily: {
+            sans: ['"DM Sans"', 'sans-serif'],
+            header: ['"Tenor Sans"', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      --c-bg: #F9F8F6;  --c-surface: #FFFFFF;
+      --c-secondary: #EBE9E4;  --c-secondary-hover: #DDD9D2;
+      --c-primary: #7C9082;  --c-primary-hover: #627367;
+      --c-accent: #C67D63;  --c-accent-hover: #A8654F;
+      --c-border: #D4D4D4;
+      --c-text-main: #2D2D2D;  --c-text-muted: #666666;  --c-text-light: #9CA3AF;
+    }
+
+    .dark {
+      --c-bg: #1A1918;  --c-surface: #2A2928;
+      --c-secondary: #2A2928;  --c-secondary-hover: #353432;
+      --c-primary: #8CA092;  --c-primary-hover: #7C9082;
+      --c-accent: #C67D63;  --c-accent-hover: #B56D53;
+      --c-border: #3E3C3A;
+      --c-text-main: #ECEBE9;  --c-text-muted: #A6A5A2;  --c-text-light: #8A8986;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: var(--c-bg);
+      color: var(--c-text-main);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Slider styles */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+      width: 100%;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 2px;
+      background: var(--c-border);
+      border-radius: 1px;
+    }
+    input[type=range]::-moz-range-track {
+      height: 2px;
+      background: var(--c-border);
+      border-radius: 1px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 16px; width: 16px;
+      background-color: var(--c-accent);
+      border-radius: 50%;
+      margin-top: -7px;
+      border: 2px solid var(--c-surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease, background-color 0.2s, border-color 0.3s;
+    }
+    input[type=range]::-moz-range-thumb {
+      border: 2px solid var(--c-surface);
+      height: 16px; width: 16px;
+      background-color: var(--c-accent);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease, background-color 0.2s, border-color 0.3s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1); background-color: var(--c-accent-hover); }
+    input[type=range]::-moz-range-thumb:hover { transform: scale(1.1); background-color: var(--c-accent-hover); }
+    input[type=range]:focus { outline: none; }
+    input[type=range]:focus::-webkit-slider-thumb { box-shadow: 0 0 0 2px rgba(198, 125, 99, 0.3); }
+    input[type=range]:focus::-moz-range-thumb { box-shadow: 0 0 0 2px rgba(198, 125, 99, 0.3); }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen bg-background selection:bg-accent/20 transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="bg-background border-b border-border px-8 py-4 sticky top-0 z-30 transition-colors duration-300">
+      <div class="flex items-center justify-between max-w-6xl mx-auto">
+        <h1 class="text-[26px] font-header font-medium text-text-main leading-tight">
+          Architectural Minimalist
+        </h1>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-text-muted hidden sm:inline">Design System</span>
+          <button onclick="toggleDark()" class="inline-flex items-center justify-center bg-surface border border-border text-text-main hover:bg-secondaryHover shadow-lg w-10 h-10 !p-0 rounded-full hover:scale-105 transition-transform" title="Toggle dark mode" id="theme-toggle">
+            <i data-lucide="sun" class="w-5 h-5 text-amber-500"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-8">
+
+      <!-- Color Palette -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">Color Palette</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div>
+            <div class="h-20 bg-background border border-border rounded-none mb-2"></div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Background</p>
+          </div>
+          <div>
+            <div class="h-20 bg-surface border border-border rounded-none mb-2"></div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Surface</p>
+          </div>
+          <div>
+            <div class="h-20 bg-secondary border border-border rounded-none mb-2"></div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Secondary</p>
+          </div>
+          <div>
+            <div class="h-20 bg-primary rounded-none mb-2"></div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Primary (Sage)</p>
+          </div>
+          <div>
+            <div class="h-20 bg-accent rounded-none mb-2"></div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Accent (Terracotta)</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Typography -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">Typography</h2>
+        <div class="bg-surface border border-border rounded-none p-6 space-y-4">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Page Title — Tenor Sans 26px</p>
+            <p class="text-[26px] font-header font-medium text-text-main leading-tight">Architectural Minimalist</p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Section Heading — Tenor Sans 15px</p>
+            <p class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main">Section Heading</p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Body Text — DM Sans 14-16px</p>
+            <p class="text-base text-text-main">The quick brown fox jumps over the lazy dog. Warm organic palette with sharp architectural geometry.</p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Micro-label — 11px Bold Uppercase</p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Micro Label Text</p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Helper / Tip Text</p>
+            <p class="text-[12px] text-text-muted leading-relaxed">Helper text at 12px for additional context.</p>
+            <p class="text-sm text-text-light leading-snug mt-1">Tip text at 14px for guidance and suggestions.</p>
+          </div>
+          <div class="border-t border-border pt-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1">Computed Value — Monospace</p>
+            <span class="font-mono font-medium text-text-main">42.50"</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Buttons -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">Buttons</h2>
+        <div class="bg-surface border border-border rounded-none p-6">
+          <div class="flex flex-wrap items-center gap-4 mb-6">
+            <button class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-white hover:bg-primaryHover shadow-sm px-6 py-2.5 text-base rounded-none">
+              Primary
+            </button>
+            <button class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed bg-surface border border-border text-text-main hover:bg-secondaryHover shadow-sm px-6 py-2.5 text-base rounded-none">
+              Secondary
+            </button>
+            <button class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 text-base rounded-none">
+              Accent
+            </button>
+            <button class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 text-base rounded-none">
+              Ghost
+            </button>
+          </div>
+          <div class="flex items-center gap-4 mb-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Icon Buttons</p>
+            <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200 focus:outline-none" title="Settings">
+              <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+            <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200 focus:outline-none" title="Reset">
+              <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+            <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200 focus:outline-none" title="Auto-adjust">
+              <i data-lucide="wand-2" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Disabled</p>
+            <button disabled class="inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-white shadow-sm px-6 py-2.5 text-base rounded-none">
+              Disabled
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form Controls -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">Form Controls</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- Text Input -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Text Input</p>
+            <input type="text" placeholder="Enter text..." class="w-full px-3 py-2 bg-surface border border-border rounded-none text-base text-text-main shadow-sm placeholder-text-light focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary transition-all duration-200">
+          </div>
+
+          <!-- Number Input with Suffix -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Number Input with Unit</p>
+            <div class="relative">
+              <input type="number" value="96" class="w-full font-mono text-base py-2 pr-8 px-3 bg-surface border border-border rounded-none text-text-main shadow-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary transition-all duration-200">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none">in</span>
+            </div>
+          </div>
+
+          <!-- Toggle Group -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Toggle Group</p>
+            <div class="flex bg-secondary/50 rounded-none p-1 gap-1 border border-border">
+              <button class="flex-1 py-2 px-3 text-[14px] font-medium transition-all duration-200 focus:outline-none bg-surface text-text-main shadow-sm border border-black/5">
+                Single
+              </button>
+              <button class="flex-1 py-2 px-3 text-[14px] font-medium transition-all duration-200 focus:outline-none text-text-muted hover:text-text-main hover:bg-surface/50 border border-transparent">
+                Double
+              </button>
+              <button class="flex-1 py-2 px-3 text-[14px] font-medium transition-all duration-200 focus:outline-none text-text-muted hover:text-text-main hover:bg-surface/50 border border-transparent">
+                Triple
+              </button>
+            </div>
+          </div>
+
+          <!-- Slider -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Slider</p>
+            <input type="range" min="0" max="100" value="60" class="w-full h-6">
+            <p class="text-sm text-text-light leading-snug mt-2">Standard range slider with terracotta thumb.</p>
+          </div>
+
+          <!-- Dropdown -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Dropdown</p>
+            <div class="relative" id="dropdown-demo">
+              <button onclick="toggleDropdown('dropdown-demo')" class="w-full flex items-center justify-between px-3 py-2 bg-surface border border-border rounded-none text-base text-text-main shadow-sm hover:border-primary/50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary transition-all duration-200" aria-haspopup="listbox" aria-expanded="false">
+                <span class="truncate" id="dropdown-demo-label">Residential</span>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-text-muted ml-2 flex-shrink-0 transition-transform duration-200"></i>
+              </button>
+              <div class="absolute z-50 mt-1 w-full bg-surface border border-border rounded-none shadow-lg max-h-60 overflow-y-auto hidden" role="listbox" id="dropdown-demo-panel">
+                <button onclick="selectOption('dropdown-demo', 'Residential')" class="w-full text-left px-3 py-2 text-sm text-primary bg-primary/5 font-medium hover:bg-secondary transition-colors duration-150" role="option" aria-selected="true">Residential</button>
+                <button onclick="selectOption('dropdown-demo', 'Commercial')" class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Commercial</button>
+                <button onclick="selectOption('dropdown-demo', 'Industrial')" class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Industrial</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Control Input (Compound) -->
+          <div class="bg-surface border border-border rounded-none p-6">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-3">Control Input</p>
+            <div class="group">
+              <div class="flex justify-between items-baseline mb-1">
+                <label class="text-[11px] font-bold text-text-muted uppercase tracking-[0.15em] group-hover:text-primary transition-colors cursor-help">
+                  Width
+                </label>
+                <button class="text-accent hover:text-accentHover text-[10px] font-bold uppercase tracking-widest px-1.5 py-1 rounded-sm hover:bg-accent/5 transition-colors">
+                  Reset
+                </button>
+              </div>
+              <div class="mb-3 relative">
+                <input type="number" value="48" class="w-full font-mono text-base py-2 pr-8 px-3 bg-surface border border-border rounded-none text-text-main shadow-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary transition-all duration-200">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none">in</span>
+              </div>
+              <div class="mb-2">
+                <input type="range" min="12" max="120" value="48" class="w-full h-6">
+              </div>
+              <p class="text-sm text-text-light leading-snug mt-2">Standard residential window width.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Cards & Containers -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">Cards &amp; Containers</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-surface border border-border rounded-none p-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-2">Standard Card</p>
+            <p class="text-sm text-text-main">Border-based structure, no shadows. Sharp corners with warm neutral fill.</p>
+          </div>
+          <div class="bg-surface border border-border rounded-none p-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-2">Computed Value</p>
+            <div class="p-3 bg-secondary/30 rounded border border-border">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">Total Width</span>
+                <span class="font-mono font-medium text-text-main">42.5"</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-surface border border-border rounded-none p-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-2">Inline Values</p>
+            <div class="space-y-2">
+              <div class="flex justify-between items-baseline">
+                <span class="text-[11px] font-bold text-text-muted uppercase tracking-[0.15em]">Panels</span>
+                <span class="text-xs text-text-muted font-medium">4</span>
+              </div>
+              <div class="flex justify-between items-baseline">
+                <span class="text-[11px] font-bold text-text-muted uppercase tracking-[0.15em]">Light Blocking</span>
+                <span class="text-xs text-text-muted font-medium">40%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SVG Annotations -->
+      <section class="mb-12">
+        <h2 class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main mb-6">SVG Annotations</h2>
+        <div class="bg-secondary border border-border rounded-none p-6">
+          <svg width="100%" height="100" viewBox="0 0 500 100" class="overflow-visible">
+            <!-- Horizontal measurement -->
+            <line x1="50" y1="50" x2="350" y2="50" stroke="#C67D63" stroke-width="2" />
+            <line x1="50" y1="42" x2="50" y2="58" stroke="#C67D63" stroke-width="2" />
+            <line x1="350" y1="42" x2="350" y2="58" stroke="#C67D63" stroke-width="2" />
+            <rect x="180" y="38" width="40" height="24" fill="#C67D63" rx="4" />
+            <text x="200" y="54" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="DM Sans, sans-serif">71"</text>
+
+            <!-- Vertical measurement -->
+            <line x1="420" y1="15" x2="420" y2="85" stroke="#C67D63" stroke-width="2" />
+            <line x1="412" y1="15" x2="428" y2="15" stroke="#C67D63" stroke-width="2" />
+            <line x1="412" y1="85" x2="428" y2="85" stroke="#C67D63" stroke-width="2" />
+            <rect x="430" y="38" width="40" height="24" fill="#C67D63" rx="4" />
+            <text x="450" y="54" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="DM Sans, sans-serif">96"</text>
+          </svg>
+          <p class="text-sm text-text-light mt-3">Terracotta dimension lines with capped ends and value labels.</p>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="border-t border-border pt-6 pb-12 mt-12">
+        <p class="text-sm text-text-muted">
+          Architectural Minimalist Design System
+          <span class="mx-2 text-text-light">&middot;</span>
+          <a href="https://github.com/astrojams1/skills" class="text-primary hover:text-primaryHover transition-colors">GitHub</a>
+        </p>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Dark mode toggle
+    function toggleDark() {
+      const app = document.getElementById('app');
+      app.classList.toggle('dark');
+      const btn = document.getElementById('theme-toggle');
+      const isDark = app.classList.contains('dark');
+      btn.innerHTML = isDark
+        ? '<i data-lucide="moon" class="w-5 h-5 text-indigo-400"></i>'
+        : '<i data-lucide="sun" class="w-5 h-5 text-amber-500"></i>';
+      lucide.createIcons();
+    }
+
+    // Dropdown behavior
+    function toggleDropdown(id) {
+      const container = document.getElementById(id);
+      const panel = document.getElementById(id + '-panel');
+      const isOpen = !panel.classList.contains('hidden');
+      // Close all dropdowns first
+      document.querySelectorAll('[role="listbox"]').forEach(p => p.classList.add('hidden'));
+      if (!isOpen) {
+        panel.classList.remove('hidden');
+        // Rotate chevron
+        container.querySelector('[data-lucide="chevron-down"]')?.parentElement?.classList.add('rotate-180');
+      }
+    }
+
+    function selectOption(id, value) {
+      document.getElementById(id + '-label').textContent = value;
+      document.getElementById(id + '-panel').classList.add('hidden');
+      // Update selected states
+      const panel = document.getElementById(id + '-panel');
+      panel.querySelectorAll('[role="option"]').forEach(opt => {
+        if (opt.textContent.trim() === value) {
+          opt.className = 'w-full text-left px-3 py-2 text-sm text-primary bg-primary/5 font-medium hover:bg-secondary transition-colors duration-150';
+          opt.setAttribute('aria-selected', 'true');
+        } else {
+          opt.className = 'w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150';
+          opt.removeAttribute('aria-selected');
+        }
+      });
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('[id$="-demo"]')) {
+        document.querySelectorAll('[role="listbox"]').forEach(p => p.classList.add('hidden'));
+      }
+    });
+  </script>
+</body>
+</html>

@@ -141,6 +141,8 @@ The design system provides these component types. **See [references/components.m
 
 **Form controls:** Input (sharp corners, border-based, `font-mono` for number inputs), Toggle Group (segmented control — active item elevated with surface bg + shadow, no colored fills), Slider (terracotta thumb, `var(--c-surface)` thumb border for dark mode), Control Input (compound: labeled number input + synced range slider + optional suffix/tip/action).
 
+**Dropdown (Select Menu):** Custom select replacement with sharp corners, border-based trigger styled like an input, `ChevronDown` indicator (`w-4 h-4`, rotates 180° when open), overlay options panel (`shadow-lg`), selected state uses `text-primary bg-primary/5`. Supports grouped options with micro-label section headings.
+
 **Containers:** Card (`bg-surface border border-border rounded-none`), Computed Value display (`bg-secondary/30` with mono value).
 
 **Unit suffix on number inputs:** Show for measurement fields (`in`, `%`, `px`), omit for dimensionless counts.
