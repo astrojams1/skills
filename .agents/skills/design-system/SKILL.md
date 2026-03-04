@@ -147,6 +147,20 @@ See [references/layout.md](references/layout.md) for full HTML patterns and glob
 4. **Check headers/navbars.** If any header uses a colored background (`bg-blue-*`, `bg-primary`, `bg-accent`, `bg-green-*`, etc.), replace with `bg-background border-b border-border`.
 5. **Install the fonts and CSS custom properties** — these are mandatory, not optional.
 
+## Contributing New Patterns
+
+When applying this design system to a project, you will encounter UI patterns not yet covered (e.g. toast notifications, data tables, modals, progress bars, badges). When this happens:
+
+1. **Ask the human for guidance** — propose how the component should look using the core principles (warm palette, sharp geometry, border-based structure, minimal color accents). Wait for approval.
+2. **Apply the approved pattern** consistently across all instances.
+3. **Contribute it back** to this skill so future projects benefit:
+   - New component patterns go in `references/components.md`
+   - New layout patterns go in `references/layout.md`
+   - New tokens or core concepts go in this file (`SKILL.md`)
+   - Include rationale and context with each addition
+
+The design system grows through real-world usage. Every novel pattern is an opportunity to make the system more complete.
+
 ## Checklist
 
 **Foundations:**
