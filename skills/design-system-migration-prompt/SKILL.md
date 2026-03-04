@@ -48,7 +48,7 @@ This prompt does NOT repeat the skill. It adds the **migration-specific workflow
 1. Work file-by-file. Commit nothing until the full migration is verified.
 2. Do NOT delete functional logic, routing, state management, or data-fetching code. Only replace visual/styling concerns.
 3. If the project uses a component library (shadcn, MUI, Chakra, etc.), override its theme globally rather than removing the library — unless the user explicitly asks otherwise.
-4. Preserve the existing layout structure but restyle it to match the design system.
+4. **Convert the layout** to match the design system's layout patterns — do NOT blindly preserve the existing layout structure. If the app has a sidebar with controls, adopt the Sidebar Application Layout from the skill (title + icon buttons inside the sidebar header, accordion sections, floating action buttons in the main content area). If the app has a top navigation bar, adopt the Header-Based Layout. Refer to `references/layout.md` for the complete layout patterns.
 5. After all changes, run the project's build/lint/test commands to verify nothing is broken.
 
 ---
@@ -92,6 +92,27 @@ The one thing the skill doesn't provide is a **translation mapping** from old Ta
 | `white` / `#FFFFFF` (card/panel bg) | `surface` |
 | Any hardcoded hex, rgb, hsl | Map to nearest design system token |
 
+**Typography mapping** — map existing text roles to the design system's typography scale (Step 5 in the skill). Key conversions:
+
+| Old pattern | Design system role |
+|---|---|
+| App title / page heading (any font/size) | **Page title** — uses `font-header` (Tenor Sans) |
+| Section headings / sidebar section titles | **Section heading** — uses `font-header` (Tenor Sans) |
+| Body text / labels | **Body text** — uses `font-sans` (DM Sans, the project default) |
+| Form field labels | **Micro-label** — small, bold, uppercase |
+| Number inputs / computed values | **Computed value** — uses `font-mono` |
+
+Refer to the skill's Step 5 Typography table for exact classes and sizes.
+
+**Component conversion** — the following components are commonly mis-migrated. For each, follow the exact pattern in `references/components.md`:
+- **Floating action buttons:** Must be circular icon-only buttons with `title` attributes — no text labels. See the Floating Action Buttons section.
+- **Toggle groups:** Active item uses surface elevation + shadow, NOT colored fills (`bg-primary`, `bg-accent`). See the Toggle Groups section.
+- **SVG / Canvas annotations:** Measurement lines use terracotta accent, not black. See the SVG / Canvas Measurement Annotations section.
+
+**Layout conversion** — follow the exact layout pattern from `references/layout.md`:
+- **Sidebar apps:** App title and action buttons go inside the sidebar header. Sidebar properties (width, background, shadow, transition) must match the Sidebar Application Layout. Accordion sections use the grid-row animation with single-open behavior.
+- **Header-based apps:** Use neutral background with border, never colored fill.
+
 If a component library sets colors or border-radius via its theme config, override them globally there too.
 
 ---
@@ -104,13 +125,13 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
 
 ## Phase 5: Verify
 
-1. Run the **Checklist** from the design-system skill's `SKILL.md` — every item must pass.
+1. Run the **Checklist** from the design-system skill's `SKILL.md` — every item must pass. This covers foundations, geometry, color distribution, icons, layout, SVG annotations, and typography.
 2. Confirm the project builds without errors and all tests pass.
-3. **Straggler sweep for pre-migration remnants.** Search the codebase for values from the old design system that were missed during Phase 3. Key searches:
+3. **Straggler sweep for pre-migration remnants.** These searches catch old values missed during Phase 3:
    - Hardcoded hex values (`#[0-9A-Fa-f]{3,8}`) that don't map to a `--c-*` token
    - CSS custom properties that are NOT `--c-*` design system tokens (leftover `--tw-*`, `--color-*`, framework vars)
    - Tailwind arbitrary color values (`text-[#`, `bg-[#`, `border-[#`)
-   - Old font-family declarations that weren't replaced
+   - Old font-family declarations or Google Fonts imports other than DM Sans / Tenor Sans
 4. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
 
 ---
