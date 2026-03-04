@@ -551,6 +551,114 @@ const renderMeasurement = (
 };
 ```
 
+## Dropdown (Select Menu)
+
+A custom dropdown that replaces the native `<select>` element. Uses sharp corners, border-based structure, and the warm palette. The dropdown trigger looks like a standard input; the options panel is an overlay with a subtle shadow.
+
+**Lucide icon:** Use `ChevronDown` for the dropdown indicator (same icon as accordions, rotates 180° when open).
+
+### Basic Dropdown
+
+```html
+<!-- Dropdown container — needs relative positioning for the options panel -->
+<div class="relative">
+  <!-- Trigger button — styled like an input -->
+  <button class="w-full flex items-center justify-between px-3 py-2 bg-surface border border-border rounded-none text-base text-text-main shadow-sm
+    hover:border-primary/50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary
+    transition-all duration-200"
+    aria-haspopup="listbox" aria-expanded="false">
+    <span class="truncate">Selected option</span>
+    <ChevronDown class="w-4 h-4 text-text-muted ml-2 flex-shrink-0 transition-transform duration-200" />
+    <!-- When open, add: rotate-180 -->
+  </button>
+
+  <!-- Options panel — overlay, only visible when open -->
+  <div class="absolute z-50 mt-1 w-full bg-surface border border-border rounded-none shadow-lg
+    max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+    role="listbox">
+    <!-- Option: default state -->
+    <button class="w-full text-left px-3 py-2 text-sm text-text-main
+      hover:bg-secondary hover:text-primary transition-colors duration-150"
+      role="option">
+      Option label
+    </button>
+    <!-- Option: selected state -->
+    <button class="w-full text-left px-3 py-2 text-sm text-primary bg-primary/5 font-medium
+      hover:bg-secondary transition-colors duration-150"
+      role="option" aria-selected="true">
+      Selected option
+    </button>
+    <!-- Option: disabled state -->
+    <button class="w-full text-left px-3 py-2 text-sm text-text-light cursor-not-allowed"
+      role="option" disabled>
+      Disabled option
+    </button>
+  </div>
+</div>
+```
+
+### Dropdown with Micro-label
+
+Pair with the standard micro-label pattern for use inside sidebar controls:
+
+```html
+<div class="mb-5 group">
+  <label class="text-[11px] font-bold text-text-muted uppercase tracking-[0.15em] mb-1.5 block
+    group-hover:text-primary transition-colors cursor-default">
+    Category
+  </label>
+  <div class="relative">
+    <button class="w-full flex items-center justify-between px-3 py-2 bg-surface border border-border rounded-none text-base text-text-main shadow-sm
+      hover:border-primary/50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary focus:border-primary
+      transition-all duration-200"
+      aria-haspopup="listbox" aria-expanded="false">
+      <span class="truncate">Residential</span>
+      <ChevronDown class="w-4 h-4 text-text-muted ml-2 flex-shrink-0 transition-transform duration-200" />
+    </button>
+    <div class="absolute z-50 mt-1 w-full bg-surface border border-border rounded-none shadow-lg max-h-60 overflow-y-auto" role="listbox">
+      <button class="w-full text-left px-3 py-2 text-sm text-primary bg-primary/5 font-medium hover:bg-secondary transition-colors duration-150" role="option" aria-selected="true">Residential</button>
+      <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Commercial</button>
+      <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Industrial</button>
+    </div>
+  </div>
+</div>
+```
+
+### Grouped Options
+
+For dropdowns with categorized options, use a section heading inside the panel:
+
+```html
+<div class="absolute z-50 mt-1 w-full bg-surface border border-border rounded-none shadow-lg max-h-60 overflow-y-auto" role="listbox">
+  <!-- Group heading -->
+  <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-text-light select-none">
+    Fabrics
+  </div>
+  <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Linen</button>
+  <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Cotton</button>
+  <!-- Divider between groups -->
+  <div class="border-t border-border my-1"></div>
+  <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-text-light select-none">
+    Synthetics
+  </div>
+  <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Polyester</button>
+  <button class="w-full text-left px-3 py-2 text-sm text-text-main hover:bg-secondary hover:text-primary transition-colors duration-150" role="option">Nylon</button>
+</div>
+```
+
+### Key Rules
+
+- **Sharp corners** — `rounded-none` on both trigger and panel (no exceptions).
+- **Border-based structure** — the panel uses `border border-border`, shadow only because it's an overlay (`shadow-lg`).
+- **Chevron sizing** — use `w-4 h-4` (inline context, same as inline body icons). Rotates 180° when open.
+- **Selected state** — `text-primary bg-primary/5 font-medium`. No colored background fills.
+- **Hover state** — `hover:bg-secondary hover:text-primary`. Warm neutral hover, not blue or gray.
+- **Trigger hover** — border lightens to `hover:border-primary/50` for a subtle interaction cue.
+- **Focus management** — trigger uses the standard focus ring (`focus:ring-1 focus:ring-inset focus:ring-primary`). Options panel should close on outside click and Escape key.
+- **Accessibility** — use `role="listbox"` on panel, `role="option"` on items, `aria-haspopup="listbox"` and `aria-expanded` on trigger, `aria-selected="true"` on active option.
+- **Full width in sidebar** — like all sidebar controls, the dropdown uses `w-full`.
+- **Max height** — `max-h-60` with overflow scroll prevents long option lists from overflowing the viewport.
+
 ## Tip and Helper Text
 
 Two levels of informational text used below controls:

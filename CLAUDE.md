@@ -28,6 +28,9 @@ tests/                                     # Tests for repository integrity
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
+example/
+  index.html                               # Static example app showcasing the design system
+vercel.json                                # Vercel config to deploy the example app
 CLAUDE.md                                  # AI agent instructions (Claude)
 AGENTS.md                                  # AI agent instructions (Codex) — must be identical to CLAUDE.md
 ```
