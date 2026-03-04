@@ -153,6 +153,19 @@ All buttons share base: `inline-flex items-center justify-center font-medium tra
 
 See [references/components.md](references/components.md) for full HTML/CSS patterns for every component.
 
+## Step 6b: SVG / Canvas Annotations
+
+Apps that overlay measurements, dimension lines, or annotations on a canvas or SVG must use the design system's accent color and typography:
+
+| Element | Style |
+|---------|-------|
+| **Dimension line** | `stroke: #C67D63` (terracotta accent), 2px width |
+| **End caps** | Perpendicular serif caps at each end, same stroke color |
+| **Value label** | Pill/rect with `fill: #C67D63`, white bold text, small `rx` for legibility |
+| **Label font** | `font-weight: bold`, `fill: white`, `text-anchor: middle` |
+
+These measurement annotations must follow the terracotta accent, not the default SVG black or any framework default. See [references/components.md](references/components.md) for the full SVG pattern.
+
 ## Step 7: Layout
 
 | Pattern | Key Details |
@@ -243,6 +256,12 @@ The design system grows through real-world usage. Every novel pattern is an oppo
 - [ ] All icon-only buttons and floating action buttons have a `title` attribute (native browser tooltip)
 - [ ] Dark mode toggle uses circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun/moon icon
 - [ ] Floating action buttons positioned `absolute top-4 right-4 z-10` in main content
+
+**SVG / Canvas Annotations:**
+- [ ] Measurement/dimension lines use terracotta accent (`#C67D63`), not default black
+- [ ] Dimension value labels use filled terracotta pill with white bold text
+- [ ] End caps are perpendicular serif lines in terracotta
+- [ ] No default SVG colors (black strokes, black text) remain on annotation elements
 
 **Typography and Details:**
 - [ ] No text smaller than 10px; 10px reserved for inline action buttons only

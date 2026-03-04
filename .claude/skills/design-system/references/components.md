@@ -455,6 +455,83 @@ Interaction: the label changes from `text-text-muted` to `text-primary` on group
 - Tip text uses `text-sm text-text-light` (lighter than helper text) with `min-h-[48px]` to prevent layout shift.
 - For grid layouts (e.g., two inputs side by side), wrap in `grid grid-cols-2 gap-4`.
 
+## SVG / Canvas Measurement Annotations
+
+Apps that draw measurement lines, dimension annotations, or ruler overlays on a canvas or SVG viewport must use the terracotta accent color — not default black or framework defaults.
+
+**Dimension line with capped ends and value label:**
+
+```html
+<svg>
+  <!-- Dimension line: terracotta stroke, 2px -->
+  <line x1="100" y1="50" x2="300" y2="50" stroke="#C67D63" stroke-width="2" />
+
+  <!-- End caps: perpendicular serif lines at each endpoint -->
+  <line x1="100" y1="42" x2="100" y2="58" stroke="#C67D63" stroke-width="2" />
+  <line x1="300" y1="42" x2="300" y2="58" stroke="#C67D63" stroke-width="2" />
+
+  <!-- Value label: terracotta pill with white text -->
+  <rect x="180" y="38" width="40" height="24" fill="#C67D63" rx="4" />
+  <text x="200" y="54" text-anchor="middle" font-size="12" fill="white" font-weight="bold">
+    71
+  </text>
+</svg>
+```
+
+**Key rules:**
+- **Line color:** Always `#C67D63` (terracotta accent) — never black, gray, or framework defaults
+- **Cap size:** Short perpendicular lines (~8px total) at each measurement endpoint, same terracotta color
+- **Label:** A small filled rectangle (`fill="#C67D63"`) with `rx="4"` for legibility, containing white bold text centered on the line
+- **Pointer events:** Add `pointer-events="none"` to the measurement group so annotations don't interfere with canvas interaction
+- **Scaling:** When the canvas has a dynamic scale factor, divide stroke widths, font sizes, and cap sizes by the scale to keep annotations a consistent screen size regardless of zoom
+- **Short measurements:** When the dimension line is very short (< ~40px rendered), offset the label above or beside the line instead of overlapping it
+
+**React helper pattern (from reference implementation):**
+
+```tsx
+const renderMeasurement = (
+  x1: number, y1: number, x2: number, y2: number,
+  label: string | number
+) => {
+  const capSize = 4;    // perpendicular cap half-length
+  const strokeW = 2;
+  const fontSize = 12;
+
+  // Calculate perpendicular direction for caps
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const angle = Math.atan2(dy, dx);
+  const perp = angle + Math.PI / 2;
+  const capDx = Math.cos(perp) * capSize;
+  const capDy = Math.sin(perp) * capSize;
+
+  const labelX = (x1 + x2) / 2;
+  const labelY = (y1 + y2) / 2;
+
+  return (
+    <g pointerEvents="none">
+      {/* Main dimension line */}
+      <line x1={x1} y1={y1} x2={x2} y2={y2}
+        stroke="#C67D63" strokeWidth={strokeW} />
+      {/* Start cap */}
+      <line x1={x1 - capDx} y1={y1 - capDy}
+        x2={x1 + capDx} y2={y1 + capDy}
+        stroke="#C67D63" strokeWidth={strokeW} />
+      {/* End cap */}
+      <line x1={x2 - capDx} y1={y2 - capDy}
+        x2={x2 + capDx} y2={y2 + capDy}
+        stroke="#C67D63" strokeWidth={strokeW} />
+      {/* Value label */}
+      <rect x={labelX - 15} y={labelY - 10}
+        width={30} height={20} fill="#C67D63" rx={4} />
+      <text x={labelX} y={labelY + 4}
+        textAnchor="middle" fontSize={fontSize}
+        fill="white" fontWeight="bold">{label}</text>
+    </g>
+  );
+};
+```
+
 ## Tip and Helper Text
 
 Two levels of informational text used below controls:

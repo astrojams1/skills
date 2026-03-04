@@ -48,7 +48,7 @@ This prompt does NOT repeat the skill. It adds the **migration-specific workflow
 1. Work file-by-file. Commit nothing until the full migration is verified.
 2. Do NOT delete functional logic, routing, state management, or data-fetching code. Only replace visual/styling concerns.
 3. If the project uses a component library (shadcn, MUI, Chakra, etc.), override its theme globally rather than removing the library — unless the user explicitly asks otherwise.
-4. Preserve the existing layout structure but restyle it to match the design system.
+4. **Convert the layout** to match the design system's layout patterns — do NOT blindly preserve the existing layout structure. If the app has a sidebar with controls, adopt the Sidebar Application Layout from the skill (title + icon buttons inside the sidebar header, accordion sections, floating action buttons in the main content area). If the app has a top navigation bar, adopt the Header-Based Layout. Refer to `references/layout.md` for the complete layout patterns.
 5. After all changes, run the project's build/lint/test commands to verify nothing is broken.
 
 ---
@@ -92,6 +92,25 @@ The one thing the skill doesn't provide is a **translation mapping** from old Ta
 | `white` / `#FFFFFF` (card/panel bg) | `surface` |
 | Any hardcoded hex, rgb, hsl | Map to nearest design system token |
 
+**Typography mapping** — equally critical as colors:
+
+| Old pattern | New token |
+|---|---|
+| App title / page heading (any font/size) | `text-[26px] font-header font-medium text-text-main leading-tight mb-2` (Tenor Sans) |
+| Section headings / sidebar section titles | `font-header text-[15px] uppercase tracking-[0.1em] text-text-main` (Tenor Sans) |
+| Body text / labels | `font-sans` (DM Sans) — the project default |
+| Micro-labels (form field labels) | `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted` (DM Sans) |
+| Monospace / code / numbers | `font-mono` on number inputs and computed values |
+
+**Floating action buttons** — audit all buttons in the main content area:
+- Every floating toggle (dark mode, feature switches) MUST be a circular icon-only button: `w-12 h-12 !p-0 rounded-full shadow-lg` with a `w-5 h-5` Lucide icon inside
+- Remove any text labels from floating action buttons — they are icon-only with `title` attributes for tooltips
+- Group floating action buttons in `absolute top-4 right-4 z-10 flex gap-2`
+
+**Sidebar header** — the app title and action buttons (collapse, reset, auto-adjust) MUST be inside the sidebar header, not in a separate header bar or navbar. Follow the Sidebar Header pattern from `references/components.md`.
+
+**SVG / Canvas annotations** — if the app draws measurement lines, dimension annotations, or overlays, convert them to the terracotta accent style from `references/components.md` (SVG / Canvas Measurement Annotations section).
+
 If a component library sets colors or border-radius via its theme config, override them globally there too.
 
 ---
@@ -111,7 +130,17 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
    - CSS custom properties that are NOT `--c-*` design system tokens (leftover `--tw-*`, `--color-*`, framework vars)
    - Tailwind arbitrary color values (`text-[#`, `bg-[#`, `border-[#`)
    - Old font-family declarations that weren't replaced
-4. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
+4. **Typography check.** Verify:
+   - The app title uses `font-header` (Tenor Sans), not the body font
+   - All sidebar section headings use `font-header text-[15px] uppercase tracking-[0.1em]`
+   - No old font-family declarations remain (search for `font-family`, Google Fonts imports other than DM Sans / Tenor Sans)
+5. **Layout structure check.** Verify:
+   - If the app has a sidebar: title and action icon buttons are inside the sidebar header (not in a separate header bar)
+   - Sidebar collapse button (`Minimize2`) is in the sidebar header button row
+   - Sidebar expand button (`Maximize2`) is a floating circular button in the main content area (only visible when sidebar is collapsed)
+   - All floating action buttons in the main content area are circular icon-only buttons (`w-12 h-12 rounded-full`)
+   - SVG/canvas measurement annotations use terracotta accent color, not black
+6. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
 
 ---
 
