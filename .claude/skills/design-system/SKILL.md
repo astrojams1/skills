@@ -84,17 +84,50 @@ export default {
 }
 ```
 
-## Step 4: Typography
+## Step 4: Icons
 
-| Role | Tailwind Classes |
-|------|-----------------|
-| **Page title** | `text-[26px] font-header font-medium text-text-main leading-tight mb-2` |
-| **Section heading** | `font-header text-[15px] uppercase tracking-[0.1em] text-text-main` (active: `text-primary`) |
-| **Body text** | `font-sans text-sm to text-base text-text-main` |
-| **Micro-label** | `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1.5 block` |
-| **Helper text** | `text-[12px] text-text-muted mt-2 leading-relaxed` |
+**Library:** [Lucide](https://lucide.dev/) (`lucide-react` for React, `lucide` for vanilla JS). All icons in this design system come from Lucide. Do not mix icon libraries.
 
-## Step 5: Components
+**Sizes:**
+
+| Context | Class | Size |
+|---------|-------|------|
+| Sidebar header icon buttons | `w-5 h-5` | 20px |
+| Floating action buttons (`w-12 h-12`) | `w-5 h-5` | 20px |
+| Inline body icons | `w-4 h-4` | 16px |
+
+All icon buttons use a single consistent icon size (`w-5 h-5`). The button's padding and dimensions control the hit target, not the icon size.
+
+**Specific icons:**
+
+| Function | Lucide Icon |
+|----------|-------------|
+| Collapse sidebar | `Minimize2` |
+| Expand sidebar | `Maximize2` |
+| Reset / undo | `RotateCcw` |
+| Auto-adjust / magic | `Wand2` |
+| Dark mode (day) | `Sun` |
+| Dark mode (night) | `Moon` |
+| Section accordion chevron | `ChevronDown` (rotates 180° when open) |
+
+**How to pick icons:** Choose icons that are simple outlines (not filled) and represent the action, not the object. Prefer universally understood metaphors (chevron for expand, X for close). Browse [lucide.dev/icons](https://lucide.dev/icons) and pick the simplest option — if two icons are similar, choose the one with fewer strokes.
+
+## Step 5: Typography
+
+| Role | Tailwind Classes | Min Size |
+|------|-----------------|----------|
+| **Page title** | `text-[26px] font-header font-medium text-text-main leading-tight mb-2` | 26px |
+| **Section heading** | `font-header text-[15px] uppercase tracking-[0.1em] text-text-main` (active: `text-primary`) | 15px |
+| **Body text** | `font-sans text-sm to text-base text-text-main` | 14px (`text-sm`) |
+| **Micro-label** | `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-1.5 block` | 11px |
+| **Helper text** | `text-[12px] text-text-muted mt-2 leading-relaxed` | 12px |
+| **Tip text** | `text-sm text-text-light leading-snug` | 14px |
+| **Inline action** | `text-[10px] font-bold uppercase tracking-widest text-accent` | 10px |
+| **Computed value** | `font-mono font-medium text-text-main` (uses body size context) | 14px |
+
+**Minimum font size rules:** No text in the UI should be smaller than `10px`. The `10px` size is reserved exclusively for inline action buttons (e.g., "Set to Floor"). Labels, helper text, and all readable content must be `11px` or larger. Micro-labels at `11px` are the smallest readable content tier — they compensate with `font-bold` and `uppercase tracking-[0.15em]`.
+
+## Step 6: Components
 
 | Component | Key Classes | Details |
 |-----------|-------------|---------|
@@ -102,9 +135,9 @@ export default {
 | **Secondary btn** | `bg-surface border border-border hover:bg-secondaryHover shadow-sm px-6 py-2.5 rounded-none` | |
 | **Accent btn** | `bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 rounded-none` | |
 | **Ghost btn** | `bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 rounded-none` | |
-| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none |
-| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches) |
-| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs: `font-mono` + right-justified unit suffix (`absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm`) |
+| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none. **Must have a `title` attribute** for tooltip. |
+| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches). **Must have a `title` attribute** for tooltip. |
+| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs: `font-mono` + conditional unit suffix (see below) |
 | **Toggle group** | `bg-secondary/50 p-1 gap-1 border border-border` | Active: `bg-surface shadow-sm border-black/5` |
 | **Slider** | 2px track (`--c-border`), 16px circular thumb (`--c-accent`), border `var(--c-surface)` | Hover: `scale(1.1)` |
 | **Card** | `bg-surface border border-border rounded-none p-4` | |
@@ -112,18 +145,20 @@ export default {
 
 All buttons share base: `inline-flex items-center justify-center font-medium transition-all duration-200 focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed`
 
+**Unit suffix on number inputs:** Show the unit suffix (`in`, `%`, `px`, `ft`, etc.) on the right side of the input when the field represents a physical measurement or quantity with a meaningful unit. Do **not** show a suffix for dimensionless counts (e.g., "Panels", "Zip Code", "Quantity"). The suffix is positioned `absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none`, and the input gets `pr-8` to avoid overlap.
+
 **Signature component — Control Input:** A labeled number input + synced range slider + optional suffix/tip/action. Labels transition to `text-primary` on group hover.
 
 See [references/components.md](references/components.md) for full HTML/CSS patterns for every component.
 
-## Step 6: Layout
+## Step 7: Layout
 
 | Pattern | Key Details |
 |---------|-------------|
 | **Sidebar app shell** | Outermost: `flex h-screen w-screen overflow-hidden bg-background`. Left: sidebar (`w-[400px]`). Right: main content (`flex-1 flex flex-col h-full relative`). |
-| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Header area: app name (`text-[26px] font-header`) + icon button row (`flex gap-1`). Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. Collapse: `w-0 -translate-x-full opacity-0`; show circular expand button (`absolute top-4 left-4 shadow-lg rounded-full`) in main content. |
-| **Accordion sections** | Inside sidebar scrollable body. Separated by `border-b border-border last:border-0`. Tenor Sans title goes `text-primary` when open. Chevron `rotate-180` when open. Grid-row animation (`grid-rows-[1fr]`/`[0fr]`). |
-| **Main content area** | `flex-1 bg-secondary relative overflow-hidden` for the content region (NOT `bg-background` — use the warmer `bg-secondary`). Floating action buttons positioned `absolute top-4 right-4 z-10 flex gap-2` using circular buttons (`w-12 h-12 rounded-full shadow-lg`). |
+| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Slides open/closed with `transition-all duration-300 ease-in-out`. Open: `w-[400px] translate-x-0`; closed: `w-0 -translate-x-full opacity-0`. The outermost container uses `overflow-hidden` to prevent transient horizontal scrollbars during the sidebar's width transition. Header area: app name (`text-[26px] font-header`) aligned with icon button row via `flex justify-between items-start`. Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. **All controls inside the sidebar are full width** (`w-full`). Collapse: `Minimize2`; expand: `Maximize2` (`absolute top-4 left-4 shadow-lg rounded-full`). |
+| **Accordion sections** | Inside sidebar scrollable body. **Only one section open at a time** — expanding a section collapses all others. Sections separated by `border-b border-border last:border-0` (horizontal dividers between each section). Section title uses `font-header` (Tenor Sans) at `text-[15px] uppercase tracking-[0.1em]`; goes `text-primary` when open. **Hover:** title transitions to `text-primary` and chevron to `text-primary` via `group-hover:text-primary transition-colors`. `ChevronDown` icon `rotate-180` when open. Content animates via `grid transition-all duration-300 ease-in-out` between `grid-rows-[1fr] opacity-100 pb-6` (open) and `grid-rows-[0fr] opacity-0` (closed). |
+| **Main content area** | `flex-1 flex flex-col h-full relative`. The content/canvas region inside uses `flex-1 bg-secondary relative overflow-hidden` — it takes up **all available space** (full width and height minus any floating bar). NOT `bg-background` — use the warmer `bg-secondary`. **Canvas re-zoom:** When the sidebar opens or closes, the canvas/content must recalculate its dimensions to fill the new available space. Listen for the sidebar transition (resize observer or `transitionend` event) and re-fit the content. The `overflow-hidden` on the app shell prevents scrollbars during the transition. Floating action buttons positioned `absolute top-4 right-4 z-10 flex gap-2` using circular buttons (`w-12 h-12 rounded-full shadow-lg`). |
 | **Header / navbar** | Alternative to sidebar layout. `bg-background border-b border-border` — neutral background, never colored fill. |
 | **Card grid** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
 | **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` for sticky bottom controls. |
@@ -132,7 +167,7 @@ See [references/components.md](references/components.md) for full HTML/CSS patte
 
 See [references/layout.md](references/layout.md) for full HTML patterns and global styles.
 
-## Step 7: Global Styles
+## Step 8: Global Styles
 
 - **Selection:** `selection:bg-accent/20` on outermost container
 - **Scrollbars:** `scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
@@ -183,16 +218,33 @@ The design system grows through real-world usage. Every novel pattern is an oppo
 - [ ] Accent (terracotta) appears only on CTA buttons, slider thumbs, and small highlights
 - [ ] No default Tailwind blue, indigo, or gray colors remain
 
+**Icons:**
+- [ ] Using Lucide icons exclusively (`lucide-react` or `lucide`)
+- [ ] All icon buttons use `w-5 h-5` icon size regardless of button dimensions
+- [ ] Sidebar collapse uses `Minimize2`; expand uses `Maximize2`
+- [ ] Section accordions use `ChevronDown` with `rotate-180` when open
+- [ ] Dark mode toggle uses `Sun` (day) / `Moon` (night) from Lucide
+
 **Layout and Interaction:**
-- [ ] Sidebar header shows app name (`text-[26px] font-header`) with icon button row (actions + collapse)
-- [ ] Sidebar is collapsible; circular expand button appears in main content when collapsed
-- [ ] Sidebar sections are collapsible accordions with Tenor Sans titles and chevron rotation
-- [ ] Main content area uses `bg-secondary` background (not `bg-background`)
-- [ ] Control inputs pair number input (right-justified unit suffix) with synced range slider below
+- [ ] Sidebar header: `flex justify-between items-start` — title and icon buttons top-aligned
+- [ ] Sidebar collapse/expand animates with `transition-all duration-300 ease-in-out`; circular expand button (`Maximize2`) appears when collapsed
+- [ ] App shell uses `overflow-hidden` — no transient horizontal scrollbar during sidebar transition
+- [ ] Canvas/content re-zooms to fill available space when sidebar opens or closes (resize observer or `transitionend`)
+- [ ] Sidebar sections are collapsible accordions with Tenor Sans (`font-header`) titles, `border-b border-border` dividers, and chevron rotation
+- [ ] Accordion section headers show `text-primary` on hover (both title and chevron, via `group-hover:text-primary`)
+- [ ] Accordion content animates with `grid transition-all duration-300 ease-in-out` between `grid-rows-[1fr]` and `grid-rows-[0fr]`
+- [ ] Only one accordion section is open at a time — expanding one collapses all others
+- [ ] All controls inside the sidebar are full width (`w-full`) — inputs, toggles, sliders stretch to fill the sidebar content area
+- [ ] Main content area uses `flex-1 flex flex-col h-full relative`; canvas region uses `flex-1 bg-secondary relative overflow-hidden` to fill all available space
+- [ ] Control inputs pair number input (conditional unit suffix) with synced range slider below
+- [ ] Unit suffixes shown only on measurement fields (inches, %, px), not on dimensionless counts
+- [ ] All icon-only buttons and floating action buttons have a `title` attribute (native browser tooltip)
 - [ ] Dark mode toggle uses circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun/moon icon
 - [ ] Floating action buttons positioned `absolute top-4 right-4 z-10` in main content
 
 **Typography and Details:**
+- [ ] No text smaller than 10px; 10px reserved for inline action buttons only
+- [ ] Micro-labels at 11px are the smallest readable content tier
 - [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
 - [ ] Number inputs use `font-mono`
 - [ ] Slider thumb border uses `var(--c-surface)`, not hardcoded white

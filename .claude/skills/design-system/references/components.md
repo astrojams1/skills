@@ -4,6 +4,45 @@ Detailed HTML/CSS patterns for every component in the Architectural Minimalist d
 
 **Color usage rule:** Primary (sage) and accent (terracotta) are strictly for interactive elements — buttons, links, active states, slider thumbs. They must never be used as background fills for headers, banners, cards, or page sections. All structural backgrounds use `bg-background` or `bg-surface`.
 
+## Icons
+
+**Library:** All icons come from [Lucide](https://lucide.dev/). Install `lucide-react` (React) or `lucide` (vanilla JS).
+
+```tsx
+// React — import only the icons you use
+import { Minimize2, Maximize2, RotateCcw, Wand2, Sun, Moon, ChevronDown } from 'lucide-react';
+```
+
+**Sizing rule:** Every icon uses `w-5 h-5` (20px) inside buttons. The button's padding/dimensions control the touch target — the icon size stays constant.
+
+```html
+<!-- Sidebar header icon button: p-2.5 creates the touch target -->
+<button class="p-2.5 rounded-full ...">
+  <svg class="w-5 h-5"><!-- Lucide icon --></svg>
+</button>
+
+<!-- Floating action button: w-12 h-12 creates the large touch target -->
+<button class="w-12 h-12 !p-0 rounded-full ...">
+  <svg class="w-5 h-5"><!-- Lucide icon --></svg>
+</button>
+```
+
+The only exception is inline body icons (inside text or small labels), which use `w-4 h-4` (16px).
+
+**Specific icon assignments:**
+
+| Function | Lucide Icon | Notes |
+|----------|-------------|-------|
+| Collapse sidebar | `Minimize2` | In sidebar header button row |
+| Expand sidebar | `Maximize2` | Circular floating button, top-left of main content |
+| Reset / undo | `RotateCcw` | Disabled state when nothing to reset |
+| Auto-adjust / magic | `Wand2` | Primary-tinted (`text-primary bg-primary/10`) |
+| Day mode indicator | `Sun` | `text-amber-500 fill-current` |
+| Night mode indicator | `Moon` | `text-indigo-400 fill-current` |
+| Accordion expand/collapse | `ChevronDown` | `rotate-180` when section is open |
+
+**How to choose icons for new features:** Pick the simplest outline icon from [lucide.dev/icons](https://lucide.dev/icons) that represents the _action_ (not the object). Prefer universally understood metaphors. When two icons could work, choose the one with fewer strokes.
+
 ## Headers and Navigation
 
 Headers and navbars always use a neutral background with a bottom border — never a colored fill.
@@ -43,6 +82,8 @@ Headers and navbars always use a neutral background with a bottom border — nev
 
 The sidebar header contains the app name and a row of icon buttons (action buttons + collapse toggle). It uses generous padding and no bottom border — the first accordion section provides visual separation.
 
+**Alignment:** The header uses `flex justify-between items-start` so the app title and the icon button row are both **top-aligned**. The title sits at the start (left), buttons at the end (right). Both align to the top of the row — the title's larger line-height does not push the buttons down. The `items-start` (not `items-center`) is critical: it keeps the button tops flush with the first line of the title text.
+
 ```html
 <div class="flex-col items-stretch gap-4 p-8 border-none pb-0">
   <div class="flex justify-between items-start">
@@ -52,27 +93,32 @@ The sidebar header contains the app name and a row of icon buttons (action butto
       </h1>
     </div>
     <div class="flex gap-1">
-      <!-- Action icon buttons (optional: magic wand, reset, etc.) -->
+      <!-- Action icon button (e.g., Wand2 for auto-adjust) -->
       <button class="p-2.5 rounded-full text-primary bg-primary/10 hover:bg-primary/20 hover:text-primaryHover
-        transition-all duration-200 focus:outline-none">
-        <svg class="w-5 h-5"><!-- action icon --></svg>
+        transition-all duration-200 focus:outline-none"
+        title="Auto-adjust settings">
+        <Wand2 class="w-5 h-5" />
       </button>
-      <!-- Reset/clear button (disabled state when nothing to reset) -->
+      <!-- Reset button (RotateCcw — disabled when nothing to reset) -->
       <button class="p-2.5 rounded-full text-accent hover:bg-accent/5 hover:text-accentHover
-        transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed">
-        <svg class="w-5 h-5"><!-- reset icon --></svg>
+        transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+        title="Reset to defaults">
+        <RotateCcw class="w-5 h-5" />
       </button>
-      <!-- Collapse sidebar button -->
+      <!-- Collapse sidebar button (Minimize2) -->
       <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover
-        bg-transparent transition-all duration-200 focus:outline-none">
-        <svg class="w-5 h-5"><!-- minimize/collapse icon --></svg>
+        bg-transparent transition-all duration-200 focus:outline-none"
+        title="Collapse sidebar">
+        <Minimize2 class="w-5 h-5" />
       </button>
     </div>
   </div>
 </div>
 ```
 
-The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with subtle tinted backgrounds for primary actions (`bg-primary/10`) and accent actions (`hover:bg-accent/5`).
+**Tooltip rule:** Every icon-only button (sidebar header buttons, floating action buttons, sidebar expand button) **must** have a `title` attribute that describes its action. Since these buttons have no visible label, the native browser tooltip is the only way users can discover their function.
+
+The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with subtle tinted backgrounds for primary actions (`bg-primary/10`) and accent actions (`hover:bg-accent/5`). All icons are `w-5 h-5` (20px).
 
 ## Buttons
 
@@ -119,10 +165,13 @@ disabled:opacity-50 disabled:cursor-not-allowed
 ```html
 <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent
   transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
-  disabled:opacity-50 disabled:cursor-not-allowed">
+  disabled:opacity-50 disabled:cursor-not-allowed"
+  title="Describe the action">
   <svg class="w-5 h-5">...</svg>
 </button>
 ```
+
+**Important:** All icon-only buttons must include a `title` attribute. Since there is no visible text label, the browser tooltip is the only discoverability mechanism.
 
 ## Dark Mode Toggle
 
@@ -159,17 +208,18 @@ Circular buttons positioned absolutely in the main content area for global toggl
     focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
     bg-surface border border-border text-text-main hover:bg-secondaryHover
     shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
-    title="Toggle feature">
+    title="Turn on lamp">
     <svg class="w-5 h-5 text-text-muted"><!-- feature icon --></svg>
   </button>
   <!-- Active state: tinted background to indicate "on" -->
   <button class="... shadow-lg w-12 h-12 !p-0 rounded-full
     bg-amber-100 dark:bg-amber-900/30 border-amber-500/50"
-    title="Feature is on">
+    title="Turn off lamp">
     <svg class="w-5 h-5 text-amber-500 fill-amber-500"><!-- feature icon --></svg>
   </button>
   <!-- Day/Night toggle -->
-  <button class="... shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+  <button class="... shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
+    title="Switch to Night">
     <svg class="w-5 h-5"><!-- sun or moon --></svg>
   </button>
 </div>
@@ -179,7 +229,7 @@ Active floating action buttons use a tinted background matching the icon color (
 
 ## Sidebar Expand Button
 
-When the sidebar is collapsed, a circular floating button appears in the main content area (top-left) to restore it:
+When the sidebar is collapsed, a circular floating button appears in the main content area (top-left) to restore it. Uses `Maximize2` (the counterpart to the `Minimize2` collapse button):
 
 ```html
 <!-- Only visible when sidebar is collapsed -->
@@ -187,8 +237,9 @@ When the sidebar is collapsed, a circular floating button appears in the main co
   inline-flex items-center justify-center font-medium transition-all duration-200
   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
   bg-surface border border-border text-text-main hover:bg-secondaryHover
-  shadow-lg !p-3 rounded-full">
-  <svg class="w-5 h-5"><!-- expand/maximize icon --></svg>
+  shadow-lg !p-3 rounded-full"
+  title="Expand sidebar">
+  <Maximize2 class="w-5 h-5" />
 </button>
 ```
 
@@ -205,7 +256,7 @@ All text inputs, number inputs, selects, and textareas use sharp corners, a subt
 
 **Number input with unit suffix:**
 
-Wrap the input in a relative container and position the suffix absolutely:
+Wrap the input in a relative container and position the suffix absolutely. The input uses `pr-8` to leave room for the suffix.
 
 ```html
 <div class="relative">
@@ -216,6 +267,16 @@ Wrap the input in a relative container and position the suffix absolutely:
   </span>
 </div>
 ```
+
+**When to show the unit suffix:** Show it when the field represents a physical measurement or quantity with a meaningful unit (inches, pixels, percent, feet, degrees). Omit it for dimensionless counts or identifiers:
+
+| Show suffix | No suffix |
+|-------------|-----------|
+| Width → `in` | Panel Count |
+| Height → `in` | Zip Code |
+| Elevation → `in` | Quantity |
+| Opacity → `%` | Number of Items |
+| Angle → `°` | ID / Code |
 
 Number inputs use `font-mono` for tabular alignment of digits.
 
@@ -387,6 +448,7 @@ Interaction: the label changes from `text-text-muted` to `text-primary` on group
 ```
 
 **Key details:**
+- **All sidebar controls are full width.** Inputs, toggle groups, sliders, and control inputs use `w-full` to stretch across the sidebar's content area. Never use fixed widths or partial-width controls inside the sidebar.
 - The number input uses `font-mono` for tabular digit alignment and `pr-8` to leave space for the right-justified unit suffix.
 - The unit suffix (`in`, `px`, `%`, etc.) is absolutely positioned inside the input: `absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none`.
 - The slider sits directly below the input with `mb-2` spacing, creating a compact compound control.
