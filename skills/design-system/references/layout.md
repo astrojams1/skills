@@ -20,18 +20,23 @@ The primary application layout: a collapsible sidebar on the left with accordion
     shadow-2xl z-20 relative">
 
     <!-- Sidebar Header: App name + icon buttons -->
+    <!-- items-start keeps title and buttons top-aligned (not vertically centered) -->
     <div class="flex-col items-stretch gap-4 p-8 border-none pb-0">
       <div class="flex justify-between items-start">
         <h1 class="text-[26px] font-header font-medium text-text-main leading-tight mb-2">
           App Name
         </h1>
         <div class="flex gap-1">
-          <!-- Icon buttons: actions, reset, collapse -->
+          <!-- Icon buttons: actions, reset, collapse — all w-5 h-5 icons -->
           <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
-            <svg class="w-5 h-5"><!-- action icon --></svg>
+            <Wand2 class="w-5 h-5" />
           </button>
           <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
-            <svg class="w-5 h-5"><!-- collapse/minimize icon --></svg>
+            <RotateCcw class="w-5 h-5" />
+          </button>
+          <!-- Collapse sidebar: Minimize2 icon -->
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+            <Minimize2 class="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -47,11 +52,12 @@ The primary application layout: a collapsible sidebar on the left with accordion
   <div class="flex-1 flex flex-col h-full relative">
 
     <!-- Expand sidebar button (only shown when sidebar is collapsed) -->
+    <!-- Uses Maximize2 icon — counterpart to Minimize2 in the sidebar header -->
     <button class="absolute top-4 left-4 z-10
       inline-flex items-center justify-center
       bg-surface border border-border text-text-main hover:bg-secondaryHover
       shadow-lg !p-3 rounded-full transition-all duration-200">
-      <svg class="w-5 h-5"><!-- expand/maximize icon --></svg>
+      <Maximize2 class="w-5 h-5" />
     </button>
 
     <!-- Floating action buttons: top-right corner -->
@@ -71,9 +77,11 @@ The primary application layout: a collapsible sidebar on the left with accordion
       </button>
     </div>
 
-    <!-- Content area: uses bg-secondary, NOT bg-background -->
+    <!-- Content area: takes ALL available space (full width/height) -->
+    <!-- Uses bg-secondary, NOT bg-background — provides contrast with sidebar -->
     <div class="flex-1 bg-secondary relative overflow-hidden transition-colors duration-300">
-      <!-- Main application content -->
+      <!-- Main application content fills this entire region -->
+      <!-- Canvas, simulator, map, or other primary content goes here -->
     </div>
 
     <!-- Floating bottom bar (optional) -->
@@ -87,10 +95,12 @@ The primary application layout: a collapsible sidebar on the left with accordion
 ```
 
 **Critical details:**
-- The main content area uses `bg-secondary` — this provides visual contrast with the sidebar's `bg-background`. Do NOT use `bg-background` for both.
+- The main content column uses `flex-1 flex flex-col h-full relative`. Inside it, the content/canvas region uses `flex-1` to take **all remaining space** (full width and height minus any floating bar). This ensures the primary content (canvas, simulator, map, etc.) fills the viewport without fixed heights or overflow issues.
+- The content area uses `bg-secondary` — this provides visual contrast with the sidebar's `bg-background`. Do NOT use `bg-background` for both.
 - Floating action buttons use `shadow-lg` and `rounded-full` — these are overlaying elements, so shadows are appropriate.
 - The sidebar has `shadow-2xl` because it overlays the main content when open.
 - The expand button only appears when the sidebar is collapsed, positioned `absolute top-4 left-4`.
+- The sidebar header uses `items-start` (not `items-center`) so the title text and icon buttons are **top-aligned**. This prevents the smaller icon buttons from floating to the vertical center of the taller title.
 
 ## Top Navigation (Header-Based Layout)
 
@@ -153,11 +163,13 @@ w-[400px] translate-x-0 opacity-100
 w-0 -translate-x-full opacity-0
 ```
 
+**Icons:** The collapse button (in the sidebar header) uses `Minimize2`. The expand button (floating in main content) uses `Maximize2`. These form a natural pair — minimize to close, maximize to open.
+
 When collapsed, a circular expand button appears in the main content area:
 ```html
 <button class="absolute top-4 left-4 z-10 shadow-lg !p-3 rounded-full
   bg-surface border border-border text-text-main hover:bg-secondaryHover">
-  <svg class="w-5 h-5"><!-- expand/maximize icon --></svg>
+  <Maximize2 class="w-5 h-5" />
 </button>
 ```
 
@@ -174,10 +186,8 @@ Use Tenor Sans headers with chevron rotation and smooth grid-row animation:
     <span class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main transition-colors group-hover:text-primary">
       Section Title
     </span>
-    <!-- Chevron rotates 180deg when open -->
-    <svg class="w-5 h-5 text-text-muted transition-transform duration-200 rotate-180 text-primary">
-      <!-- ChevronDown icon -->
-    </svg>
+    <!-- ChevronDown rotates 180deg when open, changes to text-primary -->
+    <ChevronDown class="w-5 h-5 text-text-muted transition-transform duration-200 rotate-180 text-primary" />
   </button>
 
   <!-- Animate open/closed with grid rows -->
