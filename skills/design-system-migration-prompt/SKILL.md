@@ -107,7 +107,27 @@ The one thing the skill doesn't provide is a **translation mapping** from old Ta
 - Remove any text labels from floating action buttons — they are icon-only with `title` attributes for tooltips
 - Group floating action buttons in `absolute top-4 right-4 z-10 flex gap-2`
 
+**Sidebar properties** — the sidebar must match these exact specifications:
+- Width: `w-[400px]` (open state), `w-0 -translate-x-full opacity-0` (closed state)
+- Background: `bg-background` — the same warm neutral as the page, never a colored fill
+- Shadow: `shadow-2xl` — the sidebar is an overlay element, so it keeps its shadow (do NOT strip it during shadow cleanup)
+- Border: `border-r border-border`
+- Transition: `transition-all duration-300 ease-in-out`
+
 **Sidebar header** — the app title and action buttons (collapse, reset, auto-adjust) MUST be inside the sidebar header, not in a separate header bar or navbar. Follow the Sidebar Header pattern from `references/components.md`.
+
+**Accordion section animations** — sidebar sections must use the CSS Grid animation trick for smooth expand/collapse:
+- Container: `grid transition-all duration-300 ease-in-out`
+- Open: `grid-rows-[1fr] opacity-100 pb-6`
+- Closed: `grid-rows-[0fr] opacity-0`
+- Inner wrapper: `overflow-hidden min-h-0`
+- Only one section open at a time — expanding one collapses all others
+
+**Toggle groups (segmented controls)** — replace any existing toggle/tab/segmented controls with the design system pattern:
+- Container: `flex bg-secondary/50 rounded-none p-1 gap-1 border border-border`
+- Active item: `bg-surface text-text-main shadow-sm border border-black/5`
+- Inactive item: `text-text-muted hover:text-text-main hover:bg-surface/50 border border-transparent`
+- Do NOT use `bg-primary`, `bg-accent`, or any colored fill for active toggle items — the active state is a subtle surface elevation with a shadow, not a color change
 
 **SVG / Canvas annotations** — if the app draws measurement lines, dimension annotations, or overlays, convert them to the terracotta accent style from `references/components.md` (SVG / Canvas Measurement Annotations section).
 
@@ -136,9 +156,14 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
    - No old font-family declarations remain (search for `font-family`, Google Fonts imports other than DM Sans / Tenor Sans)
 5. **Layout structure check.** Verify:
    - If the app has a sidebar: title and action icon buttons are inside the sidebar header (not in a separate header bar)
+   - Sidebar width is `w-[400px]`, background is `bg-background`, shadow is `shadow-2xl`
    - Sidebar collapse button (`Minimize2`) is in the sidebar header button row
    - Sidebar expand button (`Maximize2`) is a floating circular button in the main content area (only visible when sidebar is collapsed)
+   - Sidebar open/close uses `transition-all duration-300 ease-in-out`
+   - Accordion sections animate with the grid-rows trick (`grid-rows-[1fr]` / `grid-rows-[0fr]` + opacity)
+   - Only one accordion section is open at a time
    - All floating action buttons in the main content area are circular icon-only buttons (`w-12 h-12 rounded-full`)
+   - Toggle groups use `bg-secondary/50` container with `bg-surface shadow-sm` active item — no colored fills
    - SVG/canvas measurement annotations use terracotta accent color, not black
 6. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
 

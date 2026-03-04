@@ -193,7 +193,7 @@ See [references/layout.md](references/layout.md) for full HTML patterns and glob
 
 1. **Audit existing colors.** Search for all hardcoded colors (`blue-`, `gray-`, `indigo-`, `#3B82F6`, etc.) and replace with design system tokens.
 2. **Strip all border-radius.** Find and remove all `rounded-*` classes (except `rounded-full` on icon buttons). Add `rounded-none` explicitly where needed.
-3. **Replace shadow-based structure with borders.** Remove `shadow-*` from cards, panels, and containers. Add `border border-border` instead.
+3. **Replace shadow-based structure with borders.** Remove `shadow-*` from cards, panels, and non-overlay containers. Add `border border-border` instead. **Keep shadows on overlay elements:** sidebar (`shadow-2xl`), floating action buttons (`shadow-lg`), floating bottom bar, and expand button (`shadow-lg`). These are overlaying elements — shadows are correct on them.
 4. **Check headers/navbars.** If any header uses a colored background (`bg-blue-*`, `bg-primary`, `bg-accent`, `bg-green-*`, etc.), replace with `bg-background border-b border-border`.
 5. **Install the fonts and CSS custom properties** — these are mandatory, not optional.
 
