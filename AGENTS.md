@@ -100,11 +100,11 @@ These skills are internal to the skills repository and are NOT distributed to co
 
 **Skill:** `skills/design-system-migration-prompt/SKILL.md`
 
-A self-contained migration prompt for the skills repo author to copy-paste to an AI agent in a consumer repo. The agent audits the existing design system, strips it completely, and replaces it with the Architectural Minimalist design system. The prompt embeds the full spec so the consumer agent needs no access to this repository.
+A migration prompt for the skills repo author to copy-paste to an AI agent in a consumer repo that already has the `design-system` skill. The agent audits the existing design system, strips it completely, and replaces it by following the design-system skill. The prompt references the skill rather than embedding the full spec.
 
 #### How to use
 
-Read `skills/design-system-migration-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the consumer repo. The agent will audit, strip, replace, and verify autonomously.
+The consumer repo must already have the `design-system` skill available (via submodule or copied). Read `skills/design-system-migration-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the consumer repo. The agent will audit, strip, replace, and verify autonomously.
 
 ### Health Check Prompt
 
