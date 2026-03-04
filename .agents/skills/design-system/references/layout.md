@@ -158,7 +158,9 @@ For apps that use a top navigation bar instead of a sidebar:
 
 ## Sidebar Collapse/Expand Interaction
 
-The sidebar transitions between open and closed states with a smooth slide animation:
+The sidebar transitions between open and closed states with a smooth slide animation.
+
+**Animation:** The sidebar uses `transition-all duration-300 ease-in-out` on its container. This single transition handles the width change, slide, and fade simultaneously:
 
 **Open state:**
 ```
@@ -169,6 +171,28 @@ w-[400px] translate-x-0 opacity-100
 ```
 w-0 -translate-x-full opacity-0
 ```
+
+**Preventing scrollbar flash:** The outermost app shell (`flex h-screen w-screen`) must use `overflow-hidden`. Without this, the sidebar's intermediate width during animation creates momentary content overflow that produces a transient horizontal scrollbar. The `overflow-hidden` is already specified in the app shell pattern — never remove it.
+
+**Canvas re-zoom:** When the sidebar opens or closes, the main content area's available width changes. Any size-dependent content (canvas, SVG viewport, simulation, map) must recalculate to fill the new space. Two approaches:
+
+```tsx
+// Approach 1: ResizeObserver (recommended — fires during and after transition)
+useEffect(() => {
+  const observer = new ResizeObserver(() => recalculateScale());
+  if (containerRef.current) observer.observe(containerRef.current);
+  return () => observer.disconnect();
+}, []);
+
+// Approach 2: window resize event (simpler but only fires after transition)
+useEffect(() => {
+  const handler = () => recalculateScale();
+  window.addEventListener('resize', handler);
+  return () => window.removeEventListener('resize', handler);
+}, []);
+```
+
+The key insight: `flex-1` on the main content div automatically adjusts its width as the sidebar opens/closes — but internal content that uses fixed pixel dimensions (SVG `viewBox`, canvas scale factors, etc.) must be told to re-measure.
 
 **Icons:** The collapse button (in the sidebar header) uses `Minimize2`. The expand button (floating in main content) uses `Maximize2`. These form a natural pair — minimize to close, maximize to open.
 
@@ -191,19 +215,37 @@ The sidebar collapse button is an icon button in the sidebar header's button row
 
 **Horizontal dividers:** Sections are separated by `border-b border-border` on each section container, with `last:border-0` to remove the divider after the final section. These thin 1px borders provide subtle visual separation without heavy styling.
 
+**Hover behavior:** The section header button uses `group` so child elements can react to hover. On hover:
+- The section title transitions from `text-text-main` to `text-primary` via `group-hover:text-primary transition-colors`
+- The chevron icon does the same: `group-hover:text-primary` (this is separate from the open-state `text-primary` / `rotate-180`)
+- The transition is smooth: `transition-colors` on both elements
+
+When the section is **open**, the title and chevron are already `text-primary` — hover has no visible additional effect, which is correct (the active state subsumes the hover state).
+
+**Content animation:** The section body uses a CSS Grid trick for smooth height animation. The content wrapper uses `grid` with `transition-all duration-300 ease-in-out`:
+- **Open:** `grid-rows-[1fr] opacity-100 pb-6` — content is fully visible with bottom padding
+- **Closed:** `grid-rows-[0fr] opacity-0` — content collapses to zero height with a simultaneous fade
+
+The inner div uses `overflow-hidden min-h-0` to allow the grid row to shrink to zero without content spilling.
+
 ```html
 <!-- Each section is a border-separated block. Only one should have isOpen=true at a time. -->
 <div class="border-b border-border last:border-0">
+  <!-- group enables group-hover on children -->
   <button class="w-full flex items-center justify-between py-5 px-1 group focus:outline-none select-none">
-    <!-- Title: Tenor Sans (font-header), changes to text-primary when open -->
-    <span class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main transition-colors group-hover:text-primary">
+    <!-- Title: transitions to text-primary on hover AND when open -->
+    <span class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main transition-colors
+      group-hover:text-primary"
+    >
       Section Title
     </span>
-    <!-- ChevronDown rotates 180deg when open, changes to text-primary -->
-    <ChevronDown class="w-5 h-5 text-text-muted transition-transform duration-200 rotate-180 text-primary" />
+    <!-- Chevron: transitions to text-primary on hover; rotates 180deg + text-primary when open -->
+    <ChevronDown class="w-5 h-5 text-text-muted transition-all duration-200
+      group-hover:text-primary" />
+    <!-- When open, add: rotate-180 text-primary -->
   </button>
 
-  <!-- Animate open/closed with grid rows -->
+  <!-- Content: grid-row animation for smooth expand/collapse -->
   <!-- Open: grid-rows-[1fr] opacity-100 pb-6 -->
   <!-- Closed: grid-rows-[0fr] opacity-0 -->
   <div class="grid transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100 pb-6">
