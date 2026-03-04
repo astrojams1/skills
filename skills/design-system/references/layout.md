@@ -2,7 +2,95 @@
 
 Detailed HTML patterns for layout components and global styles in the Architectural Minimalist design system.
 
-**Key principle:** This design system works with any app structure — sidebar, top-nav, card grid, dashboard, single-page. The visual identity comes from warm neutral backgrounds, border-based structure, sharp geometry, and restrained use of color — not from any specific layout pattern. When adapting, keep the warm neutral background dominant across 85%+ of the visible area.
+**Key principle:** The visual identity comes from warm neutral backgrounds, border-based structure, sharp geometry, and restrained use of color — not from any specific layout. When adapting, keep the warm neutral background dominant across 85%+ of the visible area.
+
+## Sidebar Application Layout
+
+The primary application layout: a collapsible sidebar on the left with accordion sections and controls, main content area on the right with floating action buttons.
+
+```html
+<!-- App Shell: full-screen flex container -->
+<div class="flex h-screen w-screen overflow-hidden bg-background text-text-main font-sans selection:bg-accent/20 transition-colors duration-300">
+
+  <!-- ===== SIDEBAR ===== -->
+  <!-- Open: w-[400px] translate-x-0 -->
+  <!-- Closed: w-0 -translate-x-full opacity-0 -->
+  <aside class="w-[400px] translate-x-0 bg-background border-r border-border
+    transition-all duration-300 ease-in-out flex flex-col h-full overflow-hidden
+    shadow-2xl z-20 relative">
+
+    <!-- Sidebar Header: App name + icon buttons -->
+    <div class="flex-col items-stretch gap-4 p-8 border-none pb-0">
+      <div class="flex justify-between items-start">
+        <h1 class="text-[26px] font-header font-medium text-text-main leading-tight mb-2">
+          App Name
+        </h1>
+        <div class="flex gap-1">
+          <!-- Icon buttons: actions, reset, collapse -->
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+            <svg class="w-5 h-5"><!-- action icon --></svg>
+          </button>
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+            <svg class="w-5 h-5"><!-- collapse/minimize icon --></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable body with accordion sections -->
+    <div class="flex-1 overflow-y-auto p-8 pt-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+      <!-- Accordion sections go here (see Collapsible Sections below) -->
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="flex-1 flex flex-col h-full relative">
+
+    <!-- Expand sidebar button (only shown when sidebar is collapsed) -->
+    <button class="absolute top-4 left-4 z-10
+      inline-flex items-center justify-center
+      bg-surface border border-border text-text-main hover:bg-secondaryHover
+      shadow-lg !p-3 rounded-full transition-all duration-200">
+      <svg class="w-5 h-5"><!-- expand/maximize icon --></svg>
+    </button>
+
+    <!-- Floating action buttons: top-right corner -->
+    <div class="absolute top-4 right-4 z-10 flex gap-2">
+      <!-- Feature toggle (e.g., lights on/off) -->
+      <button class="inline-flex items-center justify-center
+        bg-surface border border-border text-text-main hover:bg-secondaryHover
+        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+        <svg class="w-5 h-5 text-text-muted"><!-- feature icon --></svg>
+      </button>
+      <!-- Day/Night (dark mode) toggle -->
+      <button class="inline-flex items-center justify-center
+        bg-surface border border-border text-text-main hover:bg-secondaryHover
+        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+        <svg class="w-5 h-5 text-amber-500 fill-current"><!-- Sun icon (day) --></svg>
+        <!-- or: <svg class="w-5 h-5 text-indigo-400 fill-current">Moon icon (night)</svg> -->
+      </button>
+    </div>
+
+    <!-- Content area: uses bg-secondary, NOT bg-background -->
+    <div class="flex-1 bg-secondary relative overflow-hidden transition-colors duration-300">
+      <!-- Main application content -->
+    </div>
+
+    <!-- Floating bottom bar (optional) -->
+    <div class="bg-surface/95 backdrop-blur border-t border-border p-6 shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)] z-10">
+      <div class="max-w-2xl mx-auto">
+        <!-- Bottom controls, sliders, etc. -->
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+**Critical details:**
+- The main content area uses `bg-secondary` — this provides visual contrast with the sidebar's `bg-background`. Do NOT use `bg-background` for both.
+- Floating action buttons use `shadow-lg` and `rounded-full` — these are overlaying elements, so shadows are appropriate.
+- The sidebar has `shadow-2xl` because it overlays the main content when open.
+- The expand button only appears when the sidebar is collapsed, positioned `absolute top-4 left-4`.
 
 ## Top Navigation (Header-Based Layout)
 
@@ -51,35 +139,29 @@ For apps that use a top navigation bar instead of a sidebar:
 <section class="bg-primary/20 py-16 ...">
 ```
 
-## Sidebar
+## Sidebar Collapse/Expand Interaction
 
-Collapsible sidebar with slide animation:
+The sidebar transitions between open and closed states with a smooth slide animation:
 
-```html
-<!-- Open state: w-[400px] translate-x-0 -->
-<!-- Closed state: w-0 -translate-x-full opacity-0 -->
-<aside class="w-[400px] translate-x-0 bg-background border-r border-border
-  transition-all duration-300 ease-in-out flex flex-col h-full overflow-hidden
-  shadow-2xl z-20 relative">
-
-  <!-- Header -->
-  <div class="flex-col items-stretch gap-4 p-8 border-none">
-    <div class="flex justify-between items-start">
-      <h1 class="text-[26px] font-header font-medium text-text-main leading-tight mb-2">
-        Page Title
-      </h1>
-      <div class="flex gap-1">
-        <!-- Icon buttons go here -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Scrollable content -->
-  <div class="flex-1 overflow-y-auto p-8 pt-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-    <!-- Sections go here -->
-  </div>
-</aside>
+**Open state:**
 ```
+w-[400px] translate-x-0 opacity-100
+```
+
+**Closed state:**
+```
+w-0 -translate-x-full opacity-0
+```
+
+When collapsed, a circular expand button appears in the main content area:
+```html
+<button class="absolute top-4 left-4 z-10 shadow-lg !p-3 rounded-full
+  bg-surface border border-border text-text-main hover:bg-secondaryHover">
+  <svg class="w-5 h-5"><!-- expand/maximize icon --></svg>
+</button>
+```
+
+The sidebar collapse button is an icon button in the sidebar header's button row (see Sidebar Header in [components.md](components.md)).
 
 ## Collapsible Sections (Accordions)
 
@@ -149,9 +231,14 @@ All color transitions should use `transition-colors duration-300` to ensure smoo
 
 ### Dark Mode Toggle
 
-Toggle a `dark` class on the `<html>` or `<body>` element. All colors automatically update through CSS custom properties.
+Toggle the `dark` class on the root container (or `<html>`). All colors update automatically through CSS custom properties.
+
+**Toggle UI:** Use a circular floating action button in the main content area's top-right corner (see Floating Action Buttons in [components.md](components.md)):
+- Light mode: sun icon (`text-amber-500 fill-current`)
+- Dark mode: moon icon (`text-indigo-400 fill-current`)
 
 ```js
+// Toggle dark mode on the app's root container
 function toggleDarkMode() {
   document.documentElement.classList.toggle('dark');
 }

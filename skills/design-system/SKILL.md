@@ -103,7 +103,8 @@ export default {
 | **Accent btn** | `bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 rounded-none` | |
 | **Ghost btn** | `bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 rounded-none` | |
 | **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none |
-| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs add `font-mono` + suffix badge |
+| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches) |
+| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs: `font-mono` + right-justified unit suffix (`absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm`) |
 | **Toggle group** | `bg-secondary/50 p-1 gap-1 border border-border` | Active: `bg-surface shadow-sm border-black/5` |
 | **Slider** | 2px track (`--c-border`), 16px circular thumb (`--c-accent`), border `var(--c-surface)` | Hover: `scale(1.1)` |
 | **Card** | `bg-surface border border-border rounded-none p-4` | |
@@ -119,13 +120,15 @@ See [references/components.md](references/components.md) for full HTML/CSS patte
 
 | Pattern | Key Details |
 |---------|-------------|
-| **Header / navbar** | `bg-background border-b border-border` — always neutral background, never colored fill. Title uses `font-header`. |
-| **Sidebar** | `w-[400px] bg-background border-r shadow-2xl`, slide animation via `translate-x-0` / `-translate-x-full` |
-| **Card grid / dashboard** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
-| **Accordion** | Grid-row animation (`grid-rows-[1fr]`/`[0fr]`), chevron `rotate-180`, title to `text-primary` when open |
-| **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` |
+| **Sidebar app shell** | Outermost: `flex h-screen w-screen overflow-hidden bg-background`. Left: sidebar (`w-[400px]`). Right: main content (`flex-1 flex flex-col h-full relative`). |
+| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Header area: app name (`text-[26px] font-header`) + icon button row (`flex gap-1`). Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. Collapse: `w-0 -translate-x-full opacity-0`; show circular expand button (`absolute top-4 left-4 shadow-lg rounded-full`) in main content. |
+| **Accordion sections** | Inside sidebar scrollable body. Separated by `border-b border-border last:border-0`. Tenor Sans title goes `text-primary` when open. Chevron `rotate-180` when open. Grid-row animation (`grid-rows-[1fr]`/`[0fr]`). |
+| **Main content area** | `flex-1 bg-secondary relative overflow-hidden` for the content region (NOT `bg-background` — use the warmer `bg-secondary`). Floating action buttons positioned `absolute top-4 right-4 z-10 flex gap-2` using circular buttons (`w-12 h-12 rounded-full shadow-lg`). |
+| **Header / navbar** | Alternative to sidebar layout. `bg-background border-b border-border` — neutral background, never colored fill. |
+| **Card grid** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
+| **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` for sticky bottom controls. |
 
-**Adapting to any layout:** This design system works with any app structure — sidebar, top-nav, card grid, dashboard, single page. The visual identity comes from the color palette, typography, sharp geometry, and border-based structure, not from a specific layout pattern. When adapting, keep the warm neutral background dominant, use borders instead of shadows for structural elements, and ensure primary/accent colors appear only on interactive elements.
+**Adapting to any layout:** The visual identity comes from the color palette, typography, sharp geometry, and border-based structure — not from a specific layout. Keep warm neutral background dominant, use borders instead of shadows for structure, and restrict primary/accent to interactive elements.
 
 See [references/layout.md](references/layout.md) for full HTML patterns and global styles.
 
@@ -134,7 +137,7 @@ See [references/layout.md](references/layout.md) for full HTML patterns and glob
 - **Selection:** `selection:bg-accent/20` on outermost container
 - **Scrollbars:** `scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
 - **Theme transition:** `transition-colors duration-300` on all color-changing elements
-- **Dark mode:** Toggle `dark` class on `<html>` — all colors update via CSS custom properties
+- **Dark mode:** Toggle `dark` class on root container — all colors update via CSS custom properties. Provide a circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun icon (light mode) / moon icon (dark mode) in the main content area's top-right corner.
 
 ## When Applying to an Existing Project
 
@@ -165,6 +168,15 @@ See [references/layout.md](references/layout.md) for full HTML patterns and glob
 - [ ] Primary (sage) appears only on buttons, links, active states, and hover indicators
 - [ ] Accent (terracotta) appears only on CTA buttons, slider thumbs, and small highlights
 - [ ] No default Tailwind blue, indigo, or gray colors remain
+
+**Layout and Interaction:**
+- [ ] Sidebar header shows app name (`text-[26px] font-header`) with icon button row (actions + collapse)
+- [ ] Sidebar is collapsible; circular expand button appears in main content when collapsed
+- [ ] Sidebar sections are collapsible accordions with Tenor Sans titles and chevron rotation
+- [ ] Main content area uses `bg-secondary` background (not `bg-background`)
+- [ ] Control inputs pair number input (right-justified unit suffix) with synced range slider below
+- [ ] Dark mode toggle uses circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun/moon icon
+- [ ] Floating action buttons positioned `absolute top-4 right-4 z-10` in main content
 
 **Typography and Details:**
 - [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
