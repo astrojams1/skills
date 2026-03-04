@@ -138,6 +138,7 @@ The app name uses `font-header` (Tenor Sans) at 26px — this is the largest tex
 1. **Missing icon size** — Lucide React defaults to 24px. Every icon MUST have `className="w-5 h-5"` or it will be oversized and misaligned.
 2. **Wrong flex alignment** — The parent must use `items-start`, not `items-center`. The title's larger line-height pushes centered buttons down.
 3. **Missing `p-2.5`** — The icon button wrapper needs `p-2.5` for the correct touch target size. Using `p-1`, `p-2`, or no padding produces cramped or oversized buttons.
+4. **Wrong hover color** — Icon buttons MUST use `hover:text-primary` (sage green), NOT `hover:text-text-main`. The hover transition from `text-text-muted` → `text-primary` is a core interactive pattern — it signals interactivity with the accent color. Using `hover:text-text-main` makes buttons feel dead.
 
 ## Buttons
 
