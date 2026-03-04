@@ -254,7 +254,7 @@ check_skill_links() {
 ensure_session_hook() {
     local root="$1"
     local settings="$root/.claude/settings.json"
-    local hook_cmd="ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link"
+    local hook_cmd="ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && { git -C \"\$ROOT/skills\" fetch origin main --quiet 2>/dev/null && git -C \"\$ROOT\" submodule update --remote --merge skills 2>/dev/null || true; } && \"\$ROOT\"/skills/bin/manage.sh link"
 
     mkdir -p "$root/.claude"
 
@@ -263,6 +263,7 @@ import json, sys, os
 settings_path, hook_cmd = sys.argv[1], sys.argv[2]
 old_cmd = 'git submodule update --init --recursive'
 old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
+old_root_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link'
 data = {}
 if os.path.isfile(settings_path):
     with open(settings_path) as f:
@@ -279,7 +280,7 @@ for group in session_hooks:
 
 # Remove stale skill hooks — old simple command or new compound command
 # in either flat format (type+command without nesting) or nested format
-stale = {old_cmd, old_compound_cmd, hook_cmd}
+stale = {old_cmd, old_compound_cmd, old_root_cmd, hook_cmd}
 remaining = []
 was_migrated = False
 for e in session_hooks:
@@ -748,7 +749,7 @@ cmd_check() {
 
     # 8. SessionStart hook (must be in nested matcher/hooks format with compound command)
     local settings_file="$root/.claude/settings.json"
-    local expected_hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "${ROOT}" submodule update --init --recursive && "${ROOT}"/skills/bin/manage.sh link'
+    local expected_hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "${ROOT}" submodule update --init --recursive && { git -C "${ROOT}/skills" fetch origin main --quiet 2>/dev/null && git -C "${ROOT}" submodule update --remote --merge skills 2>/dev/null || true; } && "${ROOT}"/skills/bin/manage.sh link'
     expected_hook_cmd=${expected_hook_cmd//\$\{ROOT\}/\$ROOT}
     local hook_status=""
     if [ -f "$settings_file" ]; then
@@ -759,18 +760,22 @@ with open(sys.argv[1]) as f:
 new_cmd = sys.argv[2]
 old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
 old_cmd = 'git submodule update --init --recursive'
+old_root_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link'
 for group in data.get('hooks', {}).get('SessionStart', []):
     if isinstance(group, dict) and 'hooks' in group:
         for h in group.get('hooks', []):
             if h.get('command') == new_cmd:
                 print('ok')
                 sys.exit(0)
+            if h.get('command') == old_root_cmd:
+                print('old_link_only')
+                sys.exit(0)
             if h.get('command') in (old_cmd, old_compound_cmd):
                 print('old_nested')
                 sys.exit(0)
     # Detect old flat format (type+command without nesting)
     if isinstance(group, dict) and 'hooks' not in group:
-        if group.get('command') in (new_cmd, old_cmd, old_compound_cmd):
+        if group.get('command') in (new_cmd, old_cmd, old_compound_cmd, old_root_cmd):
             print('flat')
             sys.exit(0)
 print('missing')
@@ -779,6 +784,13 @@ print('missing')
     case "$hook_status" in
         ok)
             green "PASS: SessionStart hook initializes submodule and refreshes skill files"
+            ;;
+        old_link_only)
+            yellow "WARN: SessionStart hook does not auto-sync skills to latest upstream"
+            bold "  Auto-fixing: updating hook to include upstream sync..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook updated"
+            warnings=$((warnings + 1))
             ;;
         old_nested)
             yellow "WARN: SessionStart hook does not refresh skill files (old command)"
