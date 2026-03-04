@@ -94,14 +94,14 @@ The sidebar header contains the app name and a row of icon buttons (action butto
     </div>
     <div class="flex gap-1">
       <!-- Action icon button (e.g., Wand2 for auto-adjust) -->
-      <button class="p-2.5 rounded-full text-primary bg-primary/10 hover:bg-primary/20 hover:text-primaryHover
-        transition-all duration-200 focus:outline-none"
+      <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover
+        bg-transparent transition-all duration-200 focus:outline-none"
         title="Auto-adjust settings">
         <Wand2 class="w-5 h-5" />
       </button>
       <!-- Reset button (RotateCcw — disabled when nothing to reset) -->
-      <button class="p-2.5 rounded-full text-accent hover:bg-accent/5 hover:text-accentHover
-        transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+      <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover
+        bg-transparent transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
         title="Reset to defaults">
         <RotateCcw class="w-5 h-5" />
       </button>
@@ -118,7 +118,7 @@ The sidebar header contains the app name and a row of icon buttons (action butto
 
 **Tooltip rule:** Every icon-only button (sidebar header buttons, floating action buttons, sidebar expand button) **must** have a `title` attribute that describes its action. Since these buttons have no visible label, the native browser tooltip is the only way users can discover their function.
 
-The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with subtle tinted backgrounds for primary actions (`bg-primary/10`) and accent actions (`hover:bg-accent/5`). All icons are `w-5 h-5` (20px).
+The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with `text-text-muted` (neutral gray) as their default color, hovering to `text-primary` with a `bg-secondaryHover` background. All icons are `w-5 h-5` (20px).
 
 ## Buttons
 
