@@ -160,7 +160,7 @@ else
     fail "codex skill directory should be a real directory"
 fi
 
-hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && "$ROOT"/skills/bin/manage.sh link'
+hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "$ROOT" submodule update --init --recursive && { git -C "$ROOT/skills" fetch origin main --quiet 2>/dev/null && git -C "$ROOT" submodule update --remote --merge skills 2>/dev/null || true; } && "$ROOT"/skills/bin/manage.sh link'
 if python3 - <<PY
 import json
 from pathlib import Path
