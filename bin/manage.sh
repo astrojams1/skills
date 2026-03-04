@@ -653,12 +653,12 @@ cmd_check() {
     # before any other checks ensures we run the correct manage.sh version.
     local recorded_sha actual_sha
     recorded_sha="$(git -C "$root" ls-tree HEAD "$SUBMODULE_PATH" 2>/dev/null | awk '{print $3}')"
-    actual_sha="$(git -C "$skills_path" rev-parse HEAD 2>/dev/null)"
+    actual_sha="$(git -C "$root/$SUBMODULE_PATH" rev-parse HEAD 2>/dev/null)"
     if [ -n "$recorded_sha" ] && [ -n "$actual_sha" ] && [ "$recorded_sha" != "$actual_sha" ]; then
         yellow "WARN: Submodule at ${actual_sha:0:8} but recorded pointer is ${recorded_sha:0:8}"
         bold "  Auto-fixing: resetting submodule to recorded pointer..."
         if git -C "$root" submodule update --init --recursive 2>/dev/null; then
-            actual_sha="$(git -C "$skills_path" rev-parse HEAD 2>/dev/null)"
+            actual_sha="$(git -C "$root/$SUBMODULE_PATH" rev-parse HEAD 2>/dev/null)"
             green "  FIXED: Reset to recorded pointer ${actual_sha:0:8}"
         else
             red "  Could not reset submodule. Run: git submodule update --init --recursive"
