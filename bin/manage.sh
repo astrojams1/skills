@@ -645,6 +645,28 @@ cmd_check() {
     fi
     green "PASS: Skills submodule is initialized"
 
+    # 2.5. Submodule at recorded pointer?
+    # Ephemeral environments (e.g. Codex) may start with the submodule checked
+    # out at an old commit that doesn't match the parent repo's recorded pointer.
+    # This causes a chicken-and-egg problem: the old manage.sh lacks features
+    # (like auto-sync) needed to self-heal. Resetting to the recorded pointer
+    # before any other checks ensures we run the correct manage.sh version.
+    local recorded_sha actual_sha
+    recorded_sha="$(git -C "$root" ls-tree HEAD "$SUBMODULE_PATH" 2>/dev/null | awk '{print $3}')"
+    actual_sha="$(git -C "$skills_path" rev-parse HEAD 2>/dev/null)"
+    if [ -n "$recorded_sha" ] && [ -n "$actual_sha" ] && [ "$recorded_sha" != "$actual_sha" ]; then
+        yellow "WARN: Submodule at ${actual_sha:0:8} but recorded pointer is ${recorded_sha:0:8}"
+        bold "  Auto-fixing: resetting submodule to recorded pointer..."
+        if git -C "$root" submodule update --init --recursive 2>/dev/null; then
+            actual_sha="$(git -C "$skills_path" rev-parse HEAD 2>/dev/null)"
+            green "  FIXED: Reset to recorded pointer ${actual_sha:0:8}"
+        else
+            red "  Could not reset submodule. Run: git submodule update --init --recursive"
+            failures=$((failures + 1))
+        fi
+        warnings=$((warnings + 1))
+    fi
+
     # 3. Tracking main branch?
     local branch
     branch="$(git -C "$root" config -f .gitmodules "submodule.$SUBMODULE_PATH.branch" 2>/dev/null || true)"
