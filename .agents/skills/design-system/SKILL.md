@@ -90,7 +90,7 @@ export default {
 
 **Library:** [Lucide](https://lucide.dev/) (`lucide-react` for React, `lucide` for vanilla JS). All icons in this design system come from Lucide. Do not mix icon libraries.
 
-**Sizes:**
+**Critical sizing rule — Lucide defaults to 24px, you must override:**
 
 | Context | Class | Size |
 |---------|-------|------|
@@ -99,6 +99,8 @@ export default {
 | Inline body icons | `w-4 h-4` | 16px |
 
 All icon buttons use a single consistent icon size (`w-5 h-5`). The button's padding and dimensions control the hit target, not the icon size.
+
+**You MUST explicitly set `className="w-5 h-5"` (or `size={20}`) on every Lucide icon component.** Lucide React defaults to 24px — omitting the size class produces oversized icons that break sidebar header alignment. This is the most common styling mistake when applying this design system.
 
 **Specific icons:**
 

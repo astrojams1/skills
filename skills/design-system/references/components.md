@@ -15,6 +15,20 @@ import { Minimize2, Maximize2, RotateCcw, Wand2, Sun, Moon, ChevronDown } from '
 
 **Sizing rule:** Every icon uses `w-5 h-5` (20px) inside buttons. The button's padding/dimensions control the touch target — the icon size stays constant.
 
+**WARNING: Lucide React icons default to 24px (w-6 h-6). You MUST explicitly add `className="w-5 h-5"` or `size={20}` to every icon.** Omitting this produces oversized icons that break the sidebar header layout — this is the #1 most common mistake.
+
+```tsx
+// CORRECT — explicit size
+<Wand2 className="w-5 h-5" />
+<RotateCcw className="w-5 h-5" />
+<Minimize2 className="w-5 h-5" />
+
+// WRONG — defaults to 24px, icons are too large
+<Wand2 />
+<RotateCcw />
+<Minimize2 />
+```
+
 ```html
 <!-- Sidebar header icon button: p-2.5 creates the touch target -->
 <button class="p-2.5 rounded-full ...">
@@ -119,6 +133,11 @@ The sidebar header contains the app name and a row of icon buttons (action butto
 **Tooltip rule:** Every icon-only button (sidebar header buttons, floating action buttons, sidebar expand button) **must** have a `title` attribute that describes its action. Since these buttons have no visible label, the native browser tooltip is the only way users can discover their function.
 
 The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with `text-text-muted` (neutral gray) as their default color, hovering to `text-primary` with a `bg-secondaryHover` background. All icons are `w-5 h-5` (20px).
+
+**Common mistakes that break the sidebar header:**
+1. **Missing icon size** — Lucide React defaults to 24px. Every icon MUST have `className="w-5 h-5"` or it will be oversized and misaligned.
+2. **Wrong flex alignment** — The parent must use `items-start`, not `items-center`. The title's larger line-height pushes centered buttons down.
+3. **Missing `p-2.5`** — The icon button wrapper needs `p-2.5` for the correct touch target size. Using `p-1`, `p-2`, or no padding produces cramped or oversized buttons.
 
 ## Buttons
 

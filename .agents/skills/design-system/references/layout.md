@@ -21,6 +21,7 @@ The primary application layout: a collapsible sidebar on the left with accordion
 
     <!-- Sidebar Header: App name + icon buttons -->
     <!-- items-start keeps title and buttons top-aligned (not vertically centered) -->
+    <!-- CRITICAL: Every icon below MUST have class="w-5 h-5" — Lucide defaults to 24px which breaks alignment -->
     <div class="flex-col items-stretch gap-4 p-8 border-none pb-0">
       <div class="flex justify-between items-start">
         <h1 class="text-[26px] font-header font-medium text-text-main leading-tight mb-2">
@@ -108,6 +109,7 @@ The primary application layout: a collapsible sidebar on the left with accordion
 - The sidebar has `shadow-2xl` because it overlays the main content when open.
 - The expand button only appears when the sidebar is collapsed, positioned `absolute top-4 left-4`.
 - The sidebar header uses `items-start` (not `items-center`) so the title text and icon buttons are **top-aligned**. This prevents the smaller icon buttons from floating to the vertical center of the taller title.
+- **Icon sizing is mandatory:** Every Lucide icon in the sidebar header must have `class="w-5 h-5"` (or `className="w-5 h-5"` in React). Lucide defaults to 24px — without the explicit size, icons are oversized and misalign with the title. The button wrapper uses `p-2.5` for the touch target.
 
 ## Top Navigation (Header-Based Layout)
 
