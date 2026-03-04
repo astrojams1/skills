@@ -6,6 +6,8 @@ description: >-
   get the submodule, and trains the target agent to read and apply skills from
   the mounted submodule path. Apply by following the steps below in the target
   project, then updating that project's CLAUDE.md and AGENTS.md.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Skill Orchestrator

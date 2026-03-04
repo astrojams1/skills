@@ -6,6 +6,8 @@ description: >-
   verification gates, elegance checks, and autonomous bug fixing. Use when
   setting up agent instructions, improving task management discipline, or
   establishing development standards for AI-assisted projects.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Workflow Orchestration

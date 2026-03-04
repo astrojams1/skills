@@ -6,6 +6,8 @@ description: >-
   design-system skill. The agent audits the existing design system, strips it
   completely, and replaces it with the Architectural Minimalist design system
   by following the design-system skill.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Design System Migration Prompt
@@ -48,8 +50,6 @@ This prompt does NOT repeat the skill. It adds the **migration-specific workflow
 3. If the project uses a component library (shadcn, MUI, Chakra, etc.), override its theme globally rather than removing the library — unless the user explicitly asks otherwise.
 4. Preserve the existing layout structure but restyle it to match the design system.
 5. After all changes, run the project's build/lint/test commands to verify nothing is broken.
-6. **Absolutely everything must be governed by the design system.** No straggling colors, fonts, radii, or shadows may remain outside design system tokens. If a value exists in the codebase that doesn't trace to the design system, it must be replaced or explicitly approved by the human.
-7. **Ask the human when encountering novel situations.** If you encounter a UI pattern, component, or styling need not covered by the design system, do not guess — describe the situation and propose an approach using design system principles, then wait for the human's guidance before proceeding.
 
 ---
 
@@ -58,10 +58,8 @@ This prompt does NOT repeat the skill. It adds the **migration-specific workflow
 Before changing anything, gather intelligence and report a structured summary:
 
 1. **Tech stack:** Framework, styling approach (Tailwind / CSS Modules / styled-components / plain CSS / SCSS), component library (shadcn / MUI / Chakra / none), build tool
-2. **Color audit — search for everything to replace:**
-   - Tailwind color classes: `blue-`, `indigo-`, `gray-`, `slate-`, `zinc-`, `red-`, `green-`, `purple-`, `emerald-`, `sky-`, `violet-`
-   - Hex codes, CSS custom properties (`--color-`, `--tw-`), `hsl(`/`rgb(`/`oklch(` values
-3. **Geometry audit:** All `rounded-*` classes, `border-radius` in CSS, all `shadow-*` classes, `box-shadow` in CSS
+2. **Color audit:** Search for all non-design-system colors — Tailwind color classes, hex codes, CSS custom properties, `hsl(`/`rgb(`/`oklch(` values
+3. **Geometry audit:** All `rounded-*` classes, `border-radius` in CSS, all `shadow-*` classes
 4. **Typography audit:** Font imports, font config, heading/body patterns
 5. **File inventory:** Global CSS, Tailwind config, HTML entry point, layout/shell components, all styled component files
 
@@ -104,46 +102,21 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
 
 ---
 
-## Phase 5: Verify — Exhaustive Straggler Sweep
-
-**Nothing escapes.** Every color, font, radius, and shadow in the project must trace back to a design system token. Stray values mean the migration is incomplete.
+## Phase 5: Verify
 
 1. Run the **Checklist** from the design-system skill's `SKILL.md` — every item must pass.
 2. Confirm the project builds without errors and all tests pass.
-3. **Exhaustive search for straggling values.** Run each of these searches across the entire codebase and fix every hit:
-
-   **Colors:**
-   - Tailwind color classes: `blue-`, `indigo-`, `gray-`, `slate-`, `zinc-`, `red-`, `green-`, `purple-`, `emerald-`, `sky-`, `violet-`, `amber-`, `orange-`, `cyan-`, `teal-`, `lime-`, `pink-`, `rose-`, `fuchsia-`, `yellow-`, `stone-` (Tailwind's stone, not the design system)
-   - Hardcoded hex values: `#[0-9A-Fa-f]{3,8}` — every hex must be a design system token or explicitly justified
-   - Inline `rgb(`, `rgba(`, `hsl(`, `hsla(`, `oklch(` values
-   - CSS custom properties that are NOT `--c-*` design system tokens (e.g. leftover `--tw-*`, `--color-*`, framework vars)
-   - Tailwind arbitrary color values: `text-[#`, `bg-[#`, `border-[#`, `fill-[#`, `stroke-[#`
-
-   **Typography:**
-   - Font families other than `DM Sans` and `Tenor Sans` — search for `font-family`, `fontFamily`, Google Fonts imports, `@font-face`
-   - Tailwind font classes not in the design system: `font-serif`, `font-mono` (except on number inputs)
-
-   **Geometry:**
-   - Any `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-3xl` classes
-   - Any `border-radius` in CSS/SCSS (must be `0` or circular for icon buttons)
-   - Structural `shadow-*` classes on non-overlay elements
-
-4. **Zero tolerance.** If any straggler is found, fix it. Do not proceed until the sweep is clean. Run the searches again after fixes to confirm.
+3. **Straggler sweep for pre-migration remnants.** Search the codebase for values from the old design system that were missed during Phase 3. Key searches:
+   - Hardcoded hex values (`#[0-9A-Fa-f]{3,8}`) that don't map to a `--c-*` token
+   - CSS custom properties that are NOT `--c-*` design system tokens (leftover `--tw-*`, `--color-*`, framework vars)
+   - Tailwind arbitrary color values (`text-[#`, `bg-[#`, `border-[#`)
+   - Old font-family declarations that weren't replaced
+4. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
 
 ---
 
-## Phase 6: Novel Situations — Ask, Then Contribute Back
+## Phase 6: Novel Situations
 
-During migration you will encounter UI patterns not covered by the design system (e.g. toast notifications, data tables, modals, progress bars, badges). When this happens:
-
-1. **Ask the human for guidance.** Describe the component and propose how it should look using design system principles (warm palette, sharp geometry, border-based structure). Wait for approval before proceeding.
-2. **Apply the approved pattern** consistently across all instances of that component.
-3. **Contribute the pattern back to the design system.** After the migration is complete, open a PR (or describe the addition) to the `skills` repository:
-   - Add the new component pattern to `design-system/references/components.md`
-   - If it's a layout pattern, add it to `design-system/references/layout.md`
-   - If it introduces a new token or concept, update `design-system/SKILL.md`
-   - Include the rationale and the human's guidance in the PR description
-
-This ensures the design system grows with real-world usage and future migrations benefit from patterns discovered in earlier ones.
+During migration you will encounter UI patterns not covered by the design system. Follow the **Contributing New Patterns** section in the design-system skill's `SKILL.md` — ask the human, apply consistently, and contribute back.
 
 ---END---

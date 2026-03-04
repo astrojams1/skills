@@ -7,6 +7,8 @@ description: >-
   returns a structured health report covering every aspect of the skills
   integration. Use when you need to verify a consumer repo's integration or
   debug issues remotely.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Health Check Prompt
