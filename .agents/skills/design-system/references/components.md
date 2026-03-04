@@ -95,23 +95,28 @@ The sidebar header contains the app name and a row of icon buttons (action butto
     <div class="flex gap-1">
       <!-- Action icon button (e.g., Wand2 for auto-adjust) -->
       <button class="p-2.5 rounded-full text-primary bg-primary/10 hover:bg-primary/20 hover:text-primaryHover
-        transition-all duration-200 focus:outline-none">
+        transition-all duration-200 focus:outline-none"
+        title="Auto-adjust settings">
         <Wand2 class="w-5 h-5" />
       </button>
       <!-- Reset button (RotateCcw — disabled when nothing to reset) -->
       <button class="p-2.5 rounded-full text-accent hover:bg-accent/5 hover:text-accentHover
-        transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed">
+        transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+        title="Reset to defaults">
         <RotateCcw class="w-5 h-5" />
       </button>
       <!-- Collapse sidebar button (Minimize2) -->
       <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover
-        bg-transparent transition-all duration-200 focus:outline-none">
+        bg-transparent transition-all duration-200 focus:outline-none"
+        title="Collapse sidebar">
         <Minimize2 class="w-5 h-5" />
       </button>
     </div>
   </div>
 </div>
 ```
+
+**Tooltip rule:** Every icon-only button (sidebar header buttons, floating action buttons, sidebar expand button) **must** have a `title` attribute that describes its action. Since these buttons have no visible label, the native browser tooltip is the only way users can discover their function.
 
 The app name uses `font-header` (Tenor Sans) at 26px — this is the largest text in the UI. Icon buttons in the header row use `rounded-full` with subtle tinted backgrounds for primary actions (`bg-primary/10`) and accent actions (`hover:bg-accent/5`). All icons are `w-5 h-5` (20px).
 
@@ -160,10 +165,13 @@ disabled:opacity-50 disabled:cursor-not-allowed
 ```html
 <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent
   transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
-  disabled:opacity-50 disabled:cursor-not-allowed">
+  disabled:opacity-50 disabled:cursor-not-allowed"
+  title="Describe the action">
   <svg class="w-5 h-5">...</svg>
 </button>
 ```
+
+**Important:** All icon-only buttons must include a `title` attribute. Since there is no visible text label, the browser tooltip is the only discoverability mechanism.
 
 ## Dark Mode Toggle
 
@@ -200,17 +208,18 @@ Circular buttons positioned absolutely in the main content area for global toggl
     focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
     bg-surface border border-border text-text-main hover:bg-secondaryHover
     shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
-    title="Toggle feature">
+    title="Turn on lamp">
     <svg class="w-5 h-5 text-text-muted"><!-- feature icon --></svg>
   </button>
   <!-- Active state: tinted background to indicate "on" -->
   <button class="... shadow-lg w-12 h-12 !p-0 rounded-full
     bg-amber-100 dark:bg-amber-900/30 border-amber-500/50"
-    title="Feature is on">
+    title="Turn off lamp">
     <svg class="w-5 h-5 text-amber-500 fill-amber-500"><!-- feature icon --></svg>
   </button>
   <!-- Day/Night toggle -->
-  <button class="... shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+  <button class="... shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
+    title="Switch to Night">
     <svg class="w-5 h-5"><!-- sun or moon --></svg>
   </button>
 </div>
@@ -228,7 +237,8 @@ When the sidebar is collapsed, a circular floating button appears in the main co
   inline-flex items-center justify-center font-medium transition-all duration-200
   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary/50
   bg-surface border border-border text-text-main hover:bg-secondaryHover
-  shadow-lg !p-3 rounded-full">
+  shadow-lg !p-3 rounded-full"
+  title="Expand sidebar">
   <Maximize2 class="w-5 h-5" />
 </button>
 ```
@@ -438,6 +448,7 @@ Interaction: the label changes from `text-text-muted` to `text-primary` on group
 ```
 
 **Key details:**
+- **All sidebar controls are full width.** Inputs, toggle groups, sliders, and control inputs use `w-full` to stretch across the sidebar's content area. Never use fixed widths or partial-width controls inside the sidebar.
 - The number input uses `font-mono` for tabular digit alignment and `pr-8` to leave space for the right-justified unit suffix.
 - The unit suffix (`in`, `px`, `%`, etc.) is absolutely positioned inside the input: `absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none`.
 - The slider sits directly below the input with `mb-2` spacing, creating a compact compound control.

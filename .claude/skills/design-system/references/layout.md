@@ -28,14 +28,18 @@ The primary application layout: a collapsible sidebar on the left with accordion
         </h1>
         <div class="flex gap-1">
           <!-- Icon buttons: actions, reset, collapse — all w-5 h-5 icons -->
-          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+          <!-- Every icon-only button MUST have a title attribute for tooltip -->
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200"
+            title="Auto-adjust settings">
             <Wand2 class="w-5 h-5" />
           </button>
-          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200"
+            title="Reset to defaults">
             <RotateCcw class="w-5 h-5" />
           </button>
           <!-- Collapse sidebar: Minimize2 icon -->
-          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200">
+          <button class="p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200"
+            title="Collapse sidebar">
             <Minimize2 class="w-5 h-5" />
           </button>
         </div>
@@ -56,22 +60,25 @@ The primary application layout: a collapsible sidebar on the left with accordion
     <button class="absolute top-4 left-4 z-10
       inline-flex items-center justify-center
       bg-surface border border-border text-text-main hover:bg-secondaryHover
-      shadow-lg !p-3 rounded-full transition-all duration-200">
+      shadow-lg !p-3 rounded-full transition-all duration-200"
+      title="Expand sidebar">
       <Maximize2 class="w-5 h-5" />
     </button>
 
     <!-- Floating action buttons: top-right corner -->
     <div class="absolute top-4 right-4 z-10 flex gap-2">
-      <!-- Feature toggle (e.g., lights on/off) -->
+      <!-- Feature toggle (e.g., lights on/off) — title is mandatory -->
       <button class="inline-flex items-center justify-center
         bg-surface border border-border text-text-main hover:bg-secondaryHover
-        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
+        title="Turn on lamp">
         <svg class="w-5 h-5 text-text-muted"><!-- feature icon --></svg>
       </button>
-      <!-- Day/Night (dark mode) toggle -->
+      <!-- Day/Night (dark mode) toggle — title is mandatory -->
       <button class="inline-flex items-center justify-center
         bg-surface border border-border text-text-main hover:bg-secondaryHover
-        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform">
+        shadow-lg w-12 h-12 !p-0 rounded-full hover:scale-105 transition-transform"
+        title="Switch to Night">
         <svg class="w-5 h-5 text-amber-500 fill-current"><!-- Sun icon (day) --></svg>
         <!-- or: <svg class="w-5 h-5 text-indigo-400 fill-current">Moon icon (night)</svg> -->
       </button>
@@ -168,7 +175,8 @@ w-0 -translate-x-full opacity-0
 When collapsed, a circular expand button appears in the main content area:
 ```html
 <button class="absolute top-4 left-4 z-10 shadow-lg !p-3 rounded-full
-  bg-surface border border-border text-text-main hover:bg-secondaryHover">
+  bg-surface border border-border text-text-main hover:bg-secondaryHover"
+  title="Expand sidebar">
   <Maximize2 class="w-5 h-5" />
 </button>
 ```
@@ -177,12 +185,17 @@ The sidebar collapse button is an icon button in the sidebar header's button row
 
 ## Collapsible Sections (Accordions)
 
-Use Tenor Sans headers with chevron rotation and smooth grid-row animation:
+**Behavior:** Only one section can be open at a time. Expanding a section automatically collapses all others. This keeps the sidebar focused and prevents excessive scrolling. Track the active section name in state and toggle on click.
+
+**Section heading font:** Each section title uses `font-header` (Tenor Sans) — the same display font used for the page title, but at the smaller `text-[15px]` size with `uppercase tracking-[0.1em]`. This creates a clear typographic hierarchy: Tenor Sans for structural headings, DM Sans for body content.
+
+**Horizontal dividers:** Sections are separated by `border-b border-border` on each section container, with `last:border-0` to remove the divider after the final section. These thin 1px borders provide subtle visual separation without heavy styling.
 
 ```html
+<!-- Each section is a border-separated block. Only one should have isOpen=true at a time. -->
 <div class="border-b border-border last:border-0">
   <button class="w-full flex items-center justify-between py-5 px-1 group focus:outline-none select-none">
-    <!-- Title changes to text-primary when open -->
+    <!-- Title: Tenor Sans (font-header), changes to text-primary when open -->
     <span class="font-header text-[15px] uppercase tracking-[0.1em] text-text-main transition-colors group-hover:text-primary">
       Section Title
     </span>
@@ -195,10 +208,30 @@ Use Tenor Sans headers with chevron rotation and smooth grid-row animation:
   <!-- Closed: grid-rows-[0fr] opacity-0 -->
   <div class="grid transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100 pb-6">
     <div class="overflow-hidden min-h-0">
-      <!-- Section content -->
+      <!-- Section content: all controls are full width -->
     </div>
   </div>
 </div>
+```
+
+**Implementation pattern (React):**
+```tsx
+const [activeSection, setActiveSection] = useState<string>('Room');
+
+<Section
+  title="Room"
+  isOpen={activeSection === 'Room'}
+  onToggle={() => setActiveSection(activeSection === 'Room' ? '' : 'Room')}
+>
+  {/* controls */}
+</Section>
+<Section
+  title="Settings"
+  isOpen={activeSection === 'Settings'}
+  onToggle={() => setActiveSection(activeSection === 'Settings' ? '' : 'Settings')}
+>
+  {/* controls */}
+</Section>
 ```
 
 ## Floating Controls (Bottom Bar)

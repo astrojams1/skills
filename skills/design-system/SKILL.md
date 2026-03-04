@@ -135,8 +135,8 @@ All icon buttons use a single consistent icon size (`w-5 h-5`). The button's pad
 | **Secondary btn** | `bg-surface border border-border hover:bg-secondaryHover shadow-sm px-6 py-2.5 rounded-none` | |
 | **Accent btn** | `bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 rounded-none` | |
 | **Ghost btn** | `bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 rounded-none` | |
-| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none |
-| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches) |
+| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none. **Must have a `title` attribute** for tooltip. |
+| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches). **Must have a `title` attribute** for tooltip. |
 | **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs: `font-mono` + conditional unit suffix (see below) |
 | **Toggle group** | `bg-secondary/50 p-1 gap-1 border border-border` | Active: `bg-surface shadow-sm border-black/5` |
 | **Slider** | 2px track (`--c-border`), 16px circular thumb (`--c-accent`), border `var(--c-surface)` | Hover: `scale(1.1)` |
@@ -156,8 +156,8 @@ See [references/components.md](references/components.md) for full HTML/CSS patte
 | Pattern | Key Details |
 |---------|-------------|
 | **Sidebar app shell** | Outermost: `flex h-screen w-screen overflow-hidden bg-background`. Left: sidebar (`w-[400px]`). Right: main content (`flex-1 flex flex-col h-full relative`). |
-| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Header area: app name (`text-[26px] font-header`) aligned with icon button row via `flex justify-between items-start` — title sits at start, buttons at end, both top-aligned. Icon buttons use `flex gap-1` and are all `w-5 h-5` icons in `p-2.5 rounded-full` containers. Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. Collapse button: `Minimize2` icon; expand button: `Maximize2` icon (`absolute top-4 left-4 shadow-lg rounded-full`). Collapse state: `w-0 -translate-x-full opacity-0`. |
-| **Accordion sections** | Inside sidebar scrollable body. Separated by `border-b border-border last:border-0`. Tenor Sans title goes `text-primary` when open. Chevron `rotate-180` when open. Grid-row animation (`grid-rows-[1fr]`/`[0fr]`). |
+| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Header area: app name (`text-[26px] font-header`) aligned with icon button row via `flex justify-between items-start` — title sits at start, buttons at end, both top-aligned. Icon buttons use `flex gap-1` and are all `w-5 h-5` icons in `p-2.5 rounded-full` containers. Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. **All controls inside the sidebar are full width** (`w-full`) — inputs, toggle groups, sliders, and control inputs stretch to fill the sidebar's content area. Collapse button: `Minimize2` icon; expand button: `Maximize2` icon (`absolute top-4 left-4 shadow-lg rounded-full`). Collapse state: `w-0 -translate-x-full opacity-0`. |
+| **Accordion sections** | Inside sidebar scrollable body. **Only one section open at a time** — expanding a section collapses all others. Sections separated by `border-b border-border last:border-0` (horizontal dividers between each section). Section title uses `font-header` (Tenor Sans) at `text-[15px] uppercase tracking-[0.1em]`; goes `text-primary` when open. `ChevronDown` icon `rotate-180` when open. Grid-row animation (`grid-rows-[1fr]`/`[0fr]`). |
 | **Main content area** | `flex-1 flex flex-col h-full relative`. The content/canvas region inside uses `flex-1 bg-secondary relative overflow-hidden` — it takes up **all available space** (full width and height minus any floating bar). NOT `bg-background` — use the warmer `bg-secondary`. Floating action buttons positioned `absolute top-4 right-4 z-10 flex gap-2` using circular buttons (`w-12 h-12 rounded-full shadow-lg`). |
 | **Header / navbar** | Alternative to sidebar layout. `bg-background border-b border-border` — neutral background, never colored fill. |
 | **Card grid** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
@@ -228,10 +228,13 @@ The design system grows through real-world usage. Every novel pattern is an oppo
 **Layout and Interaction:**
 - [ ] Sidebar header: `flex justify-between items-start` — title and icon buttons top-aligned
 - [ ] Sidebar is collapsible; circular expand button (`Maximize2`) appears in main content when collapsed
-- [ ] Sidebar sections are collapsible accordions with Tenor Sans titles and chevron rotation
+- [ ] Sidebar sections are collapsible accordions with Tenor Sans (`font-header`) titles, `border-b border-border` dividers, and chevron rotation
+- [ ] Only one accordion section is open at a time — expanding one collapses all others
+- [ ] All controls inside the sidebar are full width (`w-full`) — inputs, toggles, sliders stretch to fill the sidebar content area
 - [ ] Main content area uses `flex-1 flex flex-col h-full relative`; canvas region uses `flex-1 bg-secondary relative overflow-hidden` to fill all available space
 - [ ] Control inputs pair number input (conditional unit suffix) with synced range slider below
 - [ ] Unit suffixes shown only on measurement fields (inches, %, px), not on dimensionless counts
+- [ ] All icon-only buttons and floating action buttons have a `title` attribute (native browser tooltip)
 - [ ] Dark mode toggle uses circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun/moon icon
 - [ ] Floating action buttons positioned `absolute top-4 right-4 z-10` in main content
 
