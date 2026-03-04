@@ -92,44 +92,26 @@ The one thing the skill doesn't provide is a **translation mapping** from old Ta
 | `white` / `#FFFFFF` (card/panel bg) | `surface` |
 | Any hardcoded hex, rgb, hsl | Map to nearest design system token |
 
-**Typography mapping** — equally critical as colors:
+**Typography mapping** — map existing text roles to the design system's typography scale (Step 5 in the skill). Key conversions:
 
-| Old pattern | New token |
+| Old pattern | Design system role |
 |---|---|
-| App title / page heading (any font/size) | `text-[26px] font-header font-medium text-text-main leading-tight mb-2` (Tenor Sans) |
-| Section headings / sidebar section titles | `font-header text-[15px] uppercase tracking-[0.1em] text-text-main` (Tenor Sans) |
-| Body text / labels | `font-sans` (DM Sans) — the project default |
-| Micro-labels (form field labels) | `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted` (DM Sans) |
-| Monospace / code / numbers | `font-mono` on number inputs and computed values |
+| App title / page heading (any font/size) | **Page title** — uses `font-header` (Tenor Sans) |
+| Section headings / sidebar section titles | **Section heading** — uses `font-header` (Tenor Sans) |
+| Body text / labels | **Body text** — uses `font-sans` (DM Sans, the project default) |
+| Form field labels | **Micro-label** — small, bold, uppercase |
+| Number inputs / computed values | **Computed value** — uses `font-mono` |
 
-**Floating action buttons** — audit all buttons in the main content area:
-- Every floating toggle (dark mode, feature switches) MUST be a circular icon-only button: `w-12 h-12 !p-0 rounded-full shadow-lg` with a `w-5 h-5` Lucide icon inside
-- Remove any text labels from floating action buttons — they are icon-only with `title` attributes for tooltips
-- Group floating action buttons in `absolute top-4 right-4 z-10 flex gap-2`
+Refer to the skill's Step 5 Typography table for exact classes and sizes.
 
-**Sidebar properties** — the sidebar must match these exact specifications:
-- Width: `w-[400px]` (open state), `w-0 -translate-x-full opacity-0` (closed state)
-- Background: `bg-background` — the same warm neutral as the page, never a colored fill
-- Shadow: `shadow-2xl` — the sidebar is an overlay element, so it keeps its shadow (do NOT strip it during shadow cleanup)
-- Border: `border-r border-border`
-- Transition: `transition-all duration-300 ease-in-out`
+**Component conversion** — the following components are commonly mis-migrated. For each, follow the exact pattern in `references/components.md`:
+- **Floating action buttons:** Must be circular icon-only buttons with `title` attributes — no text labels. See the Floating Action Buttons section.
+- **Toggle groups:** Active item uses surface elevation + shadow, NOT colored fills (`bg-primary`, `bg-accent`). See the Toggle Groups section.
+- **SVG / Canvas annotations:** Measurement lines use terracotta accent, not black. See the SVG / Canvas Measurement Annotations section.
 
-**Sidebar header** — the app title and action buttons (collapse, reset, auto-adjust) MUST be inside the sidebar header, not in a separate header bar or navbar. Follow the Sidebar Header pattern from `references/components.md`.
-
-**Accordion section animations** — sidebar sections must use the CSS Grid animation trick for smooth expand/collapse:
-- Container: `grid transition-all duration-300 ease-in-out`
-- Open: `grid-rows-[1fr] opacity-100 pb-6`
-- Closed: `grid-rows-[0fr] opacity-0`
-- Inner wrapper: `overflow-hidden min-h-0`
-- Only one section open at a time — expanding one collapses all others
-
-**Toggle groups (segmented controls)** — replace any existing toggle/tab/segmented controls with the design system pattern:
-- Container: `flex bg-secondary/50 rounded-none p-1 gap-1 border border-border`
-- Active item: `bg-surface text-text-main shadow-sm border border-black/5`
-- Inactive item: `text-text-muted hover:text-text-main hover:bg-surface/50 border border-transparent`
-- Do NOT use `bg-primary`, `bg-accent`, or any colored fill for active toggle items — the active state is a subtle surface elevation with a shadow, not a color change
-
-**SVG / Canvas annotations** — if the app draws measurement lines, dimension annotations, or overlays, convert them to the terracotta accent style from `references/components.md` (SVG / Canvas Measurement Annotations section).
+**Layout conversion** — follow the exact layout pattern from `references/layout.md`:
+- **Sidebar apps:** App title and action buttons go inside the sidebar header. Sidebar properties (width, background, shadow, transition) must match the Sidebar Application Layout. Accordion sections use the grid-row animation with single-open behavior.
+- **Header-based apps:** Use neutral background with border, never colored fill.
 
 If a component library sets colors or border-radius via its theme config, override them globally there too.
 
@@ -143,29 +125,14 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
 
 ## Phase 5: Verify
 
-1. Run the **Checklist** from the design-system skill's `SKILL.md` — every item must pass.
+1. Run the **Checklist** from the design-system skill's `SKILL.md` — every item must pass. This covers foundations, geometry, color distribution, icons, layout, SVG annotations, and typography.
 2. Confirm the project builds without errors and all tests pass.
-3. **Straggler sweep for pre-migration remnants.** Search the codebase for values from the old design system that were missed during Phase 3. Key searches:
+3. **Straggler sweep for pre-migration remnants.** These searches catch old values missed during Phase 3:
    - Hardcoded hex values (`#[0-9A-Fa-f]{3,8}`) that don't map to a `--c-*` token
    - CSS custom properties that are NOT `--c-*` design system tokens (leftover `--tw-*`, `--color-*`, framework vars)
    - Tailwind arbitrary color values (`text-[#`, `bg-[#`, `border-[#`)
-   - Old font-family declarations that weren't replaced
-4. **Typography check.** Verify:
-   - The app title uses `font-header` (Tenor Sans), not the body font
-   - All sidebar section headings use `font-header text-[15px] uppercase tracking-[0.1em]`
-   - No old font-family declarations remain (search for `font-family`, Google Fonts imports other than DM Sans / Tenor Sans)
-5. **Layout structure check.** Verify:
-   - If the app has a sidebar: title and action icon buttons are inside the sidebar header (not in a separate header bar)
-   - Sidebar width is `w-[400px]`, background is `bg-background`, shadow is `shadow-2xl`
-   - Sidebar collapse button (`Minimize2`) is in the sidebar header button row
-   - Sidebar expand button (`Maximize2`) is a floating circular button in the main content area (only visible when sidebar is collapsed)
-   - Sidebar open/close uses `transition-all duration-300 ease-in-out`
-   - Accordion sections animate with the grid-rows trick (`grid-rows-[1fr]` / `grid-rows-[0fr]` + opacity)
-   - Only one accordion section is open at a time
-   - All floating action buttons in the main content area are circular icon-only buttons (`w-12 h-12 rounded-full`)
-   - Toggle groups use `bg-secondary/50` container with `bg-surface shadow-sm` active item — no colored fills
-   - SVG/canvas measurement annotations use terracotta accent color, not black
-6. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
+   - Old font-family declarations or Google Fonts imports other than DM Sans / Tenor Sans
+4. **Zero tolerance.** If any straggler is found, fix it. Run the searches again after fixes to confirm.
 
 ---
 

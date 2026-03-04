@@ -131,56 +131,37 @@ All icon buttons use a single consistent icon size (`w-5 h-5`). The button's pad
 
 ## Step 6: Components
 
-| Component | Key Classes | Details |
-|-----------|-------------|---------|
-| **Primary btn** | `bg-primary text-white hover:bg-primaryHover shadow-sm px-6 py-2.5 rounded-none` | |
-| **Secondary btn** | `bg-surface border border-border hover:bg-secondaryHover shadow-sm px-6 py-2.5 rounded-none` | |
-| **Accent btn** | `bg-accent text-white hover:bg-accentHover shadow-sm px-6 py-2.5 rounded-none` | |
-| **Ghost btn** | `bg-transparent text-text-muted hover:text-primary hover:bg-primary/5 px-4 py-2 rounded-none` | |
-| **Icon btn** | `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover` | Only exception to rounded-none. **Must have a `title` attribute** for tooltip. |
-| **Floating action btn** | `shadow-lg w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center hover:scale-105 transition-transform` | Circular, positioned absolute in main content for toggles (day/night, feature switches). **Must have a `title` attribute** for tooltip. |
-| **Input** | `bg-surface border border-border rounded-none shadow-sm focus:ring-1 focus:ring-primary` | Number inputs: `font-mono` + conditional unit suffix (see below) |
-| **Toggle group** | `bg-secondary/50 p-1 gap-1 border border-border` | Active: `bg-surface shadow-sm border-black/5` |
-| **Slider** | 2px track (`--c-border`), 16px circular thumb (`--c-accent`), border `var(--c-surface)` | Hover: `scale(1.1)` |
-| **Card** | `bg-surface border border-border rounded-none p-4` | |
-| **Computed value** | `bg-secondary/30 border border-border p-3` | Label + `font-mono` value |
+The design system provides these component types. **See [references/components.md](references/components.md) for full HTML/CSS patterns, exact classes, and code examples.**
 
-All buttons share base: `inline-flex items-center justify-center font-medium transition-all duration-200 focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed`
+**Buttons:** Primary (sage fill), Secondary (surface + border), Accent (terracotta fill), Ghost (transparent), Icon (only exception to `rounded-none` — uses `rounded-full`, must have `title` attribute), Floating Action (circular `w-12 h-12 rounded-full shadow-lg`, positioned in main content area, must have `title` attribute).
 
-**Unit suffix on number inputs:** Show the unit suffix (`in`, `%`, `px`, `ft`, etc.) on the right side of the input when the field represents a physical measurement or quantity with a meaningful unit. Do **not** show a suffix for dimensionless counts (e.g., "Panels", "Zip Code", "Quantity"). The suffix is positioned `absolute right-3 top-1/2 -translate-y-1/2 text-text-light text-sm pointer-events-none select-none`, and the input gets `pr-8` to avoid overlap.
+**Form controls:** Input (sharp corners, border-based, `font-mono` for number inputs), Toggle Group (segmented control — active item elevated with surface bg + shadow, no colored fills), Slider (terracotta thumb, `var(--c-surface)` thumb border for dark mode), Control Input (compound: labeled number input + synced range slider + optional suffix/tip/action).
 
-**Signature component — Control Input:** A labeled number input + synced range slider + optional suffix/tip/action. Labels transition to `text-primary` on group hover.
+**Containers:** Card (`bg-surface border border-border rounded-none`), Computed Value display (`bg-secondary/30` with mono value).
 
-See [references/components.md](references/components.md) for full HTML/CSS patterns for every component.
+**Unit suffix on number inputs:** Show for measurement fields (`in`, `%`, `px`), omit for dimensionless counts.
 
 ## Step 6b: SVG / Canvas Annotations
 
-Apps that overlay measurements, dimension lines, or annotations on a canvas or SVG must use the design system's accent color and typography:
-
-| Element | Style |
-|---------|-------|
-| **Dimension line** | `stroke: #C67D63` (terracotta accent), 2px width |
-| **End caps** | Perpendicular serif caps at each end, same stroke color |
-| **Value label** | Pill/rect with `fill: #C67D63`, white bold text, small `rx` for legibility |
-| **Label font** | `font-weight: bold`, `fill: white`, `text-anchor: middle` |
-
-These measurement annotations must follow the terracotta accent, not the default SVG black or any framework default. See [references/components.md](references/components.md) for the full SVG pattern.
+Apps that overlay measurements or dimension lines on a canvas/SVG must use the terracotta accent color (`#C67D63`) for lines, end caps, and value labels — never default black. See [references/components.md](references/components.md) for the full SVG pattern and React helper.
 
 ## Step 7: Layout
 
-| Pattern | Key Details |
-|---------|-------------|
-| **Sidebar app shell** | Outermost: `flex h-screen w-screen overflow-hidden bg-background`. Left: sidebar (`w-[400px]`). Right: main content (`flex-1 flex flex-col h-full relative`). |
-| **Sidebar** | `w-[400px] bg-background border-r border-border shadow-2xl z-20 relative`. Slides open/closed with `transition-all duration-300 ease-in-out`. Open: `w-[400px] translate-x-0`; closed: `w-0 -translate-x-full opacity-0`. The outermost container uses `overflow-hidden` to prevent transient horizontal scrollbars during the sidebar's width transition. Header area: app name (`text-[26px] font-header`) aligned with icon button row via `flex justify-between items-start`. Body: `flex-1 overflow-y-auto p-8 pt-4` with accordion sections. **All controls inside the sidebar are full width** (`w-full`). Collapse: `Minimize2`; expand: `Maximize2` (`absolute top-4 left-4 shadow-lg rounded-full`). |
-| **Accordion sections** | Inside sidebar scrollable body. **Only one section open at a time** — expanding a section collapses all others. Sections separated by `border-b border-border last:border-0` (horizontal dividers between each section). Section title uses `font-header` (Tenor Sans) at `text-[15px] uppercase tracking-[0.1em]`; goes `text-primary` when open. **Hover:** title transitions to `text-primary` and chevron to `text-primary` via `group-hover:text-primary transition-colors`. `ChevronDown` icon `rotate-180` when open. Content animates via `grid transition-all duration-300 ease-in-out` between `grid-rows-[1fr] opacity-100 pb-6` (open) and `grid-rows-[0fr] opacity-0` (closed). |
-| **Main content area** | `flex-1 flex flex-col h-full relative`. The content/canvas region inside uses `flex-1 bg-secondary relative overflow-hidden` — it takes up **all available space** (full width and height minus any floating bar). NOT `bg-background` — use the warmer `bg-secondary`. **Canvas re-zoom:** When the sidebar opens or closes, the canvas/content must recalculate its dimensions to fill the new available space. Listen for the sidebar transition (resize observer or `transitionend` event) and re-fit the content. The `overflow-hidden` on the app shell prevents scrollbars during the transition. Floating action buttons positioned `absolute top-4 right-4 z-10 flex gap-2` using circular buttons (`w-12 h-12 rounded-full shadow-lg`). |
-| **Header / navbar** | Alternative to sidebar layout. `bg-background border-b border-border` — neutral background, never colored fill. |
-| **Card grid** | Cards: `bg-surface border border-border rounded-none p-4`. Grid: `grid gap-4`. Section titles: uppercase micro-labels. |
-| **Floating bar** | `bg-surface/95 backdrop-blur border-t shadow-[0_-4px_30px_-5px_rgba(0,0,0,0.1)]` for sticky bottom controls. |
+The design system supports two primary layouts. **See [references/layout.md](references/layout.md) for full HTML patterns, class strings, and interaction details.**
 
-**Adapting to any layout:** The visual identity comes from the color palette, typography, sharp geometry, and border-based structure — not from a specific layout. Keep warm neutral background dominant, use borders instead of shadows for structure, and restrict primary/accent to interactive elements.
+**Sidebar app shell** — The primary layout. Collapsible sidebar (`w-[400px]`, `bg-background`, `shadow-2xl`) on the left with app title + icon buttons in the header, accordion sections in the body. Main content area on the right (`flex-1`, `bg-secondary`) with floating action buttons (top-right) and optional floating bottom bar. Sidebar collapse/expand animated with `transition-all duration-300 ease-in-out`. Canvas/content must re-zoom when sidebar opens/closes.
 
-See [references/layout.md](references/layout.md) for full HTML patterns and global styles.
+**Key sidebar rules:**
+- App title and action buttons (collapse, reset, etc.) live **inside** the sidebar header
+- Accordion sections: only one open at a time, `font-header` titles, `ChevronDown` rotation, grid-row animation
+- All sidebar controls are full width
+- Collapse: `Minimize2` in sidebar header; expand: `Maximize2` floating button in main content
+
+**Header-based layout** — Alternative for non-sidebar apps. `bg-background border-b border-border` — neutral background, never colored fill.
+
+**Other patterns:** Card grid (border-based, no shadows), Floating bottom bar (backdrop-blur, border-t, shadow).
+
+**Adapting to any layout:** The visual identity comes from the palette, typography, sharp geometry, and border-based structure — not from a specific layout. Keep warm neutral background dominant, use borders instead of shadows for structure, and restrict primary/accent to interactive elements.
 
 ## Step 8: Global Styles
 
