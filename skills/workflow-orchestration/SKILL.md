@@ -57,6 +57,8 @@ Apply structured workflow orchestration practices to guide AI agents through com
 - Point at logs, errors, failing tests — then resolve them
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
+- **Fix what you find.** If you encounter type errors, lint warnings, or failing tests during any task — fix them. Never dismiss issues as "pre-existing" or "not caused by my changes." Leave the codebase better than you found it
+- When you see errors like missing module declarations or type mismatches in test files, resolve them (install types, add declarations, fix imports) — don't just report them
 
 ## Task Management
 
