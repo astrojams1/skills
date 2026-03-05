@@ -54,6 +54,23 @@ These directories **must be committed to version control** so that every clone h
 2. Load any supplementary files from `skills/skills/<skill-name>/references/` on demand
 3. Follow the skill's instructions to complete the task
 
+### Skill Version Reporting
+
+When you run a skill, include a version summary at the end of your output so the user can confirm you're using the latest version. Extract the `metadata.version` from the local `SKILL.md` frontmatter, then compare it against upstream `main`:
+
+```bash
+# Get the upstream version (origin/main is kept fresh by the SessionStart hook)
+git -C skills show origin/main:skills/<skill-name>/SKILL.md 2>/dev/null | sed -n '/^---$/,/^---$/p' | grep 'version:'
+```
+
+Print the version summary in this format:
+
+```
+Skill: <skill-name> | Local: <local-version> | Latest: <upstream-version>
+```
+
+If the versions match, append `(up to date)`. If they differ, append `(update available — run ./skills/bin/manage.sh sync)`. If the upstream version cannot be fetched (offline), append `(upstream check skipped — offline)`.
+
 ### Available Skills
 
 - **design-system** — Architectural Minimalist design system for web UIs
