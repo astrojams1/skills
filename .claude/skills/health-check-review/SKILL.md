@@ -6,6 +6,8 @@ description: >-
   identifies bugs in manage.sh or skills code, suggests improvements to the
   health-check-prompt, and provides step-by-step next steps for both the
   skills repo and the consumer repo.
+metadata:
+  version: "1.0"
 ---
 
 # Skill: Health Check Review
