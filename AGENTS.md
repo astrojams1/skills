@@ -22,6 +22,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Diagnostic prompt for consumer repo integration
   health-check-review/
     SKILL.md                               # Process health check reports and fix issues
+  skill-integration-prompt/
+    SKILL.md                               # Integration prompt for new consumer repos
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
 tests/                                     # Tests for repository integrity
@@ -128,6 +130,16 @@ Processes health check reports pasted from consumer repos. Analyzes report data,
 #### How to use
 
 Paste one or more health check reports into the conversation. The skill activates automatically and walks through diagnosis, fixes, and next steps.
+
+### Skill Integration Prompt
+
+**Skill:** `skills/skill-integration-prompt/SKILL.md`
+
+A one-shot integration prompt for the skills repo author to give an AI agent in a new consumer repo. The agent adds the skills submodule, runs `manage.sh install`, configures agent instructions, applies `workflow-orchestration` (always), and optionally applies the `design-system` skill. Produces a fully integrated project in one prompt.
+
+#### How to use
+
+Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `---START---` / `---END---` markers, and paste it to the agent in the new consumer repo. To include the design system, uncomment the Design System section in Phase 4 before pasting.
 
 ## Rules
 
