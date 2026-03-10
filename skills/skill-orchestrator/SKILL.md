@@ -122,10 +122,17 @@ git checkout -b improve/<skill-name>-<brief-description>
 # edit skills/<skill-name>/SKILL.md or reference files
 git add <changed-files>
 git commit -m "improve(<skill-name>): <what changed and why>"
-git push -u origin improve/<skill-name>-<brief-description>
-# open a PR at https://github.com/astrojams1/skills
-cd ..
 ```
+
+**Submitting the PR:** Your git credentials likely only authorize the consumer repo, not `astrojams1/skills`. After committing:
+
+1. Attempt `git push -u origin improve/<skill-name>-<brief-description>`
+2. If the push **succeeds**, give the user this link to create the PR:
+   `https://github.com/astrojams1/skills/compare/main...improve/<skill-name>-<brief-description>`
+3. If the push **fails** (403 / permission denied), tell the user:
+   - The branch name and what it contains
+   - Ask them to push from a local checkout of `astrojams1/skills` and open the PR
+4. Return to the consumer project: `cd ..`
 
 After the upstream PR merges, bring the fix into this project:
 
