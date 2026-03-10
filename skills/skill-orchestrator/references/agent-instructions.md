@@ -98,8 +98,11 @@ If you discover a gap, error, or better approach in any skill while working here
 2. `git checkout -b improve/<skill-name>-<brief-description>`
 3. Edit `skills/<skill-name>/SKILL.md` or its reference files
 4. `git add <files> && git commit -m "improve(<skill-name>): <what and why>"`
-5. `git push -u origin improve/<skill-name>-<brief-description>`
-6. Open a PR against `astrojams1/skills` main, then return: `cd ..`
+5. Attempt `git push -u origin improve/<skill-name>-<brief-description>`
+6. **If push succeeds:** give the user a link to create the PR:
+   `https://github.com/astrojams1/skills/compare/main...improve/<skill-name>-<brief-description>`
+7. **If push fails** (403 / permission denied): tell the user the branch name and what it contains, and ask them to push from a local checkout of `astrojams1/skills` and open the PR
+8. Return to the consumer project: `cd ..`
 
 After the PR merges, sync this project:
 
