@@ -83,6 +83,26 @@ _is_internal_skill() {
     [ -f "$skill_dir/SKILL.md" ] && sed -n '/^---$/,/^---$/p' "$skill_dir/SKILL.md" | grep -q '^internal: *true'
 }
 
+# Check if a skill is excluded via the project's .skillsexclude file.
+# .skillsexclude lists one skill name per line; blank lines and # comments
+# are ignored.
+_is_excluded_skill() {
+    local skill_name="$1" root="$2"
+    local exclude_file="$root/.skillsexclude"
+    [ -f "$exclude_file" ] || return 1
+    grep -qx "$skill_name" <(sed 's/#.*//; /^[[:space:]]*$/d' "$exclude_file")
+}
+
+# Check if a skill should be skipped (internal or excluded).
+_should_skip_skill() {
+    local skill_dir="$1" root="$2"
+    _is_internal_skill "$skill_dir" && return 0
+    local name
+    name="$(basename "$skill_dir")"
+    _is_excluded_skill "$name" "$root" && return 0
+    return 1
+}
+
 # Copy skill directories so Claude Code and Codex discover skills natively.
 #
 # Claude Code scans: .claude/skills/<name>/SKILL.md
@@ -108,8 +128,8 @@ link_skills() {
         [ -d "$skill" ] || continue
         [ -f "$skill/SKILL.md" ] || continue
 
-        # Skip internal skills — they are only for the skills repo itself
-        if _is_internal_skill "$skill"; then
+        # Skip internal or excluded skills
+        if _should_skip_skill "$skill" "$root"; then
             continue
         fi
 
@@ -139,19 +159,19 @@ link_skills() {
     done
 
     # Remove stale skill directories (skills removed upstream)
-    _remove_stale_skills "$sdir" "$root/.claude/skills"
-    _remove_stale_skills "$sdir" "$root/.agents/skills"
+    _remove_stale_skills "$sdir" "$root/.claude/skills" "$root"
+    _remove_stale_skills "$sdir" "$root/.agents/skills" "$root"
 
-    # Remove internal skills from consumer discovery dirs (may exist from older installs)
+    # Remove internal/excluded skills from consumer discovery dirs (may exist from older installs)
     for skill in "$sdir"/*/; do
         [ -d "$skill" ] || continue
-        if _is_internal_skill "$skill"; then
+        if _should_skip_skill "$skill" "$root"; then
             local name
             name="$(basename "$skill")"
             for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
                 if [ -d "$discovery_dir/$name" ]; then
                     rm -rf "$discovery_dir/$name"
-                    yellow "Removed internal skill from consumer discovery: $discovery_dir/$name"
+                    yellow "Removed skipped skill from consumer discovery: $discovery_dir/$name"
                 fi
             done
         fi
@@ -174,9 +194,10 @@ _sync_skill_dir() {
     return 0
 }
 
-# Remove skill directories under $target_dir that no longer exist in $source_dir.
+# Remove skill directories under $target_dir that no longer exist in $source_dir
+# or are excluded via .skillsexclude.
 _remove_stale_skills() {
-    local source_dir="$1" target_dir="$2"
+    local source_dir="$1" target_dir="$2" root="${3:-}"
     [ -d "$target_dir" ] || return 0
     for entry in "$target_dir"/*/; do
         [ -d "$entry" ] || continue
@@ -185,6 +206,9 @@ _remove_stale_skills() {
         if [ ! -d "$source_dir/$name" ]; then
             rm -rf "$entry"
             yellow "Removed stale skill directory: $entry"
+        elif [ -n "$root" ] && _is_excluded_skill "$name" "$root"; then
+            rm -rf "$entry"
+            yellow "Removed excluded skill directory: $entry"
         fi
     done
     # Also clean up any leftover flat .md files from older versions
@@ -217,8 +241,8 @@ check_skill_links() {
             [ -d "$skill" ] || continue
             [ -f "$skill/SKILL.md" ] || continue
 
-            # Skip internal skills — they are only for the skills repo itself
-            if _is_internal_skill "$skill"; then
+            # Skip internal or excluded skills
+            if _should_skip_skill "$skill" "$root"; then
                 continue
             fi
 
@@ -832,19 +856,21 @@ print('missing')
         fi
     fi
 
-    # 10. Internal skills leaked into consumer discovery dirs
-    # (check_skill_links skips internal skills, so link_skills cleanup may
-    #  never run if all non-internal skills are fine — clean up explicitly)
+    # 10. Internal/excluded skills leaked into consumer discovery dirs
+    # (check_skill_links skips these, so link_skills cleanup may
+    #  never run if all included skills are fine — clean up explicitly)
     local sdir
     sdir="$(skills_dir "$root")"
     for skill in "$sdir"/*/; do
         [ -d "$skill" ] || continue
-        if _is_internal_skill "$skill"; then
+        if _should_skip_skill "$skill" "$root"; then
             local name
             name="$(basename "$skill")"
+            local reason="internal"
+            _is_excluded_skill "$name" "$root" && reason="excluded"
             for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
                 if [ -d "$discovery_dir/$name" ]; then
-                    yellow "WARN: Internal skill '$name' found in consumer discovery dir"
+                    yellow "WARN: ${reason^} skill '$name' found in consumer discovery dir"
                     rm -rf "$discovery_dir/$name"
                     green "  FIXED: Removed $discovery_dir/$name"
                     warnings=$((warnings + 1))
@@ -1052,8 +1078,8 @@ cmd_status() {
             name="$(basename "$skill")"
             skill_md="$skill/SKILL.md"
 
-            # Skip internal skills — they are only for the skills repo itself
-            if _is_internal_skill "$skill"; then
+            # Skip internal or excluded skills
+            if _should_skip_skill "$skill" "$root"; then
                 continue
             fi
 
@@ -1113,6 +1139,10 @@ Examples:
 
   # See what you have
   ./skills/bin/manage.sh status
+
+  # Exclude a skill from this project
+  echo "design-system" >> .skillsexclude
+  ./skills/bin/manage.sh link   # removes it from discovery dirs
 HELP
 }
 

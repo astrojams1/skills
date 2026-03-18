@@ -94,6 +94,7 @@ A meta-skill that connects any AI agent project to this repository via a git sub
 When the user asks to add skills to a project, read `skills/skill-orchestrator/SKILL.md` and execute the steps autonomously. The agent runs all commands — the user does not need to touch the terminal.
 
 - **Add skills:** Run `bin/manage.sh install /path/to/target-project` (or the manual git commands in Step 1)
+- **Exclude a skill:** Add the skill name to `.skillsexclude` in the target project (one per line), then run `./skills/bin/manage.sh link` to remove it from discovery directories
 - **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
 - **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
 
