@@ -32,7 +32,9 @@ This skill provides a copy-paste prompt that instructs an AI agent in a **new co
 
 **Output rules:** Print everything between the `---START---` and `---END---` markers inside a single fenced code block using **quadruple backticks** (i.e., four backtick characters) so the user can copy the entire prompt in one action. The inner triple backticks will render correctly inside the quadruple-backtick fence. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them.
 
-**Customization:** Before outputting, check if the user wants the design-system skill applied. If yes, uncomment the Design System section in Phase 4. If no (or not mentioned), leave it commented out.
+**Customization:** Before outputting, check if the user wants the design-system skill applied:
+- **Yes:** Uncomment the Design System section in Phase 4 and remove the `.skillsexclude` step from Phase 2.
+- **No (or not mentioned):** Leave Phase 4's Design System section commented out and keep the `.skillsexclude` step in Phase 2 so the skill is excluded from discovery directories entirely.
 
 ## The Prompt
 
@@ -76,10 +78,19 @@ This copies skill directories into `.claude/skills/` and `.agents/skills/`, adds
 
 If `install` reports it has already been run, that's fine — it is idempotent.
 
+<!-- REMOVE THE BLOCK BELOW IF THE DESIGN SYSTEM SKILL SHOULD BE INCLUDED -->
+Exclude the design-system skill from this project so it is not copied into discovery directories:
+
+```bash
+echo "design-system" >> .skillsexclude
+./skills/bin/manage.sh link
+```
+<!-- END EXCLUDE BLOCK -->
+
 Commit the install artifacts:
 
 ```bash
-git add .claude .agents .gitmodules skills
+git add .claude .agents .gitmodules skills .skillsexclude
 git commit -m "chore: run manage.sh install for skills integration"
 ```
 
@@ -213,6 +224,7 @@ Final verification checklist:
 - [ ] `CLAUDE.md` and `AGENTS.md` exist, are identical, and contain a `## Skills` section
 - [ ] `CLAUDE.md` contains Workflow Orchestration, Task Management, and Core Principles sections
 - [ ] `tasks/todo.md` and `tasks/lessons.md` exist
+- [ ] Excluded skills (if any) are listed in `.skillsexclude` and absent from discovery directories
 - [ ] `manage.sh check` passes with no failures
 - [ ] The project builds and all existing tests still pass
 
@@ -229,10 +241,11 @@ Print a summary of what was done:
 
 - Skills submodule: wired at `skills/` tracking `main`
 - Discovery directories: `.claude/skills/` and `.agents/skills/` committed
+- Excluded skills: [list from .skillsexclude, or "none"]
 - SessionStart hook: configured in `.claude/settings.json`
 - Agent instructions: CLAUDE.md and AGENTS.md configured (identical)
 - Workflow orchestration: applied to agent instructions
-- Design system: [applied / skipped]
+- Design system: [applied / excluded]
 - Task tracking: tasks/todo.md and tasks/lessons.md created
 - Integrity: manage.sh check PASS
 ```
