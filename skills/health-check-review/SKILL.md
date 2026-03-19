@@ -182,3 +182,11 @@ These recurring findings and their typical resolutions save diagnosis time:
 | Different spec validation test counts | Older manage.sh versions run fewer tests | Expected — not a bug |
 | check auto-syncs on one agent but not another | Auto-sync was added in a newer manage.sh version | Sync first, then re-run check |
 | check reports PASS on stale discovery dirs | Old manage.sh has weaker content checks | Sync to get latest checks, then re-run |
+
+## Gotchas
+
+- **Circular fix dependencies.** A bug in manage.sh may cause `check` to produce bad output, which this skill then misdiagnoses. Always check the manage.sh version (section 7) before trusting `check` output — if it's old, the first recommendation should always be `manage.sh sync`.
+- **Version skew masquerading as bugs.** Most discrepancies between Claude and Codex reports are version skew, not bugs. Check section 7 (manage.sh version) in both reports before filing anything as a bug. If versions differ, sync first and re-diagnose.
+- **Consumer prompt must be self-contained.** The consumer agent does NOT have access to this skill or health-check-prompt. Every command, format rule, and template needed to produce a clean re-verification report must be inlined in the consumer prompt. Missing the report template is the most common omission.
+- **Auto-fix output changes between runs.** `manage.sh check` auto-fixes issues as a side effect, so running it twice produces different output. When comparing reports, note whether `check` was run before or after a sync — the output is only meaningful in context.
+- **Ephemeral Codex sessions.** Fixes applied in Codex sessions vanish unless committed. The consumer prompt must include explicit `git add` and `git commit` steps after every fix phase, not just at the end.
