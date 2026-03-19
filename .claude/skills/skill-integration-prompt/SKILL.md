@@ -3,9 +3,10 @@ name: skill-integration-prompt
 internal: true
 description: >-
   A copy-paste prompt for the skills repo author to give an AI agent in a new
-  consumer repo. The agent adds the skills submodule, runs manage.sh install,
-  applies workflow-orchestration, and optionally applies the design-system skill.
-  Produces a fully integrated project in one shot.
+  consumer repo. Use when onboarding a new project to the skills system, or
+  when the user wants a one-shot integration. The agent adds the skills
+  submodule, runs manage.sh install, applies workflow-orchestration, and
+  optionally applies the design-system skill.
 metadata:
   version: "1.0"
 ---
@@ -251,3 +252,11 @@ Print a summary of what was done:
 ```
 
 ---END---
+
+## Gotchas
+
+- **`--recurse-submodules` forgotten on fresh clones.** After integration, the next `git clone` without `--recurse-submodules` produces a broken setup — `skills/` exists but is empty. The agent-instructions template covers this, but verify it was actually added to CLAUDE.md/AGENTS.md.
+- **Discovery directories not committed.** `manage.sh install` stages files but doesn't commit. If the agent skips the commit step or it fails silently, the discovery dirs exist locally but aren't in VCS — other developers and CI won't have them.
+- **CLAUDE.md and AGENTS.md drift after Phase 3.** The prompt says to make them identical, but agents sometimes edit only one file during Phase 4 (workflow orchestration). Always verify with `cmp -s` after every phase that modifies these files.
+- **`.skillsexclude` not committed.** When excluding the design system, agents create `.skillsexclude` but sometimes forget to `git add` it. Without it committed, the next `manage.sh link` on a fresh clone copies the excluded skill back.
+- **Phase 2 `install` on an already-installed repo.** The prompt handles this ("idempotent"), but agents sometimes re-run the full Phase 1 submodule add, which fails because the submodule already exists. The `if` guard in Phase 1 prevents this — make sure agents don't skip it.
