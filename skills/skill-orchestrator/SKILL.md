@@ -46,7 +46,13 @@ git commit -m "chore: add astrojams1/skills submodule"
 
 ## Step 2: Verify Skills Integrity
 
-When the user asks to check, verify, or troubleshoot skills, run:
+For a fast pass/fail check without auto-fixing, run:
+
+```bash
+./skills/skills/skill-orchestrator/scripts/quick-check.sh
+```
+
+For a full check with auto-fix, run:
 
 ```bash
 ./skills/bin/manage.sh check
