@@ -3,9 +3,10 @@ name: design-system-migration-prompt
 internal: true
 description: >-
   A migration prompt for an AI agent in a consumer repo that already has the
-  design-system skill. The agent audits the existing design system, strips it
-  completely, and replaces it with the Architectural Minimalist design system
-  by following the design-system skill.
+  design-system skill. Use when the user wants to migrate an existing project
+  to the Architectural Minimalist design system, or strip and replace an
+  existing design system. The agent audits, strips, and replaces by following
+  the design-system skill.
 metadata:
   version: "1.0"
 ---

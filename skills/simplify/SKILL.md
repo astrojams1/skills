@@ -2,9 +2,10 @@
 name: simplify
 description: >-
   Review changed code for reuse, quality, and efficiency, then fix any issues
-  found. Use after completing a feature or fix to catch over-engineering,
-  redundant code, missed abstractions, or unnecessary complexity before
-  committing. Invoke with /simplify.
+  found. Use when the user says /simplify, asks to clean up code, wants a
+  quality review, or after completing a feature or fix to catch
+  over-engineering, redundant code, missed abstractions, or unnecessary
+  complexity before committing.
 metadata:
   version: "1.0"
 ---

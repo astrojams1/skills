@@ -2,10 +2,11 @@
 name: skill-orchestrator
 description: >-
   Connect any AI agent project to the astrojams1/skills repository via git
-  submodule. Enables automatic skill syncing with main, ensures fresh clones
-  get the submodule, and trains the target agent to read and apply skills from
-  the mounted submodule path. Apply by following the steps below in the target
-  project, then updating that project's CLAUDE.md and AGENTS.md.
+  submodule. Use when the user asks to add skills to a project, wire up the
+  skills submodule, check skills integrity, sync skills to latest, or
+  troubleshoot a skills integration. Enables automatic skill syncing with main,
+  ensures fresh clones get the submodule, and trains the target agent to read
+  and apply skills from the mounted submodule path.
 metadata:
   version: "1.0"
 ---
@@ -147,6 +148,14 @@ After the upstream PR merges, bring the fix into this project:
 git add skills
 git commit -m "chore: sync skills after upstream improvement"
 ```
+
+## Gotchas
+
+- **Discovery directories must be committed, not just created locally.** The most common post-install failure is `.claude/skills/` and `.agents/skills/` existing locally but not being committed. Other developers and CI won't see the skills. Always verify with `git status` after install.
+- **`manage.sh check` auto-fixes silently.** Running `check` can modify files (refreshing skill directories, updating hooks). Always stage and commit after running it, or you'll have uncommitted changes that confuse future checks.
+- **Submodule SHAs drift.** If you run `git submodule update` without `--remote`, you'll pin to the last committed SHA, not the latest upstream. Use `manage.sh sync` instead — it handles the fetch-and-update correctly.
+- **Consumer repo credentials usually can't push to the skills repo.** When contributing improvements back, the `git push` from inside the submodule will likely fail with 403. This is expected — tell the user to push manually from their own fork.
+- **Don't edit skills locally in the consumer repo.** Local edits to files under `skills/` create "modified submodule" noise in `git status` and will be overwritten on next sync. Always edit upstream and sync down.
 
 ## Summary Checklist
 

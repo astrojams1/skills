@@ -2,10 +2,11 @@
 name: health-check-review
 internal: true
 description: >-
-  Process health check reports from consumer repos. Analyzes report data,
-  identifies bugs in manage.sh or skills code, suggests improvements to the
-  health-check-prompt, and provides step-by-step next steps for both the
-  skills repo and the consumer repo.
+  Process health check reports from consumer repos. Use when the user pastes
+  a health check report, asks to diagnose a consumer repo integration, or
+  wants to review skills integration issues. Analyzes report data, identifies
+  bugs in manage.sh or skills code, suggests improvements to the
+  health-check-prompt, and provides step-by-step next steps.
 metadata:
   version: "1.0"
 ---

@@ -3,9 +3,10 @@ name: skill-integration-prompt
 internal: true
 description: >-
   A copy-paste prompt for the skills repo author to give an AI agent in a new
-  consumer repo. The agent adds the skills submodule, runs manage.sh install,
-  applies workflow-orchestration, and optionally applies the design-system skill.
-  Produces a fully integrated project in one shot.
+  consumer repo. Use when onboarding a new project to the skills system, or
+  when the user wants a one-shot integration. The agent adds the skills
+  submodule, runs manage.sh install, applies workflow-orchestration, and
+  optionally applies the design-system skill.
 metadata:
   version: "1.0"
 ---
