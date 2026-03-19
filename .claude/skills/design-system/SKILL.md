@@ -4,8 +4,9 @@ description: >-
   Apply the Architectural Minimalist design system to web projects. Features
   warm organic colors (sage, terracotta, stone), sharp geometry (rounded-none),
   DM Sans and Tenor Sans typography, and full light/dark mode support with
-  Tailwind CSS. Use when styling a web project or when the user mentions design
-  systems, theming, or visual styling.
+  Tailwind CSS. Use when the user asks to style a web project, mentions design
+  systems, theming, visual styling, color palette, typography, dark mode, or
+  when a project needs a cohesive visual identity applied from scratch.
 metadata:
   version: "1.0"
 ---

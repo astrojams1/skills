@@ -3,9 +3,10 @@ name: workflow-orchestration
 description: >-
   Apply structured workflow orchestration practices to any AI agent project.
   Covers plan-first development, subagent strategy, self-improvement loops,
-  verification gates, elegance checks, and autonomous bug fixing. Use when
-  setting up agent instructions, improving task management discipline, or
-  establishing development standards for AI-assisted projects.
+  verification gates, elegance checks, and autonomous bug fixing. Use when the
+  user asks to set up agent instructions, improve task management discipline,
+  establish development standards, or when onboarding a new AI-assisted project
+  that needs disciplined habits for complex tasks.
 metadata:
   version: "1.0"
 ---
@@ -75,6 +76,15 @@ Apply structured workflow orchestration practices to guide AI agents through com
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
 
+## Gotchas
+
+- **Plan mode is not optional for complex tasks.** The most common failure mode is skipping the plan and jumping straight to implementation. If a task has 3+ steps or any architectural decisions, plan first. Every time.
+- **"Fix what you find" does not mean refactor the world.** Fix type errors, lint warnings, and failing tests you encounter in files you're already touching. Don't go hunting for issues in unrelated files.
+- **Self-improvement only works if you actually read `tasks/lessons.md`.** Writing lessons is useless if you don't review them at session start. Make it the first thing you do.
+- **Verification means running the code, not just reading it.** "Looks correct" is not verification. Run tests, check logs, demonstrate the behavior. If you can't run it, explain why and what you checked instead.
+- **Subagent results need validation.** Subagents can hallucinate or miss context. Spot-check their findings before acting on them, especially for destructive operations.
+- **Don't re-plan in a loop.** If your plan fails twice, the problem is likely your understanding of the system, not the plan format. Step back and investigate the root cause before planning again.
+
 ## How to Apply This Skill
 
-Paste the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections above into the target project's `CLAUDE.md` or `AGENTS.md`. This equips the AI agent with disciplined, structured habits for tackling complex tasks.
+Paste the **Workflow Orchestration**, **Task Management**, **Core Principles**, and **Gotchas** sections above into the target project's `CLAUDE.md` or `AGENTS.md`. This equips the AI agent with disciplined, structured habits for tackling complex tasks.

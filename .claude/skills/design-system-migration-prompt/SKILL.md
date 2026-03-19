@@ -3,9 +3,10 @@ name: design-system-migration-prompt
 internal: true
 description: >-
   A migration prompt for an AI agent in a consumer repo that already has the
-  design-system skill. The agent audits the existing design system, strips it
-  completely, and replaces it with the Architectural Minimalist design system
-  by following the design-system skill.
+  design-system skill. Use when the user wants to migrate an existing project
+  to the Architectural Minimalist design system, or strip and replace an
+  existing design system. The agent audits, strips, and replaces by following
+  the design-system skill.
 metadata:
   version: "1.0"
 ---
@@ -141,3 +142,11 @@ If the project already has a dark mode mechanism, adapt it to toggle the `dark` 
 During migration you will encounter UI patterns not covered by the design system. Follow the **Contributing New Patterns** section in the design-system skill's `SKILL.md` — ask the human, apply consistently, and contribute back.
 
 ---END---
+
+## Gotchas
+
+- **Incomplete color audit.** Agents often miss hardcoded colors in inline styles, SVG `fill`/`stroke` attributes, and CSS custom properties defined in JavaScript. The Phase 1 audit must cover all of these — not just Tailwind classes and CSS files.
+- **Component library theme overrides get lost.** When the project uses shadcn, MUI, or Chakra, agents sometimes override individual component styles instead of setting the theme globally. This leads to inconsistencies when new components are added later. Always override at the theme config level first.
+- **Layout structure preserved when it shouldn't be.** The prompt explicitly says to convert layouts, but agents default to preserving existing structure. If the app has a sidebar, it must adopt the Sidebar Application Layout from the skill — not just restyle the old sidebar.
+- **Dark mode CSS properties not verified.** Agents apply dark mode tokens but skip verifying that `:root` and `.dark` custom properties actually switch. Always toggle dark mode and check computed values.
+- **Straggler sweep skipped after fixes.** Agents run the straggler sweep, find issues, fix them, then mark the task complete without re-running the sweep. The prompt says "run the searches again after fixes" — enforce this.

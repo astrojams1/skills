@@ -8,22 +8,30 @@ This repository contains reusable AI agent skills that can be applied across pro
 bin/
   manage.sh                                # CLI: install, check, sync, status for skill management
 skills/                                    # Skill definitions (Agent Skills spec)
+  careful/
+    SKILL.md                               # On-demand safety hooks for destructive commands
   design-system/
     SKILL.md                               # Main skill instructions (concise)
     references/components.md               # Detailed component HTML/CSS patterns
     references/layout.md                   # Detailed layout and global style patterns
-  workflow-orchestration/
-    SKILL.md                               # Workflow orchestration practices for AI agents
-  skill-orchestrator/
-    SKILL.md                               # Wire another repo to this skills submodule
   design-system-migration-prompt/
     SKILL.md                               # Migration prompt to swap in the design system
+  freeze/
+    SKILL.md                               # On-demand file protection (restrict edits to one dir)
   health-check-prompt/
     SKILL.md                               # Diagnostic prompt for consumer repo integration
   health-check-review/
     SKILL.md                               # Process health check reports and fix issues
+  simplify/
+    SKILL.md                               # Code quality review — find and fix over-engineering
   skill-integration-prompt/
     SKILL.md                               # Integration prompt for new consumer repos
+  skill-orchestrator/
+    SKILL.md                               # Wire another repo to this skills submodule
+    scripts/quick-check.sh                 # Fast pass/fail integration check
+    references/agent-instructions.md       # Template for consumer CLAUDE.md/AGENTS.md
+  workflow-orchestration/
+    SKILL.md                               # Workflow orchestration practices for AI agents
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
 tests/                                     # Tests for repository integrity
@@ -40,6 +48,31 @@ AGENTS.md                                  # AI agent instructions (Codex) — m
 Skills follow the [Agent Skills specification](https://agentskills.io/specification). Each skill is a directory containing a `SKILL.md` file with YAML frontmatter (`name`, `description`) and markdown instructions. Skills may also include `references/`, `scripts/`, and `assets/` subdirectories for supplementary material loaded on demand.
 
 **Important:** Before creating or modifying any skill, always consult the [Agent Skills specification](https://agentskills.io/specification) to ensure compliance with the latest format requirements, especially around progressive disclosure (SKILL.md < 500 lines, detailed material in `references/`).
+
+## Skill Categories
+
+Skills cluster into recurring categories. Use this taxonomy to identify gaps in your skill coverage and to write better skills:
+
+1. **Library & API Reference** — Correct usage of libraries, CLIs, or SDKs. Include reference code snippets and gotchas for things Claude gets wrong by default.
+2. **Product Verification** — How to test or verify that code works. Pair with external tools (Playwright, tmux, etc.). Worth investing heavily in — verification skills directly improve output quality.
+3. **Data Fetching & Analysis** — Connect to data and monitoring stacks. Store helper libraries and credentials patterns so Claude composes rather than reconstructs.
+4. **Business Process & Workflow Automation** — Encode multi-step operational processes into single commands. Store results in log files for consistency.
+5. **Code Scaffolding & Templates** — Generate framework boilerplate with natural language requirements that pure code can't cover (annotations, auth, deploy config).
+6. **Code Quality & Review** — Enforce organizational code quality. Can include deterministic scripts for maximum robustness. Consider running automatically via hooks or GitHub Actions.
+7. **CI/CD & Deployment** — Fetch, push, deploy code. May reference other skills to collect data. Examples: `babysit-pr`, `deploy-<service>`, `cherry-pick-prod`.
+8. **Runbooks** — Take a symptom (Slack thread, alert, error signature), walk through a multi-tool investigation, produce a structured report.
+9. **Infrastructure Operations** — Routine maintenance and operational procedures with guardrails for destructive actions.
+10. **On-Demand Hooks** — Session-level guardrails activated by invoking the skill. Last for the session duration. Examples: `careful` (blocks destructive commands), `freeze` (blocks edits outside a directory).
+
+## Writing Good Skills
+
+- **Don't state the obvious.** Claude already knows a lot about coding. Focus on information that pushes Claude out of its default behavior — gotchas, internal conventions, edge cases.
+- **Build a Gotchas section.** The highest-signal content in any skill. Build it up from failure points Claude hits when using the skill. Update it over time as new edge cases emerge.
+- **Use the file system for progressive disclosure.** A skill is a folder, not just a markdown file. Tell Claude what files exist in `references/`, `scripts/`, and `assets/` — it will read them at appropriate times.
+- **Don't over-specify.** Give Claude the information it needs but leave flexibility to adapt. Skills are reusable across contexts — being too specific breaks reuse.
+- **Store scripts and libraries.** Giving Claude pre-built scripts lets it spend turns on composition (deciding what to do) rather than reconstruction (rebuilding boilerplate). E.g., data fetching helpers, verification scripts.
+- **The description field is for the model.** The description is what Claude scans to decide "is there a skill for this request?" Write it as a trigger description, not a summary. Include specific keywords and "Use when..." patterns.
+- **Start small, iterate.** Most good skills began as a few lines and a single gotcha. They got better because people kept adding to them as Claude hit new edge cases.
 
 ## Available Skills
 
@@ -97,6 +130,41 @@ When the user asks to add skills to a project, read `skills/skill-orchestrator/S
 - **Exclude a skill:** Add the skill name to `.skillsexclude` in the target project (one per line), then run `./skills/bin/manage.sh link` to remove it from discovery directories
 - **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
 - **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
+
+### Simplify — Code Quality & Review
+
+**Skill:** `skills/simplify/SKILL.md`
+
+A code quality skill that reviews recently changed code for over-engineering, redundancy, dead code, and unnecessary complexity — then fixes what it finds. Not a review that produces comments, but one that produces better code.
+
+- Reviews `git diff` to find changed files
+- Checks for dead code, redundant abstractions, copy-paste duplication, verbose patterns
+- Fixes issues directly rather than reporting them
+- Behavior-preserving simplification only
+
+#### How to use
+
+Invoke with `/simplify` after completing a feature or fix, before committing. The skill reviews your changes and makes them cleaner.
+
+### Careful — On-Demand Safety Hooks
+
+**Skill:** `skills/careful/SKILL.md`
+
+An on-demand hook skill that blocks destructive commands (`rm -rf`, `DROP TABLE`, force-push, `kubectl delete`, `terraform destroy`) for the rest of the session.
+
+#### How to use
+
+Invoke with `/careful` when working with production systems or dangerous infrastructure. The skill installs guardrails that last for the session.
+
+### Freeze — On-Demand File Protection
+
+**Skill:** `skills/freeze/SKILL.md`
+
+An on-demand hook skill that blocks Edit and Write operations outside a specified directory for the rest of the session.
+
+#### How to use
+
+Invoke with `/freeze` when debugging and you want to read broadly but only edit in one place. The skill asks which directory to keep editable and blocks modifications everywhere else.
 
 ## Internal Skills
 
