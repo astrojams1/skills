@@ -73,12 +73,17 @@ If the versions match, append `(up to date)`. If they differ, append `(update av
 
 ### Available Skills
 
-- **design-system** — Architectural Minimalist design system for web UIs
-  `skills/skills/design-system/SKILL.md`
-- **workflow-orchestration** — Plan-first, subagent, and verification practices for AI agents
-  `skills/skills/workflow-orchestration/SKILL.md`
-- **skill-orchestrator** — Wire a repo to this skills submodule (this skill)
-  `skills/skills/skill-orchestrator/SKILL.md`
+Skills are discovered from `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex). Only non-excluded, non-internal skills appear in these directories.
+
+To see which skills are available:
+
+```bash
+ls .claude/skills/
+# or
+./skills/bin/manage.sh status
+```
+
+Each skill has a `SKILL.md` with instructions. Read it at `skills/skills/<name>/SKILL.md` (or `.claude/skills/<name>/SKILL.md`).
 
 ### Keeping Skills Up to Date
 
