@@ -884,6 +884,22 @@ print('missing')
         warnings=$((warnings + 1))
     fi
 
+    # 12. CLAUDE.md ↔ AGENTS.md alignment
+    if [ -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
+        if diff -q "$root/CLAUDE.md" "$root/AGENTS.md" > /dev/null 2>&1; then
+            green "PASS: CLAUDE.md and AGENTS.md are byte-for-byte identical"
+        else
+            red "FAIL: CLAUDE.md and AGENTS.md have diverged — they must be byte-for-byte identical"
+            failures=$((failures + 1))
+        fi
+    elif [ -f "$root/CLAUDE.md" ] && [ ! -f "$root/AGENTS.md" ]; then
+        yellow "WARN: CLAUDE.md exists but AGENTS.md is missing"
+        warnings=$((warnings + 1))
+    elif [ ! -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
+        yellow "WARN: AGENTS.md exists but CLAUDE.md is missing"
+        warnings=$((warnings + 1))
+    fi
+
     # Summary
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

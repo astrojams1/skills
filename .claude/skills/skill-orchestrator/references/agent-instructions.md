@@ -39,6 +39,11 @@ git commit -m "chore: auto-fix skills integration issues"
 
 **Important:** `.claude/skills/` and `.agents/skills/` directories must be committed to the repo, not just created locally. If these directories are missing from version control, other developers and CI environments will not discover skills.
 
+### Rules
+
+1. **CLAUDE.md and AGENTS.md must always be byte-for-byte identical.** Both files serve the same purpose for different AI agents. Any edit to one must be applied to the other. Run `./skills/bin/manage.sh check` to verify (check #12 detects divergence).
+2. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored.
+
 ### How Skills Are Discovered
 
 Skills are exposed to agents via two discovery paths:

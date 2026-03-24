@@ -94,6 +94,12 @@ git -C "$TMP_INSTALL" config user.name "Test User"
 
 GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" install "$TMP_INSTALL" >/dev/null
 
+# Commit staged files so check commands have a valid HEAD (required for check #2.5)
+git -C "$TMP_INSTALL" -c commit.gpgsign=false commit -q -m "chore: add skills submodule" 2>/dev/null || true
+
+# Copy local manage.sh into the submodule so check picks up changes under test
+cp "$MANAGE" "$TMP_INSTALL/skills/bin/manage.sh"
+
 # Claude Code discovery: .claude/skills/<name>/SKILL.md (directory, not flat file)
 if [ -d "$TMP_INSTALL/.claude/skills/design-system" ] && [ -f "$TMP_INSTALL/.claude/skills/design-system/SKILL.md" ]; then
     pass "install creates .claude/skills/<name>/SKILL.md directory"
@@ -250,7 +256,7 @@ echo "REAL UPPERCASE" > "$TMP_INSTALL/CLAUDE.md"
 echo "REAL UPPERCASE" > "$TMP_INSTALL/AGENTS.md"
 
 # check should clean them up (tolerate check exit code since submodule may be behind)
-(cd "$TMP_INSTALL" && bash "$MANAGE" check >/dev/null 2>&1) || true
+(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
 
 if [ ! -f "$TMP_INSTALL/claude.md" ]; then
     pass "check removes stale lowercase claude.md when CLAUDE.md exists"
@@ -277,7 +283,7 @@ echo "Testing lowercase rename (only lowercase exists)..."
 rm -f "$TMP_INSTALL/CLAUDE.md"
 echo "should become uppercase" > "$TMP_INSTALL/claude.md"
 
-(cd "$TMP_INSTALL" && bash "$MANAGE" check >/dev/null 2>&1) || true
+(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
 
 if [ -f "$TMP_INSTALL/CLAUDE.md" ] && [ ! -f "$TMP_INSTALL/claude.md" ]; then
     pass "check renames claude.md → CLAUDE.md when no uppercase exists"
@@ -287,6 +293,44 @@ fi
 
 # Clean up test files
 rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md"
+
+echo ""
+echo "Testing CLAUDE.md ↔ AGENTS.md alignment check..."
+
+# Create identical files — check should pass
+echo "identical content" > "$TMP_INSTALL/CLAUDE.md"
+echo "identical content" > "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "byte-for-byte identical"; then
+    pass "check passes when CLAUDE.md and AGENTS.md are identical"
+else
+    fail "check did not report identical CLAUDE.md and AGENTS.md"
+fi
+
+# Create diverged files — check should report failure
+echo "claude content" > "$TMP_INSTALL/CLAUDE.md"
+echo "agents content" > "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "diverged"; then
+    pass "check detects diverged CLAUDE.md and AGENTS.md"
+else
+    fail "check did not detect diverged CLAUDE.md and AGENTS.md"
+fi
+
+# Only CLAUDE.md exists — should warn about missing AGENTS.md
+rm -f "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "AGENTS.md is missing"; then
+    pass "check warns when AGENTS.md is missing"
+else
+    fail "check did not warn about missing AGENTS.md"
+fi
+
+# Clean up
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
 
 echo ""
 echo "Testing uninstall command..."
