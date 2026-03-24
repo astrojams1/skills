@@ -289,6 +289,50 @@ fi
 rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md"
 
 echo ""
+echo "Testing CLAUDE.md ↔ AGENTS.md alignment check..."
+
+# Copy local manage.sh into the submodule so check picks up our changes
+cp "$MANAGE" "$TMP_INSTALL/skills/bin/manage.sh"
+
+# Commit so check #2.5 (submodule pointer comparison) doesn't exit early
+git -C "$TMP_INSTALL" -c commit.gpgsign=false commit -q --allow-empty -m "test setup" 2>/dev/null || true
+
+# Create identical files — check should pass
+echo "identical content" > "$TMP_INSTALL/CLAUDE.md"
+echo "identical content" > "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "byte-for-byte identical"; then
+    pass "check passes when CLAUDE.md and AGENTS.md are identical"
+else
+    fail "check did not report identical CLAUDE.md and AGENTS.md"
+fi
+
+# Create diverged files — check should report failure
+echo "claude content" > "$TMP_INSTALL/CLAUDE.md"
+echo "agents content" > "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "diverged"; then
+    pass "check detects diverged CLAUDE.md and AGENTS.md"
+else
+    fail "check did not detect diverged CLAUDE.md and AGENTS.md"
+fi
+
+# Only CLAUDE.md exists — should warn about missing AGENTS.md
+rm -f "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+if echo "$check_output" | grep -q "AGENTS.md is missing"; then
+    pass "check warns when AGENTS.md is missing"
+else
+    fail "check did not warn about missing AGENTS.md"
+fi
+
+# Clean up
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
+
+echo ""
 echo "Testing uninstall command..."
 
 # uninstall should remove the submodule and all artifacts
