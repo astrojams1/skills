@@ -22,6 +22,12 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Diagnostic prompt for consumer repo integration
   health-check-review/
     SKILL.md                               # Process health check reports and fix issues
+  research-paper/
+    SKILL.md                               # Repo -> arXiv-ready paper, 20 staged artifacts
+    references/{stages,literature,decisions,reviews}.md  # Stage playbook, lit search, decision menus, review rubrics
+    scripts/{ledger.py,check_refs.py,build.sh}   # Run ledger, reference resolver, strict LaTeX build
+    assets/template/main.tex               # arXiv preprint template
+    ledger/LEDGER.md, ledger/runs/         # The skill's own ledger: versions, runs, tokens, issues
   simplify/
     SKILL.md                               # Code quality review — find and fix over-engineering
   skill-integration-prompt/
@@ -165,6 +171,20 @@ An on-demand hook skill that blocks Edit and Write operations outside a specifie
 #### How to use
 
 Invoke with `/freeze` when debugging and you want to read broadly but only edit in one place. The skill asks which directory to keep editable and blocks modifications everywhere else.
+
+### Research Paper — Repo to arXiv Submission
+
+**Skill:** `skills/research-paper/SKILL.md`
+
+An end-to-end pipeline that turns a code repository into a submission-ready paper (LaTeX + PDF): understand the project, infer the research question, mine results, search and resolve the literature, establish novelty, choose thesis / type / audience / venue / scope / math / style, find and run missing experiments, outline, draft, scientific and writing reviews by fresh-context subagents, arXiv submission checks.
+
+- Every stage writes one artifact under `paper/<slug>/` in the target repo; later stages rely only on earlier artifacts plus the repo
+- Keeps its own ledger (`ledger/LEDGER.md`, `ledger/runs/`) with per-stage token cost and issues, so the skill can be improved run over run
+- References must resolve (arXiv id or DOI) or the strict build fails; numbers in the paper must trace to a file
+
+#### How to use
+
+Invoke with `/research-paper` in the target repo, or say "write this repo up as a paper". Answer the three setup questions (author line, experiment budget, where to commit). Run the ledger scripts from `skills/research-paper/scripts/` (the source copy), then `bin/manage.sh link` to refresh the discovery copies.
 
 ## Internal Skills
 
