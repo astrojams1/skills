@@ -7,7 +7,7 @@ Checks:
   1. every \\cite{...} key in *.tex exists in refs.bib
   2. every bib entry is cited (orphans are reported, not fatal)
   3. every bib entry has an `eprint` (arXiv) or `doi` field
-  4. with --resolve: each eprint/doi answers HTTP 200 (arXiv export API / doi.org); results are cached in
+  4. with --resolve: each eprint/doi resolves (arXiv export API / Crossref API); results are cached in
      <paper-dir>/literature/resolved.json so re-runs are free
 Exit code 1 on any fatal problem (unknown cite key, entry without identifier, unresolved identifier unless
 --allow-unresolved).
@@ -17,6 +17,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 
 ENTRY = re.compile(r"@(\w+)\s*\{\s*([^,\s]+)\s*,", re.M)
@@ -42,13 +43,14 @@ def resolve(kind, value, cache):
     if kind == "eprint":
         url = f"https://export.arxiv.org/api/query?id_list={value}"
     else:
-        url = f"https://doi.org/{value}"
+        # Crossref's API answers for every registered DOI; doi.org itself redirects to publisher sites that may block.
+        url = f"https://api.crossref.org/works/{urllib.parse.quote(value, safe='')}"
     ok = False
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "research-paper-skill/0.1", "Accept": "application/json, text/html, */*"})
         with urllib.request.urlopen(req, timeout=20) as r:
             data = r.read(4000).decode("utf-8", "ignore")
-            ok = r.status == 200 and ("<entry>" in data if kind == "eprint" else True)
+            ok = r.status == 200 and ("<entry>" in data if kind == "eprint" else '"status":"ok"' in data)
             if kind == "eprint" and "<entry>" in data and "Error" in data[:2000] and "<title>Error" in data:
                 ok = False
     except Exception as e:  # noqa: BLE001

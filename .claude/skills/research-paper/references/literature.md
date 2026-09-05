@@ -14,8 +14,11 @@ that kills the claim: that is cheaper to find now than after submission.
    work. Every web hit must then be resolved through 1 or 2 before it enters `refs.bib`.
 4. Crossref — `https://api.crossref.org/works?query=<q>&rows=10` for DOIs of venue papers.
 
-Fetch with curl (respect the proxy env) or WebFetch. Save raw responses under `paper/<slug>/literature/`
-so the search is reproducible.
+Use the skill's scripts: `arxiv_search.py` (queries → compact hits + raw Atom saved), `arxiv_bib.py` (ids →
+correct BibTeX + abstracts). For full text, `curl -sS https://arxiv.org/html/<id>` is the reliable route
+(WebFetch rate-limits); for non-arXiv papers, Crossref (`api.crossref.org/works?query.bibliographic=`) gives
+the DOI for a hand-written entry. Save raw responses under `paper/<slug>/literature/` so the search is
+reproducible. Semantic Scholar needs an API key.
 
 ## Query plan
 

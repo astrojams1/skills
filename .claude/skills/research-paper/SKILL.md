@@ -2,7 +2,7 @@
 name: research-paper
 description: Generate a submission-ready research paper (arXiv-style LaTeX + PDF) end to end from a code repository — understand the project, infer the research question, mine results, search the literature, establish novelty, pick a defensible thesis, paper type, audience, venue, scope, math level and style, find and run missing experiments, outline, draft, review scientifically and editorially, and run submission checks — while keeping a self-improvement ledger of tokens and issues per stage. Use whenever the user wants a paper, preprint, arXiv submission, technical report, or "write up this repo/project as a paper", even if they only say "paper" or "publish this".
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -61,8 +61,10 @@ re-entered later (a review finding often sends you back to 06 or 07); log the re
 3. **Discover results and contributions.** Mine the repo for every result: benchmark tables, histories,
    ablations hidden in changelogs, failure analyses, negative results. Each contribution gets an evidence
    pointer. Gate: no contribution without evidence in the repo or produced in stage 13.
-4. **Research the surrounding literature.** Follow `references/literature.md`. Search broadly (the field, the
-   method family, the application, the benchmark style), keep a search log, and write an annotated list.
+4. **Research the surrounding literature.** Follow `references/literature.md`; use `scripts/arxiv_search.py`
+   for queries and `scripts/arxiv_bib.py` for BibTeX. Search broadly (the field, the method family, the
+   application, the benchmark style), keep a search log, and write an annotated list. Theme subagents in
+   parallel work well (each gets a seed id list, snowballs, writes `notes-<theme>.md` + `refs-<theme>.bib`).
    Every entry in `refs.bib` must come from a resolved record (arXiv id or DOI); never from memory.
 5. **Determine novelty / closest prior work.** Pick the 3-8 closest works and state, per work, what is the same
    and what is different. Write the novelty claim and the sentence a hostile reviewer would write against it.
@@ -84,6 +86,10 @@ re-entered later (a review finding often sends you back to 06 or 07); log the re
     *runnable here*, *runnable by the user* (write the exact command), or *out of scope* (say why).
 14. **Run / recommend experiments.** Run what can be run without spending the user's money unless they said
     otherwise; save raw outputs under `paper/<slug>/experiments/`; write the recommendations for the rest.
+    Two experiments are mandatory whenever evaluation is free (deterministic code, no API): a **fresh test
+    set** the tuning loop never saw (≥100 instances, bootstrap CI) — repos routinely report tuned-set numbers
+    as if they generalised — and an **evaluated-code check**: run the exact commit that produced each
+    headline number, not HEAD, and say so in the paper.
 15. **Construct the evidence-backed outline.** Every section, every paragraph's job, every figure/table with
     the data file it comes from. Gate: no claim in the outline lacks a pointer.
 16. **Draft.** LaTeX from `assets/template/`. Generate figures and tables from data with scripts committed
@@ -92,8 +98,9 @@ re-entered later (a review finding often sends you back to 06 or 07); log the re
 17. **Scientific review.** Spawn a fresh-context reviewer (subagent) with `references/reviews.md` rubric A.
     Fix or rebut every point in writing in `08-review-scientific.md`.
 18. **Writing review.** Fresh-context editor with rubric B. Same discipline in `09-review-writing.md`.
-19. **Submission checks.** `python3 scripts/check_refs.py`, `scripts/build.sh --strict`, then the checklist in
-    `references/reviews.md` section C. Record pass/fail in `10-submission-checks.md`.
+19. **Submission checks.** `python3 scripts/check_refs.py <dir> --resolve`, `scripts/build.sh <dir> --strict`,
+    `scripts/bundle.sh <dir>` (clean-directory build + arXiv tarball), a fresh-context proofread subagent, then
+    the checklist in `references/reviews.md` section C. Record pass/fail in `10-submission-checks.md`.
 20. **Close the run.** `python3 scripts/ledger.py close`, fill the run log's issues and totals, add any new
     open issue to `LEDGER.md`, bump the skill version if the skill itself was changed, deliver the PDF.
 
@@ -129,6 +136,21 @@ rubric by path, and ask for a written report file; never a chat-only answer.
 - Disclose AI assistance in writing or in producing the artifact when it happened.
 
 ## Gotchas
+
+- Run the scripts from the skill's source copy (`skills/research-paper/scripts/` in the skills repo), never
+  from a `.claude/skills/` discovery copy: `ledger.py` writes next to itself, so a copy gets its own ledger.
+  Re-run `bin/manage.sh link` after a run so the copies carry the updated ledger.
+- Validate generated experimental inputs before running on them (image blankness, file sizes, counts);
+  a headless WebGL context went black mid-batch in run 1 and 18 of 60 rooms were silently wrong.
+- Check TeX packages before the first build (`kpsewhich lmodern.sty …`); the sandbox lacked `lmodern`
+  (fix: `apt-get install lmodern` then `mktexlsr`).
+- Titles from arXiv metadata can contain `&`; `arxiv_bib.py` escapes them, hand-written entries must too.
+- Semantic Scholar rate-limits unkeyed clients at once; arXiv's export API 429s after bursts — the scripts
+  sleep 3 s between calls, and `arxiv.org/html/<id>` fetched with curl is the reliable full-text route.
+- Resolve DOIs through `api.crossref.org`, not `doi.org` (publisher redirects return 202/403 through proxies).
+- A "held-out" set in a repo's tuning log is usually a validation set: read every log row for the words
+  "held-out" and "kept"; if changes were kept or designed on it, say so and build a real test set.
+- A repo's HEAD is often not the code that produced its record; `git log -- <file>` against run timestamps.
 
 - Repos written by agents keep their best experimental record in changelogs, benchmark logs and PR
   descriptions, not in the README. Read `git log -p` on the log files.

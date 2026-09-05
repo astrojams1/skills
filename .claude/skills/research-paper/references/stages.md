@@ -83,6 +83,11 @@ For each outline claim (or contribution), list what a reviewer of the chosen aud
 Classify: **runnable here** (no cost, tools available), **runnable by user** (exact command, estimated cost,
 expected effect on the paper), **out of scope** (reason; how the paper's wording avoids the claim).
 
+Always in the "runnable here" list when the evaluated code is deterministic and free to run: a fresh test set
+(new seeds/instances, ≥100, bootstrap CI), the exact-commit re-run of every headline number, the
+"classical/tool part alone" ablation, and a table of the instances where the headline component actually
+acted (cells > 1, retries, interventions) with the sign of its effect.
+
 ## Stage 14 — Run / recommend → `06-experiments.md` + `experiments/`
 
 Run the "runnable here" items; store raw outputs and the script that produced them. Re-analysis of existing
