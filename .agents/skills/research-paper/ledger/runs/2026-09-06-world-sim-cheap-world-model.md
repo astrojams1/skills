@@ -1,18 +1,22 @@
 # Run 2026-09-06-world-sim-cheap-world-model
 
 - repo: `world-sim`  slug: `cheap-world-model`  paper dir: `/home/user/world-sim/paper/cheap-world-model`
-- started: 2026-09-06T00:35:42+00:00  closed: -
+- started: 2026-09-06T00:35:42+00:00  closed: 2026-09-06T00:51:55+00:00
 - skill version: 0.2.0
-- outcome: -
+- outcome: Revision delivered: paper re-titled and restructured around the deterministic helper (19 pp, strict build, bundle); framing review minor-revision, fixed; world-sim branch claude/push-paper-branches-bundles-kmzwrf; skill v0.3.0
 
 ## Stages
 
 | # | stage | started (UTC) | tokens | method | notes |
 |---|---|---|---|---|---|
 | 0 | Set up | 00:35 | 0 | counter | Revision run: the author found after delivery that the paper's subject (a cheap VLM producing a world model) is contradicted by its own ablation (helper alone reproduces every answer; VLM contribution exactly 0 from iteration 15). Run 1's stage 6 thesis was never re-tested after stage 14. |
-| 6 | Thesis | 00:35 | - | - | Re-choose thesis, title, contributions against the run-1 experiments |
+| 6 | Thesis | 00:35 | 57798 | counter | Re-choose thesis, title, contributions against the run-1 experiments |
+| 16 | Draft | 00:43 | 0 | counter | Rewrote title, abstract, introduction, section 4 order (helper first), sections 5-6 (helper alone first, VLM in the loop second), limitations, conclusion; no numbers, tables or figures changed; strict build 19 pp |
+| 17 | Scientific review | 00:43 | 34626 | counter | Fresh-context framing review (rubric A 1/6/12, B 11) on the revised text; Framing review: minor revision; 2 major (abstract 95.9 read as fresh-room; 'every intervention coded' contradicted by interventions table), 27 minor; all fixed except 5 pre-existing body numbers deferred. Subagent tokens 128k. |
+| 19 | Submission checks | 00:50 | 7839 | counter | Rebuild strict, bundle, checklist after review fixes |
+| 20 | Close | 00:51 | 0 | counter | check_refs 50/50/0; strict build 19 pp; bundle 112 KB; checklist updated |
 
-**Total tokens (counted stages): 0**
+**Total tokens (counted stages): 100,263**
 
 ## Issues
 

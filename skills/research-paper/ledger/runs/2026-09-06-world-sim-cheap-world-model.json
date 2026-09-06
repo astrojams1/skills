@@ -46,8 +46,37 @@
    "started": "2026-09-06T00:43:52+00:00",
    "tokens_left_start": 14821399,
    "notes": [
-    "Fresh-context framing review (rubric A 1/6/12, B 11) on the revised text"
-   ]
+    "Fresh-context framing review (rubric A 1/6/12, B 11) on the revised text",
+    "Framing review: minor revision; 2 major (abstract 95.9 read as fresh-room; 'every intervention coded' contradicted by interventions table), 27 minor; all fixed except 5 pre-existing body numbers deferred. Subagent tokens 128k."
+   ],
+   "ended": "2026-09-06T00:50:40+00:00",
+   "tokens_left_end": 14786773,
+   "tokens": 34626,
+   "method": "counter"
+  },
+  {
+   "n": 19,
+   "started": "2026-09-06T00:50:40+00:00",
+   "tokens_left_start": 14786773,
+   "notes": [
+    "Rebuild strict, bundle, checklist after review fixes"
+   ],
+   "ended": "2026-09-06T00:51:55+00:00",
+   "tokens_left_end": 14778934,
+   "tokens": 7839,
+   "method": "counter"
+  },
+  {
+   "n": 20,
+   "started": "2026-09-06T00:51:55+00:00",
+   "tokens_left_start": 14778934,
+   "notes": [
+    "check_refs 50/50/0; strict build 19 pp; bundle 112 KB; checklist updated"
+   ],
+   "ended": "2026-09-06T00:51:55+00:00",
+   "tokens_left_end": 14778934,
+   "tokens": 0,
+   "method": "counter"
   }
  ],
  "issues": [
@@ -69,5 +98,7 @@
    "fix": "Write items 12-15 now; at close, diff the skill files against the version row before writing it",
    "at": "2026-09-06T00:35:42+00:00"
   }
- ]
+ ],
+ "closed": "2026-09-06T00:51:55+00:00",
+ "outcome": "Revision delivered: paper re-titled and restructured around the deterministic helper (19 pp, strict build, bundle); framing review minor-revision, fixed; world-sim branch claude/push-paper-branches-bundles-kmzwrf; skill v0.3.0"
 }

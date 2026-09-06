@@ -17,7 +17,7 @@ run. Maintained by `scripts/ledger.py` (runs table) and by hand (versions, issue
 | run | date | repo | paper | stages | tokens | issues | outcome |
 |---|---|---|---|---|---|---|---|
 | [2026-09-05-world-sim-cheap-world-model](runs/2026-09-05-world-sim-cheap-world-model.md) | 2026-09-05 | world-sim | cheap-world-model | 13/21 | 258,754 | 7 | PDF delivered (18 pp, strict build, 50 resolved refs, arXiv bundle); world-sim branch paper/cheap-world-model; skill v0.2.0 |
-| [2026-09-06-world-sim-cheap-world-model](runs/2026-09-06-world-sim-cheap-world-model.md) | 2026-09-06 | world-sim | cheap-world-model | 1/21 | 0 | 3 | in progress |
+| [2026-09-06-world-sim-cheap-world-model](runs/2026-09-06-world-sim-cheap-world-model.md) | 2026-09-06 | world-sim | cheap-world-model | 6/21 | 100,263 | 3 | Revision delivered: paper re-titled and restructured around the deterministic helper (19 pp, strict build, bundle); framing review minor-revision, fixed; world-sim branch claude/push-paper-branches-bundles-kmzwrf; skill v0.3.0 |
 <!-- RUNS:END -->
 
 Per-run detail (stage-by-stage tokens, issues, notes) is in `runs/<run>.md`.
