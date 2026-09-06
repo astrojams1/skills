@@ -2,7 +2,7 @@
 name: research-paper
 description: Generate a submission-ready research paper (arXiv-style LaTeX + PDF) end to end from a code repository — understand the project, infer the research question, mine results, search the literature, establish novelty, pick a defensible thesis, paper type, audience, venue, scope, math level and style, find and run missing experiments, outline, draft, review scientifically and editorially, and run submission checks — while keeping a self-improvement ledger of tokens and issues per stage. Use whenever the user wants a paper, preprint, arXiv submission, technical report, or "write up this repo/project as a paper", even if they only say "paper" or "publish this".
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -68,9 +68,11 @@ re-entered later (a review finding often sends you back to 06 or 07); log the re
    Every entry in `refs.bib` must come from a resolved record (arXiv id or DOI); never from memory.
 5. **Determine novelty / closest prior work.** Pick the 3-8 closest works and state, per work, what is the same
    and what is different. Write the novelty claim and the sentence a hostile reviewer would write against it.
-6. **Choose the strongest defensible thesis.** The thesis is the one-sentence claim the whole paper defends.
-   Prefer a narrower claim fully backed by evidence over a broader one that needs a caveat. This is where
-   "world's cheapest X" becomes "X at $0.03 and 22 s per instance with no training, on this benchmark".
+6. **Choose the strongest defensible thesis (provisional).** The thesis is the one-sentence claim the whole
+   paper defends. Prefer a narrower claim fully backed by evidence over a broader one that needs a caveat. This
+   is where "world's cheapest X" becomes "X at $0.03 and 22 s per instance with no training, on this benchmark".
+   Apply the **subject test**: the grammatical subject of the thesis must be the component the evidence credits
+   with the result. Until stage 14 has run the ablations, the thesis is provisional and stage 14's gate re-opens it.
 7. **Choose paper type.** Systems / method / benchmark / empirical study / negative result / position / short
    report. See `references/decisions.md`.
 8. **Choose audience.** The specific reviewer community (e.g. robotics perception, LLM agents, CV). It sets
@@ -90,6 +92,13 @@ re-entered later (a review finding often sends you back to 06 or 07); log the re
     set** the tuning loop never saw (≥100 instances, bootstrap CI) — repos routinely report tuned-set numbers
     as if they generalised — and an **evaluated-code check**: run the exact commit that produced each
     headline number, not HEAD, and say so in the paper.
+    **Gate — thesis re-check (mandatory, in writing, in `05-decisions.md`).** Re-read the stage 6 thesis against
+    every result of stages 13–14. If an ablation moves the credit for the headline result to a different
+    component, or a fresh set moves a headline number, go back to stage 6 and rewrite the thesis, the title and
+    the contributions before outlining; record the rejected thesis and why. A zero or near-zero contribution
+    from the component the research question was framed around is a **change of subject, not a caveat**: the
+    paper becomes about the component that does the work, and the zero is one of its findings. Candor about the
+    zero inside the old framing does not pass this gate.
 15. **Construct the evidence-backed outline.** Every section, every paragraph's job, every figure/table with
     the data file it comes from. Gate: no claim in the outline lacks a pointer.
 16. **Draft.** LaTeX from `assets/template/`. Generate figures and tables from data with scripts committed
@@ -131,6 +140,9 @@ rubric by path, and ask for a written report file; never a chat-only answer.
 - Results produced by an agentic tuning loop are still results, but say so, and say what the held-out
   protection was.
 - If the only evidence for a claim is the authors' own benchmark, the thesis is about that benchmark.
+- The subject of the title, the thesis and the first sentence of the abstract is the component the ablations
+  credit with the result. If the paper's own data show the headline component contributes nothing, it cannot
+  remain the subject; see the stage 14 gate.
 - Report cost and time with what they include (API list prices? sandbox sessions? wall clock?).
 - Cite only resolved references; a citation you cannot resolve is deleted, not "fixed" from memory.
 - Disclose AI assistance in writing or in producing the artifact when it happened.
@@ -163,3 +175,9 @@ rubric by path, and ask for a written report file; never a chat-only answer.
   without the model); check for offline-runnable ablations before declaring an experiment out of scope.
 - Keep `05-decisions.md` open while drafting: drift from the chosen audience/scope is the most common
   writing-review finding.
+- The research question tends to be framed around the flashy component (the LLM, the agent) because that is
+  what the repo's README leads with. When the stage 14 ablation zeroes that component out, the framing survives
+  anyway: the review calls the zero "candid", the response reframes a number instead of retitling, and the
+  paper ships with the wrong subject (run 1: "cheap VLM world model" for a result the deterministic helper
+  produced alone). The stage 14 gate exists for this; when a reviewer offers "reframe" or "retitle", a
+  zero-contribution finding means retitle.

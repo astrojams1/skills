@@ -9,6 +9,10 @@ Shape: "<Method/system> achieves <measured outcome> on <task/benchmark> under <c
 mechanism/finding that explains it>." Keep the constraint honest: "without training" means no gradient
 updates anywhere, including no fine-tuning of the classical part; "cheap" is a number with what it includes.
 
+The `<Method/system>` slot is the component the ablations credit with the outcome, not the component the repo
+advertises. Record the thesis as provisional; stage 14's gate adds a "Thesis re-check" section here and may
+replace it. Keep the rejected thesis in the file: reviewers of the paper and of the skill both need to see it.
+
 ## Paper type (stage 7)
 
 | Type | Choose when | Typical length | Must contain |

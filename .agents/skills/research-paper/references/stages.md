@@ -64,6 +64,11 @@ grouped by theme, 1-3 sentences each on relation to this work. 20-40 entries is 
 One sentence. Test: every word is backed; removing any word weakens it; a reviewer can check it from the
 paper's tables. Write two rejected broader versions and why they were rejected.
 
+**Subject test.** Name the grammatical subject of the sentence and the component the evidence credits with the
+result; they must be the same. If the repo's README leads with component A but the results (or the not-yet-run
+ablation) point at component B, write the thesis about B and keep A as a finding about A. Mark the thesis
+**provisional**: stage 14's gate re-opens it, and stages 7–12 may have to be redone if it changes.
+
 ## Stages 7-12 — Type, audience, venue, scope, math, style → `05-decisions.md`
 
 See `decisions.md` for the option menus. Record each decision with a one-line reason. The file is the contract
@@ -93,6 +98,14 @@ acted (cells > 1, retries, interventions) with the sign of its effect.
 Run the "runnable here" items; store raw outputs and the script that produced them. Re-analysis of existing
 result files counts as an experiment (per-instance error taxonomy, variance across repeated runs, cost curves).
 Write a "Recommended runs" section the user can execute verbatim.
+
+**Gate — thesis re-check.** Add a section "Thesis re-check (stage 14)" to `05-decisions.md` with three lines:
+what the ablations credit each component with; whether the stage 6 subject survives; the headline numbers
+after the fresh set. If the subject does not survive, or a headline number moved, re-enter stage 6 now and
+rewrite thesis, title, contributions and the research question's answer; then re-check stages 7–12. The
+signature failure this gate exists for: the component the question was framed around (an LLM, an agent, a
+learned module) turns out to contribute ≈0 once the rest is good. That is a change of subject — the paper is
+about the rest, and the zero is a finding — never a caveat attached to the old framing.
 
 ## Stage 15 — Outline → `07-outline.md`
 
@@ -128,7 +141,9 @@ template there. Do not fix anything; report.
 ```
 
 Then, below the report, add "## Response" with one entry per point: fixed (what changed) / rebutted (why) /
-deferred (why acceptable). Re-run the gate of any earlier stage a point invalidates.
+deferred (why acceptable). Re-run the gate of any earlier stage a point invalidates. When a point says the
+subject of the paper is not what the data credit (rubric A item 12), or offers "reframe or retitle" for such a
+finding, the response is to re-enter stage 6 and retitle; rewording numbers or adding candor is not a fix.
 
 ## Stage 18 — Writing review → `09-review-writing.md`
 

@@ -32,6 +32,19 @@ Check each item; report a point for every failure, with the location.
 10. **Cost claims.** What does the cost include; is the price basis dated; does time include queueing?
 11. **Ethics / disclosure.** AI-assistance disclosure present if applicable; no leaked credentials; licences
     of data and code stated.
+12. **Subject of the paper vs attribution.** Take the grammatical subject of the title, of the thesis in
+    `05-decisions.md` and of the abstract's first sentence. Is it the component the paper's own ablations credit
+    with the result? If the data show that component contributes nothing (or of both signs) once the rest is in
+    place, the paper has the wrong subject: report it as a **major point** whose fix is "re-choose the thesis and
+    retitle" — never as a wording fix, and never as praise for candor. Check also that the order of the system
+    and results sections follows the credited component, not the advertised one.
+13. **Guard-set selection.** Read the tuning log for every use of the "held-out"/"validation"/"guard" set. If
+    any change was kept, designed or diagnosed on it, the set is a validation set; the paper must say so and
+    report a set no decision touched.
+14. **Evaluated commit.** For each headline number, does the paper name the commit that produced it, and is
+    that the released code? If HEAD differs from the evaluated code, is the difference measured?
+15. **Constant provenance.** Thresholds, margins and priors in the method: where were they fitted, on which
+    instances, and could those overlap the benchmark? Undisclosed provenance is a "training-free" claim at risk.
 
 ## Rubric B — writing review
 
@@ -51,6 +64,10 @@ Check each item; report a point for every failure, with the location.
 9. **Citations.** Every claim about prior work has one; no orphan bib entries; no "et al." in author lists in
    the bib.
 10. **Length.** Within the target from `05-decisions.md`; suggest cuts if over.
+11. **Subject consistency.** The subject of the title, the abstract's first sentence, the introduction's
+    statement of the result and the conclusion's first sentence is the same component, and it is the one
+    `05-decisions.md` names in the thesis (after any stage 14 re-check). Flag every sentence that makes a
+    different component the actor of the result.
 
 ## Checklist C — arXiv submission
 
