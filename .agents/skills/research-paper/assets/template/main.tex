@@ -1,0 +1,55 @@
+% research-paper skill template — arXiv preprint, single column, 10pt.
+% Build: bash <skill>/scripts/build.sh <paper-dir>
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{enumitem}
+\graphicspath{{figures/}}
+\setlist{nosep}
+
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\title{\textbf{TITLE}}
+\author{Author Name\\ Affiliation \\ \texttt{email}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+ABSTRACT (≤ 200 words; problem, approach, headline number, scope word).
+\end{abstract}
+
+\section{Introduction}
+\section{Related work}
+\section{Problem setting}
+\section{Method}
+\section{Experimental protocol}
+\section{Results}
+\section{Analysis}
+\section{Limitations}
+\section{Conclusion}
+
+\paragraph{Reproducibility.} Code, prompts and raw results: \url{REPO_URL} (commit \texttt{HASH}).
+\paragraph{Disclosure.} AI assistance statement.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Additional material}
+\end{document}

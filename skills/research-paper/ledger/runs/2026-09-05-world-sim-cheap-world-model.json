@@ -1,0 +1,202 @@
+{
+ "repo": "world-sim",
+ "slug": "cheap-world-model",
+ "paper_dir": "/home/claude/world-sim/paper/cheap-world-model",
+ "started": "2026-09-05T21:38:05+00:00",
+ "skill_version": "0.1.0",
+ "stages": [
+  {
+   "n": 0,
+   "started": "2026-09-05T21:38:05+00:00",
+   "tokens_left_start": 14896754,
+   "notes": [],
+   "ended": "2026-09-05T21:38:05+00:00",
+   "tokens_left_end": 14896000,
+   "tokens": 754,
+   "method": "counter"
+  },
+  {
+   "n": 1,
+   "started": "2026-09-05T21:38:05+00:00",
+   "tokens_left_start": 14896000,
+   "notes": [
+    "Code/bench reading was done before the ledger existed: 31k tokens measured by hand (counter 14952057 -> 14921027); this stage's counted tokens cover writing the artifact only"
+   ],
+   "ended": "2026-09-05T21:39:29+00:00",
+   "tokens_left_end": 14885389,
+   "tokens": 10611,
+   "method": "counter"
+  },
+  {
+   "n": 2,
+   "started": "2026-09-05T21:39:29+00:00",
+   "tokens_left_start": 14885389,
+   "notes": [],
+   "ended": "2026-09-05T21:39:46+00:00",
+   "tokens_left_end": 14884074,
+   "tokens": 1315,
+   "method": "counter"
+  },
+  {
+   "n": 3,
+   "started": "2026-09-05T21:39:46+00:00",
+   "tokens_left_start": 14884074,
+   "notes": [],
+   "ended": "2026-09-05T21:40:16+00:00",
+   "tokens_left_end": 14882116,
+   "tokens": 1958,
+   "method": "counter"
+  },
+  {
+   "n": 4,
+   "started": "2026-09-05T21:40:16+00:00",
+   "tokens_left_start": 14882116,
+   "notes": [
+    "Subagent tokens (not in the counter deltas): lit-A 158k, lit-B 134k, lit-C 138k"
+   ],
+   "ended": "2026-09-05T22:20:29+00:00",
+   "tokens_left_end": 14833961,
+   "tokens": 48155,
+   "method": "counter"
+  },
+  {
+   "n": 5,
+   "started": "2026-09-05T22:20:29+00:00",
+   "tokens_left_start": 14833961,
+   "notes": [],
+   "ended": "2026-09-05T22:21:02+00:00",
+   "tokens_left_end": 14830850,
+   "tokens": 3111,
+   "method": "counter"
+  },
+  {
+   "n": 6,
+   "started": "2026-09-05T22:21:02+00:00",
+   "tokens_left_start": 14830850,
+   "notes": [
+    "stages 6-12 written together into 05-decisions.md"
+   ],
+   "ended": "2026-09-05T22:21:57+00:00",
+   "tokens_left_end": 14827747,
+   "tokens": 3103,
+   "method": "counter"
+  },
+  {
+   "n": 13,
+   "started": "2026-09-05T22:21:57+00:00",
+   "tokens_left_start": 14827747,
+   "notes": [
+    "stages 13-14 combined: re-analysis of 48 result files + offline pipeline ablation"
+   ],
+   "ended": "2026-09-05T22:29:14+00:00",
+   "tokens_left_end": 14794976,
+   "tokens": 32771,
+   "method": "counter"
+  },
+  {
+   "n": 15,
+   "started": "2026-09-05T22:29:14+00:00",
+   "tokens_left_start": 14794976,
+   "notes": [
+    "offline runs continue in background during outline"
+   ],
+   "ended": "2026-09-05T22:34:11+00:00",
+   "tokens_left_end": 14771430,
+   "tokens": 23546,
+   "method": "counter"
+  },
+  {
+   "n": 16,
+   "started": "2026-09-05T22:34:11+00:00",
+   "tokens_left_start": 14771430,
+   "notes": [],
+   "ended": "2026-09-05T22:36:12+00:00",
+   "tokens_left_end": 14753060,
+   "tokens": 18370,
+   "method": "counter"
+  },
+  {
+   "n": 17,
+   "started": "2026-09-05T22:36:12+00:00",
+   "tokens_left_start": 14753060,
+   "notes": [
+    "stages 17+18 reviews run in parallel subagents",
+    "Subagent tokens: scientific review 169k, writing review 141k, proofread 141k"
+   ],
+   "ended": "2026-09-05T23:06:27+00:00",
+   "tokens_left_end": 14665403,
+   "tokens": 87657,
+   "method": "counter"
+  },
+  {
+   "n": 19,
+   "started": "2026-09-05T23:06:27+00:00",
+   "tokens_left_start": 14665403,
+   "notes": [
+    "reviews answered; test set added (95.3 vs 99.5) \u2014 the review changed the paper's headline"
+   ],
+   "ended": "2026-09-05T23:15:50+00:00",
+   "tokens_left_end": 14639655,
+   "tokens": 25748,
+   "method": "counter"
+  },
+  {
+   "n": 20,
+   "started": "2026-09-05T23:15:50+00:00",
+   "tokens_left_start": 14639655,
+   "notes": [
+    "skill bumped to 0.2.0 during close"
+   ],
+   "ended": "2026-09-05T23:15:50+00:00",
+   "tokens_left_end": 14638000,
+   "tokens": 1655,
+   "method": "counter"
+  }
+ ],
+ "issues": [
+  {
+   "stage": 4,
+   "text": "Semantic Scholar API returned 429 on the first query (no key); only arXiv API usable without a key",
+   "fix": "Add arxiv_search.py to the skill (done in this run); document that S2 needs an API key or 1 req/s backoff",
+   "at": "2026-09-05T21:40:42+00:00"
+  },
+  {
+   "stage": 4,
+   "text": "arXiv export API returned 429/timeouts for ~10 min during theme-C subagent; it fell back to scraping arxiv.org/search for discovery, then resolved via API",
+   "fix": "arxiv_search.py: add retry with exponential backoff and an arxiv.org/search HTML fallback",
+   "at": "2026-09-05T22:19:56+00:00"
+  },
+  {
+   "stage": 4,
+   "text": "WebFetch was rate-limited for subagents; they used curl on arxiv.org/html instead",
+   "fix": "Document curl on arxiv.org/html/<id> as the primary full-text route in literature.md",
+   "at": "2026-09-05T22:19:56+00:00"
+  },
+  {
+   "stage": 14,
+   "text": "Headless Chromium WebGL context went black after ~14 renders in one page: 18 of 60 rooms rendered black and the offline pipeline crashed on them",
+   "fix": "render_rooms.mjs reloads the page every 6 seeds and fails on tiny JPEGs; the skill's stages.md should say: validate generated inputs (size/blankness) before running experiments on them",
+   "at": "2026-09-05T22:27:55+00:00"
+  },
+  {
+   "stage": 16,
+   "text": "lmodern.sty missing from the sandbox TeX Live; first build failed",
+   "fix": "build.sh: check kpsewhich for the template's packages before building and print the apt/tlmgr package to install (lmodern -> apt install lmodern)",
+   "at": "2026-09-05T22:34:35+00:00"
+  },
+  {
+   "stage": 16,
+   "text": "A bib title contained a raw '&' (MegaPose) and broke the build",
+   "fix": "arxiv_bib.py now TeX-escapes & % # in titles (done)",
+   "at": "2026-09-05T22:34:54+00:00"
+  },
+  {
+   "stage": 19,
+   "text": "check_refs resolved DOIs via doi.org, which returns 202/blocks for IEEE; three valid DOIs failed",
+   "fix": "resolve DOIs through api.crossref.org (done)",
+   "at": "2026-09-05T23:07:15+00:00"
+  }
+ ],
+ "closed": "2026-09-05T23:15:50+00:00",
+ "outcome": "PDF delivered (18 pp, strict build, 50 resolved refs, arXiv bundle); world-sim branch paper/cheap-world-model; skill v0.2.0"
+}
