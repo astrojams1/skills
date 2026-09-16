@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.4**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.5**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -13,6 +13,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy tax/native gallery milestone](runs/2026-09-16-newsworthy-native-gallery.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | W-9 Active; Android v6 core UI/recovery checked and gallery ready; banking and store gates remain | Unknown / unknown |
 | [2026-09-16 Newsworthy capture corrections](runs/2026-09-16-newsworthy-capture-corrections.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | About removed; clean widget capture brief recorded; new native capture evidence pending at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy widget evidence and replacement review](runs/2026-09-16-newsworthy-widget-runtime.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple small/medium captured and replacement WAITING_FOR_REVIEW; Android update loop diagnosed, fix unverified at handoff | Unknown / unknown |
+| [2026-09-16 Newsworthy Android partial verification](runs/2026-09-16-newsworthy-android-partial-verification.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | APK 8 stable for 65 seconds; initial refresh succeeded; recurring execution, fresh compact resize and theme fix unverified at handoff | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -88,6 +89,14 @@ are stored here. See its canonical ledger before resuming.
   widgets during interaction. Source-supported sizes still need native checks.
 - Distinguish the diagnosed cause, proposed source fix, replacement build and
   verified outcome. Replacement review acceptance remains separate from release.
+
+## Lessons incorporated into v1.0.5
+
+- Verify continued refresh scheduling after an update-loop fix; an initial success,
+  pending recurring job and observed recurring execution are separate evidence.
+- Switch themes without new data to expose colors retained in rendered spans.
+- Distinguish provider dimensions from an existing launcher item's minimum span;
+  cached sizing remains a hypothesis until fresh native resize checks resolve it.
 
 ## Add a run
 

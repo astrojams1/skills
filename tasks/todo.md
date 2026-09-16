@@ -104,3 +104,19 @@ the Android loop diagnosis separately from the proposed fix and native validatio
 - Original snapshots unchanged; new milestone distinguishes native capture, artwork,
   review submission, diagnosis, source fix and outstanding native verification.
 - Discovery and installed copies match v1.0.4; no app/store/build/UI mutations.
+
+## Android partial verification — September 16, 2026
+
+- [x] Record APK 8 stability evidence and remaining native checks in a new milestone.
+- [x] Add concise scheduling, theme-switch and launcher-instance lessons.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #64](https://github.com/astrojams1/skills/pull/64); GitHub records merge/check state.
+
+Plan: Read the sanitized app evidence, preserve earlier snapshots, and distinguish
+observed stability from scheduled refresh, resizing hypotheses and unverified fixes.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 4 passes; skill validator: pass.
+- Read the sanitized native evidence and provenance; earlier snapshots unchanged.
+- Discovery and installed copies match v1.0.5; no app/store/build/UI mutations.
