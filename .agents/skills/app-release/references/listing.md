@@ -36,6 +36,27 @@ portrait phone artwork was planned at 1080×1920 using genuine Android captures.
 Those are examples, not a promise every device/form factor is covered. Validate
 pixel sizes, aspect ratios, alpha, file type and metadata length before upload.
 
+## Plan native and widget captures
+
+Before capturing a gallery, record the intended screens, supported widget size
+variants, platform/device, build provenance, and the user's visual preferences in
+the app's release brief. Check those choices against the current implementation;
+a removed screen or unsupported size must not survive in the gallery plan.
+
+For Home Screen/widget shots, prepare an uncluttered composition and a background
+that preserves contrast with the app. Apply the user's choices about wallpaper,
+unrelated icons and gallery content to that app; do not turn them into universal
+product design rules. Stage the actual native environment before capture. Keep
+original captures alongside final artwork, with enough provenance to distinguish
+real rendering from decorative framing or a design mockup.
+
+Verify each size variant on its native platform. Declared iOS widget families and
+Android launcher resize behavior are different evidence: one medium iOS capture
+does not verify a small family, another platform, or Android resizing. Record source
+support and observed rendering separately. If a locked host or unavailable device
+blocks a capture, leave that shot pending and resume from the saved brief; do not
+synthesize a native screenshot, imply it was tested, or reuse stale UI silently.
+
 ## Reusable Apple helper
 
 `scripts/apple.mjs` uses Node's built-in crypto/fetch, with no extra package.

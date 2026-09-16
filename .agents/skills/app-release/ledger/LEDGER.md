@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.2**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -11,6 +11,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy snapshot](runs/2026-09-16-newsworthy.md) ([JSON](runs/2026-09-16-newsworthy.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Web live; Apple binary/listing saved; both store releases incomplete | Unknown / unknown |
 | [2026-09-16 Newsworthy review milestone](runs/2026-09-16-newsworthy-review-submitted.md) ([JSON](runs/2026-09-16-newsworthy-review-submitted.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple WAITING_FOR_REVIEW; paid release unverified; Google owner/device and host gates remain | Unknown / unknown |
 | [2026-09-16 Newsworthy tax/native gallery milestone](runs/2026-09-16-newsworthy-native-gallery.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | W-9 Active; Android v6 core UI/recovery checked and gallery ready; banking and store gates remain | Unknown / unknown |
+| [2026-09-16 Newsworthy capture corrections](runs/2026-09-16-newsworthy-capture-corrections.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | About removed; clean widget capture brief recorded; new native capture evidence pending at handoff | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -63,6 +64,18 @@ are stored here. See its canonical ledger before resuming.
   art. Record the working shortcut as a dated observation and check local settings.
 - Verify the corrected existing native artifact before rebuilding. Name the
   feature/device scope: foreground success does not verify widgets or real devices.
+
+## Lessons incorporated into v1.0.3
+
+- Plan capture content and native size coverage before composing listing artwork.
+  User choices about removed screens, wallpaper and icon clutter belong in the
+  app brief; reusable guidance should preserve those choices without exporting
+  one app's design preferences to other products.
+- Supported widget sizes in source and visually verified variants are separate
+  facts. Preserve original native evidence and leave blocked captures pending.
+- A developer-withdrawn review is not a reviewer rejection. Preserve the previous
+  submission milestone as history and read current replacement/build state from
+  the canonical app ledger.
 
 ## Add a run
 
