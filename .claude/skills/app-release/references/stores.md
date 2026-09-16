@@ -132,6 +132,44 @@ chosen automatic/manual/scheduled release option. An EAS Submit success or
 TestFlight build is not an App Review submission or a live App Store listing.
 [Apple publishing workflow](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/overview-of-publishing-your-app-on-the-app-store).
 
+### Availability and API submission: verified seed sequence
+
+Use current **v2 app availability** endpoints; the v1 availability/preorder
+resources were replaced. Read existing availability before creating it, resolve
+territory IDs, apply the user's territory/preorder/new-territory decisions, then
+read back every territory with pagination. In the September 16 seed run, 175
+territories were enabled with no preorder and automatic release after approval;
+this count and scope are observations, not defaults for the next app.
+[Apple availability API](https://developer.apple.com/documentation/appstoreconnectapi/appavailabilityv2),
+[API migration notes](https://developer.apple.com/documentation/appstoreconnectapi/app-store-connect-api-3-7-release-notes).
+
+For an authorized API submission, inspect existing submissions first to avoid a
+duplicate, then follow the current schema:
+
+1. Create/reuse the app/platform `reviewSubmissions` draft.
+2. Attach the intended `appStoreVersion` using `reviewSubmissionItems`.
+   Attachment validation may expose missing app-level declarations. The seed
+   version required `contentRightsDeclaration`; derive its value from the actual
+   shipped content and rights evidence, save it, and read it back. Do not copy the
+   seed app's answer. A lagging immediate GET calls for another read before
+   repeating a mutation.
+3. Inspect the draft and its item. **`READY_FOR_REVIEW` has not been submitted.**
+   Send the final `PATCH /v1/reviewSubmissions/{id}` with `submitted: true` when
+   the submission is complete and within the user's requested scope.
+4. Independently GET the submission and version. Record both resulting states,
+   the submission ID and provider `submittedDate`. In the seed run both reported
+   `WAITING_FOR_REVIEW`; preserve the existing submission while review is pending.
+
+[Create submission](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-reviewsubmissions),
+[attach item](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-reviewsubmissionitems),
+[submit draft](https://developer.apple.com/documentation/appstoreconnectapi/patch-v1-reviewsubmissions-_id_).
+
+**Review acceptance does not settle commercial readiness.** The seed submission
+was accepted while every territory still reported `CANNOT_SELL`. Enabled
+territories, `AFTER_APPROVAL`, and a review receipt do not prove the Paid Apps
+Agreement, tax processing, banking, approval or public paid availability. Keep
+those gates separate and verify their actual provider state before claiming live.
+
 ## 4. Privacy disclosures from evidence
 
 Create a project evidence table before completing either store's questionnaire:

@@ -2,7 +2,7 @@
 name: app-release
 description: Ship or resume a web and mobile app release end to end, including Expo/EAS builds, native verification, App Store Connect, Google Play, paid pricing, store artwork, submissions, and a persistent release ledger. Use when preparing an app launch, unblocking store setup, or continuing a release across sessions.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # App release
@@ -96,6 +96,8 @@ live state in an installed discovery copy. Unknown token/cost/time metrics are
 
 - A successful EAS build or upload is not App Review, Play production access, or
   public availability. Paid developer membership is not a Paid Apps Agreement.
+- Apple `READY_FOR_REVIEW` is a draft; verify submission and version both reach
+  `WAITING_FOR_REVIEW`. Review acceptance does not prove paid sale eligibility.
 - Apple **Add Tax Form** may show no actionable choice because the required US
   form already exists. Use **Add Tax Info** beside that form.
 - Legal address, tax-form address, payout details and public trader contact can
