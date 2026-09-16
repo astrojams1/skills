@@ -73,7 +73,7 @@ prior history, and record only the incremental outcomes and resumable next steps
 - [x] Add reusable capture planning and verified size/provenance guidance.
 - [x] Preserve Newsworthy-specific corrections in a dated milestone and lessons.
 - [x] Refresh discovery/installed copies and run repository checks.
-- [ ] Publish the validated update through a PR.
+- [x] Publish through [PR #62](https://github.com/astrojams1/skills/pull/62); GitHub records merge/check state.
 
 Plan: Preserve historical snapshots. Keep current build/provider state in the app
 ledger and detailed shot requirements in the app's widget gallery brief. Generalize
