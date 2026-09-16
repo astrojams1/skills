@@ -109,7 +109,7 @@ the Android loop diagnosis separately from the proposed fix and native validatio
 
 - [x] Record APK 8 stability evidence and remaining native checks in a new milestone.
 - [x] Add concise scheduling, theme-switch and launcher-instance lessons.
-- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #64](https://github.com/astrojams1/skills/pull/64); GitHub records merge/check state.
 
 Plan: Read the sanitized app evidence, preserve earlier snapshots, and distinguish
 observed stability from scheduled refresh, resizing hypotheses and unverified fixes.
