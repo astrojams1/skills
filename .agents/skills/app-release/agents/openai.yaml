@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Release"
+  short_description: "Ship web and mobile apps with a resumable ledger"
+  default_prompt: "Use $app-release to resume this app's web, iOS, and Android launch from its release ledger."

@@ -186,6 +186,17 @@ An end-to-end pipeline that turns a code repository into a submission-ready pape
 
 Invoke with `/research-paper` in the target repo, or say "write this repo up as a paper". Answer the three setup questions (author line, experiment budget, where to commit). Run the ledger scripts from `skills/research-paper/scripts/` (the source copy), then `bin/manage.sh link` to refresh the discovery copies.
 
+### App Release — Web, iOS and Android
+
+**Skill:** `skills/app-release/SKILL.md`
+
+Use `$app-release` to prepare or resume a web/mobile launch with a persistent
+per-app release ledger. Covers account gates, native builds and verification,
+store copy/screenshots, pricing, disclosure evidence, uploads, testing/review and
+release. Includes a standard-library ledger helper, an existing-record Apple API
+helper, platform runbooks and a sanitized Newsworthy run snapshot. The app repo's
+ledger remains authoritative; credentials and private financial details stay out.
+
 ## Internal Skills
 
 These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.

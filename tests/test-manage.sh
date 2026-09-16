@@ -15,6 +15,16 @@ TMP_INSTALL=""
 pass() { PASSED=$((PASSED + 1)); echo "  PASS: $1"; }
 fail() { FAILED=$((FAILED + 1)); echo "  FAIL: $1"; }
 
+# File existence alone cannot distinguish case aliases on macOS.
+has_exact_file() {
+    python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+sys.exit(0 if any(p.name == sys.argv[2] and p.is_file()
+                 for p in Path(sys.argv[1]).iterdir()) else 1)
+PY
+}
+
 cleanup() {
     for d in "$TMPDIR" "$TMP_INSTALL"; do
         if [ -n "$d" ] && [ -d "$d" ]; then
@@ -96,9 +106,6 @@ GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" install "$TMP_
 
 # Commit staged files so check commands have a valid HEAD (required for check #2.5)
 git -C "$TMP_INSTALL" -c commit.gpgsign=false commit -q -m "chore: add skills submodule" 2>/dev/null || true
-
-# Copy local manage.sh into the submodule so check picks up changes under test
-cp "$MANAGE" "$TMP_INSTALL/skills/bin/manage.sh"
 
 # Claude Code discovery: .claude/skills/<name>/SKILL.md (directory, not flat file)
 if [ -d "$TMP_INSTALL/.claude/skills/design-system" ] && [ -f "$TMP_INSTALL/.claude/skills/design-system/SKILL.md" ]; then
@@ -249,46 +256,70 @@ fi
 echo ""
 echo "Testing lowercase agent file cleanup..."
 
-# Create stale lowercase files alongside uppercase ones
-echo "stale lowercase" > "$TMP_INSTALL/claude.md"
-echo "stale lowercase" > "$TMP_INSTALL/agents.md"
+# Exercise the consumer's own entry point with the local implementation. Do
+# this after the clean-submodule checks: this intentional edit fails integrity.
+cp "$MANAGE" "$TMP_INSTALL/skills/bin/manage.sh"
+
+# An uppercase-only file must never be deleted through a lowercase path alias.
+rm -f "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md" "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
 echo "REAL UPPERCASE" > "$TMP_INSTALL/CLAUDE.md"
 echo "REAL UPPERCASE" > "$TMP_INSTALL/AGENTS.md"
 
-# check should clean them up (tolerate check exit code since submodule may be behind)
 (cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
 
-if [ ! -f "$TMP_INSTALL/claude.md" ]; then
-    pass "check removes stale lowercase claude.md when CLAUDE.md exists"
-else
-    fail "check did not remove stale lowercase claude.md"
-fi
+for name in CLAUDE.md AGENTS.md; do
+    if has_exact_file "$TMP_INSTALL" "$name" && [ "$(cat "$TMP_INSTALL/$name")" = "REAL UPPERCASE" ]; then
+        pass "check preserves uppercase-only $name and its content"
+    else
+        fail "check damaged or removed uppercase-only $name"
+    fi
+done
 
-if [ ! -f "$TMP_INSTALL/agents.md" ]; then
-    pass "check removes stale lowercase agents.md when AGENTS.md exists"
+# Distinct case variants can coexist only on case-sensitive filesystems.
+echo "probe" > "$TMP_INSTALL/CASE_PROBE"
+if [ ! -f "$TMP_INSTALL/case_probe" ]; then
+    echo "stale lowercase" > "$TMP_INSTALL/claude.md"
+    echo "stale lowercase" > "$TMP_INSTALL/agents.md"
+    (cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
+    for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
+        lower="${pair%%:*}"
+        upper="${pair##*:}"
+        if ! has_exact_file "$TMP_INSTALL" "$lower" && has_exact_file "$TMP_INSTALL" "$upper" && [ "$(cat "$TMP_INSTALL/$upper")" = "REAL UPPERCASE" ]; then
+            pass "check removes distinct $lower and preserves $upper"
+        else
+            fail "check failed distinct-case cleanup for $upper"
+        fi
+    done
 else
-    fail "check did not remove stale lowercase agents.md"
+    echo "  SKIP: distinct case variants cannot coexist on this filesystem"
 fi
-
-# Verify uppercase files are untouched
-if [ -f "$TMP_INSTALL/CLAUDE.md" ] && [ "$(cat "$TMP_INSTALL/CLAUDE.md")" = "REAL UPPERCASE" ]; then
-    pass "check preserves CLAUDE.md content"
-else
-    fail "check damaged or removed CLAUDE.md"
-fi
+rm -f "$TMP_INSTALL/CASE_PROBE"
 
 echo ""
 echo "Testing lowercase rename (only lowercase exists)..."
 
-rm -f "$TMP_INSTALL/CLAUDE.md"
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
 echo "should become uppercase" > "$TMP_INSTALL/claude.md"
+echo "should become uppercase" > "$TMP_INSTALL/agents.md"
 
 (cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
 
-if [ -f "$TMP_INSTALL/CLAUDE.md" ] && [ ! -f "$TMP_INSTALL/claude.md" ]; then
-    pass "check renames claude.md → CLAUDE.md when no uppercase exists"
+for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
+    lower="${pair%%:*}"
+    upper="${pair##*:}"
+    if has_exact_file "$TMP_INSTALL" "$upper" && ! has_exact_file "$TMP_INSTALL" "$lower" && [ "$(cat "$TMP_INSTALL/$upper")" = "should become uppercase" ]; then
+        pass "check renames $lower → $upper and preserves content"
+    else
+        fail "check did not safely rename $lower to $upper"
+    fi
+done
+
+# A second check must leave the normalized files intact, not delete their aliases.
+(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
+if has_exact_file "$TMP_INSTALL" "CLAUDE.md" && has_exact_file "$TMP_INSTALL" "AGENTS.md" && [ "$(cat "$TMP_INSTALL/CLAUDE.md")" = "should become uppercase" ] && [ "$(cat "$TMP_INSTALL/AGENTS.md")" = "should become uppercase" ]; then
+    pass "lowercase normalization is idempotent and preserves both files"
 else
-    fail "check did not rename claude.md to CLAUDE.md"
+    fail "second check damaged normalized agent files"
 fi
 
 # Clean up test files

@@ -1,0 +1,11 @@
+{
+  "apple": {
+    "appId": "EXISTING_APP_ID",
+    "appInfoId": "EXISTING_APP_INFO_ID",
+    "versionId": "EXISTING_VERSION_ID",
+    "versionLocalizationId": "EXISTING_VERSION_LOCALIZATION_ID",
+    "infoLocalizationId": "EXISTING_APP_INFO_LOCALIZATION_ID",
+    "appleBuildId": "PROCESSED_BUILD_ID",
+    "ageRatingDeclarationId": "EXISTING_AGE_RATING_DECLARATION_ID"
+  }
+}
