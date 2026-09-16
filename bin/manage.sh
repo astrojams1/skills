@@ -404,6 +404,17 @@ print('cleaned')
 " "$settings" 2>/dev/null || true
 }
 
+# Match the actual directory entry, not a case-insensitive path alias (macOS).
+_has_exact_file() {
+    local root="$1" name="$2" entry
+    for entry in "$root"/*; do
+        if [ "${entry##*/}" = "$name" ] && [ -f "$entry" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Detect and clean up stale lowercase agent instruction files.
 # Older conventions used claude.md / agents.md; current convention
 # is uppercase CLAUDE.md / AGENTS.md.
@@ -418,8 +429,8 @@ cleanup_lowercase_agent_files() {
         local lc_file="${pair%%:*}"
         local uc_file="${pair##*:}"
 
-        if [ -f "$root/$lc_file" ]; then
-            if [ -f "$root/$uc_file" ]; then
+        if _has_exact_file "$root" "$lc_file"; then
+            if _has_exact_file "$root" "$uc_file"; then
                 # Both exist — remove the lowercase one (superseded)
                 yellow "WARN: Stale lowercase $lc_file found alongside $uc_file"
                 rm "$root/$lc_file"

@@ -1,0 +1,15 @@
+{
+  "locale": "en-US",
+  "appleName": "Your approved app name",
+  "googleName": "Your approved app name",
+  "subtitle": "Your approved subtitle",
+  "shortDescription": "Accurate short product description",
+  "description": "Verified product features and limitations",
+  "promotionalText": "Accurate promotional text",
+  "keywords": "relevant,keywords",
+  "supportUrl": "https://example.com/support",
+  "marketingUrl": "https://example.com/",
+  "privacyPolicyUrl": "https://example.com/privacy",
+  "reviewNotes": "Specific reviewer instructions for this app",
+  "demoAccountRequired": false
+}
