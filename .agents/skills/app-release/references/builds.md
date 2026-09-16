@@ -174,3 +174,23 @@ as separate evidence; consult the app ledger for the current result.
 - Compare the installed provider dimensions with the existing launcher item's
   minimum span. Treat cached sizing as a hypothesis; verify a freshly added
   widget's compact and expanded behavior before claiming resize support works.
+
+### Enforce design consistency across surfaces
+
+Build success and generated design tokens do not prove each surface uses them.
+Check actual consumers against the agreed design contract: semantic text sizes,
+baseline alignment, theme resource usage, palette and gradients. Where useful,
+parse native layout declarations and exercise production component props across
+relevant states. Source guards should fail on unsupported or missing structures
+rather than silently skipping validation.
+
+Prove these checks detect the known failures by deliberately reintroducing
+regressions or exercising actual pre-fix artifacts. Do not update expected values
+or capture baselines merely to make a failure pass; reconcile the result with the
+intended design and make any baseline change explicit.
+
+Label evidence precisely: parsed XML, source guards and rendered-prop assertions
+do not execute Yoga, WidgetKit or RemoteViews. Keep a separate actual native
+capture matrix for supported surfaces, sizes, themes and relevant states, with
+build provenance. A passed contract or one approved capture cannot close the
+remaining native matrix.

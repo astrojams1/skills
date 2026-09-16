@@ -65,3 +65,15 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   evidence. Treat caching as a hypothesis until a freshly added widget is resized.
 - Keep stability, refresh, resizing and theme outcomes separate. Source checks for
   a replacement fix do not close its native verification gate.
+
+## Design contracts need consumer and native evidence
+
+**Source:** Newsworthy fifth cross-surface design correction (2026-09-16)
+
+- Generated tokens and successful builds do not establish consumption parity.
+  Verify semantic sizes, baselines and theme resources in the actual consumers.
+- Exercise known regressions, including real pre-fix artifacts, and fail on missing
+  source structures. Never silently update expected baselines to hide a mismatch.
+- Parsed native XML and production rendered props are contract evidence, not
+  Yoga/WidgetKit/RemoteViews execution. Keep native surface/size/theme captures
+  separate, and limit approval claims to the captures actually reviewed.

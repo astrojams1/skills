@@ -120,3 +120,20 @@ observed stability from scheduled refresh, resizing hypotheses and unverified fi
 - Ledger tests: 4 passes; mocked Apple API tests: 4 passes; skill validator: pass.
 - Read the sanitized native evidence and provenance; earlier snapshots unchanged.
 - Discovery and installed copies match v1.0.5; no app/store/build/UI mutations.
+
+## Cross-surface design evidence — September 16, 2026
+
+- [x] Record the design-contract checks and bounded APK 9 capture evidence.
+- [x] Add concise consumption-parity and regression-baseline guidance.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #65](https://github.com/astrojams1/skills/pull/65); GitHub records merge/check state.
+
+Plan: Preserve historical milestones and distinguish source/rendered-prop checks
+from native layout execution. Keep provider release status in the app ledger.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 4 passes; skill validator: pass.
+- Prior milestones unchanged; source/prop evidence explicitly separated from native
+  engine execution and the remaining capture matrix. No provider status claims added.
+- Discovery and installed copies match v1.0.6; no Newsworthy files changed.
