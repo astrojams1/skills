@@ -97,6 +97,17 @@ sharing, light/dark rendering, saved/offline data and recovery, large text and
 accessibility relevant to the app. Capture the actual platform with its build ID,
 OS/runtime/device, dimensions and appearance. Do not claim an untested case passed.
 
+For standalone Android Emulator captures, use the supported UI screenshot
+control. In the September 16 macOS run, CUA `pressKey` with `super+s` invoked
+that control and saved a PNG to the configured Desktop location. Inspect the
+installed emulator's **Help → Keyboard Shortcuts** and screenshot-save settings
+rather than assuming this binding/location in another version or embedded mode.
+Copy the resulting original PNG into the source-artifact directory, record its
+native dimensions/build provenance, then compose listing art separately. This
+uses an emulator UI action, not shell-driven screen capture.
+[Android screenshot controls](https://developer.android.com/studio/run/emulator-take-screenshots),
+[shortcut/settings help](https://developer.android.com/studio/run/emulator-extended-controls).
+
 Widgets need custom native builds. Check adding the widget, supported sizes,
 preferences, refresh and offline timestamps independently from the foreground
 app. OS-managed refresh means a widget may lag the app; copy must not promise
@@ -120,8 +131,10 @@ bad base-64`. Encoding the app's ASCII-generated SVG to base64 with an explicit
 `base64-js` dependency fixed the source path and produced replacement builds.
 A React Native `btoa` global was not assumed to exist. This is a version-specific
 finding: inspect the installed decoder before applying it to a different app.
-The replacement's final visual verification was still pending when extracted
-into the skill; do not relabel that historical build as runtime-verified.
+The initial snapshot recorded final visual verification as pending. A later
+September 16 milestone verified version 6 light/dark gradient and share rendering
+on an API 35 ARM64 emulator, plus sharing/offline recovery. The earlier snapshot
+remains unchanged; widget, large-text and physical-device checks remain separate.
 
 The macOS crash in that run belonged to Android Emulator startup. Official SDK
 library/resource paths were repaired and the emulator booted. The local app

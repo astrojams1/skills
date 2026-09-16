@@ -50,3 +50,20 @@ and public release. Keep private account/support details out of the skill repo.
   details; removed the owner name from the new snapshot's copied evidence.
 - Reviewed availability/submission documentation against current official Apple
   references and the canonical app ledger. Installed copy refreshed to v1.0.1.
+
+## Native listing milestone — September 16, 2026
+
+- [x] Add concise dated tax/native/gallery milestone without duplicating old snapshots.
+- [x] Add supported emulator capture tip and retain unverified widget/device limits.
+- [x] Refresh discovery/installed copies and run checks.
+- [x] Publish through [PR #61](https://github.com/astrojams1/skills/pull/61); GitHub records merge/check state.
+
+Plan: Use the canonical app ledger and screenshot manifest as evidence, preserve
+prior history, and record only the incremental outcomes and resumable next steps.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 4 passes.
+- Earlier snapshots unchanged; privacy scan and installed-copy identity passed.
+- Installed v1.0.2 validates. No code or provider mutations in this update.
