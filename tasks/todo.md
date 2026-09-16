@@ -92,7 +92,7 @@ on other products.
 
 - [x] Record real Apple size captures and replacement review as a dated milestone.
 - [x] Add log-first widget diagnosis and honest screenshot composition guidance.
-- [ ] Run checks, refresh discovery/installed copies, and publish a PR.
+- [x] Run checks, refresh discovery/installed copies, and publish [PR #63](https://github.com/astrojams1/skills/pull/63); GitHub records merge/check state.
 
 Plan: Preserve earlier snapshots and keep the app ledger authoritative. Record
 the Android loop diagnosis separately from the proposed fix and native validation.
