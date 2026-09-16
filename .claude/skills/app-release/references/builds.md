@@ -123,6 +123,7 @@ for that simulator/widget, not for Android widgets or physical devices.
 | App launches in Expo Go but fails in custom release | Native-only modules, web-only head/router code, target configuration and release logs |
 | Android widget build cannot resolve ListenableFuture | Native compile classpath/plugin dependency; in the observed app explicit Android Guava fixed it |
 | Widget missing or stale | Extension/receiver packaging, widget host setup and OS refresh; distinguish “no widget” from delayed data |
+| Widget flickers or resize handles disappear | Native widget/launcher logs, worker scheduling, receiver/component changes and repeated onUpdate; check for an app-driven update loop before blaming UI controls |
 | UI tool says the Mac is locked | Ask the owner to unlock; continue non-UI work without bypassing the lock |
 
 In Newsworthy's Expo SDK 57 build, Android expo-image's data fetcher decoded SVG
@@ -141,3 +142,24 @@ library/resource paths were repaired and the emulator booted. The local app
 wrapper used for native-tool discovery was an environment workaround, not a
 runtime dependency or code to distribute. Prefer normal registered SDK tooling
 on future machines; do not repeat the workaround without the same evidence.
+
+### Widget resize interruptions and update loops
+
+When a user reports flicker or a refused size, inspect native logs and scheduling
+before attributing the failure to control tooling, the launcher or user input.
+Correlate resize interruption with worker completion, receiver/component changes,
+package-change broadcasts and widget callbacks. Source dimensions establish what
+the app declares; only stable native interaction verifies actual resizing.
+
+In the September 16 Newsworthy run, logs showed a repeating chain: a one-time
+WorkManager job completed, `RescheduleReceiver` was disabled, `PACKAGE_CHANGED`
+recreated the widget, and `onUpdate` enqueued another worker roughly every second.
+That app loop disrupted resizing. The proposed source fix used unique persistent
+periodic work with `KEEP`, canceled the legacy work, and retained saved status.
+This is a diagnosed app-specific pattern, not a universal scheduling recipe.
+
+After a fix, verify that the replacement native build stops the loop, keeps resize
+interaction stable, renders the supported sizes and preserves saved/offline state
+and consistent readings. A merged fix, passing source test or uploaded build does
+not close the native verification gate. Record diagnosis, fix and native outcome
+as separate evidence; consult the app ledger for the current result.

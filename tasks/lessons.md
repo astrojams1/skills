@@ -38,3 +38,17 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Keep live release state canonical and append dated corrections to historical
   skill snapshots. Developer withdrawal (`DEVELOPER_REJECTED`) must not be described
   as a reviewer rejection.
+
+## Native widget diagnosis and honest composition
+
+**Source:** Newsworthy native capture and resize corrections (2026-09-16)
+
+- If wallpaper controls are unavailable, preserve genuine native screenshots and
+  distinguish a cropped widget surface framed in artwork from a changed wallpaper
+  or full Home Screen capture. Never invent UI to satisfy a visual preference.
+- Diagnose flicker and resize interruption from native logs before blaming the
+  user, launcher or control tooling. An app-driven worker/receiver update loop
+  can recreate a widget while the user is resizing it.
+- A source-supported minimum size or scheduling repair is not native proof.
+  Verify stable interaction, actual size variants and consistent readings in the
+  replacement build before declaring the Android issue resolved.

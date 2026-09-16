@@ -57,6 +57,13 @@ support and observed rendering separately. If a locked host or unavailable devic
 blocks a capture, leave that shot pending and resume from the saved brief; do not
 synthesize a native screenshot, imply it was tested, or reuse stale UI silently.
 
+If native wallpaper/settings controls are unavailable, an editable neutral
+artboard can frame a viewport cropped from a genuine widget capture, provided it
+retains the actual rendered surface and does not imply a full Home Screen capture
+or a wallpaper change. Preserve the original screenshot, record the crop and
+composition provenance, and inspect the result for clipped content. Decorative
+framing cannot establish native layout, resize behavior or additional size support.
+
 ## Reusable Apple helper
 
 `scripts/apple.mjs` uses Node's built-in crypto/fetch, with no extra package.

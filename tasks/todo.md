@@ -87,3 +87,20 @@ on other products.
 - Existing snapshots preserved; new milestone contains no credentials or private
   account/contact/support details. App ledger remains authoritative.
 - Discovery and installed copies match source v1.0.3. No app or store mutations.
+
+## Widget runtime and replacement review — September 16, 2026
+
+- [x] Record real Apple size captures and replacement review as a dated milestone.
+- [x] Add log-first widget diagnosis and honest screenshot composition guidance.
+- [ ] Run checks, refresh discovery/installed copies, and publish a PR.
+
+Plan: Preserve earlier snapshots and keep the app ledger authoritative. Record
+the Android loop diagnosis separately from the proposed fix and native validation.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 4 passes; skill validator: pass.
+- Original snapshots unchanged; new milestone distinguishes native capture, artwork,
+  review submission, diagnosis, source fix and outstanding native verification.
+- Discovery and installed copies match v1.0.4; no app/store/build/UI mutations.
