@@ -35,7 +35,7 @@ approval gates or credentials/private tax details enter the public skill repo.
 - [x] Preserve the original snapshot and add a sanitized dated review milestone.
 - [x] Document current Apple availability/submission semantics and readback limits.
 - [x] Refresh discovery/installed copies and run repository checks.
-- [ ] Publish and merge the reviewed milestone PR.
+- [x] Publish the validated milestone through [PR #60](https://github.com/astrojams1/skills/pull/60); GitHub records merge/check state.
 
 Plan: Copy the canonical app ledger into a new historical snapshot, keeping old
 evidence intact. Record review acceptance separately from commercial readiness
