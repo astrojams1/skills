@@ -17,12 +17,17 @@ The app added `design/surfaces.json`, `test/surface-design.test.js` and helpers 
 - A production Expo Home rendered-prop matrix covering **192 combinations**.
 - **12 deliberate regression reintroductions** and shared palette/gradient checks.
 
-The release task reported **189 repository tests passing locally**. The gate also
-rejected the actual pre-fix expanded XML from `b5571c5` and APK 8's inline theme
-override Java from `922a9b1`. These checks therefore exercise known failures, rather
-than only confirming generated tokens exist. The test changes were being prepared
-for [app PR #92](https://github.com/astrojams1/newsworthy/pull/92) at handoff; this
-note does not assert that those changes were already pushed or merged.
+The release task reported the final local rerun passing **189 repository tests**,
+**19 design checks**, typecheck and store validation. The 14 new repository tests
+comprised a native contract, 11 native mutation cases, the app prop matrix and one
+platform mutation case (12 deliberate regression cases in total). The gate rejected
+the actual pre-fix expanded XML from `b5571c5` and APK 8's inline theme override
+Java from `922a9b1`, exercising known failures beyond token generation.
+
+These test/documentation/artwork/ledger changes were pushed in commit `f613a87` to
+[app PR #92](https://github.com/astrojams1/newsworthy/pull/92); that commit changed
+no native production code. App CI was running at handoff. This note does not claim
+CI success or a merge, and subsequent app state belongs in its canonical ledger.
 
 **These are not native screenshot tests.** Parsed XML, source guards and rendered
 props do not execute Yoga, WidgetKit or RemoteViews. They do not prove on-device
