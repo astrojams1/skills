@@ -67,3 +67,23 @@ prior history, and record only the incremental outcomes and resumable next steps
 - Ledger tests: 4 passes; mocked Apple API tests: 4 passes.
 - Earlier snapshots unchanged; privacy scan and installed-copy identity passed.
 - Installed v1.0.2 validates. No code or provider mutations in this update.
+
+## Widget capture corrections — September 16, 2026
+
+- [x] Add reusable capture planning and verified size/provenance guidance.
+- [x] Preserve Newsworthy-specific corrections in a dated milestone and lessons.
+- [x] Refresh discovery/installed copies and run repository checks.
+- [x] Publish through [PR #62](https://github.com/astrojams1/skills/pull/62); GitHub records merge/check state.
+
+Plan: Preserve historical snapshots. Keep current build/provider state in the app
+ledger and detailed shot requirements in the app's widget gallery brief. Generalize
+capture quality and evidence handling without imposing Newsworthy's design choices
+on other products.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 4 passes; skill validator: pass.
+- Existing snapshots preserved; new milestone contains no credentials or private
+  account/contact/support details. App ledger remains authoritative.
+- Discovery and installed copies match source v1.0.3. No app or store mutations.

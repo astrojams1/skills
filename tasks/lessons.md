@@ -22,3 +22,19 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Inspect the existing tax-form row before repeatedly opening a country/form picker.
 - Snapshot project facts into reusable runbooks without hardcoding one app's price,
   credentials, account identifiers, legal details or product policy into future apps.
+
+## Capture planning and factual widget evidence
+
+**Source:** Newsworthy gallery corrections (2026-09-16)
+
+- Record gallery content and background preferences before capture. Newsworthy's
+  no-About gallery, clean Home Screen without unrelated icons, neutral plain
+  wallpaper and supported-size coverage belong to that app's brief; do not impose
+  those exact aesthetic choices on every app.
+- Check native size support and visual evidence independently. One medium iOS
+  widget capture does not verify the small family or Android launcher resizing.
+- Preserve unedited native sources and build/device provenance. A locked host
+  means capture is pending; staging instructions and mockups are not screenshots.
+- Keep live release state canonical and append dated corrections to historical
+  skill snapshots. Developer withdrawal (`DEVELOPER_REJECTED`) must not be described
+  as a reviewer rejection.
