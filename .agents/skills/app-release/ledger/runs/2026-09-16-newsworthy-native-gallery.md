@@ -13,7 +13,9 @@ for current status; this note is neither live provider evidence nor new permissi
   This replaces the earlier user-reported-only status. Banking remains missing,
   and Paid Apps Agreement remains **Pending User Info**. No paid public release
   is established by the active tax form or existing App Review submission.
-- **Host:** Mac unlocked; supported native controls and signed-in Chrome work.
+- **Host:** Mac was unlocked for these checks and captures. It locked again
+  during the later attempt to open Settings for the large-text check; CUA reported
+  the locked host. Saved gallery and completed behavior evidence remain valid.
 - **Android version 6 / 1.0.0:** the API 35 ARM64 emulator verified light/dark
   gradient and share-icon rendering, native share payload with its original
   timestamp, About navigation, offline saved reading with age and **Try again**,
@@ -34,6 +36,7 @@ for current status; this note is neither live provider evidence nor new permissi
   still need their own provider evidence.
 - Google still needs the owner's real-device/contact-phone verification before
   app creation and upload. Prepared screenshots are not a saved Play listing.
+- Owner must unlock the Mac again before further native UI checks.
 - Android widget installation/rendering/resize, large text and physical-device
   behavior remain unverified. The launcher widget picker was not reachable using
   the available supported controls: Menu key and stationary drag did not open it.

@@ -56,7 +56,7 @@ and public release. Keep private account/support details out of the skill repo.
 - [x] Add concise dated tax/native/gallery milestone without duplicating old snapshots.
 - [x] Add supported emulator capture tip and retain unverified widget/device limits.
 - [x] Refresh discovery/installed copies and run checks.
-- [ ] Publish the milestone PR.
+- [x] Publish through [PR #61](https://github.com/astrojams1/skills/pull/61); GitHub records merge/check state.
 
 Plan: Use the canonical app ledger and screenshot manifest as evidence, preserve
 prior history, and record only the incremental outcomes and resumable next steps.
