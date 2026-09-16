@@ -52,3 +52,16 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - A source-supported minimum size or scheduling repair is not native proof.
   Verify stable interaction, actual size variants and consistent readings in the
   replacement build before declaring the Android issue resolved.
+
+## Partial widget verification
+
+**Source:** Newsworthy APK 8 native evidence (2026-09-16)
+
+- Pair a quiet post-fix log window with initial refresh success and a pending next
+  job; distinguish scheduling from an actually observed recurring execution.
+- Test theme switching without new data. Retained span colors can disagree with
+  correctly updated XML backgrounds and primary text.
+- Existing launcher minimum spans and installed provider dimensions are distinct
+  evidence. Treat caching as a hypothesis until a freshly added widget is resized.
+- Keep stability, refresh, resizing and theme outcomes separate. Source checks for
+  a replacement fix do not close its native verification gate.

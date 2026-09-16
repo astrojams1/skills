@@ -163,3 +163,14 @@ interaction stable, renders the supported sizes and preserves saved/offline stat
 and consistent readings. A merged fix, passing source test or uploaded build does
 not close the native verification gate. Record diagnosis, fix and native outcome
 as separate evidence; consult the app ledger for the current result.
+
+### Verify independent widget behaviors
+
+- After stopping an update loop, verify an initial refresh succeeds and the next
+  constrained job remains scheduled. A quiet observation window alone could
+  hide disabled refresh; a pending job does not prove its later execution.
+- Switch the system theme without fetching new data. Previously resolved text
+  spans may retain old colors even when XML theme resources update correctly.
+- Compare the installed provider dimensions with the existing launcher item's
+  minimum span. Treat cached sizing as a hypothesis; verify a freshly added
+  widget's compact and expanded behavior before claiming resize support works.
