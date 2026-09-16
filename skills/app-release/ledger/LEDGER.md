@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.0**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -9,8 +9,9 @@ Dates describe observations, not guarantees that provider state remains unchange
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
 | [2026-09-16 Newsworthy snapshot](runs/2026-09-16-newsworthy.md) ([JSON](runs/2026-09-16-newsworthy.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Web live; Apple binary/listing saved; both store releases incomplete | Unknown / unknown |
+| [2026-09-16 Newsworthy review milestone](runs/2026-09-16-newsworthy-review-submitted.md) ([JSON](runs/2026-09-16-newsworthy-review-submitted.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple WAITING_FOR_REVIEW; paid release unverified; Google owner/device and host gates remain | Unknown / unknown |
 
-The Newsworthy record is a **historical extraction**, not an agent claim to have
+The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
 an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
@@ -38,6 +39,20 @@ are stored here. See its canonical ledger before resuming.
 - Check current docs: Expo's Android submit path now supports initial internal
   release creation with an existing app/service account; manual first upload is
   not a permanent universal rule.
+
+## Lessons incorporated into v1.0.1
+
+- API review drafts and actual submissions are separate. Attach the intended
+  version, resolve validation errors from source evidence, then submit the draft
+  and independently read back both version and submission.
+- Current availability uses v2 resources. Enabled territories and automatic
+  release settings do not prove sale eligibility; the seed app reached review
+  while all territories still reported `CANNOT_SELL`.
+- A locked host blocks native capture and signed-in native UI, not authenticated
+  API work. Continue independent safe paths; do not claim missing visual checks.
+- Keep the original handoff snapshot unchanged. This second milestone records
+  Apple acceptance at 2026-09-16T04:53:38.974Z, with W-9 processing, banking,
+  address correction and public sale still independently unverified.
 
 ## Add a run
 

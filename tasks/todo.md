@@ -29,3 +29,24 @@ approval gates or credentials/private tax details enter the public skill repo.
   instruction-file deletion on macOS. No private account/tax values enter the skill.
 - Independent evaluation found metadata overclaims and mixed-platform upload
   filtering; both corrected and regression-tested.
+
+## App Review milestone — September 16, 2026
+
+- [x] Preserve the original snapshot and add a sanitized dated review milestone.
+- [x] Document current Apple availability/submission semantics and readback limits.
+- [x] Refresh discovery/installed copies and run repository checks.
+- [ ] Publish and merge the reviewed milestone PR.
+
+Plan: Copy the canonical app ledger into a new historical snapshot, keeping old
+evidence intact. Record review acceptance separately from commercial readiness
+and public release. Keep private account/support details out of the skill repo.
+
+### Review
+
+- Preserved the first snapshot byte-for-byte and validated the new 37-event ledger.
+- Spec: 124 passes; management: 46 passes; identity: pass.
+- Ledger tests: 4 passes; mocked API tests: 4 passes.
+- Reviewed public changes for credentials, private support references and personal
+  details; removed the owner name from the new snapshot's copied evidence.
+- Reviewed availability/submission documentation against current official Apple
+  references and the canonical app ledger. Installed copy refreshed to v1.0.1.
