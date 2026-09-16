@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.5**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.6**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -14,6 +14,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy capture corrections](runs/2026-09-16-newsworthy-capture-corrections.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | About removed; clean widget capture brief recorded; new native capture evidence pending at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy widget evidence and replacement review](runs/2026-09-16-newsworthy-widget-runtime.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple small/medium captured and replacement WAITING_FOR_REVIEW; Android update loop diagnosed, fix unverified at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy Android partial verification](runs/2026-09-16-newsworthy-android-partial-verification.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | APK 8 stable for 65 seconds; initial refresh succeeded; recurring execution, fresh compact resize and theme fix unverified at handoff | Unknown / unknown |
+| [2026-09-16 Newsworthy surface design contracts](runs/2026-09-16-newsworthy-surface-design.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | 189 local app tests reported passing; APK 9 compact 2×2 dark approved/captured; contract checks are not native rendering tests | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -97,6 +98,15 @@ are stored here. See its canonical ledger before resuming.
 - Switch themes without new data to expose colors retained in rendered spans.
 - Distinguish provider dimensions from an existing launcher item's minimum span;
   cached sizing remains a hypothesis until fresh native resize checks resolve it.
+
+## Lessons incorporated into v1.0.6
+
+- Verify design token consumption across surfaces, including semantic sizes,
+  baselines and theme resources; build success or token generation is insufficient.
+- Exercise known regressions and actual pre-fix artifacts. Source guards fail on
+  unsupported structures; do not silently accept a changed baseline.
+- Keep source/rendered-prop contracts and actual native captures separate. One
+  approved size/theme does not verify the remaining native surface matrix.
 
 ## Add a run
 
