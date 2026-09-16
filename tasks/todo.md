@@ -13,7 +13,7 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Add a resumable ledger helper, reusable Apple API helper, and Newsworthy handoff.
 - [x] Validate scripts and skill behavior, run repository checks, refresh discovery copies.
 - [x] Install the skill for local invocation.
-- [ ] Publish through a PR.
+- [x] Publish through [PR #59](https://github.com/astrojams1/skills/pull/59).
 
 Plan: Keep live project status canonical in each app repository. The skill's own
 ledger records sanitized run snapshots, evidence links, lessons and measured costs
