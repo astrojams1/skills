@@ -125,7 +125,7 @@ observed stability from scheduled refresh, resizing hypotheses and unverified fi
 
 - [x] Record the design-contract checks and bounded APK 9 capture evidence.
 - [x] Add concise consumption-parity and regression-baseline guidance.
-- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #65](https://github.com/astrojams1/skills/pull/65); GitHub records merge/check state.
 
 Plan: Preserve historical milestones and distinguish source/rendered-prop checks
 from native layout execution. Keep provider release status in the app ledger.
