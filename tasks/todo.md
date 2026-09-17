@@ -178,7 +178,7 @@ from pending verification of the replacement build's source fix.
 
 - [x] Record verified build 7 resubmission and precise recording coverage.
 - [x] Add rejected-item resolution and cloud-file download evidence lessons.
-- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #68](https://github.com/astrojams1/skills/pull/68); GitHub records merge/check state.
 
 Plan: Preserve historical milestones and the original recording's evidence scope.
 Keep live release status canonical and omit private account/file details.
