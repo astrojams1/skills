@@ -216,6 +216,24 @@ duplicate, then follow the current schema:
 [attach item](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-reviewsubmissionitems),
 [submit draft](https://developer.apple.com/documentation/appstoreconnectapi/patch-v1-reviewsubmissions-_id_).
 
+### Resubmit after resolving review issues
+
+A posted reply and attachment do not resubmit the app. After providing the
+requested evidence and matching Notes, confirm the intended valid build is
+selected, then read the existing submission and its items. For resolved rejected
+items, public OpenAPI **4.4.1** supports
+`PATCH /v1/reviewSubmissionItems/{id}` with `attributes.resolved: true`. Verify
+the resulting `READY_FOR_REVIEW` state before submitting the existing submission
+with `attributes.submitted: true`; do not create a duplicate merely because a
+reply was posted. This is an observed sequence, not permission to mark an
+unresolved issue resolved. Recheck the current schema and actual item state.
+
+Read the version, submission and selected-build relationship back independently.
+Record the provider timestamp and exact build. Verify both review states reflect
+submission acceptance (`WAITING_FOR_REVIEW` in the seed readback), recording any
+further progression explicitly. Reply delivery, attachment access, Notes saving
+and review submission remain separate evidence.
+
 **Review acceptance does not settle commercial readiness.** The seed submission
 was accepted while every territory still reported `CANNOT_SELL`. Enabled
 territories, `AFTER_APPROVAL`, and a review receipt do not prove the Paid Apps

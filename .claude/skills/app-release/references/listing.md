@@ -64,6 +64,22 @@ or a wallpaper change. Preserve the original screenshot, record the crop and
 composition provenance, and inspect the result for clipped content. Decorative
 framing cannot establish native layout, resize behavior or additional size support.
 
+## Review recordings and cloud-file availability
+
+Preserve the original physical recording. If preparing a shorter review copy,
+trim only initial idle time and optionally remove audio; retain the continuous
+demonstration and record the transformation. Inspect the resulting sequence and
+report only actions actually visible. A launch/reading/widget demonstration does
+not establish unshown navigation, accessibility, offline or other device checks.
+
+A cloud file's listed size does not prove its bytes are downloaded. In the seed
+run, an apparently 201 MB local iCloud file was a dataless placeholder with zero
+allocated blocks; media loading timed out with POSIX 60. Metadata showed uploaded
+and download-requested but not downloaded. Inspect download metadata before
+blaming the owner's upload. Use an available supported download path, then verify
+locally readable bytes, media structure/duration and hashes before upload. Keep
+personal filenames, cloud URLs and access tokens out of public evidence records.
+
 ## Reusable Apple helper
 
 `scripts/apple.mjs` uses Node's built-in crypto/fetch, with no extra package.

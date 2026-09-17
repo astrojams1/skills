@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.8**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.9**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -17,6 +17,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy surface design contracts](runs/2026-09-16-newsworthy-surface-design.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | 189 local app tests reported passing; APK 9 compact 2×2 dark approved/captured; contract checks are not native rendering tests | Unknown / unknown |
 | [2026-09-17 Newsworthy review information request](runs/2026-09-17-newsworthy-review-information.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Guideline 2.1 information request; Notes saved; empty internal TestFlight group; physical recording/testing pending | Unknown / unknown |
 | [2026-09-17 Newsworthy native header and TestFlight invitation](runs/2026-09-17-newsworthy-native-chrome.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Invitation resolved and physical launch owner-confirmed; native glass-header fix still awaiting replacement-build verification | Unknown / unknown |
+| [2026-09-17 Newsworthy build 7 resubmission](runs/2026-09-17-newsworthy-review-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Physical demo/reply delivered; build 7 version and submission WAITING_FOR_REVIEW; neither approval nor public release established | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -128,6 +129,15 @@ are stored here. See its canonical ledger before resuming.
 - Group build availability, invitation state and direct tester-build relationships
   are distinct evidence. Read back the invitation and confirm installation instead
   of treating an empty direct list or an imagined Resend control as decisive.
+
+## Lessons incorporated into v1.0.9
+
+- A reply/attachment is not a resubmission. Resolve the addressed rejected item,
+  submit the existing submission, and read back both review states and the build.
+- Retain the original recording, document any initial-idle trim/audio removal,
+  and claim only visible coverage. Submission acceptance is not approval or live.
+- Cloud listing size can describe a dataless placeholder. Inspect download
+  metadata and verify real media bytes/hashes before diagnosing an upload failure.
 
 ## Add a run
 

@@ -173,3 +173,20 @@ from pending verification of the replacement build's source fix.
 - Historical snapshots preserved; invitation resolved at the new milestone while
   the replacement build's physical appearance verification remains pending.
 - Discovery and installed copies match v1.0.8; Newsworthy files untouched.
+
+## Apple review resubmission — September 17, 2026
+
+- [x] Record verified build 7 resubmission and precise recording coverage.
+- [x] Add rejected-item resolution and cloud-file download evidence lessons.
+- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+
+Plan: Preserve historical milestones and the original recording's evidence scope.
+Keep live release status canonical and omit private account/file details.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; skill validator: pass.
+- OpenAPI 4.4.1 item-resolution and submission schemas checked locally.
+- Historical snapshots unchanged; recording coverage and unshown checks explicit.
+- Discovery and installed copies match v1.0.9; no app/UI/provider mutations.
