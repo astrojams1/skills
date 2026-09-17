@@ -137,3 +137,22 @@ from native layout execution. Keep provider release status in the app ledger.
 - Prior milestones unchanged; source/prop evidence explicitly separated from native
   engine execution and the remaining capture matrix. No provider status claims added.
 - Discovery and installed copies match v1.0.6; no Newsworthy files changed.
+
+## Apple review information request — September 17, 2026
+
+- [x] Record the actual Guideline 2.1 information request and bounded QA state.
+- [x] Add correspondence/API, complete-response and physical-evidence guidance.
+- [x] Repair the reusable Notes helper phone fallback with mocked regression tests.
+- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+
+Plan: Use sanitized app records read-only. Preserve historical milestones and
+exclude contact values, credentials and device identifiers from the skill ledger.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; skill validator: pass.
+- Phone fallback, explicit override, missing-phone no-write and readback mismatch
+  regressions covered without real credentials, store writes or printed contact data.
+- Historical snapshots unchanged; physical recording/testing remain pending.
+- Discovery and installed copies match v1.0.7; Newsworthy files untouched.

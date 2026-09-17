@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { syncBuiltinESMExports } from 'node:module';
 const mode=process.argv[2], helper=new URL('../../skills/app-release/scripts/apple.mjs',import.meta.url);
 const copy={locale:'en-US',description:'Description',promotionalText:'Promo',keywords:'news',supportUrl:'https://example.test/support',marketingUrl:'https://example.test',subtitle:'Subtitle',privacyPolicyUrl:'https://example.test/privacy'};
+copy.reviewNotes='Review notes';copy.demoAccountRequired=false;
 const ids={appId:'1234',versionId:'version',versionLocalizationId:'version-loc',infoLocalizationId:'info-loc',appInfoId:'app-info',ageRatingDeclarationId:'age-id'};
 const read=fs.readFile;
 fs.readFile=async(path,...args)=>{
@@ -21,7 +22,19 @@ let mutated=false;
 global.fetch=async(url,options)=>{
  if(new URL(url).hostname!=='api.appstoreconnect.apple.com')throw Error('Unexpected host');
  const path=new URL(url).pathname;let data;
- if(mode==='screenshots') {
+ if(mode.startsWith('review-')) {
+  if(options.method==='GET'&&path==='/v1/appStoreVersions/version')data={relationships:{appStoreReviewDetail:{data:{id:'review-detail'}}}};
+  else if(options.method==='GET'&&path==='/v1/appStoreReviewDetails/review-detail') {
+   if(mode==='review-override')throw Error('Override must not fetch existing contact');
+   data={attributes:mode==='review-missing-phone'?{}:{contactPhone:'fixture-existing-phone'}};
+  } else if(options.method==='PATCH'&&path==='/v1/appStoreReviewDetails/review-detail') {
+   const a=JSON.parse(options.body).data.attributes;
+   const phone=mode==='review-override'?'fixture-override-phone':'fixture-existing-phone';
+   if(mode==='review-missing-phone'||a.contactPhone!==phone||a.notes!==copy.reviewNotes||a.demoAccountRequired!==false)throw Error('Incomplete Notes mutation');
+   console.log('PATCH review notes');
+   data={attributes:{...a,...(mode==='review-phone-mismatch'?{contactPhone:'fixture-wrong-phone'}:{})}};
+  } else throw Error('Unexpected review request');
+ } else if(mode==='screenshots') {
   if(options.method==='GET'&&path.endsWith('/appScreenshotSets'))data=[{id:'set',attributes:{screenshotDisplayType:'APP_IPHONE_67'}}];
   else if(options.method==='GET'&&path.endsWith('/appScreenshots'))data=[];
   else if(options.method==='POST'&&path==='/v1/appScreenshots'){
@@ -45,5 +58,7 @@ global.fetch=async(url,options)=>{
  return {ok:true,status:200,json:async()=>({data})};
 };
 Object.assign(process.env,{ASC_KEY_ID:'mock',ASC_ISSUER_ID:'mock',ASC_PRIVATE_KEY_PATH:'MOCK_KEY'});
-process.argv=['node','apple.mjs',mode==='screenshots'?'screenshots':mode==='age'?'age-rating':'metadata','/tmp/mock-store'];
+delete process.env.ASC_REVIEW_PHONE;
+if(mode==='review-override')process.env.ASC_REVIEW_PHONE='fixture-override-phone';
+process.argv=['node','apple.mjs',mode.startsWith('review-')?'review-notes':mode==='screenshots'?'screenshots':mode==='age'?'age-rating':'metadata','/tmp/mock-store'];
 await import(helper);

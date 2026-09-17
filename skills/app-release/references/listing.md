@@ -93,8 +93,10 @@ replace placeholders from the intended account's verified records.
 
 `review-notes` reads `ASC_REVIEW_FIRST_NAME`, `ASC_REVIEW_LAST_NAME`,
 `ASC_REVIEW_EMAIL`, `ASC_REVIEW_PHONE`. It preserves existing contact fields when
-omitted. A new record requires a phone even if an API schema appears to call it
-optional. Do not invent a phone or repeatedly ask for the same resolved approval.
+omitted and fetches the existing phone for the Notes mutation when no phone
+override is supplied. A missing phone stops the mutation before any write. A new
+record also requires a phone even if an API schema appears to call it optional.
+Do not invent a phone or repeatedly ask for the same resolved approval.
 Set `demoAccountRequired` explicitly; the helper does not infer no-login behavior.
 It deliberately rejects apps requiring demo credentials: use the provider's
 private review-access form and verify it for that app instead of claiming no login.

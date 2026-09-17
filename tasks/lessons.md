@@ -77,3 +77,16 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Parsed native XML and production rendered props are contract evidence, not
   Yoga/WidgetKit/RemoteViews execution. Keep native surface/size/theme captures
   separate, and limit approval claims to the captures actually reviewed.
+
+## App Review information requests and physical QA
+
+**Source:** Newsworthy Guideline 2.1 request (2026-09-17)
+
+- Read the actual request before proposing a defect fix; a user-pasted message can
+  unblock preparation when browser correspondence access is unavailable.
+- Public review-status APIs are not App Review correspondence. Browser control
+  and API authentication must be assessed separately.
+- If both Notes and a reply are requested, prepare matching complete responses;
+  preserve the authorized contact phone in the Notes mutation without publishing it.
+- TestFlight readiness and an empty group do not establish invited testers or QA.
+  Physical-device/latest-OS recordings require real evidence, not simulator captures.

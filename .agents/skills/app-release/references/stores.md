@@ -118,8 +118,50 @@ that missing fact; never invent a placeholder.
 In the seed release, creating `appStoreReviewDetails` without `contactPhone`
 returned a required-field error even though the schema appeared permissive.
 Treat actual API validation as authoritative: submit the complete required
-payload, inspect errors, then read the resource back. Notes are **not saved**
-when the create request fails. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
+payload, inspect errors, then read the resource back. When saving revised Notes,
+fetch the existing authorized `contactPhone` if no override is supplied and
+include it in the same API mutation; a notes-only request must not lose required
+contact information. Keep the value
+private. Notes are **not saved** when the request fails. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
+
+### Respond to the actual review message
+
+Read the rejection or information-request text before proposing fixes. A version
+state alone does not identify a defect. A user-pasted review message is sufficient
+input to prepare a factual response when signed-in correspondence is inaccessible.
+
+The September 17 inspection of Apple's public OpenAPI **4.4.1** found review
+submission/item status but no App Review correspondence endpoint. Customer reviews
+and TestFlight feedback are different resources. Recheck current capabilities;
+API credentials do not establish browser access, and a browser authentication or
+control failure does not invalidate a working API path. Use the supported App
+Review UI for correspondence when available.
+[Apple review replies](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/reply-to-app-review-messages/).
+
+For the seed app's new-account Guideline 2.1 request, the response needed six parts:
+physical-device demonstration, purpose/audience, setup/access, external services,
+regions, and regulated services/third-party material. Follow the actual request
+for each app; these are not universal answers or grounds for speculative fixes.
+When Apple requests both Notes and a reply, keep the complete factual response
+and evidence references in **both**. Saving Notes is not sending correspondence.
+
+A request for a physical-device launch recording on the latest OS requires that
+actual evidence. Recheck the OS version on the recording date, confirm the
+submitted app/build, preserve the unaltered recording and verify reviewer access.
+Simulator captures do not satisfy a physical-device request. Leave missing
+evidence explicitly pending; do not send an incomplete package as a completed
+response or claim testing from device pairing alone. Apply the session's actual
+authorization when replying, inviting testers or resubmitting.
+
+### TestFlight preparation is not physical QA
+
+`READY_FOR_BETA_TESTING`, a build attached to an internal group, an invitation,
+installation and completed testing are separate facts. An empty group does not
+establish tester participation. Record tester count and whether invitations were actually
+sent, then verify the intended build is installed and tested on the required
+physical devices. Keep device identifiers and private tester/contact details out
+of shared ledgers.
+[Apple internal testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers).
 
 ### Build, review, and release are separate states
 

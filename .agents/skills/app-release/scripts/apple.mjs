@@ -43,7 +43,11 @@ if (command === 'review-notes') {
   }
   if (attributes.demoAccountRequired) throw new Error('This helper does not manage demo credentials; configure and verify authenticated app access through the provider UI.');
   if (process.env.ASC_REVIEW_PHONE) attributes.contactPhone = process.env.ASC_REVIEW_PHONE;
-  if (!existingId && !attributes.contactPhone) throw new Error('Apple requires a review contact phone before creating this section. Obtain owner authorization and set ASC_REVIEW_PHONE locally.');
+  else if (existingId) {
+    const existing = await api(`/v1/appStoreReviewDetails/${existingId}`);
+    attributes.contactPhone = existing.data.attributes.contactPhone;
+  }
+  if (typeof attributes.contactPhone !== 'string' || !attributes.contactPhone.trim()) throw new Error('Apple requires a review contact phone in the Notes mutation. Use the existing authorized contact or set ASC_REVIEW_PHONE locally.');
   const saved = existingId
     ? await api(`/v1/appStoreReviewDetails/${existingId}`, 'PATCH', {type:'appStoreReviewDetails',id:existingId,attributes})
     : await api('/v1/appStoreReviewDetails', 'POST', {type:'appStoreReviewDetails',attributes,relationships:{appStoreVersion:relation('appStoreVersions',ids.versionId)}});
