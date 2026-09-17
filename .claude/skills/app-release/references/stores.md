@@ -163,6 +163,16 @@ physical devices. Keep device identifiers and private tester/contact details out
 of shared ledgers.
 [Apple internal testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers).
 
+If a group contains a **Testing** build but the tester sees **No Builds Available**,
+inspect group membership and invitation state. In the September 17 seed run, the
+tester was `NOT_INVITED`; an authorized `POST /v1/betaTesterInvitations` returned
+201, group readback became `INVITED`, and the owner then confirmed physical launch.
+The direct tester-build list remained empty. Do not use that relationship alone
+to conclude installation is impossible, or invent a group-level **Resend** control
+that is absent from the actual UI. Verify invitation delivery/state and installation
+separately, and keep resolved invitations out of the pending-owner checklist.
+[Apple tester invitations](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-betatesterinvitations).
+
 ### Build, review, and release are separate states
 
 Record artifact/build ID and version, upload receipt, Apple processing state,

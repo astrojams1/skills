@@ -156,3 +156,20 @@ exclude contact values, credentials and device identifiers from the skill ledger
   regressions covered without real credentials, store writes or printed contact data.
 - Historical snapshots unchanged; physical recording/testing remain pending.
 - Discovery and installed copies match v1.0.7; Newsworthy files untouched.
+
+## Native chrome and TestFlight invitation — September 17, 2026
+
+- [x] Record the physical header regression and completed invitation milestone.
+- [x] Add bounded native-chrome coverage and TestFlight relationship lessons.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #67](https://github.com/astrojams1/skills/pull/67); GitHub records merge/check state.
+
+Plan: Preserve earlier snapshots; distinguish owner-confirmed physical launch
+from pending verification of the replacement build's source fix.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; skill validator: pass.
+- Historical snapshots preserved; invitation resolved at the new milestone while
+  the replacement build's physical appearance verification remains pending.
+- Discovery and installed copies match v1.0.8; Newsworthy files untouched.

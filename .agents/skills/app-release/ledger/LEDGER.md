@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.7**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.8**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -16,6 +16,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy Android partial verification](runs/2026-09-16-newsworthy-android-partial-verification.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | APK 8 stable for 65 seconds; initial refresh succeeded; recurring execution, fresh compact resize and theme fix unverified at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy surface design contracts](runs/2026-09-16-newsworthy-surface-design.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | 189 local app tests reported passing; APK 9 compact 2×2 dark approved/captured; contract checks are not native rendering tests | Unknown / unknown |
 | [2026-09-17 Newsworthy review information request](runs/2026-09-17-newsworthy-review-information.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Guideline 2.1 information request; Notes saved; empty internal TestFlight group; physical recording/testing pending | Unknown / unknown |
+| [2026-09-17 Newsworthy native header and TestFlight invitation](runs/2026-09-17-newsworthy-native-chrome.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Invitation resolved and physical launch owner-confirmed; native glass-header fix still awaiting replacement-build verification | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -118,6 +119,15 @@ are stored here. See its canonical ledger before resuming.
   the Notes mutation without copying its value into the public ledger.
 - TestFlight readiness and an empty group do not prove invitation, installation
   or QA. A physical-device/latest-OS recording request needs physical evidence.
+
+## Lessons incorporated into v1.0.8
+
+- Record SDK/runtime/device coverage and inspect OS-generated native chrome.
+  Older simulator captures and JS prop checks do not prove newer physical-OS
+  appearance or verification of a source fix.
+- Group build availability, invitation state and direct tester-build relationships
+  are distinct evidence. Read back the invitation and confirm installation instead
+  of treating an empty direct list or an imagined Resend control as decisive.
 
 ## Add a run
 
