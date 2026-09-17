@@ -103,3 +103,14 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   evidence, and a group Resend control must not be invented.
 - Close an invitation task after verified state and owner-confirmed access, while
   keeping later physical correction checks separate.
+
+## Resubmission and downloaded recording evidence
+
+**Source:** Newsworthy build 7 review resubmission (2026-09-17)
+
+- A review reply and attachment do not submit the app again. Resolve addressed
+  items, submit the existing submission, and verify both review states and build.
+- Preserve original recordings and document initial-idle trimming/audio removal.
+  State visible coverage explicitly and do not imply unshown QA passed.
+- A cloud listing's file size can describe a dataless placeholder. Check download
+  metadata and real media bytes/hashes before blaming upload or processing.

@@ -2,7 +2,7 @@
 name: app-release
 description: Ship or resume a web and mobile app release end to end, including Expo/EAS builds, native verification, App Store Connect, Google Play, paid pricing, store artwork, submissions, and a persistent release ledger. Use when preparing an app launch, unblocking store setup, or continuing a release across sessions.
 metadata:
-  version: "1.0.8"
+  version: "1.0.9"
 ---
 
 # App release
