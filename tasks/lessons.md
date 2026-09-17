@@ -90,3 +90,16 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   preserve the authorized contact phone in the Notes mutation without publishing it.
 - TestFlight readiness and an empty group do not establish invited testers or QA.
   Physical-device/latest-OS recordings require real evidence, not simulator captures.
+
+## Native chrome coverage and TestFlight access
+
+**Source:** Newsworthy physical TestFlight corrections (2026-09-17)
+
+- Include OS-generated native chrome in visual QA and record SDK/runtime/device
+  coverage. Transparent JS headers and older simulator captures can miss newer
+  physical-OS decorations; a forwarding-path fix still needs native verification.
+- Check group membership and invitation state before explaining missing TestFlight
+  builds. An empty direct tester-build relationship is not decisive installation
+  evidence, and a group Resend control must not be invented.
+- Close an invitation task after verified state and owner-confirmed access, while
+  keeping later physical correction checks separate.

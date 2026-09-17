@@ -194,3 +194,19 @@ do not execute Yoga, WidgetKit or RemoteViews. Keep a separate actual native
 capture matrix for supported surfaces, sizes, themes and relevant states, with
 build provenance. A passed contract or one approved capture cannot close the
 remaining native matrix.
+
+### Inspect OS-generated native chrome
+
+Record the SDK/library version, OS runtime and simulator/physical device for each
+visual check. Include system-generated navigation and toolbar backgrounds: a
+transparent JS header and passing rendered-prop tests do not prove that native
+controls render without additional chrome on a newer physical OS.
+
+In Newsworthy's Expo Router **57.0.21**, a physical TestFlight screenshot exposed
+iOS 26+ glass capsules absent from the earlier iOS 18.3 simulator evidence. The
+legacy `headerLeft`/`headerRight` path omitted `hidesSharedBackground`; supported
+custom native items forwarded `hidesSharedBackground: true` through
+react-native-screens to UIKit.
+Inspect the installed version's actual forwarding path before choosing a fix.
+Source/mutation checks can protect that path, but verify the replacement build
+on the affected physical OS before claiming the appearance is corrected.
