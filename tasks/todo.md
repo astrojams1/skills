@@ -143,7 +143,7 @@ from native layout execution. Keep provider release status in the app ledger.
 - [x] Record the actual Guideline 2.1 information request and bounded QA state.
 - [x] Add correspondence/API, complete-response and physical-evidence guidance.
 - [x] Repair the reusable Notes helper phone fallback with mocked regression tests.
-- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #66](https://github.com/astrojams1/skills/pull/66); GitHub records merge/check state.
 
 Plan: Use sanitized app records read-only. Preserve historical milestones and
 exclude contact values, credentials and device identifiers from the skill ledger.
