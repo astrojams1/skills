@@ -161,7 +161,7 @@ exclude contact values, credentials and device identifiers from the skill ledger
 
 - [x] Record the physical header regression and completed invitation milestone.
 - [x] Add bounded native-chrome coverage and TestFlight relationship lessons.
-- [ ] Run checks, sync discovery/installed copies, and publish a PR.
+- [x] Run checks, sync discovery/installed copies, and publish [PR #67](https://github.com/astrojams1/skills/pull/67); GitHub records merge/check state.
 
 Plan: Preserve earlier snapshots; distinguish owner-confirmed physical launch
 from pending verification of the replacement build's source fix.
