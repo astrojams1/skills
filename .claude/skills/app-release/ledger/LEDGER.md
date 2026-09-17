@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.6**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.7**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -15,6 +15,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-16 Newsworthy widget evidence and replacement review](runs/2026-09-16-newsworthy-widget-runtime.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple small/medium captured and replacement WAITING_FOR_REVIEW; Android update loop diagnosed, fix unverified at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy Android partial verification](runs/2026-09-16-newsworthy-android-partial-verification.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | APK 8 stable for 65 seconds; initial refresh succeeded; recurring execution, fresh compact resize and theme fix unverified at handoff | Unknown / unknown |
 | [2026-09-16 Newsworthy surface design contracts](runs/2026-09-16-newsworthy-surface-design.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | 189 local app tests reported passing; APK 9 compact 2×2 dark approved/captured; contract checks are not native rendering tests | Unknown / unknown |
+| [2026-09-17 Newsworthy review information request](runs/2026-09-17-newsworthy-review-information.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Guideline 2.1 information request; Notes saved; empty internal TestFlight group; physical recording/testing pending | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -107,6 +108,16 @@ are stored here. See its canonical ledger before resuming.
   unsupported structures; do not silently accept a changed baseline.
 - Keep source/rendered-prop contracts and actual native captures separate. One
   approved size/theme does not verify the remaining native surface matrix.
+
+## Lessons incorporated into v1.0.7
+
+- Obtain the actual review message before fixing an assumed defect. User-pasted
+  text can unblock response preparation when correspondence UI access fails.
+- API review state, browser access and correspondence are distinct capabilities.
+  Keep the requested response in both Notes and reply; preserve contact phone in
+  the Notes mutation without copying its value into the public ledger.
+- TestFlight readiness and an empty group do not prove invitation, installation
+  or QA. A physical-device/latest-OS recording request needs physical evidence.
 
 ## Add a run
 
