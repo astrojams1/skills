@@ -114,3 +114,17 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   State visible coverage explicitly and do not imply unshown QA passed.
 - A cloud listing's file size can describe a dataless placeholder. Check download
   metadata and real media bytes/hashes before blaming upload or processing.
+
+## Notification release evidence
+
+**Source:** Newsworthy notification checkpoint (2026-09-24)
+
+- Treat signing entitlement, configured APNs delivery credential, accepted Expo
+  ticket, successful APNs handoff receipt and physical visibility as separate
+  gates. Registration and automated tests do not close physical delivery or tap QA.
+- Compare published privacy disclosures with the native manifest and real data
+  flow before uploading. Preserve a canceled mismatch build and replacement
+  provenance without claiming the replacement completed.
+- Reuse signed-in alternatives when a CLI is logged out. Redacted production
+  secret placeholders are not a reason to weaken policy; use authorized aggregate
+  read-only queries when counts suffice and keep device tokens out of records.
