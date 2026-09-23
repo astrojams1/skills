@@ -190,3 +190,23 @@ Keep live release status canonical and omit private account/file details.
 - OpenAPI 4.4.1 item-resolution and submission schemas checked locally.
 - Historical snapshots unchanged; recording coverage and unshown checks explicit.
 - Discovery and installed copies match v1.0.9; no app/UI/provider mutations.
+
+## Notification release evidence — September 24, 2026
+
+- [x] Add a sanitized notification milestone without advancing pending release gates.
+- [x] Capture credential, delivery-evidence and privacy-alignment lessons.
+- [x] Refresh discovery copies, run required checks, and prepare the PR change.
+
+Plan: Preserve v1.0.9 instructions and all earlier snapshots. Record the release
+task's verified checkpoint; the app ledger owns subsequent build and review state.
+Do not retain credentials, private contact details, device identifiers or tokens.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes.
+- v1.0.9 instructions and historical snapshots are unchanged; discovery copies
+  contain the new checkpoint. No Newsworthy checkout or provider state was changed.
+- Build 21 remains processing in this snapshot; credential setup, physical
+  delivery and Apple resubmission remain pending. Later evidence belongs in the
+  canonical app ledger and a subsequent milestone.

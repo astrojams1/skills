@@ -18,6 +18,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-17 Newsworthy review information request](runs/2026-09-17-newsworthy-review-information.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Guideline 2.1 information request; Notes saved; empty internal TestFlight group; physical recording/testing pending | Unknown / unknown |
 | [2026-09-17 Newsworthy native header and TestFlight invitation](runs/2026-09-17-newsworthy-native-chrome.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Invitation resolved and physical launch owner-confirmed; native glass-header fix still awaiting replacement-build verification | Unknown / unknown |
 | [2026-09-17 Newsworthy build 7 resubmission](runs/2026-09-17-newsworthy-review-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Physical demo/reply delivered; build 7 version and submission WAITING_FOR_REVIEW; neither approval nor public release established | Unknown / unknown |
+| [2026-09-24 Newsworthy notification checkpoint](runs/2026-09-24-newsworthy-notification-release.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Backend deployed and privacy aligned; build 21 processing; APNs setup, physical delivery and resubmission pending | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -138,6 +139,14 @@ are stored here. See its canonical ledger before resuming.
   and claim only visible coverage. Submission acceptance is not approval or live.
 - Cloud listing size can describe a dataless placeholder. Inspect download
   metadata and verify real media bytes/hashes before diagnosing an upload failure.
+
+## Notification checkpoint lessons
+
+The September 24 notification checkpoint adds operational lessons without
+changing the v1.0.9 instructions: distinguish signing capability, delivery
+credentials, Expo tickets, APNs handoff receipts and physical visibility; compare
+store disclosures with the shipped manifest; reuse authenticated paths while
+preserving production secret access boundaries.
 
 ## Add a run
 
