@@ -128,3 +128,15 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Reuse signed-in alternatives when a CLI is logged out. Redacted production
   secret placeholders are not a reason to weaken policy; use authorized aggregate
   read-only queries when counts suffice and keep device tokens out of records.
+
+## Notification handoff and physical visibility
+
+**Source:** Newsworthy build 21 resubmission (2026-09-24)
+
+- A successful APNs handoff receipt and observed subscription-count changes do
+  not verify a visible physical banner or notification tap. Name the precise
+  physical-device actions observed and the presentation states left untested.
+- Check notification-mirroring settings when using a mirrored phone; an absent
+  Mac banner cannot settle whether the physical phone displayed a notification.
+- Refresh stale browser sessions and inspect the key inventory before repeating
+  credential creation, so uncertain results do not create duplicate keys.
