@@ -1,6 +1,6 @@
 # Agent Instructions Template
 
-Copy the section below into `AGENTS.md` in the target project. `AGENTS.md` is the single source of truth: Claude Code reads it automatically when no `CLAUDE.md` exists. `CLAUDE.md` is optional (only needed for older Claude Code versions); if kept, it must be byte-for-byte identical to `AGENTS.md`.
+Copy the section below into `AGENTS.md` in the target project. `AGENTS.md` is the only agent instructions file: Claude Code reads it automatically when no `CLAUDE.md` exists. Do not create `CLAUDE.md`; remove an existing one with `git rm CLAUDE.md` (or `git mv CLAUDE.md AGENTS.md` if it is the only file).
 
 ---
 
@@ -24,7 +24,7 @@ The `check` command auto-fixes most issues it detects:
 - **Behind upstream** — automatically syncs the submodule to latest upstream main
 - **Missing/stale discovery dirs** — automatically refreshes `.claude/skills/` and `.agents/skills/`
 - **Stale hooks** — automatically migrates to the current hook format
-- **Stale lowercase files** — automatically removes `claude.md`/`agents.md` if uppercase versions exist
+- **Stale lowercase files** — automatically renames a lowercase `agents.md` to `AGENTS.md` (a `claude.md` is flagged, never renamed)
 
 If `check` reports warnings or failures that it cannot auto-fix, address them before proceeding:
 - **Not initialized** — run `git submodule update --init --recursive`
@@ -41,7 +41,7 @@ git commit -m "chore: auto-fix skills integration issues"
 
 ### Rules
 
-1. **AGENTS.md is the single source of truth for agent instructions.** Codex and Claude Code both read it. `CLAUDE.md` is optional; if this project keeps one, it must be byte-for-byte identical to `AGENTS.md`, so apply every edit to both. Run `./skills/bin/manage.sh check` to verify (check #12 fails on divergence or on `CLAUDE.md` without `AGENTS.md`).
+1. **AGENTS.md is the only agent instructions file.** Codex and Claude Code both read it. Never create `CLAUDE.md` (any case). Run `./skills/bin/manage.sh check` to verify (check #12 fails if a `CLAUDE.md` exists).
 2. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored.
 
 ### How Skills Are Discovered

@@ -8,7 +8,7 @@ description: >-
   establish development standards, or when onboarding a new AI-assisted project
   that needs disciplined habits for complex tasks.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: Workflow Orchestration
@@ -87,4 +87,4 @@ Apply structured workflow orchestration practices to guide AI agents through com
 
 ## How to Apply This Skill
 
-Paste the **Workflow Orchestration**, **Task Management**, **Core Principles**, and **Gotchas** sections above into the target project's `CLAUDE.md` or `AGENTS.md`. This equips the AI agent with disciplined, structured habits for tackling complex tasks.
+Paste the **Workflow Orchestration**, **Task Management**, **Core Principles**, and **Gotchas** sections above into the target project's `AGENTS.md` (the only agent instructions file; do not create `CLAUDE.md`). This equips the AI agent with disciplined, structured habits for tackling complex tasks.

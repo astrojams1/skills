@@ -231,13 +231,16 @@ else
     pass "check does not re-apply SessionStart hook fix on subsequent runs"
 fi
 
-# AGENTS.md is the only required instructions file: an AGENTS.md-only
-# project with a clean submodule must pass every check with no warnings.
+# AGENTS.md is the only agent instructions file: an AGENTS.md-only
+# project with a clean submodule must pass check (exit 0, no FAIL) with no
+# agent-instruction warnings. (An upstream-drift WARN can appear when this
+# repo's HEAD is a feature branch ahead of main, so don't require zero WARNs.)
 echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
 agents_only_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && agents_only_status=0 || agents_only_status=$?
 if [ "$agents_only_status" -eq 0 ] \
-    && echo "$agents_only_output" | grep -q "PASS: AGENTS.md present" \
-    && echo "$agents_only_output" | grep -q "ALL CHECKS PASSED"; then
+    && echo "$agents_only_output" | grep -q "PASS: AGENTS.md is the only agent instructions file" \
+    && ! echo "$agents_only_output" | grep -q "FAIL" \
+    && ! echo "$agents_only_output" | grep -Eiq "WARN:.*(CLAUDE|AGENTS)\.md"; then
     pass "check passes cleanly for an AGENTS.md-only project"
 else
     fail "check did not pass cleanly for an AGENTS.md-only project"
@@ -274,7 +277,7 @@ echo "Testing lowercase agent file cleanup..."
 # this after the clean-submodule checks: this intentional edit fails integrity.
 cp "$MANAGE" "$TMP_INSTALL/skills/bin/manage.sh"
 
-# An uppercase-only file must never be deleted through a lowercase path alias.
+# check must never delete or rename a user's CLAUDE.md: it only flags it.
 rm -f "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md" "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
 echo "REAL UPPERCASE" > "$TMP_INSTALL/CLAUDE.md"
 echo "REAL UPPERCASE" > "$TMP_INSTALL/AGENTS.md"
@@ -283,9 +286,9 @@ echo "REAL UPPERCASE" > "$TMP_INSTALL/AGENTS.md"
 
 for name in CLAUDE.md AGENTS.md; do
     if has_exact_file "$TMP_INSTALL" "$name" && [ "$(cat "$TMP_INSTALL/$name")" = "REAL UPPERCASE" ]; then
-        pass "check preserves uppercase-only $name and its content"
+        pass "check preserves uppercase $name and its content"
     else
-        fail "check damaged or removed uppercase-only $name"
+        fail "check damaged or removed uppercase $name"
     fi
 done
 
@@ -294,87 +297,101 @@ echo "probe" > "$TMP_INSTALL/CASE_PROBE"
 if [ ! -f "$TMP_INSTALL/case_probe" ]; then
     echo "stale lowercase" > "$TMP_INSTALL/claude.md"
     echo "stale lowercase" > "$TMP_INSTALL/agents.md"
-    (cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
-    for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
-        lower="${pair%%:*}"
-        upper="${pair##*:}"
-        if ! has_exact_file "$TMP_INSTALL" "$lower" && has_exact_file "$TMP_INSTALL" "$upper" && [ "$(cat "$TMP_INSTALL/$upper")" = "REAL UPPERCASE" ]; then
-            pass "check removes distinct $lower and preserves $upper"
-        else
-            fail "check failed distinct-case cleanup for $upper"
-        fi
-    done
+    check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+    if ! has_exact_file "$TMP_INSTALL" "agents.md" && has_exact_file "$TMP_INSTALL" "AGENTS.md" && [ "$(cat "$TMP_INSTALL/AGENTS.md")" = "REAL UPPERCASE" ]; then
+        pass "check removes distinct agents.md and preserves AGENTS.md"
+    else
+        fail "check failed distinct-case cleanup for AGENTS.md"
+    fi
+    if has_exact_file "$TMP_INSTALL" "claude.md" && has_exact_file "$TMP_INSTALL" "CLAUDE.md" \
+        && echo "$check_output" | grep -q "FAIL: claude.md must not exist" \
+        && echo "$check_output" | grep -q "FAIL: CLAUDE.md must not exist"; then
+        pass "check flags (never deletes) both claude.md and CLAUDE.md"
+    else
+        fail "check did not flag-and-preserve distinct claude.md and CLAUDE.md"
+    fi
 else
     echo "  SKIP: distinct case variants cannot coexist on this filesystem"
 fi
 rm -f "$TMP_INSTALL/CASE_PROBE"
 
 echo ""
-echo "Testing lowercase rename (only lowercase exists)..."
+echo "Testing lowercase files (only lowercase exists)..."
 
-rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
-echo "should become uppercase" > "$TMP_INSTALL/claude.md"
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md"
 echo "should become uppercase" > "$TMP_INSTALL/agents.md"
+echo "lowercase claude" > "$TMP_INSTALL/claude.md"
 
-(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
 
-for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
-    lower="${pair%%:*}"
-    upper="${pair##*:}"
-    if has_exact_file "$TMP_INSTALL" "$upper" && ! has_exact_file "$TMP_INSTALL" "$lower" && [ "$(cat "$TMP_INSTALL/$upper")" = "should become uppercase" ]; then
-        pass "check renames $lower → $upper and preserves content"
-    else
-        fail "check did not safely rename $lower to $upper"
-    fi
-done
-
-# A second check must leave the normalized files intact, not delete their aliases.
-(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
-if has_exact_file "$TMP_INSTALL" "CLAUDE.md" && has_exact_file "$TMP_INSTALL" "AGENTS.md" && [ "$(cat "$TMP_INSTALL/CLAUDE.md")" = "should become uppercase" ] && [ "$(cat "$TMP_INSTALL/AGENTS.md")" = "should become uppercase" ]; then
-    pass "lowercase normalization is idempotent and preserves both files"
+if has_exact_file "$TMP_INSTALL" "AGENTS.md" && ! has_exact_file "$TMP_INSTALL" "agents.md" && [ "$(cat "$TMP_INSTALL/AGENTS.md")" = "should become uppercase" ]; then
+    pass "check renames agents.md → AGENTS.md and preserves content"
 else
-    fail "second check damaged normalized agent files"
+    fail "check did not safely rename agents.md to AGENTS.md"
+fi
+
+if has_exact_file "$TMP_INSTALL" "claude.md" && ! has_exact_file "$TMP_INSTALL" "CLAUDE.md" \
+    && [ "$(cat "$TMP_INSTALL/claude.md")" = "lowercase claude" ] \
+    && echo "$check_output" | grep -q "FAIL: claude.md must not exist" \
+    && echo "$check_output" | grep -q "git rm claude.md"; then
+    pass "check flags lowercase claude.md (not renamed to CLAUDE.md, not deleted)"
+else
+    fail "check did not flag lowercase claude.md correctly"
+fi
+
+# A second check must leave the normalized AGENTS.md intact.
+(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check >/dev/null 2>&1) || true
+if has_exact_file "$TMP_INSTALL" "AGENTS.md" && [ "$(cat "$TMP_INSTALL/AGENTS.md")" = "should become uppercase" ]; then
+    pass "lowercase normalization is idempotent and preserves AGENTS.md"
+else
+    fail "second check damaged normalized AGENTS.md"
 fi
 
 # Clean up test files
 rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/claude.md" "$TMP_INSTALL/agents.md"
 
 echo ""
-echo "Testing CLAUDE.md ↔ AGENTS.md alignment check..."
+echo "Testing AGENTS.md-only rule (CLAUDE.md must not exist)..."
 
-# Create identical files — check should pass
+# Identical CLAUDE.md and AGENTS.md — CLAUDE.md must not exist, so FAIL
 echo "identical content" > "$TMP_INSTALL/CLAUDE.md"
 echo "identical content" > "$TMP_INSTALL/AGENTS.md"
 
 check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
-if echo "$check_output" | grep -q "byte-for-byte identical"; then
-    pass "check passes when CLAUDE.md and AGENTS.md are identical"
+if echo "$check_output" | grep -q "FAIL: CLAUDE.md must not exist" \
+    && echo "$check_output" | grep -q "git rm CLAUDE.md" \
+    && echo "$check_output" | grep -q "CHECK FAILED" \
+    && has_exact_file "$TMP_INSTALL" "CLAUDE.md"; then
+    pass "check fails (without deleting) when CLAUDE.md is identical to AGENTS.md"
 else
-    fail "check did not report identical CLAUDE.md and AGENTS.md"
+    fail "check did not fail on identical CLAUDE.md and AGENTS.md"
 fi
 
-# Create diverged files — check should report failure
+# Diverged files — FAIL
 echo "claude content" > "$TMP_INSTALL/CLAUDE.md"
 echo "agents content" > "$TMP_INSTALL/AGENTS.md"
 
 check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
-if echo "$check_output" | grep -q "FAIL: CLAUDE.md and AGENTS.md have diverged" && echo "$check_output" | grep -q "CHECK FAILED"; then
+if echo "$check_output" | grep -q "FAIL: CLAUDE.md must not exist" && echo "$check_output" | grep -q "CHECK FAILED"; then
     pass "check fails on diverged CLAUDE.md and AGENTS.md"
 else
     fail "check did not fail on diverged CLAUDE.md and AGENTS.md"
 fi
 
-# Only CLAUDE.md exists — AGENTS.md is required, so check must fail
+# Only CLAUDE.md exists — FAIL with a rename hint
 rm -f "$TMP_INSTALL/AGENTS.md"
 
 check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
-if echo "$check_output" | grep -q "FAIL: CLAUDE.md exists but AGENTS.md is missing" && echo "$check_output" | grep -q "CHECK FAILED"; then
-    pass "check fails when CLAUDE.md exists without AGENTS.md"
+if echo "$check_output" | grep -q "FAIL: CLAUDE.md must not exist and AGENTS.md is missing" \
+    && echo "$check_output" | grep -q "git mv CLAUDE.md AGENTS.md" \
+    && echo "$check_output" | grep -q "CHECK FAILED" \
+    && has_exact_file "$TMP_INSTALL" "CLAUDE.md"; then
+    pass "check fails (without renaming) when only CLAUDE.md exists"
 else
-    fail "check did not fail when AGENTS.md is missing"
+    fail "check did not fail when only CLAUDE.md exists"
 fi
 
-# Only AGENTS.md exists — CLAUDE.md is optional, so check must pass cleanly
+# Only AGENTS.md exists — PASS
 rm -f "$TMP_INSTALL/CLAUDE.md"
 echo "agents only" > "$TMP_INSTALL/AGENTS.md"
 
@@ -382,9 +399,9 @@ check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || t
 # (The submodule's manage.sh is intentionally modified here, so only assert
 #  that no agent-instruction FAIL/WARN is reported; the clean-submodule
 #  AGENTS.md-only run above asserts the overall check passes.)
-if echo "$check_output" | grep -q "PASS: AGENTS.md present" \
-    && ! echo "$check_output" | grep -Eq "(FAIL|WARN):.*(CLAUDE|AGENTS)\.md"; then
-    pass "check reports AGENTS.md-only as PASS (CLAUDE.md optional)"
+if echo "$check_output" | grep -q "PASS: AGENTS.md is the only agent instructions file" \
+    && ! echo "$check_output" | grep -Eiq "(FAIL|WARN):.*(CLAUDE|AGENTS)\.md"; then
+    pass "check reports AGENTS.md-only as PASS"
 else
     fail "check did not report AGENTS.md-only as PASS"
     echo "$check_output" | grep -E "FAIL|WARN" | sed 's/^/    /'
@@ -400,36 +417,50 @@ QUICK_CHECK="$REPO_ROOT/skills/skill-orchestrator/scripts/quick-check.sh"
 
 # AGENTS.md only (mentions skills) — must pass
 echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
-if qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)"; then
+if qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && echo "$qc_output" | grep -q "PASS: CLAUDE.md must not exist"; then
     pass "quick-check passes with AGENTS.md only"
 else
     fail "quick-check failed with AGENTS.md only: $(echo "$qc_output" | grep FAIL | tr '\n' ' ')"
 fi
 
-# Identical CLAUDE.md and AGENTS.md — must pass
+# Identical CLAUDE.md — must fail
 cp "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/CLAUDE.md"
-if bash "$QUICK_CHECK" "$TMP_INSTALL" >/dev/null 2>&1; then
-    pass "quick-check passes with identical CLAUDE.md and AGENTS.md"
+qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: CLAUDE.md must not exist"; then
+    pass "quick-check fails with CLAUDE.md identical to AGENTS.md"
 else
-    fail "quick-check failed with identical CLAUDE.md and AGENTS.md"
+    fail "quick-check did not fail with identical CLAUDE.md"
 fi
 
 # Diverged CLAUDE.md — must fail
 echo "Different skills content" > "$TMP_INSTALL/CLAUDE.md"
 qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
-if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: CLAUDE.md matches AGENTS.md"; then
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: CLAUDE.md must not exist"; then
     pass "quick-check fails on diverged CLAUDE.md"
 else
     fail "quick-check did not fail on diverged CLAUDE.md"
 fi
 
-# CLAUDE.md only — must fail (AGENTS.md required)
+# Lowercase claude.md — must fail
+rm -f "$TMP_INSTALL/CLAUDE.md"
+echo "lowercase" > "$TMP_INSTALL/claude.md"
+qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: CLAUDE.md must not exist"; then
+    pass "quick-check fails on lowercase claude.md"
+else
+    fail "quick-check did not fail on lowercase claude.md"
+fi
+rm -f "$TMP_INSTALL/claude.md"
+
+# CLAUDE.md only — must fail (AGENTS.md required, CLAUDE.md forbidden)
+echo "Uses skills" > "$TMP_INSTALL/CLAUDE.md"
 rm -f "$TMP_INSTALL/AGENTS.md"
 qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
-if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: AGENTS.md exists"; then
-    pass "quick-check fails when AGENTS.md is missing"
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: AGENTS.md exists" \
+    && echo "$qc_output" | grep -q "FAIL: CLAUDE.md must not exist"; then
+    pass "quick-check fails when only CLAUDE.md exists"
 else
-    fail "quick-check did not fail when AGENTS.md is missing"
+    fail "quick-check did not fail when only CLAUDE.md exists"
 fi
 
 rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"

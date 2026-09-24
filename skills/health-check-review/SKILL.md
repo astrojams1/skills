@@ -8,7 +8,7 @@ description: >-
   bugs in manage.sh or skills code, suggests improvements to the
   health-check-prompt, and provides step-by-step next steps.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: Health Check Review
@@ -119,7 +119,7 @@ If there are consumer repo actions, output them as a **single agent prompt** ins
 1. `./skills/bin/manage.sh sync` — update the submodule first so all subsequent commands use the latest manage.sh
 2. `./skills/bin/manage.sh check` — auto-fix hooks, discovery dirs, and internal skill leaks using the updated code
 3. Stage and commit — persist all auto-fixes (`git add .claude .agents skills && git commit`)
-4. Manual fixes — anything `check` cannot auto-fix (e.g., CLAUDE.md/AGENTS.md content, missing skills section)
+4. Manual fixes — anything `check` cannot auto-fix (e.g., AGENTS.md content, removing a CLAUDE.md with `git rm`, missing skills section)
 5. Stage and commit manual fixes
 6. **Verification re-run** — always end the prompt with the full health check diagnostic (commands, format rules, and report template) from `skills/health-check-prompt/SKILL.md` so the agent produces a new report proving all sections PASS
 
@@ -163,7 +163,7 @@ None — report is clean. No consumer repo actions needed.
 After making all changes:
 
 1. Run `bin/manage.sh link` to refresh discovery directories
-2. Run `tests/test-identity.sh` to verify CLAUDE.md/AGENTS.md parity
+2. Run `tests/test-identity.sh` to verify AGENTS.md exists and no CLAUDE.md does
 3. Run `python3 tests/test_skills_spec.py` to verify spec compliance
 4. Commit with a descriptive message
 5. Push to the working branch

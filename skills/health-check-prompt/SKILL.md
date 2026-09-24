@@ -90,8 +90,8 @@ diff -rq skills/skills/ .agents/skills/ 2>&1 | head -20
 cat .claude/settings.json 2>/dev/null || echo "FILE NOT FOUND"
 
 # 10. Agent instruction files
-ls -la CLAUDE.md AGENTS.md 2>/dev/null
-if [ ! -f CLAUDE.md ]; then echo "CLAUDE.md ABSENT (optional)"; elif cmp -s CLAUDE.md AGENTS.md; then echo "IDENTICAL"; else echo "DIFFER"; fi
+ls -la AGENTS.md 2>/dev/null || echo "AGENTS.md NOT FOUND"
+ls -A | grep -ix 'claude\.md' && echo "CLAUDE.md PRESENT (must not exist)" || echo "CLAUDE.md ABSENT"
 
 # 11. Skills section in AGENTS.md
 grep -n -i "skills" AGENTS.md 2>/dev/null | head -20
@@ -160,10 +160,9 @@ For items marked `<verbatim ...>`, include the raw command output indented by 4 
 <verbatim JSON from cat .claude/settings.json>
 
 ### 6. Agent Instruction Files
-- **Verdict:** <PASS if AGENTS.md exists with a skills section and CLAUDE.md is absent or identical>
+- **Verdict:** <PASS if AGENTS.md exists with a skills section and no CLAUDE.md exists>
 - **AGENTS.md exists:** <yes with ls -la output | no>
-- **CLAUDE.md exists (optional):** <yes with ls -la output | no>
-- **Identical:** <IDENTICAL | DIFFER | CLAUDE.md ABSENT (optional)>
+- **CLAUDE.md:** <CLAUDE.md ABSENT | CLAUDE.md PRESENT (must not exist)>
 - **Skills section present:** <yes/no>
 <verbatim grep output>
 
@@ -208,8 +207,8 @@ When the consumer agent returns the report, check for these common issues:
 | Discovery dirs missing or not in VCS | `git add .claude .agents` was skipped | Run `manage.sh link` then commit |
 | Content mismatch in discovery dirs | Stale copies after a sync | Run `manage.sh link` |
 | SessionStart hook missing/old format | Old install or manual settings edit | Run `manage.sh check` (auto-fixes) |
-| CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Keep AGENTS.md canonical; delete CLAUDE.md or copy AGENTS.md over it |
-| CLAUDE.md exists but AGENTS.md missing | Project predates AGENTS.md-first convention | `git mv CLAUDE.md AGENTS.md` |
+| CLAUDE.md present alongside AGENTS.md | Project predates the AGENTS.md-only rule | Merge anything unique into AGENTS.md, then `git rm CLAUDE.md` |
+| CLAUDE.md exists but AGENTS.md missing | Project predates the AGENTS.md-only rule | `git mv CLAUDE.md AGENTS.md` |
 | No "Skills" section in AGENTS.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
 | Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
 | `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with flat path) | Submodule is far behind; running an old manage.sh that lacks auto-sync and directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |

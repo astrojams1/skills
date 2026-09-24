@@ -47,8 +47,7 @@ tasks/
 example/
   index.html                               # Static example app showcasing the design system
 vercel.json                                # Vercel config to deploy the example app
-CLAUDE.md                                  # AI agent instructions (Claude)
-AGENTS.md                                  # AI agent instructions (Codex) — must be identical to CLAUDE.md
+AGENTS.md                                  # AI agent instructions (Claude Code and Codex) — the only one; no CLAUDE.md
 ```
 
 Skills follow the [Agent Skills specification](https://agentskills.io/specification). Each skill is a directory containing a `SKILL.md` file with YAML frontmatter (`name`, `description`) and markdown instructions. Skills may also include `references/`, `scripts/`, and `assets/` subdirectories for supplementary material loaded on demand.
@@ -98,7 +97,7 @@ A comprehensive design system skill that applies the "Architectural Minimalist" 
 
 #### How to use this skill in another project
 
-Include the contents of `skills/design-system/SKILL.md` in the target project's `CLAUDE.md` or `AGENTS.md`, or reference it when prompting an AI coding agent to style a project.
+Include the contents of `skills/design-system/SKILL.md` in the target project's `AGENTS.md`, or reference it when prompting an AI coding agent to style a project.
 
 ### Workflow Orchestration
 
@@ -115,7 +114,7 @@ A structured workflow orchestration skill that establishes disciplined developme
 
 #### How to use this skill in another project
 
-Include the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from `skills/workflow-orchestration/SKILL.md` in the target project's `CLAUDE.md` or `AGENTS.md`.
+Include the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from `skills/workflow-orchestration/SKILL.md` in the target project's `AGENTS.md`.
 
 ### Skill Orchestrator
 
@@ -126,7 +125,7 @@ A meta-skill that connects any AI agent project to this repository via a git sub
 - Adding `astrojams1/skills` as a submodule at `skills/` in the target project
 - Configuring the submodule to track `main` for automatic syncing
 - Ensuring fresh clones get the submodule with `--recurse-submodules`
-- Updating the target project's `AGENTS.md` (the single required instructions file; `CLAUDE.md` is optional and, if kept, must be identical) so the agent knows how to read and apply skills from the submodule path
+- Updating the target project's `AGENTS.md` (the only agent instructions file; `CLAUDE.md` must not exist) so the agent knows how to read and apply skills from the submodule path
 
 #### How to use this skill in another project
 
@@ -243,7 +242,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 
 ## Rules
 
-1. **CLAUDE.md and AGENTS.md must always be byte-for-byte identical.** Both files serve the same purpose for different AI agents (Claude and Codex). Any edit to one must be applied to the other. Run `tests/test-identity.sh` to verify.
+1. **AGENTS.md is the only agent instructions file.** Claude Code and Codex both read `AGENTS.md` (Claude Code reads it when no `CLAUDE.md` exists). Never create `CLAUDE.md`, in this repo or in consumer repos. Run `tests/test-identity.sh` to verify.
 2. **Skills follow the Agent Skills spec.** Each skill is a directory under `skills/` containing a `SKILL.md` with valid YAML frontmatter. Run `tests/test_skills_spec.py` to verify. **Always read the [spec](https://agentskills.io/specification) before making structural changes.**
 3. **Skills are self-contained.** Each skill must contain all instructions needed to apply it to a project, with no external dependencies on other skill files.
 4. **Keep skills actionable.** Write skills as step-by-step instructions an AI agent can follow, not as abstract documentation.

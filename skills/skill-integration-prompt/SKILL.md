@@ -105,11 +105,11 @@ Read the agent-instructions template from the submodule:
 cat skills/skills/skill-orchestrator/references/agent-instructions.md
 ```
 
-Create or update `AGENTS.md` in the project root. `AGENTS.md` is the single required agent instructions file; Claude Code reads it automatically when no `CLAUDE.md` exists.
+Create or update `AGENTS.md` in the project root. `AGENTS.md` is the only agent instructions file; Claude Code reads it automatically when no `CLAUDE.md` exists. **Never create `CLAUDE.md`.**
 
-1. If `AGENTS.md` does not exist, create it with the template content. If only `CLAUDE.md` exists, rename it first: `git mv CLAUDE.md AGENTS.md`.
-2. If `AGENTS.md` already exists, append the `## Skills` section from the template to the end of it.
-3. Do not create `CLAUDE.md`. If the project already has both files, keep them byte-for-byte identical and verify: `cmp -s CLAUDE.md AGENTS.md && echo "IDENTICAL" || echo "DIFFER"`
+1. If only `CLAUDE.md` exists, rename it first: `git mv CLAUDE.md AGENTS.md`. If both exist, merge anything unique from `CLAUDE.md` into `AGENTS.md`, then `git rm CLAUDE.md`.
+2. If `AGENTS.md` does not exist, create it with the template content.
+3. If `AGENTS.md` already exists, append the `## Skills` section from the template to the end of it.
 
 Also create `tasks/todo.md` and `tasks/lessons.md` if they don't exist:
 
@@ -140,7 +140,6 @@ Commit:
 
 ```bash
 git add AGENTS.md tasks/
-[ -f CLAUDE.md ] && git add CLAUDE.md
 git commit -m "chore: add agent instructions and task tracking files"
 ```
 
@@ -156,15 +155,12 @@ Read the workflow-orchestration skill:
 cat skills/skills/workflow-orchestration/SKILL.md
 ```
 
-Copy the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from the skill into `AGENTS.md` (and into `CLAUDE.md` only if the project keeps one), placing them after the `## Skills` section you added in Phase 3.
-
-If `CLAUDE.md` exists, verify identity: `cmp -s CLAUDE.md AGENTS.md && echo "IDENTICAL" || echo "DIFFER"`
+Copy the **Workflow Orchestration**, **Task Management**, and **Core Principles** sections from the skill into `AGENTS.md`, placing them after the `## Skills` section you added in Phase 3.
 
 Commit:
 
 ```bash
 git add AGENTS.md
-[ -f CLAUDE.md ] && git add CLAUDE.md
 git commit -m "chore: apply workflow-orchestration skill to agent instructions"
 ```
 
@@ -226,7 +222,7 @@ Final verification checklist:
 - [ ] `.claude/settings.json` has a `SessionStart` hook
 - [ ] `AGENTS.md` exists and contains a `## Skills` section
 - [ ] `AGENTS.md` contains Workflow Orchestration, Task Management, and Core Principles sections
-- [ ] `CLAUDE.md` is absent, or byte-for-byte identical to `AGENTS.md`
+- [ ] No `CLAUDE.md` exists in the project
 - [ ] `tasks/todo.md` and `tasks/lessons.md` exist
 - [ ] Excluded skills (if any) are listed in `.skillsexclude` and absent from discovery directories
 - [ ] `manage.sh check` passes with no failures
@@ -247,7 +243,7 @@ Print a summary of what was done:
 - Discovery directories: `.claude/skills/` and `.agents/skills/` committed
 - Excluded skills: [list from .skillsexclude, or "none"]
 - SessionStart hook: configured in `.claude/settings.json`
-- Agent instructions: AGENTS.md configured (CLAUDE.md absent or identical)
+- Agent instructions: AGENTS.md configured (no CLAUDE.md)
 - Workflow orchestration: applied to agent instructions
 - Design system: [applied / excluded]
 - Task tracking: tasks/todo.md and tasks/lessons.md created
@@ -258,8 +254,8 @@ Print a summary of what was done:
 
 ## Gotchas
 
-- **`--recurse-submodules` forgotten on fresh clones.** After integration, the next `git clone` without `--recurse-submodules` produces a broken setup — `skills/` exists but is empty. The agent-instructions template covers this, but verify it was actually added to CLAUDE.md/AGENTS.md.
+- **`--recurse-submodules` forgotten on fresh clones.** After integration, the next `git clone` without `--recurse-submodules` produces a broken setup — `skills/` exists but is empty. The agent-instructions template covers this, but verify it was actually added to AGENTS.md.
 - **Discovery directories not committed.** `manage.sh install` stages files but doesn't commit. If the agent skips the commit step or it fails silently, the discovery dirs exist locally but aren't in VCS — other developers and CI won't have them.
-- **CLAUDE.md and AGENTS.md drift after Phase 3.** In projects that keep an optional `CLAUDE.md`, agents sometimes edit only one file during Phase 4 (workflow orchestration). Always verify with `cmp -s` after every phase that modifies these files. Projects with only `AGENTS.md` avoid this entirely.
+- **Agents recreate `CLAUDE.md` out of habit.** Some agents create or edit `CLAUDE.md` during Phase 3 or 4. `AGENTS.md` is the only instructions file; if a `CLAUDE.md` appears, merge its content into `AGENTS.md` and `git rm CLAUDE.md`. `manage.sh check` fails until it is gone.
 - **`.skillsexclude` not committed.** When excluding the design system, agents create `.skillsexclude` but sometimes forget to `git add` it. Without it committed, the next `manage.sh link` on a fresh clone copies the excluded skill back.
 - **Phase 2 `install` on an already-installed repo.** The prompt handles this ("idempotent"), but agents sometimes re-run the full Phase 1 submodule add, which fails because the submodule already exists. The `if` guard in Phase 1 prevents this — make sure agents don't skip it.
