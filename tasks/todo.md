@@ -210,3 +210,22 @@ Do not retain credentials, private contact details, device identifiers or tokens
 - Build 21 remains processing in this snapshot; credential setup, physical
   delivery and Apple resubmission remain pending. Later evidence belongs in the
   canonical app ledger and a subsequent milestone.
+
+## Notification delivery handoff and resubmission — September 24, 2026
+
+- [x] Record build 21 validation, APNs handoff and verified Apple resubmission.
+- [x] Preserve the physical visibility/tap limitation and retry/inventory lessons.
+- [x] Refresh discovery copies, run required checks, and prepare the PR change.
+
+Plan: Add a new checkpoint from the release task's verified evidence; preserve the
+earlier processing snapshot and v1.0.9 instructions. Exclude credential IDs,
+tokens, private device details and browser Home Screen captures.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; diff whitespace: pass.
+- Prior checkpoints and v1.0.9 instructions remain unchanged. Discovery copies
+  include the new sanitized milestone; no Newsworthy or provider state was changed.
+- Both Apple review states and build selection are recorded separately from
+  approval/public availability; physical banner and tap remain unverified.

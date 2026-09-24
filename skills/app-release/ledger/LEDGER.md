@@ -19,6 +19,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-17 Newsworthy native header and TestFlight invitation](runs/2026-09-17-newsworthy-native-chrome.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Invitation resolved and physical launch owner-confirmed; native glass-header fix still awaiting replacement-build verification | Unknown / unknown |
 | [2026-09-17 Newsworthy build 7 resubmission](runs/2026-09-17-newsworthy-review-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Physical demo/reply delivered; build 7 version and submission WAITING_FOR_REVIEW; neither approval nor public release established | Unknown / unknown |
 | [2026-09-24 Newsworthy notification checkpoint](runs/2026-09-24-newsworthy-notification-release.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Backend deployed and privacy aligned; build 21 processing; APNs setup, physical delivery and resubmission pending | Unknown / unknown |
+| [2026-09-24 Newsworthy notification resubmission](runs/2026-09-24-newsworthy-notification-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Build 21 VALID/IN_BETA_TESTING; APNs handoff OK; physical subscription controls verified; both Apple review states WAITING_FOR_REVIEW; banner/tap unobserved | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -147,6 +148,11 @@ changing the v1.0.9 instructions: distinguish signing capability, delivery
 credentials, Expo tickets, APNs handoff receipts and physical visibility; compare
 store disclosures with the shipped manifest; reuse authenticated paths while
 preserving production secret access boundaries.
+
+The later resubmission milestone records successful APNs handoff and physical
+subscription changes while retaining the banner/tap visibility limit. Refresh
+browser sessions and check key inventory before repeating credential creation;
+verify the selected build and both Apple review states after submission.
 
 ## Add a run
 
