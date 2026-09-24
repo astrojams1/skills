@@ -134,6 +134,14 @@ Re-read every subsequent message. A reviewer citing a different guideline does
 not establish approval of an earlier concern. Preserve the prior history, record
 the new requested action, and keep reply/resubmission status explicit.
 
+Distinguish the reviewer's actual words from an inferred reason for the request.
+A repeated generic information request does not establish that an earlier video
+was missing, inaccessible or outdated, or that Apple specifically demanded a new
+recording. Inspect the existing review thread, download/access the attachment,
+compare its hash/provenance with retained evidence, and read back saved Notes
+before asking the owner to repeat work. Explain a recommendation for updated
+coverage as a recommendation, not an explicit reviewer instruction.
+
 The September 17 inspection of Apple's public OpenAPI **4.4.1** found review
 submission/item status but no App Review correspondence endpoint. Customer reviews
 and TestFlight feedback are different resources. Recheck current capabilities;
@@ -153,10 +161,15 @@ A request for a physical-device launch recording on the latest OS requires that
 actual evidence. Recheck the OS version on the recording date, confirm the
 submitted app/build, preserve the unaltered recording and verify reviewer access.
 Reassess older recordings after feature changes: a video of an earlier build
-cannot prove a new Settings flow or a different OS/build combination. Check the
+cannot prove a new Settings flow or a different OS/build combination, but this
+alone does not establish why Apple repeated its request. Check the
 current official OS release information and the physical device's current version;
 last-seen device metadata and a busy/disconnected mirroring session are not fresh
 verification. Record unavailable physical access as a separate owner-device gate.
+Inspect any newly supplied recording before sending it. Record only visible
+coverage; a current OS or build number cannot be established from a video that
+does not show them. Preserve those verification limits in the evidence record
+and make no unsupported latest-OS claim in correspondence.
 Simulator captures do not satisfy a physical-device request. Leave missing
 evidence explicitly pending; do not send an incomplete package as a completed
 response or claim testing from device pairing alone. Apply the session's actual

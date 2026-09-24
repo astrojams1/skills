@@ -163,3 +163,15 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Identify the failing process before calling a shell ANR an app crash.
 - A new guideline request does not imply an earlier guideline was approved. A
   historical video cannot demonstrate new features or an unobserved OS/build pair.
+
+## Reviewer wording versus our inference
+
+**Source:** Owner correction during Newsworthy build 21 resubmission (2026-09-24)
+
+- Do not turn a generic repeated information request into an assertion that Apple
+  explicitly demanded a new recording or found the old one missing/outdated.
+- Inspect the existing review attachment, download/hash evidence and saved Notes
+  before asking the owner to repeat work. Label advice for broader coverage as
+  our recommendation when the reviewer did not expressly require replacement.
+- Inspect new media and retain its limits: visible features do not prove an OS or
+  build number that the recording never shows. Do not make unsupported OS claims.

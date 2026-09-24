@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.10**. This index preserves sanitized outcomes and lessons across
+Skill version **1.0.11**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -22,6 +22,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-24 Newsworthy notification resubmission](runs/2026-09-24-newsworthy-notification-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Build 21 VALID/IN_BETA_TESTING; APNs handoff OK; physical subscription controls verified; both Apple review states WAITING_FOR_REVIEW; banner/tap unobserved | Unknown / unknown |
 | [2026-09-24 Newsworthy store follow-up](runs/2026-09-24-newsworthy-store-followup.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | iOS 21 still waiting; Apple paid/address and Google verification gates remain; Android artifact predates current features; Firebase project created, Android push setup pending | Unknown / unknown |
 | [2026-09-24 Newsworthy Android push and renewed Apple request](runs/2026-09-24-newsworthy-android-push-apple-request.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Android 12 delivery/shade/cold-start tap verified on emulator; physical Android untested; Apple 21 rejected under 2.1 with new recording pending | Unknown / unknown |
+| [2026-09-24 Newsworthy recording correction and resubmission](runs/2026-09-24-newsworthy-recording-correction-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Earlier new-recording interpretation corrected; original attachment verified; new 39-second video/reply/Notes delivered; build 21 WAITING_FOR_REVIEW | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -169,6 +170,14 @@ legal record.
   ANR is not evidence of an app crash.
 - Treat each new review message and recording request independently. An omitted
   earlier guideline is not approval, and an older video cannot verify new features.
+
+## Lessons incorporated into v1.0.11
+
+- Separate the reviewer's words from an inferred reason for repeating a request.
+  Inspect existing attachment access/provenance and saved Notes before asking the
+  owner to redo work; recommend extra coverage without claiming it was explicit.
+- Inspect each supplied recording and preserve unshown OS/build limits. A new
+  file, feature coverage and successful submission do not establish latest-OS QA.
 
 ## Add a run
 
