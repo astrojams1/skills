@@ -249,3 +249,22 @@ from completed Android push setup.
 - No private correspondence/contact data retained and no Newsworthy/provider edits.
 - Current feature scope, generic document receipt and fresh provider readbacks are
   distinguished from artifact coverage, case linkage and release readiness.
+
+## Android push verification and renewed Apple request — September 24, 2026
+
+- [x] Record Android build 12 emulator coverage and Apple's new 2.1 request.
+- [x] Add reusable delivery-scope, failing-process and recording-provenance guidance.
+- [x] Refresh discovery copies, verify, and prepare the v1.0.10 PR change.
+
+Plan: Preserve prior snapshots, distinguish emulator from physical-device evidence,
+and keep the latest Apple rejection separate from earlier guideline history.
+Retain no credentials, private device details or recording paths.
+
+### Review
+
+- Management suite: 53 passes; specification: 124 passes; AGENTS-only identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; diff whitespace: pass.
+- New milestone separates emulator evidence from physical-device QA and records
+  the actual new Apple request without treating an omitted guideline as approval.
+- Installed-copy sync follows merge; preserve its six local-only historical
+  milestones and index rows. No Newsworthy files or provider state changed here.

@@ -153,3 +153,13 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - A connector reauthentication failure does not rule out an existing signed-in
   browser; accepted terms and a processing creation request do not establish
   completed infrastructure or working push delivery.
+
+## Notification visibility and renewed review evidence
+
+**Source:** Newsworthy Android 12 and Apple 21 follow-up (2026-09-24)
+
+- Record provider receipts, visible shade content and cold-start tap independently;
+  emulator success is bounded evidence, not a physical-device or Play-account pass.
+- Identify the failing process before calling a shell ANR an app crash.
+- A new guideline request does not imply an earlier guideline was approved. A
+  historical video cannot demonstrate new features or an unobserved OS/build pair.
