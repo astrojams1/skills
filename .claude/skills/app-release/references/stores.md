@@ -130,6 +130,10 @@ Read the rejection or information-request text before proposing fixes. A version
 state alone does not identify a defect. A user-pasted review message is sufficient
 input to prepare a factual response when signed-in correspondence is inaccessible.
 
+Re-read every subsequent message. A reviewer citing a different guideline does
+not establish approval of an earlier concern. Preserve the prior history, record
+the new requested action, and keep reply/resubmission status explicit.
+
 The September 17 inspection of Apple's public OpenAPI **4.4.1** found review
 submission/item status but no App Review correspondence endpoint. Customer reviews
 and TestFlight feedback are different resources. Recheck current capabilities;
@@ -148,6 +152,11 @@ and evidence references in **both**. Saving Notes is not sending correspondence.
 A request for a physical-device launch recording on the latest OS requires that
 actual evidence. Recheck the OS version on the recording date, confirm the
 submitted app/build, preserve the unaltered recording and verify reviewer access.
+Reassess older recordings after feature changes: a video of an earlier build
+cannot prove a new Settings flow or a different OS/build combination. Check the
+current official OS release information and the physical device's current version;
+last-seen device metadata and a busy/disconnected mirroring session are not fresh
+verification. Record unavailable physical access as a separate owner-device gate.
 Simulator captures do not satisfy a physical-device request. Leave missing
 evidence explicitly pending; do not send an incomplete package as a completed
 response or claim testing from device pairing alone. Apply the session's actual

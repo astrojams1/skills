@@ -85,6 +85,20 @@ source; preserve public build references and checksums if useful.
 [Expo submission](https://docs.expo.dev/deploy/submit-to-app-stores/),
 [Apple upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/).
 
+## Notification delivery checks
+
+Verify the app's platform configuration and delivery credential separately from
+its signing entitlement. For matched preview and production artifacts, record
+source/configuration provenance and archive integrity; identify which artifact
+actually ran. Keep credentials and tokens outside tracked evidence.
+
+Exercise permission handling, the intended default threshold, enabling and
+disabling registration, provider ticket/receipt results, visible presentation and
+a cold-start notification tap. Aggregate registration counts can confirm server
+effects without publishing device tokens. Restore test subscriptions to their
+intended state. A provider receipt proves handoff, not visible presentation;
+emulator success does not establish physical-device QA or store account readiness.
+
 ## Native checks and truthful captures
 
 Use supported native UI tools to interact with simulators/devices and capture
@@ -119,6 +133,7 @@ for that simulator/widget, not for Android widgets or physical devices.
 | Observation | Next useful check |
 |---|---|
 | Emulator crashes before Android/app launch | Emulator crash product, SDK library/Qt resource paths, CPU/image compatibility |
+| Home gesture stalls with a SystemUI ANR | Identify the failing OS process and recover the emulator shell; do not label it an app crash without app-process evidence |
 | APK installed but gradients/icons absent | Native image decoder logs and the installed library's actual data-URI handling |
 | App launches in Expo Go but fails in custom release | Native-only modules, web-only head/router code, target configuration and release logs |
 | Android widget build cannot resolve ListenableFuture | Native compile classpath/plugin dependency; in the observed app explicit Android Guava fixed it |
