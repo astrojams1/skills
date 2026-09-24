@@ -8,7 +8,7 @@ description: >-
   ensures fresh clones get the submodule, and trains the target agent to read
   and apply skills from the mounted submodule path.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: Skill Orchestrator
@@ -67,7 +67,8 @@ This verifies and auto-fixes:
 - **Spec-compliant** — all SKILL.md files pass the Agent Skills spec validator
 - **Linked** — auto-refreshes `.claude/skills/` and `.agents/skills/` directories if stale
 - **Hooked** — auto-migrates `.claude/settings.json` hook to current format
-- **Clean** — removes stale lowercase `claude.md`/`agents.md` and legacy flat skill files
+- **Clean** — renames a stale lowercase `agents.md` to `AGENTS.md` and removes legacy flat skill files
+- **AGENTS.md only** — fails if any `CLAUDE.md` (or `claude.md`) exists; it never deletes it for you
 
 Report findings to the user. After auto-fixes, stage and commit the changes.
 
@@ -107,7 +108,7 @@ git submodule update --init --recursive
 
 ## Step 5: Update the Target Project's Agent Instructions
 
-Read [references/agent-instructions.md](references/agent-instructions.md) and copy the section it contains into **both** `CLAUDE.md` and `AGENTS.md` in the target project. Keep both files byte-for-byte identical.
+Read [references/agent-instructions.md](references/agent-instructions.md) and copy the section it contains into `AGENTS.md` in the target project. `AGENTS.md` is the only agent instructions file: Codex reads it, and Claude Code (v2.1.277+) reads it automatically when no `CLAUDE.md` exists. **Never create `CLAUDE.md`.** If the project has one, merge anything unique into `AGENTS.md` and `git rm CLAUDE.md`; if it has only `CLAUDE.md`, `git mv CLAUDE.md AGENTS.md`. `check` fails whenever a `CLAUDE.md` exists.
 
 This template tells the agent in the target project how to:
 - Run `check` at session start and self-heal any issues
@@ -165,8 +166,8 @@ git commit -m "chore: sync skills after upstream improvement"
 - [ ] `.claude/settings.json` has `SessionStart` hook that initializes submodule **and** refreshes skill directories
 - [ ] `./skills/bin/manage.sh check` passes all checks (run immediately after install to verify)
 - [ ] Team README updated with clone instructions
-- [ ] `CLAUDE.md` updated with Skills section (includes session-start check and contributing instructions)
-- [ ] `AGENTS.md` updated identically to `CLAUDE.md`
+- [ ] `AGENTS.md` updated with Skills section (includes session-start check and contributing instructions)
+- [ ] No `CLAUDE.md` in the project (removed with `git rm`, or renamed to `AGENTS.md` if it was the only file)
 - [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues (skill files, hooks)
 - [ ] (Ongoing) Agent runs `sync` when user requests updates
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found

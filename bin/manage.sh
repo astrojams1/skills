@@ -415,9 +415,11 @@ _has_exact_file() {
     return 1
 }
 
-# Detect and clean up stale lowercase agent instruction files.
-# Older conventions used claude.md / agents.md; current convention
-# is uppercase CLAUDE.md / AGENTS.md.
+# Detect and clean up a stale lowercase agents.md.
+# Older conventions used agents.md; the current convention is AGENTS.md.
+# claude.md / CLAUDE.md are never renamed or deleted here: AGENTS.md is the
+# only agent instructions file, and check #12 flags any CLAUDE.md variant
+# for the user to remove.
 # Returns 0 if changes were made, 1 if nothing to do.
 cleanup_lowercase_agent_files() {
     local root="$1"
@@ -425,7 +427,7 @@ cleanup_lowercase_agent_files() {
 
     # Explicit pairs: lowercase → UPPERCASE (avoids tr mangling the extension)
     local pair
-    for pair in "claude.md:CLAUDE.md" "agents.md:AGENTS.md"; do
+    for pair in "agents.md:AGENTS.md"; do
         local lc_file="${pair%%:*}"
         local uc_file="${pair##*:}"
 
@@ -516,7 +518,7 @@ cmd_install() {
     bold "Adding SessionStart hook for automatic submodule initialization..."
     ensure_session_hook "$target"
 
-    # Clean up stale lowercase agent instruction files (claude.md → CLAUDE.md)
+    # Clean up a stale lowercase agents.md (agents.md → AGENTS.md)
     cleanup_lowercase_agent_files "$target" || true
 
     # Stage changes
@@ -533,7 +535,7 @@ cmd_install() {
     echo ""
     bold "Next steps:"
     echo "  1. Commit:  git commit -m \"chore: add astrojams1/skills submodule\""
-    echo "  2. Update your CLAUDE.md and AGENTS.md (see skill-orchestrator SKILL.md Step 5)"
+    echo "  2. Update your AGENTS.md (see skill-orchestrator SKILL.md Step 5; do not create CLAUDE.md)"
     echo "  3. Run:     ./skills/bin/manage.sh status"
 }
 
@@ -895,20 +897,30 @@ print('missing')
         warnings=$((warnings + 1))
     fi
 
-    # 12. CLAUDE.md ↔ AGENTS.md alignment
-    if [ -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
-        if diff -q "$root/CLAUDE.md" "$root/AGENTS.md" > /dev/null 2>&1; then
-            green "PASS: CLAUDE.md and AGENTS.md are byte-for-byte identical"
+    # 12. Agent instructions: AGENTS.md is the only agent instructions file.
+    # Claude Code reads AGENTS.md when no CLAUDE.md exists, so any CLAUDE.md
+    # (either case) must not exist. Flag it; never delete user files.
+    local agents_md_present=false
+    if _has_exact_file "$root" "AGENTS.md"; then
+        agents_md_present=true
+    fi
+    local claude_variant claude_md_found=false
+    for claude_variant in CLAUDE.md claude.md; do
+        _has_exact_file "$root" "$claude_variant" || continue
+        claude_md_found=true
+        if [ "$agents_md_present" = true ]; then
+            red "FAIL: $claude_variant must not exist — AGENTS.md is the only agent instructions file"
+            echo "  Fix: merge anything unique into AGENTS.md, then: git rm $claude_variant"
         else
-            red "FAIL: CLAUDE.md and AGENTS.md have diverged — they must be byte-for-byte identical"
-            failures=$((failures + 1))
+            red "FAIL: $claude_variant must not exist and AGENTS.md is missing — AGENTS.md is the only agent instructions file"
+            echo "  Fix: git mv $claude_variant AGENTS.md"
+            # After the rename the other variant (if any) becomes a plain removal.
+            agents_md_present=true
         fi
-    elif [ -f "$root/CLAUDE.md" ] && [ ! -f "$root/AGENTS.md" ]; then
-        yellow "WARN: CLAUDE.md exists but AGENTS.md is missing"
-        warnings=$((warnings + 1))
-    elif [ ! -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
-        yellow "WARN: AGENTS.md exists but CLAUDE.md is missing"
-        warnings=$((warnings + 1))
+        failures=$((failures + 1))
+    done
+    if [ "$claude_md_found" = false ] && _has_exact_file "$root" "AGENTS.md"; then
+        green "PASS: AGENTS.md is the only agent instructions file (no CLAUDE.md)"
     fi
 
     # Summary
