@@ -35,9 +35,12 @@ verification does not cover the current source or listing scope, so a replacemen
 artifact and appropriate native checks are still needed before release.
 
 The current Android configuration lacked **`googleServicesFile`**, and the
-Firebase account had no Newsworthy project. A project form was prepared with the
-Newsworthy name, but Firebase terms remained unchecked pending explicit legal
-confirmation. **No Firebase project or key was created** at this checkpoint.
+initial Firebase inventory had no Newsworthy project. The owner subsequently
+approved accepting Firebase terms. Terms were accepted and the **Newsworthy
+project was created**, with its overview verified. The project showed the
+**Spark no-cost plan at $0/month**; **Gemini and Analytics were disabled** during
+setup. Android app configuration, FCM credentials and working Android push
+remained **pending** at this checkpoint.
 
 ## Lessons
 
@@ -48,5 +51,6 @@ confirmation. **No Firebase project or key was created** at this checkpoint.
   case linkage, pending review and an unchanged legal record as separate facts.
 - Test existing authenticated alternatives when a connector needs reauthentication.
   A functioning signed-in browser can unblock reading without new credentials.
-- A prepared setup form is not provisioned infrastructure. Record unchecked terms,
-  required confirmation and absent project/key state without implying completion.
+- A prepared setup form or accepted creation request is not completed
+  infrastructure. Preserve the distinction between owner approval, accepted
+  terms, provider processing, configured credentials and working delivery.

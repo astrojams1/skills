@@ -151,4 +151,5 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Do not infer legal-address correction or exact case linkage from a generic
   document-receipt email. Verify the affected record independently.
 - A connector reauthentication failure does not rule out an existing signed-in
-  browser; a prepared project form with unchecked terms is not a created project.
+  browser; accepted terms and a processing creation request do not establish
+  completed infrastructure or working push delivery.

@@ -238,7 +238,8 @@ tokens, private device details and browser Home Screen captures.
 
 Plan: Add a compact sanitized checkpoint, preserving earlier snapshots and skill
 instructions. Distinguish generic document receipt from a verified legal-address
-correction; retain Android setup and terms as pending, not completed.
+correction; distinguish accepted Firebase terms and verified project creation
+from completed Android push setup.
 
 ### Review
 
