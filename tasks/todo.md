@@ -229,3 +229,22 @@ tokens, private device details and browser Home Screen captures.
   include the new sanitized milestone; no Newsworthy or provider state was changed.
 - Both Apple review states and build selection are recorded separately from
   approval/public availability; physical banner and tap remain unverified.
+
+## Store readiness follow-up — September 24, 2026
+
+- [x] Record fresh Apple/Google gates and Android build/configuration limits.
+- [x] Capture evidence-scope and authenticated-fallback lessons.
+- [x] Refresh discovery copies, run required tests, and prepare the PR change.
+
+Plan: Add a compact sanitized checkpoint, preserving earlier snapshots and skill
+instructions. Distinguish generic document receipt from a verified legal-address
+correction; retain Android setup and terms as pending, not completed.
+
+### Review
+
+- Management suite: 46 passes; specification: 124 passes; identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; diff whitespace: pass.
+- Earlier milestones and v1.0.9 instructions unchanged; discovery copies refreshed.
+- No private correspondence/contact data retained and no Newsworthy/provider edits.
+- Current feature scope, generic document receipt and fresh provider readbacks are
+  distinguished from artifact coverage, case linkage and release readiness.

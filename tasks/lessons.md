@@ -140,3 +140,15 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   Mac banner cannot settle whether the physical phone displayed a notification.
 - Refresh stale browser sessions and inspect the key inventory before repeating
   credential creation, so uncertain results do not create duplicate keys.
+
+## Artifact scope and document-receipt limits
+
+**Source:** Newsworthy store follow-up (2026-09-24)
+
+- Re-check the artifact against current source features and listing claims. Earlier
+  verification is bounded to that build's scope; new functionality needs a
+  replacement build and native evidence.
+- Do not infer legal-address correction or exact case linkage from a generic
+  document-receipt email. Verify the affected record independently.
+- A connector reauthentication failure does not rule out an existing signed-in
+  browser; a prepared project form with unchecked terms is not a created project.
