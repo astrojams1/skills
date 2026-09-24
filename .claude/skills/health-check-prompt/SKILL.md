@@ -8,7 +8,7 @@ description: >-
   integration. Use when you need to verify a consumer repo's integration or
   debug issues remotely.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: Health Check Prompt
@@ -91,10 +91,10 @@ cat .claude/settings.json 2>/dev/null || echo "FILE NOT FOUND"
 
 # 10. Agent instruction files
 ls -la CLAUDE.md AGENTS.md 2>/dev/null
-cmp -s CLAUDE.md AGENTS.md && echo "IDENTICAL" || echo "DIFFER"
+if [ ! -f CLAUDE.md ]; then echo "CLAUDE.md ABSENT (optional)"; elif cmp -s CLAUDE.md AGENTS.md; then echo "IDENTICAL"; else echo "DIFFER"; fi
 
-# 11. Skills section in CLAUDE.md
-grep -n -i "skills" CLAUDE.md 2>/dev/null | head -20
+# 11. Skills section in AGENTS.md
+grep -n -i "skills" AGENTS.md 2>/dev/null | head -20
 
 # 12. manage.sh version (which code is actually running)
 git -C skills log --oneline -1 -- bin/manage.sh
@@ -160,10 +160,10 @@ For items marked `<verbatim ...>`, include the raw command output indented by 4 
 <verbatim JSON from cat .claude/settings.json>
 
 ### 6. Agent Instruction Files
-- **Verdict:** <PASS if both exist, identical, and have skills section>
-- **CLAUDE.md exists:** <yes with ls -la output | no>
+- **Verdict:** <PASS if AGENTS.md exists with a skills section and CLAUDE.md is absent or identical>
 - **AGENTS.md exists:** <yes with ls -la output | no>
-- **Identical:** <IDENTICAL or DIFFER>
+- **CLAUDE.md exists (optional):** <yes with ls -la output | no>
+- **Identical:** <IDENTICAL | DIFFER | CLAUDE.md ABSENT (optional)>
 - **Skills section present:** <yes/no>
 <verbatim grep output>
 
@@ -208,8 +208,9 @@ When the consumer agent returns the report, check for these common issues:
 | Discovery dirs missing or not in VCS | `git add .claude .agents` was skipped | Run `manage.sh link` then commit |
 | Content mismatch in discovery dirs | Stale copies after a sync | Run `manage.sh link` |
 | SessionStart hook missing/old format | Old install or manual settings edit | Run `manage.sh check` (auto-fixes) |
-| CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Copy one to the other |
-| No "Skills" section in CLAUDE.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
+| CLAUDE.md and AGENTS.md differ | Manual edit to only one file | Keep AGENTS.md canonical; delete CLAUDE.md or copy AGENTS.md over it |
+| CLAUDE.md exists but AGENTS.md missing | Project predates AGENTS.md-first convention | `git mv CLAUDE.md AGENTS.md` |
+| No "Skills" section in AGENTS.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
 | Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
 | `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with flat path) | Submodule is far behind; running an old manage.sh that lacks auto-sync and directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |
 | Internal skill (e.g. health-check-prompt) in consumer discovery dirs | Old manage.sh copied it before `internal: true` filtering existed | Run `manage.sh check` (latest version removes internal skills automatically) |

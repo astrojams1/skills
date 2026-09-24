@@ -8,7 +8,8 @@
 #   1. Submodule exists and is initialized
 #   2. .claude/skills/ and .agents/skills/ directories exist and are non-empty
 #   3. .claude/settings.json has a SessionStart hook
-#   4. CLAUDE.md and AGENTS.md exist and mention skills
+#   4. AGENTS.md exists and mentions skills (CLAUDE.md is optional; if
+#      present it must be byte-for-byte identical to AGENTS.md)
 
 set -euo pipefail
 
@@ -43,10 +44,14 @@ check ".agents/skills/ directory exists" test -d .agents/skills
 check ".agents/skills/ is non-empty" test "$(ls -A .agents/skills/ 2>/dev/null | head -1)"
 check ".claude/settings.json exists" test -f .claude/settings.json
 check "SessionStart hook configured" grep -q SessionStart .claude/settings.json
-check "CLAUDE.md exists" test -f CLAUDE.md
-check "CLAUDE.md mentions skills" grep -qi skills CLAUDE.md
 check "AGENTS.md exists" test -f AGENTS.md
-check "AGENTS.md matches CLAUDE.md" diff -q CLAUDE.md AGENTS.md
+check "AGENTS.md mentions skills" grep -qi skills AGENTS.md
+# CLAUDE.md is optional: Claude Code reads AGENTS.md when CLAUDE.md is absent.
+if [ -f CLAUDE.md ]; then
+    check "CLAUDE.md matches AGENTS.md" diff -q CLAUDE.md AGENTS.md
+else
+    echo "  SKIP: CLAUDE.md not present (optional; AGENTS.md is canonical)"
+fi
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

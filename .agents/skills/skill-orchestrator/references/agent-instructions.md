@@ -1,6 +1,6 @@
 # Agent Instructions Template
 
-Copy the section below into **both** `CLAUDE.md` and `AGENTS.md` in the target project. Keep both files byte-for-byte identical.
+Copy the section below into `AGENTS.md` in the target project. `AGENTS.md` is the single source of truth: Claude Code reads it automatically when no `CLAUDE.md` exists. `CLAUDE.md` is optional (only needed for older Claude Code versions); if kept, it must be byte-for-byte identical to `AGENTS.md`.
 
 ---
 
@@ -41,7 +41,7 @@ git commit -m "chore: auto-fix skills integration issues"
 
 ### Rules
 
-1. **CLAUDE.md and AGENTS.md must always be byte-for-byte identical.** Both files serve the same purpose for different AI agents. Any edit to one must be applied to the other. Run `./skills/bin/manage.sh check` to verify (check #12 detects divergence).
+1. **AGENTS.md is the single source of truth for agent instructions.** Codex and Claude Code both read it. `CLAUDE.md` is optional; if this project keeps one, it must be byte-for-byte identical to `AGENTS.md`, so apply every edit to both. Run `./skills/bin/manage.sh check` to verify (check #12 fails on divergence or on `CLAUDE.md` without `AGENTS.md`).
 2. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored.
 
 ### How Skills Are Discovered

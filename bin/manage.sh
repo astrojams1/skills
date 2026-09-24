@@ -533,7 +533,7 @@ cmd_install() {
     echo ""
     bold "Next steps:"
     echo "  1. Commit:  git commit -m \"chore: add astrojams1/skills submodule\""
-    echo "  2. Update your CLAUDE.md and AGENTS.md (see skill-orchestrator SKILL.md Step 5)"
+    echo "  2. Update your AGENTS.md (see skill-orchestrator SKILL.md Step 5; CLAUDE.md is optional)"
     echo "  3. Run:     ./skills/bin/manage.sh status"
 }
 
@@ -895,20 +895,23 @@ print('missing')
         warnings=$((warnings + 1))
     fi
 
-    # 12. CLAUDE.md ↔ AGENTS.md alignment
+    # 12. Agent instructions: AGENTS.md is the single source of truth.
+    # CLAUDE.md is optional (Claude Code reads AGENTS.md when no CLAUDE.md
+    # exists); if a project keeps one, it must mirror AGENTS.md exactly.
     if [ -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
         if diff -q "$root/CLAUDE.md" "$root/AGENTS.md" > /dev/null 2>&1; then
             green "PASS: CLAUDE.md and AGENTS.md are byte-for-byte identical"
         else
             red "FAIL: CLAUDE.md and AGENTS.md have diverged — they must be byte-for-byte identical"
+            echo "  Fix: make AGENTS.md canonical, then delete CLAUDE.md or copy AGENTS.md over it"
             failures=$((failures + 1))
         fi
     elif [ -f "$root/CLAUDE.md" ] && [ ! -f "$root/AGENTS.md" ]; then
-        yellow "WARN: CLAUDE.md exists but AGENTS.md is missing"
-        warnings=$((warnings + 1))
+        red "FAIL: CLAUDE.md exists but AGENTS.md is missing — AGENTS.md is the required agent instructions file"
+        echo "  Fix: git mv CLAUDE.md AGENTS.md  (CLAUDE.md is optional; Claude Code reads AGENTS.md)"
+        failures=$((failures + 1))
     elif [ ! -f "$root/CLAUDE.md" ] && [ -f "$root/AGENTS.md" ]; then
-        yellow "WARN: AGENTS.md exists but CLAUDE.md is missing"
-        warnings=$((warnings + 1))
+        green "PASS: AGENTS.md present (CLAUDE.md is optional; Claude Code reads AGENTS.md)"
     fi
 
     # Summary

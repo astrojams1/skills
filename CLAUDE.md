@@ -35,7 +35,7 @@ skills/                                    # Skill definitions (Agent Skills spe
   skill-orchestrator/
     SKILL.md                               # Wire another repo to this skills submodule
     scripts/quick-check.sh                 # Fast pass/fail integration check
-    references/agent-instructions.md       # Template for consumer CLAUDE.md/AGENTS.md
+    references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
@@ -126,7 +126,7 @@ A meta-skill that connects any AI agent project to this repository via a git sub
 - Adding `astrojams1/skills` as a submodule at `skills/` in the target project
 - Configuring the submodule to track `main` for automatic syncing
 - Ensuring fresh clones get the submodule with `--recurse-submodules`
-- Updating the target project's `CLAUDE.md` and `AGENTS.md` so the agent knows how to read and apply skills from the submodule path
+- Updating the target project's `AGENTS.md` (the single required instructions file; `CLAUDE.md` is optional and, if kept, must be identical) so the agent knows how to read and apply skills from the submodule path
 
 #### How to use this skill in another project
 

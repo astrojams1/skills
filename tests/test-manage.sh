@@ -231,6 +231,20 @@ else
     pass "check does not re-apply SessionStart hook fix on subsequent runs"
 fi
 
+# AGENTS.md is the only required instructions file: an AGENTS.md-only
+# project with a clean submodule must pass every check with no warnings.
+echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
+agents_only_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && agents_only_status=0 || agents_only_status=$?
+if [ "$agents_only_status" -eq 0 ] \
+    && echo "$agents_only_output" | grep -q "PASS: AGENTS.md present" \
+    && echo "$agents_only_output" | grep -q "ALL CHECKS PASSED"; then
+    pass "check passes cleanly for an AGENTS.md-only project"
+else
+    fail "check did not pass cleanly for an AGENTS.md-only project"
+    echo "$agents_only_output" | grep -E "FAIL|WARN" | sed 's/^/    /'
+fi
+rm -f "$TMP_INSTALL/AGENTS.md"
+
 echo ""
 echo "Testing flat .md file cleanup in .agents/skills/..."
 
@@ -344,23 +358,80 @@ echo "claude content" > "$TMP_INSTALL/CLAUDE.md"
 echo "agents content" > "$TMP_INSTALL/AGENTS.md"
 
 check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
-if echo "$check_output" | grep -q "diverged"; then
-    pass "check detects diverged CLAUDE.md and AGENTS.md"
+if echo "$check_output" | grep -q "FAIL: CLAUDE.md and AGENTS.md have diverged" && echo "$check_output" | grep -q "CHECK FAILED"; then
+    pass "check fails on diverged CLAUDE.md and AGENTS.md"
 else
-    fail "check did not detect diverged CLAUDE.md and AGENTS.md"
+    fail "check did not fail on diverged CLAUDE.md and AGENTS.md"
 fi
 
-# Only CLAUDE.md exists — should warn about missing AGENTS.md
+# Only CLAUDE.md exists — AGENTS.md is required, so check must fail
 rm -f "$TMP_INSTALL/AGENTS.md"
 
 check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
-if echo "$check_output" | grep -q "AGENTS.md is missing"; then
-    pass "check warns when AGENTS.md is missing"
+if echo "$check_output" | grep -q "FAIL: CLAUDE.md exists but AGENTS.md is missing" && echo "$check_output" | grep -q "CHECK FAILED"; then
+    pass "check fails when CLAUDE.md exists without AGENTS.md"
 else
-    fail "check did not warn about missing AGENTS.md"
+    fail "check did not fail when AGENTS.md is missing"
+fi
+
+# Only AGENTS.md exists — CLAUDE.md is optional, so check must pass cleanly
+rm -f "$TMP_INSTALL/CLAUDE.md"
+echo "agents only" > "$TMP_INSTALL/AGENTS.md"
+
+check_output="$(cd "$TMP_INSTALL" && bash skills/bin/manage.sh check 2>&1)" || true
+# (The submodule's manage.sh is intentionally modified here, so only assert
+#  that no agent-instruction FAIL/WARN is reported; the clean-submodule
+#  AGENTS.md-only run above asserts the overall check passes.)
+if echo "$check_output" | grep -q "PASS: AGENTS.md present" \
+    && ! echo "$check_output" | grep -Eq "(FAIL|WARN):.*(CLAUDE|AGENTS)\.md"; then
+    pass "check reports AGENTS.md-only as PASS (CLAUDE.md optional)"
+else
+    fail "check did not report AGENTS.md-only as PASS"
+    echo "$check_output" | grep -E "FAIL|WARN" | sed 's/^/    /'
 fi
 
 # Clean up
+rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
+
+echo ""
+echo "Testing quick-check.sh agent instruction checks..."
+
+QUICK_CHECK="$REPO_ROOT/skills/skill-orchestrator/scripts/quick-check.sh"
+
+# AGENTS.md only (mentions skills) — must pass
+echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
+if qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)"; then
+    pass "quick-check passes with AGENTS.md only"
+else
+    fail "quick-check failed with AGENTS.md only: $(echo "$qc_output" | grep FAIL | tr '\n' ' ')"
+fi
+
+# Identical CLAUDE.md and AGENTS.md — must pass
+cp "$TMP_INSTALL/AGENTS.md" "$TMP_INSTALL/CLAUDE.md"
+if bash "$QUICK_CHECK" "$TMP_INSTALL" >/dev/null 2>&1; then
+    pass "quick-check passes with identical CLAUDE.md and AGENTS.md"
+else
+    fail "quick-check failed with identical CLAUDE.md and AGENTS.md"
+fi
+
+# Diverged CLAUDE.md — must fail
+echo "Different skills content" > "$TMP_INSTALL/CLAUDE.md"
+qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: CLAUDE.md matches AGENTS.md"; then
+    pass "quick-check fails on diverged CLAUDE.md"
+else
+    fail "quick-check did not fail on diverged CLAUDE.md"
+fi
+
+# CLAUDE.md only — must fail (AGENTS.md required)
+rm -f "$TMP_INSTALL/AGENTS.md"
+qc_output="$(bash "$QUICK_CHECK" "$TMP_INSTALL" 2>&1)" && qc_status=0 || qc_status=$?
+if [ "$qc_status" -ne 0 ] && echo "$qc_output" | grep -q "FAIL: AGENTS.md exists"; then
+    pass "quick-check fails when AGENTS.md is missing"
+else
+    fail "quick-check did not fail when AGENTS.md is missing"
+fi
+
 rm -f "$TMP_INSTALL/CLAUDE.md" "$TMP_INSTALL/AGENTS.md"
 
 echo ""

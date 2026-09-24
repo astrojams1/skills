@@ -8,7 +8,7 @@ description: >-
   ensures fresh clones get the submodule, and trains the target agent to read
   and apply skills from the mounted submodule path.
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Skill: Skill Orchestrator
@@ -107,7 +107,7 @@ git submodule update --init --recursive
 
 ## Step 5: Update the Target Project's Agent Instructions
 
-Read [references/agent-instructions.md](references/agent-instructions.md) and copy the section it contains into **both** `CLAUDE.md` and `AGENTS.md` in the target project. Keep both files byte-for-byte identical.
+Read [references/agent-instructions.md](references/agent-instructions.md) and copy the section it contains into `AGENTS.md` in the target project. `AGENTS.md` is the single required agent instructions file: Codex reads it, and Claude Code (v2.1.277+) reads it automatically when no `CLAUDE.md` exists. `CLAUDE.md` is optional and only needed for older Claude Code versions; if the project keeps one, it must be byte-for-byte identical to `AGENTS.md` (`check` fails on divergence, and fails if `CLAUDE.md` exists without `AGENTS.md`).
 
 This template tells the agent in the target project how to:
 - Run `check` at session start and self-heal any issues
@@ -165,8 +165,8 @@ git commit -m "chore: sync skills after upstream improvement"
 - [ ] `.claude/settings.json` has `SessionStart` hook that initializes submodule **and** refreshes skill directories
 - [ ] `./skills/bin/manage.sh check` passes all checks (run immediately after install to verify)
 - [ ] Team README updated with clone instructions
-- [ ] `CLAUDE.md` updated with Skills section (includes session-start check and contributing instructions)
-- [ ] `AGENTS.md` updated identically to `CLAUDE.md`
+- [ ] `AGENTS.md` updated with Skills section (includes session-start check and contributing instructions)
+- [ ] `CLAUDE.md` absent, or byte-for-byte identical to `AGENTS.md`
 - [ ] (Ongoing) Agent runs `check` at session start and auto-fixes issues (skill files, hooks)
 - [ ] (Ongoing) Agent runs `sync` when user requests updates
 - [ ] (Ongoing) Improve skills upstream when gaps or errors are found
