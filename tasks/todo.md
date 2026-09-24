@@ -268,3 +268,22 @@ Retain no credentials, private device details or recording paths.
   the actual new Apple request without treating an omitted guideline as approval.
 - Installed-copy sync follows merge; preserve its six local-only historical
   milestones and index rows. No Newsworthy files or provider state changed here.
+
+## Recording interpretation correction and resubmission — September 24, 2026
+
+- [x] Correct the inference that Apple's generic message required a new recording.
+- [x] Record existing-attachment verification, inspected new media and resubmission.
+- [x] Refresh discovery copies, verify and prepare the v1.0.11 PR change.
+
+Plan: Preserve the previous snapshot with a dated correction. Teach agents to
+inspect existing evidence before asking the owner to repeat work, and retain the
+new recording's actual coverage and unverified OS/build limits.
+
+### Review
+
+- Management suite: 53 passes; specification: 124 passes; AGENTS-only identity: pass.
+- Ledger tests: 4 passes; mocked Apple API tests: 8 passes; diff whitespace: pass.
+- The old snapshot carries an explicit dated correction; the new milestone records
+  actual media coverage and resubmission without claiming an unshown OS/build.
+- Installed-copy sync follows merge while retaining local-only history. No
+  Newsworthy files, private recording paths or provider state changed here.

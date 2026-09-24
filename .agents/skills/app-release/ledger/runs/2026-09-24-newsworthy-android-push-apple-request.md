@@ -2,6 +2,14 @@
 
 Recorded: **2026-09-24**. Skill version: **1.0.10**. Token/cost metrics: unknown.
 
+**Dated correction, September 24:** The statement below that Apple specifically
+requested a new recording was an overconfident interpretation. Its generic 2.1
+message did not say the earlier attachment was missing or outdated. The original
+attachment was later verified accessible with its historical hash. See the
+[correction and resubmission milestone](2026-09-24-newsworthy-recording-correction-resubmission.md)
+for the verified evidence and subsequent outcome. The original snapshot is
+retained as history with this correction attached.
+
 This sanitized milestone records verified evidence supplied by the release task.
 The [canonical app ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md)
 and its `store/android-notifications-12.json` and
