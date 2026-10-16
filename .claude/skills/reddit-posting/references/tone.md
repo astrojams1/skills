@@ -2,10 +2,10 @@
 
 ## Test-for-test (Google Play closed testing)
 
-A plain ask: what you need, the two links, an offer to test back. No tagline.
+A plain ask: what you need, the two links, an offer to test back. No tagline. The title follows the swap communities' common format.
 
 ```
-Title: Looking for Android testers for my <kind of> app
+Title: [Test for Test] <App> – <what it is, plainly> (14 days, I test yours back)
 
 I need 12 testers for Google Play's 14-day closed test.
 Join the group: <Google Group link>
