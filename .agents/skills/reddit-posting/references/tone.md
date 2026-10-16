@@ -2,18 +2,15 @@
 
 ## Test-for-test (Google Play closed testing)
 
-The common shape in r/AndroidClosedTesting and r/TestersCommunity: what the app
-is, the join links, the 14-day ask, and an offer to test back. Replace the
-bracketed parts; keep the line count.
+A plain ask: what you need, the two links, an offer to test back. No tagline.
 
 ```
-Title: [Test for test] <App>: <what it does in 4 words>
+Title: Looking for Android testers for my <kind of> app
 
-<One line: what it is.>
-1. Join: <Google Group link>
-2. Install: <Play opt-in link>
-3. Keep it 14 days.
-I'll test yours. Drop your links.
+I need 12 testers for Google Play's 14-day closed test.
+Join the group: <Google Group link>
+Then install: <Play opt-in link>
+Happy to test your app too.
 ```
 
 ## Reply lines
@@ -32,9 +29,12 @@ Before (63 words):
 > appreciate it if anyone could help me out with Google's 12 tester
 > requirement! Happy to return the favor. Thanks so much!
 
-After (26 words):
-> One number out of 10 for how significant world news is right now.
-> 1. Join: <group>
-> 2. Install: <opt-in>
-> 3. Keep it 14 days.
-> I'll test yours. Drop your links.
+After (plain ask):
+> I need 12 testers for Google Play's 14-day closed test.
+> Join the group: <group>
+> Then install: <opt-in>
+> Happy to test your app too.
+
+Also too much: a slogan title ("World news, rated by significance"), a "[Test
+for test]" tag the subreddit does not require, or clipped imperatives like
+"Drop your links." Say it the way you would ask a person.

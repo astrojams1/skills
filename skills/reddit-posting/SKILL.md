@@ -2,7 +2,7 @@
 name: reddit-posting
 description: Write, post and follow up Reddit posts and replies for a project, such as recruiting app testers, test-for-test swaps or launch notes, in a wildly concise voice that matches the subreddit. Use when asked to post on Reddit, recruit testers there, answer Reddit comments, or keep a Reddit outreach log.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Reddit posting
@@ -17,8 +17,10 @@ so the next session knows what was said, where, and what is owed.
 - Reply: one line. Two if a question needs an answer and a thank-you.
 - Cut greetings, backstory, adjectives, apologies, emoji, hashtags, "I hope",
   "feel free", "any feedback appreciated", and a closing thanks paragraph.
-- Plain words, no marketing. Never claim more than the project's own copy does,
-  and follow its messaging rules (for example, words it never uses).
+- Make the ask simply: what you need and how to help, in the words you would
+  say to a person. No taglines, slogans, pitch lines or product adjectives;
+  describe the product only if the ask needs it, in one plain clause. Follow the
+  project's messaging rules (for example, words it never uses).
 - Match the subreddit's format before your own taste: if regulars use
   `[Test for test]` titles or a fixed template, use it.
 
