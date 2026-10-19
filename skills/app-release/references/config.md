@@ -76,7 +76,8 @@ Keep store copy in one place: other docs and pages link to the store data rather
 
 ## Onboarding a new app
 
-1. Add the skills submodule (`skill-orchestrator`), or update it, so `skills/skills/app-release/` exists.
+1. Add the skills submodule (`skill-orchestrator`), or update it, so `skills/skills/app-release/` exists
+   (mount it at `vendor/skills/` if the repository already has a `skills/` folder of its own).
 2. Write `app-release.config.json` and the store data file; make the app config read `buildNumberEnv`,
    `versionCodeEnv` and `buildShaEnv`.
 3. `node skills/skills/app-release/scripts/ledger.mjs init --objective "…"`, then record `scope` with the

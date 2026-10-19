@@ -7,7 +7,8 @@
 //
 //   node ledger.mjs init --objective TEXT [--platforms web,ios,android]   create the ledger (refuses to overwrite)
 //   node ledger.mjs record --gate ID --summary TEXT [--state S] [--owner O] [--basis B] [--evidence TEXT]... [--next TEXT]
-//   node ledger.mjs status [--stale-days N]   unfinished gates, release gates first, stale ones flagged
+//   node ledger.mjs status [--stale-days N]   unfinished gates, release gates first, stale ones flagged, and a warning
+//                                             when this skill's checkout is behind the skills repository's main
 //   node ledger.mjs render | check | validate
 
 import { spawnSync } from 'node:child_process';
@@ -15,6 +16,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
+import { checkFreshness } from './lib/freshness.mjs';
 
 export const STATES = ['todo', 'in_progress', 'waiting_user', 'waiting_provider', 'waiting_verification', 'uncertain', 'failed', 'done', 'not_applicable'];
 export const OWNERS = ['agent', 'user', 'provider'];
@@ -262,6 +264,9 @@ async function main(args) {
     console.log('Ledger valid: ' + Object.keys(ledger.steps).length + ' gates, ' + ledger.events.length + ' events, ' + warnings.length + ' warnings.');
   } else if (command === 'status') {
     console.log(statusLines(ledger, new Date(), Number(flags['stale-days'] || 7)).join('\n'));
+    // Every run starts here, so this is where an outdated copy of the skill is caught.
+    const stale = checkFreshness();
+    if (stale) console.log('\n! ' + stale);
   } else if (command === 'record') {
     const outcome = record(ledger, { gate: flags.gate, state: flags.state, owner: flags.owner, basis: flags.basis, summary: flags.summary,
       evidence: flags.evidence, next: flags.next });

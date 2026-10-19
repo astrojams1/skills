@@ -34,12 +34,19 @@ app stays with that app unless the owner says it applies to all of them.
    store data fields, commands their repository skills or docs name. A breaking change ships with the
    migration for each app, or waits.
 4. Open the pull request (with the owner's approval to push). After it merges, update each app's submodule
-   pointer (`git -C skills fetch origin main && git -C skills checkout origin/main`, or
-   `./skills/bin/manage.sh sync`) in that app's own pull request, and run a read-only command there
+   pointer (`git -C <submodule> fetch origin main && git -C <submodule> checkout origin/main`, where the
+   submodule is `skills/` or `vendor/skills/`, or `./skills/bin/manage.sh sync`) in that app's own pull request, and run a read-only command there
    (`asc.mjs status`, `android-release.mjs tracks`, `ledger.mjs status`) to confirm it still works.
 5. If the skills repository cannot be changed in this session, make no local workaround that hides the gap:
    record the proposed change as a next action in the app's ledger (`ledger.mjs record --gate
    skill.app-release …`) and tell the owner.
+
+## Staying current
+
+`ledger.mjs status`, the first command of every run, fetches the skills repository's main and warns when the
+copy it runs from is behind. Update the submodule in the app repository (its own small pull request) before a
+release relies on the newer behavior. Repositories that ran `manage.sh install` also sync it at session
+start.
 
 ## Change an app's repository skill
 

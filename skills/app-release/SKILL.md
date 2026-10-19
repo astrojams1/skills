@@ -15,7 +15,8 @@ with that app's facts and extra gates. The process is the same for a game and a 
 stores ask differ ([app types](references/app-types.md)).
 
 Scripts are in this skill's `scripts/` (Node 22, no dependencies). Run them from the app repository, where
-they find its configuration: `S=skills/skills/app-release/scripts`.
+they find its configuration: `S=skills/skills/app-release/scripts` (the skills submodule is at `skills/`,
+or `vendor/skills/` where the repository's own `skills/` folder is taken, as in Newsworthy).
 
 | Script | Does |
 |---|---|
@@ -30,7 +31,9 @@ they find its configuration: `S=skills/skills/app-release/scripts`.
 1. Read the repository's `AGENTS.md`, its repository release skill, `app-release.config.json`, the store
    data, git state and the latest `main`. Preserve local work.
 2. Read the ledger before anything else: `node $S/ledger.mjs status`, then the latest run-log entry. It says
-   which one-time steps are done and what each open gate waits on. Resume verified work; never redo it.
+   which one-time steps are done and what each open gate waits on. Resume verified work; never redo it. If it
+   warns that this skill is behind the skills repository's main, update the submodule first
+   ([maintaining](references/maintaining.md)).
 3. Read provider state, not memory: `node $S/asc.mjs status`, `node $S/android-release.mjs tracks`,
    `node $S/play.mjs status`. Record anything that changed since the ledger's last event.
 4. Establish the requested platforms and target state (testing, review, live), monetization, territories

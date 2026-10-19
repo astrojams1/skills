@@ -133,7 +133,7 @@ test('the ledger CLI initializes, records, renders and checks inside an app repo
     mkdirSync(join(root, 'store'));
     writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', repository: 'https://example.com/r',
       ledger: { gates: 'store/ledger.json', view: 'store/ledger.md' }, ios: {} }));
-    const run = args => spawnSync(process.execPath, [LEDGER_SCRIPT].concat(args), { cwd: root, encoding: 'utf8', env: Object.assign({}, process.env, { APP_RELEASE_CONFIG: '' }) });
+    const run = args => spawnSync(process.execPath, [LEDGER_SCRIPT].concat(args), { cwd: root, encoding: 'utf8', env: Object.assign({}, process.env, { APP_RELEASE_CONFIG: '', APP_RELEASE_SKIP_FRESHNESS: '1' }) });
     assert.equal(run(['init', '--objective', 'Ship 1.0']).status, 0);
     assert.notEqual(run(['init', '--objective', 'Again']).status, 0, 'init never overwrites');
     const recorded = run(['record', '--gate', 'apple.upload', '--state', 'done', '--owner', 'agent', '--basis', 'observed', '--summary', 'Build 3 VALID', '--evidence', 'asc status']);
@@ -149,4 +149,12 @@ test('the ledger CLI initializes, records, renders and checks inside an app repo
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('an outdated copy of the skill is reported with the way to update it', async () => {
+  const { freshnessMessage, checkFreshness } = await import('../../skills/app-release/scripts/lib/freshness.mjs');
+  assert.equal(freshnessMessage(0, '/repo/skills'), null);
+  assert.match(freshnessMessage(1, '/repo/skills'), /1 commit behind.*git -C \/repo\/skills fetch origin main/);
+  assert.match(freshnessMessage(3, '/repo/vendor/skills'), /3 commits behind/);
+  assert.equal(checkFreshness({ APP_RELEASE_SKIP_FRESHNESS: '1' }), null);
 });
