@@ -199,7 +199,7 @@ async function images(account, hold) {
 
 async function main(args) {
   const command = args[0];
-  const hold = args.includes('--hold');
+  let hold = args.includes('--hold');
   const unknown = args.slice(1).filter(arg => arg !== '--hold');
   if (!['status', 'listing', 'images'].includes(command) || unknown.length) {
     console.log('Usage: node skills/skills/app-release/scripts/play.mjs status | listing [--hold] | images [--hold]');
@@ -207,6 +207,7 @@ async function main(args) {
     return;
   }
   load();
+  if (CONFIG.android && CONFIG.android.holdForReview === true) hold = true;
   const account = playAccount();
   if (command === 'status') await status(account);
   if (command === 'listing') await listing(account, hold);

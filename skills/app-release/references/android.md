@@ -61,7 +61,8 @@ node $S/play.mjs status | listing | images             # store presence (see bel
   review in progress and resubmit everything, so the upload fails instead. **`--hold`** commits with
   `changesNotSentForReview=true`: the changes wait in Publishing overview until the owner sends them. Play
   requires `--hold` while an earlier submission stands rejected (Newsworthy version 16, 19 October 2026), and
-  then a separate `:validate` call refuses the edit, so the scripts let commit validate it.
+  then a separate `:validate` call refuses the edit, so the scripts let commit validate it. An app whose owner always sends
+  changes from the console sets `android.holdForReview: true` (Newsworthy).
 - Tracks are `internal`, `alpha` (closed testing) and `beta` (open testing); Google documents internal
   testing's API name as `qa`, so the script uses whichever Play lists. **Production stays in Play Console.**
   Every upload, promotion and listing write is outward-facing: ask the owner before each one.

@@ -513,6 +513,8 @@ async function main(args) {
   }
   const flags = parseArgs(args);
   setup();
+  // An app whose owner sends every change for review from Play Console holds every commit by default.
+  if (ANDROID.holdForReview === true) flags.hold = true;
   const env = toolchainEnv(process.env);
   const needsPlay = ['next-version-code', 'tracks', 'promote'].includes(flags.command) || Boolean(flags.track) || flags.versionCode === null;
   const account = needsPlay ? playAccount() : null;

@@ -54,6 +54,7 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `googleServices` | `true` passes the vault's Firebase file to prebuild as `GOOGLE_SERVICES_JSON` (push) |
 | `requiredResources` | Resources the bundle must contain, such as `string/google_app_id` for push |
 | `blockedPermissions` | Permissions the merged manifest must not request |
+| `holdForReview` | `true` makes every Play commit `--hold` (`changesNotSentForReview`): the owner sends changes for review from Publishing overview |
 
 Environment overrides, for a run without the vault: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_PATH`;
 `ANDROID_UPLOAD_KEYSTORE`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD`; `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`;
