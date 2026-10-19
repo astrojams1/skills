@@ -24,7 +24,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Process health check reports and fix issues
   app-release/
     SKILL.md                               # App Store + Google Play release process for every app
-    references/{config,accounts,ios,android,privacy,media,verification,app-types,ledger}.md
+    references/{config,accounts,ios,android,privacy,media,verification,app-types,ledger,maintaining}.md
     scripts/{ledger,ios-release,asc,android-release,play}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
     assets/                                # Config, store data and repository-skill templates
     ledger/LEDGER.md, ledger/runs/         # Cross-app run index and lessons
@@ -206,7 +206,7 @@ what differs for games, news apps and paid downloads.
 
 Consumer repos get it through the skills submodule and run the scripts from their root, for example
 `node skills/skills/app-release/scripts/asc.mjs status`. Onboard a new app with `references/config.md`.
-Newsworthy and Space Worms use it. After changing a script, run `node --test tests/app-release/*.test.mjs`.
+Newsworthy and Space Worms use it. A change requested from an app repository is routed by `references/maintaining.md`: anything true of every app lands here, app facts stay in the app. After changing a script, run `node --test tests/app-release/*.test.mjs`.
 
 ## Internal Skills
 

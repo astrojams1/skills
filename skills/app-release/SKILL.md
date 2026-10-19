@@ -1,6 +1,6 @@
 ---
 name: app-release
-description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, or when resuming a release across sessions.
+description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
   version: "2.0.0"
 ---
@@ -97,11 +97,14 @@ fix, make the smallest root-cause correction, and ship it on its own branch and 
 when tightly related), recorded in the run log's bug-fix table. Follow the repository's own PR, review and
 merge rules; a user-facing change waits for the owner's OK where the repository says so.
 
-## Improve this skill
+## Changing this skill
 
-When a run teaches something true of every app, change this skill (source under `skills/app-release/` in the
-skills repository, never a discovery copy) with a test for any script change, and add a sanitized row to the
-[skill ledger](ledger/LEDGER.md). App-specific facts belong in the app's repository skill.
+When the owner asks to change how releases work — in any app repository, even when they name only that
+app's skill — or a run teaches something worth keeping, first decide where the change belongs and say so:
+true of every app goes **here** (the skills repository's `skills/app-release/`, on a branch with tests,
+then each app's submodule is bumped); a fact or choice of one app goes in that app's config, store data or
+repository skill; a mix is split. Never edit a discovery copy or the submodule checkout in place. The
+procedure, including checking every app that uses this skill, is in [maintaining](references/maintaining.md).
 
 ## Finish
 
