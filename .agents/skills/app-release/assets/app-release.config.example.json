@@ -1,0 +1,34 @@
+{
+  "app": "Example",
+  "slug": "example",
+  "type": "game",
+  "repository": "https://github.com/astrojams1/example",
+  "projectDir": ".",
+  "storeData": "store/store.json",
+  "buildRoot": "/Volumes/ssd/builds",
+  "buildShaEnv": "EXPO_PUBLIC_BUILD_SHA",
+  "ledger": { "gates": "store/ledger.json", "view": "store/ledger.md", "runs": "store/runs.md" },
+  "activityLog": "~/Library/Application Support/AgentActivityLedger/events.jsonl",
+  "ios": {
+    "ascAppId": "0000000000",
+    "bundleId": "com.example.app",
+    "bundleIdResource": "XXXXXXXXXX",
+    "teamId": "CWQ9AWJF8T",
+    "scheme": "Example",
+    "buildNumberEnv": "EXAMPLE_IOS_BUILD_NUMBER",
+    "vault": "op://API Tokens/App Store Connect",
+    "testflightGroup": "Release QA",
+    "requiredEntitlements": {}
+  },
+  "android": {
+    "package": "com.example.app",
+    "vault": "op://API Tokens/Example Android",
+    "keyAlias": "upload",
+    "versionCodeEnv": "EXAMPLE_ANDROID_VERSION_CODE",
+    "artifactName": "Example",
+    "minTargetSdk": 36,
+    "googleServices": false,
+    "requiredResources": [],
+    "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"]
+  }
+}

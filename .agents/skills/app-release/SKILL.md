@@ -1,118 +1,116 @@
 ---
 name: app-release
-description: Ship or resume a web and mobile app release end to end, including Expo/EAS builds, native verification, App Store Connect, Google Play, paid pricing, store artwork, submissions, and a persistent release ledger. Use when preparing an app launch, unblocking store setup, or continuing a release across sessions.
+description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "1.0.11"
+  version: "2.0.0"
 ---
 
 # App release
 
-Carry the user's app to the requested release state while preserving its product,
-web presence, repository workflow, pricing model, and existing authorization.
-This skill coordinates delivery of an existing app; it does not choose a new
-product or require Expo when the project uses another native stack.
+Carry an app from source to the release state the owner asked for, on both stores, with as few manual
+steps as the stores allow, and leave a ledger any later session can resume from. One process serves every
+app; what differs per app lives in its repository: `app-release.config.json` (identity, vault items, build
+settings, ledger paths), a store data file (everything the stores display) and a thin repository skill
+with that app's facts and extra gates. The process is the same for a game and a news app; the questions the
+stores ask differ ([app types](references/app-types.md)).
+
+Scripts are in this skill's `scripts/` (Node 22, no dependencies). Run them from the app repository, where
+they find its configuration: `S=skills/skills/app-release/scripts` (the skills submodule is at `skills/`,
+or `vendor/skills/` where the repository's own `skills/` folder is taken, as in Newsworthy).
+
+| Script | Does |
+|---|---|
+| `ledger.mjs` | Gate ledger: `init`, `record`, `status`, `render`, `check`, `validate` |
+| `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
+| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `release --confirm` |
+| `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
+| `play.mjs` | Play store presence: `status`, `listing`, `images` |
 
 ## Start or resume
 
-1. Read the project's agent instructions, product claims, release configuration,
-   existing store files, git state, and latest target branch. Preserve local work.
-2. Find the project's canonical release ledger before creating accounts, apps,
-   builds, certificates, submissions, or support tickets. Resume verified work.
-   Read [ledger protocol](references/ledger.md); use [ledger.py](scripts/ledger.py)
-   for new runs. The [skill ledger](ledger/LEDGER.md) is a retrospective index,
-   not live evidence or permission for another app/account.
-3. Establish the requested platforms, target release state (testing/review/live),
-   app identifiers, account/team, monetization and currency, availability, and
-   release behavior. Infer from explicit instructions and repo facts; ask only
-   about genuinely missing consequential choices. Do not import Newsworthy's
-   $1 price, no-ads promise, account IDs, or UI design into another app.
-4. Inspect callable connectors/CLIs and existing signed-in browser sessions.
-   Prefer a functioning API/CLI; use the supported browser/native UI tools for
-   gaps. Check alternative authenticated paths before assigning work to the user.
-   Discover tools rather than inventing MCP names. Do not make a new credential,
-   broaden access, or install a plugin merely because an existing path is awkward.
-5. Write the intended gates and evidence into the ledger, then advance independent
-   work while account verification or provider processing is pending.
+1. Read the repository's `AGENTS.md`, its repository release skill, `app-release.config.json`, the store
+   data, git state and the latest `main`. Preserve local work.
+2. Read the ledger before anything else: `node $S/ledger.mjs status`, then the latest run-log entry. It says
+   which one-time steps are done and what each open gate waits on. Resume verified work; never redo it. If it
+   warns that this skill is behind the skills repository's main, update the submodule first
+   ([maintaining](references/maintaining.md)).
+3. Read provider state, not memory: `node $S/asc.mjs status`, `node $S/android-release.mjs tracks`,
+   `node $S/play.mjs status`. Record anything that changed since the ledger's last event.
+4. Establish the requested platforms and target state (testing, review, live), monetization, territories
+   and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
+   choice that is genuinely missing. Never import another app's price, claims, IDs or design.
+5. Write the intended gates into the ledger, then advance independent work while account verification,
+   provider processing or review is pending.
+
+For an app that has none of this yet, follow Onboarding a new app in [config](references/config.md).
 
 ## Release path
 
-Read only the references needed for the current gate.
-
-| Gate | Required result / reference |
+| Gate | Result / reference |
 |---|---|
-| Product and web | Accurate copy/price, live backend, policy/support URLs, web retained; [builds and verification](references/builds.md) |
-| Account readiness | Correct team and legal entity, membership, agreements, payout/tax status, store verification; [stores](references/stores.md) |
-| Native packages | Signed installable artifacts, version/commit provenance, real native checks; [builds and verification](references/builds.md) |
-| Listing | Platform-specific actual captures, copy, icon, required sizes, reviewed disclosures; [listing and automation](references/listing.md) |
-| Upload | Provider confirms correct binary and metadata; [stores](references/stores.md), [Apple helper](scripts/apple.mjs) |
-| Testing/review | Required beta tests, review notes/contact, privacy/content/availability gates; [stores](references/stores.md) |
-| Release | Explicit store state and public availability, production smoke checks, ledger evidence |
+| Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments — shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
+| Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
+| Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
+| Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
+| Listing and media | Store data copy, real captures, required sizes ([media](references/media.md)) |
+| iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
+| iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm` ([ios](references/ios.md)) |
+| Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
+| Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
+| Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 
-For platform APIs and changing rules, check current official documentation and
-the actual account. Reference dates are observations, not permanent requirements.
-An existing developer account may skip gates required by a new personal account.
+Check current official documentation and the actual account for changing rules; dates in references are
+observations, not permanent requirements.
 
-## Autonomy and handoffs
+## Credentials
 
-- Continue authorized reversible setup, debugging, listing creation, uploads,
-  repo work and submission. Do not ask the user to perform work just because a
-  connector failed if a supported CLI or signed-in UI can do it.
-- Preserve specific approvals already given. The skill grants no independent
-  authority to spend, contact others, transmit private data, accept agreements,
-  change account ownership/access, or release beyond the user's requested scope.
-  Follow the active tool/session policy at the actual action; do not invent a
-  blanket approval step for every form or repeat a resolved question.
-- A user-only item needs evidence: attempted paths, exact provider requirement,
-  missing capability/fact, who must act, direct destination, precise next step,
-  and what observation will unblock it. Separate an owner action, a permission
-  request, provider processing, unavailable hardware, and a fixable agent bug.
-- Prepare support messages/agreements for review. Sending a support request needs
-  explicit communication authorization; accepting terms follows the active
-  action-time policy. Verification codes, taxpayer/bank information and identity
-  documents belong in the provider's private UI or approved secret channel.
-- When the user takes over a page, stop clicking and let them finish. Reinspect
-  afterward. Record a reported completion immediately, then read back state
-  before marking the relevant gate verified.
+Every credential is in the owner's 1Password vault `API Tokens`, read per run through the service account
+whose token is in `OP_KEY` (with a literal `OP_KEY=` prefix the scripts strip). The App Store Connect key is
+`op://API Tokens/App Store Connect` (`credential`, `key id`, `issuer id`) for every app; each app has its own
+Android item (`upload.jks`, `play-service-account.json`, optional `google-services.json`, `keystore
+password`). Keys stay in memory or a mode-700 temporary directory deleted on exit. Never print, log or
+commit a key, token, password, review phone or bank detail; check access without printing values.
+
+## Autonomy and approvals
+
+- Continue authorized, reversible work — builds, checks, store data, listing drafts, repository changes —
+  without asking. Use the API, a CLI or a signed-in browser session before declaring anything owner-only.
+- **Ask before each outward-facing step:** an upload to App Store Connect or Play, a track promotion, a Play
+  listing or image commit, `submit --confirm`, `release --confirm`, a production release, a support message.
+  The owner's approval of one step does not cover the next.
+- **Owner-only:** creating app records, App Privacy and Data safety attestations when not authorized in the
+  browser, agreements, tax, banking, identity and device verification, the physical-device check, tester
+  recruitment. Ask once, in one message starting **Waiting on you:**, with the exact destination and the
+  observation that will unblock it; keep working meanwhile.
+- Spending is never implied: never upgrade a plan, buy anything or switch accounts to get around a cap.
+- When the owner takes over a page, stop and let them finish; reinspect afterwards and record what they did.
 
 ## Ledger discipline
 
-Record each consequential attempt and result promptly, especially before waiting,
-asking for input, changing direction, ending a turn, or losing context. Keep
-attempted, accepted, processing, verified, rejected and superseded distinct.
-Do not rerun a mutation with an uncertain outcome before checking provider state.
+Record every consequential attempt and result with `ledger.mjs record` as it happens, and add one dated
+run-log entry per run (builds, submissions, what was manual, cost, retries, lessons; a bug-fix table). The
+JSON is canonical; its Markdown view is generated. `done` needs observed evidence; a user report stays
+`waiting_verification` until read back. Uploaded, processed, in review, approved and live are separate gates.
+The full protocol is in [ledger](references/ledger.md).
 
-Each active gate has an owner, evidence, last-observed time and exact next action.
-Builds carry IDs, platform/profile, version, source commit plus dirty-tree note,
-and verification scope. Submission/upload/review/release each have separate gates.
-A provider acknowledgment proves receipt, not completion of the requested change.
+## Fix what the release finds
 
-Keep app assets and full operational ledger in the app repo (reuse its existing
-`store/` or `release/` convention). Keep only sanitized, dated run summaries and
-lessons in this skill's [ledger](ledger/LEDGER.md). Never duplicate authoritative
-live state in an installed discovery copy. Unknown token/cost/time metrics are
-`null`, not estimates disguised as measurements.
+Treat each release run as bug-finding work: reproduce a defect, add a regression test that fails before the
+fix, make the smallest root-cause correction, and ship it on its own branch and pull request (or this run's
+when tightly related), recorded in the run log's bug-fix table. Follow the repository's own PR, review and
+merge rules; a user-facing change waits for the owner's OK where the repository says so.
 
-## Gotchas worth remembering
+## Changing this skill
 
-- A successful EAS build or upload is not App Review, Play production access, or
-  public availability. Paid developer membership is not a Paid Apps Agreement.
-- Apple `READY_FOR_REVIEW` is a draft; verify submission and version both reach
-  `WAITING_FOR_REVIEW`. Review acceptance does not prove paid sale eligibility.
-- Apple **Add Tax Form** may show no actionable choice because the required US
-  form already exists. Use **Add Tax Info** beside that form.
-- Legal address, tax-form address, payout details and public trader contact can
-  be distinct records. Verify each affected record; do not reuse an expired one.
-- Public read-only APIs can still retain IP/user-agent/performance logs. Client
-  privacy manifests alone cannot establish “no data collected.”
-- Web previews and Expo Go do not verify a signed native app or widget. Never
-  label iOS screenshots as Android or manufacture a tested-device claim.
-- A queue or emulator failure is not necessarily an app defect. Diagnose the
-  correct layer; see [builds](references/builds.md) for proven examples and bounds.
+When the owner asks to change how releases work — in any app repository, even when they name only that
+app's skill — or a run teaches something worth keeping, first decide where the change belongs and say so:
+true of every app goes **here** (the skills repository's `skills/app-release/`, on a branch with tests,
+then each app's submodule is bumped); a fact or choice of one app goes in that app's config, store data or
+repository skill; a mix is split. Never edit a discovery copy or the submodule checkout in place. The
+procedure, including checking every app that uses this skill, is in [maintaining](references/maintaining.md).
 
 ## Finish
 
-Report what is saved, uploaded, reviewed and live separately, with links to the
-repo ledger and actual artifacts. List only unresolved owner steps with exact
-instructions. If blocked, leave a resumable next action and continue independent
-work. When authorized work is complete, follow repo PR/check/deploy rules, verify
-the deployed state, and add a sanitized outcome/lesson to the skill ledger.
+Report what is saved, uploaded, processed, in review, approved and live — separately, per store — with links
+to the ledger and artifacts. List only unresolved owner steps, each with exact instructions. If blocked,
+leave a resumable next action in the ledger and continue independent work.
