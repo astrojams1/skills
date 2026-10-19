@@ -59,7 +59,7 @@ export function render(ledger, source) {
     'Updated: ' + ledger.updated_at, '',
     'Repository: ' + ledger.repository, '',
     'Objective: ' + ledger.objective, '',
-    'Generated from ' + (source || 'the adjacent JSON ledger') + ' by the app-release skill\'s `ledger.mjs`; never edit this view.', ''
+    'Generated from ' + (source || 'the adjacent JSON ledger') + ' by the app-release skill\'s `ledger.mjs`; never edit this view. Its event history is append-only.', ''
   ];
   const gates = Object.entries(ledger.steps);
   const table = (title, rows) => {
