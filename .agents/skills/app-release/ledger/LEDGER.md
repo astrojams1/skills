@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **1.0.11**. This index preserves sanitized outcomes and lessons across
+Skill version **2.0.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -23,6 +23,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-24 Newsworthy store follow-up](runs/2026-09-24-newsworthy-store-followup.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | iOS 21 still waiting; Apple paid/address and Google verification gates remain; Android artifact predates current features; Firebase project created, Android push setup pending | Unknown / unknown |
 | [2026-09-24 Newsworthy Android push and renewed Apple request](runs/2026-09-24-newsworthy-android-push-apple-request.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Android 12 delivery/shade/cold-start tap verified on emulator; physical Android untested; Apple 21 rejected under 2.1 with new recording pending | Unknown / unknown |
 | [2026-09-24 Newsworthy recording correction and resubmission](runs/2026-09-24-newsworthy-recording-correction-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Earlier new-recording interpretation corrected; original attachment verified; new 39-second video/reply/Notes delivered; build 21 WAITING_FOR_REVIEW | Unknown / unknown |
+| 2026-10-19 v2.0.0 consolidation | Newsworthy [`store/ledger.json`](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json); Space Worms [`local-skills/app-store-release/ledger.json`](https://github.com/astrojams1/space-worms-2/blob/main/local-skills/app-store-release/ledger.json) | Both apps moved onto the shared scripts and ledger format; see v2.0.0 below | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
 finished the release. It includes a user-reported W-9 completion awaiting readback,
@@ -30,6 +31,30 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.0.0 (2026-10-19)
+
+Audit of Newsworthy and Space Worms, which had each grown its own release skill since v1.0.11:
+
+- **One process, per-app data.** Both apps now run the same scripts from this skill with an
+  `app-release.config.json` and a store data file; each keeps a thin repository skill for its own facts.
+  Space Worms' hardened App Store Connect, iOS and Android scripts became the base; Newsworthy contributed
+  `promote`, push and widget checks, Play listing and artwork through the API, paid pricing, and the
+  hold-for-review commit.
+- **Local builds, no EAS.** Both apps had already moved store builds to the owner's Mac (14–15 October)
+  after the shared free plan's 15 monthly iOS credits ran out; EAS submission and the stalled-upload
+  fallback are gone from the instructions. Neither app had uploaded a locally built `.ipa` yet (both reached
+  `altool --validate-app` VERIFY SUCCEEDED): record the first `upload` outcome here.
+- **One ledger format.** Space Worms kept only a hand-written ledger; Newsworthy kept a JSON gate ledger
+  (112 gates, about 30 of them product verification) plus a build ledger. Both now keep the JSON gate ledger
+  with a generated view (release gates first, product verification after), a hand-written run log, and an
+  entry per record in the owner's shared activity ledger. `status` flags gates idle for a week.
+- **Play commits differ by situation.** `ERROR_IF_IN_REVIEW` keeps a testing upload from cancelling a review
+  (Space Worms); `changesNotSentForReview=true` is required while a submission stands rejected, and then a
+  separate `:validate` refuses the edit (Newsworthy version 16). Both are now flags of one script.
+- **An API commit publishes Play's last saved listing**, discarding a console "Save as draft".
+- **Rejections:** App Review's message is not in the API; read the owner's email through the Gmail
+  connector before asking. Google's News and Magazines policy needs publisher details in the app.
 
 ## Lessons incorporated into v1.0.0
 
@@ -188,4 +213,5 @@ milestone note can link the canonical ledger and new artifacts instead of
 duplicating the entire event history. New evidence can correct
 an older snapshot in a clearly dated note, not by silently rewriting its history.
 Keep measured costs separate from unavailable metrics. Refresh discovery copies
-with the repository's `bin/manage.sh link` after changing the source skill.
+with the repository's `bin/manage.sh link` after changing the source skill, and run
+`node --test tests/app-release/*.test.mjs` after changing a script.

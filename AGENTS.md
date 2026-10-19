@@ -22,6 +22,12 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Diagnostic prompt for consumer repo integration
   health-check-review/
     SKILL.md                               # Process health check reports and fix issues
+  app-release/
+    SKILL.md                               # App Store + Google Play release process for every app
+    references/{config,accounts,ios,android,privacy,media,verification,app-types,ledger}.md
+    scripts/{ledger,ios-release,asc,android-release,play}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
+    assets/                                # Config, store data and repository-skill templates
+    ledger/LEDGER.md, ledger/runs/         # Cross-app run index and lessons
   research-paper/
     SKILL.md                               # Repo -> arXiv-ready paper, 20 staged artifacts
     references/{stages,literature,decisions,reviews}.md  # Stage playbook, lit search, decision menus, review rubrics
@@ -40,7 +46,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Workflow orchestration practices for AI agents
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity
+tests/                                     # Tests for repository integrity (tests/app-release/ covers the release scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -185,16 +191,22 @@ An end-to-end pipeline that turns a code repository into a submission-ready pape
 
 Invoke with `/research-paper` in the target repo, or say "write this repo up as a paper". Answer the three setup questions (author line, experiment budget, where to commit). Run the ledger scripts from `skills/research-paper/scripts/` (the source copy), then `bin/manage.sh link` to refresh the discovery copies.
 
-### App Release — Web, iOS and Android
+### App Release — App Store and Google Play
 
 **Skill:** `skills/app-release/SKILL.md`
 
-Use `$app-release` to prepare or resume a web/mobile launch with a persistent
-per-app release ledger. Covers account gates, native builds and verification,
-store copy/screenshots, pricing, disclosure evidence, uploads, testing/review and
-release. Includes a standard-library ledger helper, an existing-record Apple API
-helper, platform runbooks and a sanitized Newsworthy run snapshot. The app repo's
-ledger remains authoritative; credentials and private financial details stay out.
+One end-to-end release process for every app: local Xcode and Gradle builds on the owner's Mac (no EAS),
+App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks
+and listings, Game Center, pricing, credentials from 1Password, and a JSON release ledger with a generated
+view, a run log and entries in the owner's shared activity ledger. Each app supplies an
+`app-release.config.json`, a store data file and a thin repository skill; `references/app-types.md` covers
+what differs for games, news apps and paid downloads.
+
+#### How to use
+
+Consumer repos get it through the skills submodule and run the scripts from their root, for example
+`node skills/skills/app-release/scripts/asc.mjs status`. Onboard a new app with `references/config.md`.
+Newsworthy and Space Worms use it. After changing a script, run `node --test tests/app-release/*.test.mjs`.
 
 ## Internal Skills
 
@@ -249,7 +261,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, and `python3 tests/test_skills_spec.py` to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, and `node --test tests/app-release/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 

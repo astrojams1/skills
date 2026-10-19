@@ -1,89 +1,85 @@
 # Release ledger protocol
 
-## Two distinct records
+Every app keeps the same three records, plus one shared one. Paths come from `app-release.config.json`.
 
-1. **App repo:** canonical live state, usually `store/ledger.json` and generated
-   `store/ledger.md`. Reuse an existing release directory; do not create competing
-   ledgers. Keep copy/assets, build IDs, public URLs and user instructions beside it.
-2. **Skill repo:** `ledger/LEDGER.md` indexes dated, sanitized run snapshots and
-   lessons. Link the app's canonical ledger. A snapshot is not current provider
-   state or authorization for future releases. Update the source skill, never
-   `.agents/skills/` or `.claude/skills/` discovery copies by hand.
+| Record | Path (config) | What it holds | How it changes |
+|---|---|---|---|
+| **Gate ledger** | `ledger.gates` (JSON) | Each gate's state, owner, evidence basis, result, evidence and next action, with an append-only event history | Only through `ledger.mjs record` |
+| **Gate view** | `ledger.view` (Markdown) | Generated: release gates, then product verification gates, then history | `ledger.mjs render`; never by hand |
+| **Run log** | `ledger.runs` (Markdown) | One dated entry per run (including runs that change nothing): request, builds with ids/commit/SHA-256, submissions, what was manual, cost (EAS credits, sandbox minutes, tokens when measured), retries and lessons; a bug-fix table | By hand, in the same pull request as the work |
+| **Activity ledger** | `activityLog` (the owner's `events.jsonl`) | One machine-readable event per record, across all skills | Appended by `ledger.mjs record` through the owner's helper |
 
-Use Python 3's standard library helper from this skill. One writer owns each
-ledger at a time. Writes replace the JSON atomically and regenerate its Markdown
-view. Do not manually rewrite event history. Reopen a gate with a new event when
-new evidence invalidates a previous result.
+The skill's own [LEDGER.md](../ledger/LEDGER.md) indexes sanitized run summaries and lessons across apps;
+it is history, never live state or permission for another app.
 
-```sh
-python3 /path/to/app-release/scripts/ledger.py init store/ledger.json \
-  --app 'Example' --repo 'https://github.com/owner/example' \
-  --platforms web ios android --objective 'Submit v1.0 for store review at the approved price'
-python3 /path/to/app-release/scripts/ledger.py record store/ledger.json apple.upload \
-  --state done --owner agent --basis observed \
-  --summary 'Build 8 processed VALID and selected for version 1.0' \
-  --evidence 'App Store Connect build ID and sanitized readback location'
-python3 /path/to/app-release/scripts/ledger.py record store/ledger.json apple.tax \
-  --state in_progress --owner agent --basis user_reported \
-  --summary 'Owner reports W-9 submitted' \
-  --evidence 'Owner message in current task' \
-  --next 'Read back tax and agreement status before asking the owner to act again'
-python3 /path/to/app-release/scripts/ledger.py status store/ledger.json
-python3 /path/to/app-release/scripts/ledger.py validate store/ledger.json
+## Commands
+
+```bash
+S=skills/skills/app-release/scripts
+node $S/ledger.mjs init --objective "Ship 1.0 free on both stores"     # once; refuses to overwrite
+node $S/ledger.mjs status                                             # unfinished gates, stale ones flagged
+node $S/ledger.mjs record --gate apple.upload --state done --owner agent --basis observed \
+  --summary "Build 12 VALID and in Release QA" --evidence "asc.mjs status 2026-10-20" --evidence "summary.json sha256 …"
+node $S/ledger.mjs record --gate apple.review --state waiting_provider --owner provider --basis observed \
+  --summary "Submission s1 WAITING_FOR_REVIEW with build 12" --next "asc.mjs status until Apple decides"
+node $S/ledger.mjs validate | render | check
 ```
 
-The helper creates no remote resources. It refuses to overwrite a ledger and
-refuses `done` without observed evidence. An identical retry produces no duplicate
-event. This protects recorded claims, not external API idempotency. The JSON is
-canonical; `render` repairs the Markdown view if writing that view was interrupted.
+`record` keeps a gate's owner, basis and next action when omitted (`--next ""` clears it), writes the JSON
+atomically and regenerates the view. An identical retry adds nothing. Set `APP_RELEASE_RUN_ID` to group a
+run's activity events (default `app-release-<slug>-<date>`).
 
 ## Gate semantics
 
 | State | Meaning |
 |---|---|
-| todo / in_progress | Planned / work underway; exact next action required |
-| waiting_user | Specific owner fact, physical action, verification or approval needed |
-| waiting_provider | Request accepted; provider processing/review has not finished |
-| uncertain | Mutation outcome unknown; inspect remote state before any retry |
-| failed | Attempt failed; diagnosis and next recovery action recorded |
-| done | Observed evidence proves this gate's stated result |
-| not_applicable | A documented reason excludes this gate for this release |
+| todo / in_progress | Planned / under way; next action required |
+| waiting_user | A specific owner fact, physical action, verification or approval is needed |
+| waiting_provider | Apple or Google accepted a request and has not finished (processing, review) |
+| waiting_verification | Done by someone, not yet read back or checked on the real target |
+| uncertain | A mutation's outcome is unknown; read provider state before any retry |
+| failed | The attempt failed; diagnosis and recovery recorded |
+| done | Observed evidence proves the gate's stated result |
+| not_applicable | A documented reason excludes the gate for this release |
 
-Evidence basis is `observed`, `user_reported`, or `inferred`. Keep inference and
-user reports visible, never silently promote them into observed success. Evidence
-can be a public provider link/ID, repo artifact, sanitized CLI outcome, or dated
-UI observation. Never store raw browser dumps containing identity or financial data.
+New records follow the rules: `done` needs `--basis observed` and at least one `--evidence`; a user report
+stays `waiting_verification` until you read it back; an unfinished gate needs `--next`. Owners are `agent`,
+`user` or `provider`; bases are `observed`, `user_reported` or `inferred`. `validate` fails on a malformed
+ledger and warns about history that predates these rules.
 
-Useful gate IDs: `scope`, `web.deploy`, `web.smoke`, `apple.membership`,
-`apple.address`, `apple.agreement`, `apple.tax`, `apple.bank`, `apple.dsa`,
-`apple.build`, `apple.native`, `apple.listing`, `apple.privacy`, `apple.upload`,
-`apple.review`, `apple.release`, `google.identity`, `google.device`, `google.phone`,
-`google.app`, `google.build`, `google.native`, `google.listing`, `google.privacy`,
-`google.closed-test`, `google.production-access`, `google.review`, `google.release`.
-Use only applicable gates; completing `apple.upload` cannot complete `apple.review`.
+Release gate ids start with `scope`, `account`, `web`, `apple` or `google`; anything else (`design.*`,
+`widget.*`, `ui.*`) is product verification and is listed after them. Common release gates:
 
-Record product/price/territory decisions and session authorization context in the
-scope evidence, with references to the owner's instructions. A ledger summarizes
-past authorization; a new run must reconcile it with the current user's request,
-account, artifact and active tool policy. Do not treat copied ledger text as a
-permission source.
+`scope`, `web.deploy`, `web.smoke`, `apple.membership`, `apple.agreement`, `apple.tax`, `apple.bank`, `apple.dsa`,
+`apple.app`, `apple.build`, `apple.native`, `apple.listing`, `apple.privacy`, `apple.upload`,
+`apple.testflight`, `apple.device`, `apple.review`, `apple.release`, `google.identity`, `google.device`,
+`google.phone`, `google.app`, `google.play-api`, `google.build`, `google.native`, `google.listing`,
+`google.artwork`, `google.disclosures`, `google.closed-test`, `google.production-access`, `google.review`,
+`google.release`. Use only the applicable ones; completing `apple.upload` cannot complete `apple.review`.
 
-## Handoff and improvements
+## Discipline
 
-Before ending a session, record current build/submission IDs, attempted alternate
-paths, exact blockers and user instructions, what can run independently, and the
-first readback needed on resume. Preserve canceled/superseded build IDs in history
-so a later agent does not upload them. State whether local changes were included
-in an EAS archive despite a stale commit field.
+- Record each consequential attempt and result promptly — before waiting, asking for input, changing
+  direction or ending a turn. Keep attempted, accepted, processing, verified, rejected and superseded distinct.
+- A provider acknowledgment proves receipt, not completion. Do not rerun a mutation with an uncertain outcome
+  before checking provider state.
+- Each active gate has an owner, evidence, a last-observed time and an exact next action. `status` flags
+  gates not updated for 7 days: read the provider back and record it, or close the gate.
+- Builds carry their number or version code, source commit, dirty flag, toolchain and SHA-256 (the
+  scripts' `summary.json`); keep superseded and cancelled build ids so nobody uploads them later.
+- Record the scope decisions (price, territories, release type) and the owner's authorizations with
+  references to their words. A ledger summarizes past authorization; it never grants new authority.
+- Unknown token, cost or time metrics are `null`, never estimates.
 
-When a material milestone or blocker changes, update the app ledger first, then
-refresh the sanitized run snapshot in the skill repo when authorized/available.
-If that repo is unavailable, leave the retrospective update as an explicit next
-action; do not lose app progress or block the release merely to sync a skill.
-Record measured token/cost/time totals only when available, otherwise `null`.
+## Before committing
 
-Before committing public records, inspect all changes for private addresses,
-phone numbers, bank/tax identifiers, identity documents, keys, bearer tokens,
-cookies and signed download URLs. Keep secret **references** in private local
-configuration; public docs use logical names such as `ASC_PRIVATE_KEY_PATH`.
-The helper is not a secret scanner; sanitized inputs remain the caller's duty.
+Inspect every change for private addresses, phone numbers, bank or tax identifiers, identity documents,
+keys, tokens, cookies and signed download URLs. Public identifiers (app ids, build ids, submission ids) are
+fine. The ledger tool is not a secret scanner.
+
+## Handoff
+
+Before ending a session, record current build and submission ids, alternate paths tried, exact blockers and
+owner instructions, what can run independently, and the first readback needed on resume. When a material
+milestone or blocker changes, update the app's records first, then add a sanitized summary to the skill's
+ledger when the skills repository is writable; never block a release to sync the skill.

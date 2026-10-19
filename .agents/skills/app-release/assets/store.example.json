@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "listing": {
+    "locale": "en-US",
+    "name": "Example: Approved Name",
+    "subtitle": "Approved subtitle",
+    "promotionalText": "Accurate promotional text",
+    "description": "Verified features and limitations only.",
+    "keywords": "relevant,keywords",
+    "whatsNew": "",
+    "supportUrl": "https://example.com/support",
+    "marketingUrl": "https://example.com/",
+    "privacyPolicyUrl": "https://example.com/privacy",
+    "copyright": "2026 Owner Name",
+    "primaryCategory": "GAMES",
+    "primarySubcategories": ["GAMES_ACTION", "GAMES_CASUAL"],
+    "contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+    "releaseType": "MANUAL"
+  },
+  "ageRating": { "userGeneratedContent": false, "advertising": false },
+  "review": {
+    "firstName": "Owner",
+    "lastName": "Name",
+    "email": "support@example.com",
+    "notes": "What a reviewer needs, taken from the shipped app.",
+    "demoAccountRequired": false
+  },
+  "pricing": { "baseTerritory": "USA", "basePrice": "0" },
+  "screenshots": [
+    { "displayType": "APP_IPHONE_67", "files": ["store/assets/apple/iphone/01.png", "store/assets/apple/iphone/02.png"] }
+  ],
+  "google": {
+    "locale": "en-US",
+    "title": "Example",
+    "shortDescription": "Up to 80 characters.",
+    "fullDescription": "Up to 4,000 characters of verified copy.",
+    "contactEmail": "support@example.com",
+    "contactWebsite": "https://example.com/",
+    "images": {
+      "icon": "store/assets/google-play/icon.png",
+      "featureGraphic": "store/assets/google-play/feature-graphic.png",
+      "phoneScreenshots": ["store/assets/google-play/phone/01.png", "store/assets/google-play/phone/02.png"]
+    }
+  }
+}
