@@ -245,9 +245,11 @@ function verify(out, build, ipa, provenance) {
     const problems = entitlementProblems(xml, required, IOS.appGroup);
     if (problems.length) throw new Error(bundle + ' is not ready for the store: ' + problems.join('; '));
   }
+  const bundleId = plist(info, 'CFBundleIdentifier');
+  if (bundleId !== IOS.bundleId) throw new Error('The app is ' + bundleId + ', expected ' + IOS.bundleId);
   capture('plutil', ['-extract', 'UIApplicationSceneManifest', 'xml1', '-o', '-', info]);
   return {
-    build: build, version: plist(info, 'CFBundleShortVersionString'), bundleId: plist(info, 'CFBundleIdentifier'),
+    build: build, version: plist(info, 'CFBundleShortVersionString'), bundleId: bundleId,
     xcode: plist(info, 'DTXcodeBuild'), sdk: plist(info, 'DTSDKName'), commit: provenance.commit, dirty: provenance.dirty,
     ipa: ipa, sha256: sha256(ipa)
   };

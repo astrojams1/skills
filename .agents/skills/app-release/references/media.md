@@ -107,9 +107,9 @@ current image requirements in a validator rather than relying on memory.
 
 ## Uploading
 
-`asc.mjs screenshots` makes each App Store screenshot set match the store data exactly: it uploads missing
-files, keeps finished identical ones, replaces unfinished uploads, **removes** files and whole sets the store
-data no longer lists, refuses to overwrite a finished file whose bytes changed (delete it in App Store
+`asc.mjs screenshots` uploads missing files, keeps finished identical ones, replaces unfinished uploads, and —
+only when `ios.pruneScreenshots` is true — **removes** files and whole sets the store data no longer lists
+(otherwise it reports them and leaves them), refuses to overwrite a finished file whose bytes changed (delete it in App Store
 Connect first), and puts each set in the listed order. Run `asc.mjs status` until every screenshot reads
 `COMPLETE`. `play.mjs images` replaces each listed Play image type in order and commits only when Play's
 SHA-256 of every image matches the repository's. Uploading App Store app previews (`appPreviewSets`) is not

@@ -158,3 +158,15 @@ test('an outdated copy of the skill is reported with the way to update it', asyn
   assert.match(freshnessMessage(3, '/repo/vendor/skills'), /3 commits behind/);
   assert.equal(checkFreshness({ APP_RELEASE_SKIP_FRESHNESS: '1' }), null);
 });
+
+test('a mistyped ledger option fails instead of being ignored', () => {
+  assert.throws(() => ledger.parseFlags(['--gate', 'apple.review', '--nxt', ''], 'record'), /--nxt is not an option of record/);
+  assert.deepEqual(ledger.parseFlags(['--gate', 'g', '--evidence', 'a', '--evidence', 'b'], 'record'), { evidence: ['a', 'b'], gate: 'g' });
+  assert.throws(() => ledger.parseFlags(['--objective', 'x'], 'status'), /not an option of status/);
+});
+
+test('a relative build root is inside the repository, like every other path', () => {
+  const config = normalizeConfig({ app: 'E', slug: 'e', buildRoot: 'out', ledger: { gates: 'l.json', view: 'l.md' }, ios: { scheme: 'E' } }, '/repo/app-release.config.json');
+  assert.equal(config.buildRoot, '/repo/out');
+  assert.equal(config.ios.pruneScreenshots, false, 'screenshots are never deleted unless the app asks');
+});

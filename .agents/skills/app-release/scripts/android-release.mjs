@@ -221,8 +221,10 @@ export function toolchainEnv(env) {
 // uploadKey returns the upload keystore path and password; ANDROID_UPLOAD_KEYSTORE and ANDROID_UPLOAD_KEYSTORE_PASSWORD
 // take precedence over the vault item's `upload.jks` attachment and `keystore password` field.
 function uploadKey() {
-  const store = process.env.ANDROID_UPLOAD_KEYSTORE;
-  const password = process.env.ANDROID_UPLOAD_KEYSTORE_PASSWORD;
+  // The per-app names the scripts used before v2 (NEWSWORTHY_…, SPACE_WORMS_…) are read too.
+  const legacy = ANDROID.versionCodeEnv.replace(/_VERSION_CODE$/, '_KEYSTORE');
+  const store = process.env.ANDROID_UPLOAD_KEYSTORE || process.env[legacy];
+  const password = process.env.ANDROID_UPLOAD_KEYSTORE_PASSWORD || process.env[legacy + '_PASSWORD'];
   if (store && password) return { store: store, password: password };
   const key = { store: join(privateDir('app-release-android'), 'upload.jks'), password: opRead(ANDROID.vault, 'keystore password') };
   opRead(ANDROID.vault, 'upload.jks', key.store);

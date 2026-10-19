@@ -56,7 +56,7 @@ export function normalizeConfig(raw, path) {
   config.root = root;
   config.projectDir = inRepo(raw.projectDir || '.');
   config.storeData = inRepo(raw.storeData || null);
-  config.buildRoot = expandHome(raw.buildRoot || join(root, 'build', 'app-release'));
+  config.buildRoot = inRepo(expandHome(raw.buildRoot || join('build', 'app-release')));
   config.buildShaEnv = raw.buildShaEnv || 'EXPO_PUBLIC_BUILD_SHA';
   config.ledger = {
     gates: inRepo(raw.ledger.gates),
@@ -66,7 +66,7 @@ export function normalizeConfig(raw, path) {
   config.activityLog = raw.activityLog === undefined ? null : expandHome(raw.activityLog);
   if (raw.ios) {
     config.ios = Object.assign({ vault: 'op://API Tokens/App Store Connect', testflightGroup: 'Release QA', requiredEntitlements: {}, appGroup: null,
-      workspace: raw.ios.scheme + '.xcworkspace', platform: 'IOS' }, raw.ios);
+      workspace: raw.ios.scheme + '.xcworkspace', platform: 'IOS', pruneScreenshots: false }, raw.ios);
   }
   if (raw.android) {
     config.android = Object.assign({ keyAlias: 'upload', minTargetSdk: 36, googleServices: false, blockedPermissions: [], requiredResources: [],

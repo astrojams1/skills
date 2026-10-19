@@ -24,7 +24,7 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `buildShaEnv` | The variable that carries the short commit into the app (`EXPO_PUBLIC_BUILD_SHA` by default) |
 | `ledger.gates`, `ledger.view` | The JSON release ledger and its generated Markdown view |
 | `ledger.runs` | The hand-written run log (one dated entry per run, bug-fix table, costs, lessons) |
-| `activityLog` | The owner's shared agent activity ledger; each `ledger.mjs record` is appended there too. Omit to skip |
+| `activityLog` | The owner's shared agent activity ledger (`~/Library/Application Support/AgentActivityLedger/events.jsonl`, the only file its helper writes); each `ledger.mjs record` is appended there too. Omit to skip |
 
 `ios`:
 
@@ -39,6 +39,7 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `testflightGroup` | The internal TestFlight group whose testers get each build (`Release QA`) |
 | `requiredEntitlements` | Entitlements the signed app must keep, such as `{"com.apple.developer.game-center": true}` or `{"aps-environment": "production"}` |
 | `appGroup` | An app group every bundle, extensions included, must be signed with (widgets) |
+| `pruneScreenshots` | `true` lets `asc.mjs screenshots` delete App Store screenshots and whole sets the store data no longer lists; by default they are reported and left in place |
 | `scrubPublicEnv` | `false` keeps inherited `EXPO_PUBLIC_*` values and `.env` files; by default both are dropped |
 
 `android`:
@@ -57,7 +58,7 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `holdForReview` | `true` makes every Play commit `--hold` (`changesNotSentForReview`): the owner sends changes for review from Publishing overview |
 
 Environment overrides, for a run without the vault: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_PATH`;
-`ANDROID_UPLOAD_KEYSTORE`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD`; `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`;
+`ANDROID_UPLOAD_KEYSTORE`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD` (or the pre-v2 `<APP>_ANDROID_KEYSTORE[_PASSWORD]`); `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`;
 `GOOGLE_SERVICES_JSON`; `ASC_REVIEW_PHONE`.
 
 ## Store data

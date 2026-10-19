@@ -53,7 +53,9 @@ function token() {
 }
 
 // api sends one JSON request and throws Apple's error list on failure so a half-finished step is never reported done.
-// A dropped connection (fetch throws) is retried up to three times; an HTTP error is not (Newsworthy #210).
+// A dropped connection (fetch throws) on a read is retried up to three times; an HTTP error is not (Newsworthy #210).
+// Writes are never retried: a POST that reached Apple before the connection dropped would create a second draft,
+// item or reservation, so a failed write is reported and the next run reads Apple's state first.
 export async function api(path, method, payload, attempt) {
   const options = { method: method || 'GET', headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' } };
   if (payload) options.body = JSON.stringify(payload);
@@ -62,7 +64,7 @@ export async function api(path, method, payload, attempt) {
     response = await fetch(API + path, options);
   } catch (error) {
     const tries = attempt || 1;
-    if (tries >= 3) throw error;
+    if (options.method !== 'GET' || tries >= 3) throw error;
     await new Promise(done => setTimeout(done, 5000 * tries));
     return api(path, method, payload, tries + 1);
   }
@@ -640,10 +642,15 @@ async function screenshots() {
   const ctx = await context();
   const localization = await versionLocalization(ctx.version.id);
   const sets = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/appScreenshotSets');
-  // Remove whole sets for display types the manifest no longer lists, so their screenshots leave the product page.
   const groups = screenshotGroups(CONFIG, STORE.screenshots);
   if (!groups.length) throw new Error('The store data lists no screenshots');
+  // With ios.pruneScreenshots, remove whole sets for display types the manifest no longer lists, so their screenshots
+  // leave the product page; otherwise report them and leave them alone.
   for (const stale of staleScreenshotSets(sets, groups)) {
+    if (!IOS.pruneScreenshots) {
+      console.log('left set', stale.attributes.screenshotDisplayType, 'in place (not in the store data; ios.pruneScreenshots removes it)');
+      continue;
+    }
     await api('/v1/appScreenshotSets/' + stale.id, 'DELETE');
     console.log('removed set', stale.attributes.screenshotDisplayType, '(not in the manifest)');
   }
@@ -654,8 +661,13 @@ async function screenshots() {
     }
     const existing = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
     const ordered = [];
-    // The manifest is canonical: remove screenshots it no longer lists so they leave the product page.
+    // With ios.pruneScreenshots the store data is canonical: remove screenshots it no longer lists.
+    const kept = IOS.pruneScreenshots ? [] : staleScreenshots(existing, group.files).map(item => item.id);
     for (const stale of staleScreenshots(existing, group.files)) {
+      if (!IOS.pruneScreenshots) {
+        console.log('left', group.displayType, stale.attributes.fileName, 'in place (not in the store data; ios.pruneScreenshots removes it)');
+        continue;
+      }
       await api('/v1/appScreenshots/' + stale.id, 'DELETE');
       console.log('removed', group.displayType, stale.attributes.fileName, '(not in the manifest)');
     }
@@ -679,9 +691,11 @@ async function screenshots() {
       console.log('uploaded', group.displayType, basename(path));
     }
     // Put the set in the manifest's order, which a rerun that only reorders files would otherwise leave unchanged.
-    await api('/v1/appScreenshotSets/' + set.id + '/relationships/appScreenshots', 'PATCH', { data: ordered.map(id => ({ type: 'appScreenshots', id: id })) });
+    // Screenshots left in place because pruning is off keep their places after the listed ones.
+    const order = ordered.concat(kept);
+    await api('/v1/appScreenshotSets/' + set.id + '/relationships/appScreenshots', 'PATCH', { data: order.map(id => ({ type: 'appScreenshots', id: id })) });
     const after = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
-    if (after.map(item => item.id).join() !== ordered.join()) throw new Error('Screenshot order did not read back for ' + group.displayType);
+    if (after.map(item => item.id).join() !== order.join()) throw new Error('Screenshot order did not read back for ' + group.displayType);
   }
   console.log('Run `status` until every screenshot reads COMPLETE.');
 }

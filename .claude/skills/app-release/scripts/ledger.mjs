@@ -202,6 +202,12 @@ export function activityEvent(config, gate, result, runId) {
 // helper is reported, never fatal, since the app ledger already holds the record.
 function appendActivity(config, gate, result) {
   if (!config.activityLog) return;
+  // The helper always writes the owner's ~/Library/Application Support/AgentActivityLedger/events.jsonl; another path
+  // in the configuration cannot be honored, so say so rather than pretend.
+  if (!config.activityLog.endsWith('Library/Application Support/AgentActivityLedger/events.jsonl')) {
+    console.error('activityLog names ' + config.activityLog + ', but the activity helper writes only AgentActivityLedger/events.jsonl; nothing was appended.');
+    return;
+  }
   const helper = (process.env.APP_RELEASE_ACTIVITY_HELPER || DEFAULT_ACTIVITY_HELPER).replace(/^~\//, process.env.HOME + '/');
   if (!existsSync(helper)) {
     console.error('Activity helper ' + helper + ' is missing; the shared activity ledger was not updated.');
@@ -212,12 +218,16 @@ function appendActivity(config, gate, result) {
   if (run.status !== 0) console.error('Activity ledger append failed: ' + String(run.stderr).trim());
 }
 
-// parseFlags reads --name value pairs; --evidence repeats.
-export function parseFlags(args) {
+// FLAGS lists each command's options, so a typo such as --nxt fails instead of being ignored.
+const FLAGS = { init: ['objective', 'platforms'], record: ['gate', 'state', 'owner', 'basis', 'summary', 'evidence', 'next'], status: ['stale-days'], render: [], check: [], validate: [] };
+
+// parseFlags reads --name value pairs; --evidence repeats. With a command, only that command's options are accepted.
+export function parseFlags(args, command) {
   const flags = { evidence: [] };
   for (let index = 0; index < args.length; index += 2) {
     if (!args[index].startsWith('--')) throw new Error('Unexpected argument ' + args[index]);
     const key = args[index].slice(2);
+    if (command && FLAGS[command] && !FLAGS[command].includes(key)) throw new Error('--' + key + ' is not an option of ' + command + (FLAGS[command].length ? '; use --' + FLAGS[command].join(', --') : ''));
     const value = args[index + 1];
     if (value === undefined) throw new Error('--' + key + ' needs a value');
     if (key === 'evidence') flags.evidence.push(value);
@@ -241,7 +251,7 @@ function viewSource(config) {
 
 async function main(args) {
   const command = args[0] || 'status';
-  const flags = parseFlags(args.slice(1));
+  const flags = parseFlags(args.slice(1), command);
   const config = loadConfig();
   if (command === 'init') {
     if (existsSync(config.ledger.gates)) throw new Error(config.ledger.gates + ' exists; init never overwrites a ledger');
