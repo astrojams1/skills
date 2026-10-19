@@ -128,6 +128,7 @@ async function status(account) {
   await withEdit(account, async (api, edit) => {
     const listing = await api(edit + '/listings/' + locale).catch(error => ({ error: error.message }));
     if (listing.error) console.log('Listing ' + locale + ': ' + listing.error);
+    else if (!GOOGLE.title) console.log('Listing ' + locale + ': "' + listing.title + '"; the store data has no google listing to compare');
     else {
       const sent = listingBody(GOOGLE);
       delete sent.language;
