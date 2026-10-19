@@ -55,11 +55,12 @@ may then do steps 1 and 2 there if the owner has authorized it.
    distribution certificate and profile), then checks every bundle in the `.ipa`: build number, signing team,
    the configured entitlements and app group, `get-task-allow` false, and the scene manifest. It refuses a
    dirty checkout (`--allow-dirty` makes a local test archive that `upload` refuses) and a checkout that moved
-   during the build, and writes `summary.json` (version, Xcode, SDK, commit, dirty flag, SHA-256). About
+   during the build (exporting with `app-store-connect` already reserves the number as an `AWAITING_UPLOAD`
+   record, so an archive never uploaded skips a number; that is harmless), and writes `summary.json` (version, Xcode, SDK, commit, dirty flag, SHA-256). About
    6–7 minutes on the M4 Mac.
 4. **Validate, then upload, with the owner's OK.** `validate <N>` asks Apple to check the `.ipa` without
    uploading. `upload <N>` refuses a dirty or changed archive, sends it with `altool --upload-app` and polls
-   Apple's upload record until `COMPLETE` or `FAILED` (5–30 minutes). Neither app had uploaded locally when
+   Apple's upload record until `COMPLETE` or `FAILED` (5–30 minutes), retrying a status read that fails. Neither app had uploaded locally when
    this path was written (both stopped at `VERIFY SUCCEEDED`); record the first real upload's outcome in the
    skill ledger, and use Transporter if `altool` breaks.
 5. **TestFlight.** `ios-release.mjs testers <N>` waits for `VALID` and adds the build to the internal group

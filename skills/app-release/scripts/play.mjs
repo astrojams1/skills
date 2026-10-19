@@ -83,15 +83,25 @@ export function imagePlan(images, readManifest) {
   return plan;
 }
 
+// describeImages formats what Play holds for one image type: a summary line and one line per image.
+export function describeImages(type, images) {
+  return [type + ': Play holds ' + images.length + ' (not in the store data)'].concat(images.map((image, index) => '  ' + (index + 1) + '. ' + image.id + ' sha256 ' + image.sha256));
+}
+
 const sha256 = file => createHash('sha256').update(readFileSync(file)).digest('hex');
-const contentType = file => (extname(file).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg');
+// contentType names the media type Play's image upload expects; Play takes only PNG and JPEG.
+export function contentType(file) {
+  const extension = extname(file).toLowerCase();
+  if (extension === '.png') return 'image/png';
+  if (extension === '.jpg' || extension === '.jpeg') return 'image/jpeg';
+  throw new Error(file + ' is not a PNG or JPEG');
+}
 
 // load reads the configuration and the store data's google section.
 function load() {
   CONFIG = setup().config;
   const store = loadStoreData(CONFIG);
-  if (!store.google) throw new Error('The store data has no google section (references/config.md)');
-  GOOGLE = store.google;
+  GOOGLE = store.google || {};
   return store;
 }
 
@@ -129,6 +139,10 @@ async function status(account) {
     for (const [type, result] of Object.entries(await compareImages(api, edit + '/listings/' + locale, images))) {
       console.log(type + ': Play holds ' + result.held + '; ' + (result.match ? 'matches' : 'differs from') + ' the repository (' + result.expected + ' listed)');
     }
+    // Types the store data does not list (graphics kept only in Play) are listed with their hashes.
+    for (const type of ['icon', 'featureGraphic', 'phoneScreenshots'].filter(item => !images[item])) {
+      for (const line of describeImages(type, (await api(edit + '/listings/' + locale + '/' + type)).images || [])) console.log(line);
+    }
     for (const track of (await api(edit + '/tracks')).tracks || []) {
       const releases = (track.releases || []).map(release => release.status + ' ' + (release.versionCodes || []).join(',')).join('; ');
       console.log('track ' + track.track + ': ' + (releases || 'empty'));
@@ -138,6 +152,7 @@ async function status(account) {
 
 // listing replaces the listing text and contact details, reads both back and commits.
 async function listing(account, hold) {
+  if (!GOOGLE.title) throw new Error('The store data has no google listing (references/config.md)');
   const problems = listingProblems(GOOGLE);
   if (problems.length) throw new Error('The store data\'s Play listing is not ready: ' + problems.join('; '));
   const body = listingBody(GOOGLE);

@@ -24,7 +24,7 @@ so the owner adds or replaces items.
 **Play API setup, once per app:** in a Google Cloud project enable the **Google Play Android Developer API**
 and create a service account with no project roles. In Play Console → Users and permissions → Invite new
 users, invite its email with app permissions for this app only: **Release apps to testing tracks**, **View
-app information** and, for `play.mjs` writes, **Manage store presence** — no account permissions. The owner
+app information** and, for `play.mjs` writes, **Manage store presence** (and **Edit and delete draft apps** while the app is a draft) — no account permissions. The owner
 creates its JSON key, attaches it to the vault item as `play-service-account.json` and deletes the download.
 To revoke access, delete the key in Google Cloud or remove the user in Play Console.
 
@@ -77,7 +77,8 @@ emulator and physical-device checks separately.
 ## Store presence: `play.mjs`
 
 `status` compares Play's listing text, contact details and image hashes with the store data's `google`
-section and prints every track. `listing` replaces the default-language title, short and full description
+section, lists the hashes of graphics the store data does not list (an app may keep them only in Play), and
+prints every track. `listing` replaces the default-language title, short and full description
 and contact details, reads them back, then commits. `images` replaces each listed image type in order
 (icon 512×512, feature graphic 1024×500, 2–8 phone screenshots), compares Play's SHA-256 of each with the
 repository's and commits only when all match.

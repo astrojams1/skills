@@ -305,16 +305,33 @@ async function upload(build) {
   const problem = uploadProblem(summary, existsSync(ipa) ? sha256(ipa) : null);
   if (problem) throw new Error('Build ' + build + ' cannot be uploaded: ' + problem);
   run('xcrun', altoolArgs('--upload-app', ipa, writeKey()), { cwd: CONFIG.root });
-  const deadline = Date.now() + WAIT_MS;
-  while (Date.now() < deadline) {
-    const found = uploadState(await listAll('/v1/apps/' + IOS.ascAppId + '/buildUploads?limit=200'), build);
+  await waitForUpload(build);
+}
+
+// waitForUpload polls Apple's upload record until it settles, failing on Apple's reported errors. A status read that
+// cannot reach Apple is retried until the deadline, since the upload itself has already succeeded (Space Worms #1969).
+// `io` replaces the reader, pause and clock in tests.
+export async function waitForUpload(build, io) {
+  const read = io ? io.read : () => listAll('/v1/apps/' + IOS.ascAppId + '/buildUploads?limit=200');
+  const pause = io ? io.pause : () => new Promise(done => setTimeout(done, 30000));
+  const now = io ? io.now : Date.now;
+  const deadline = io ? io.deadline : now() + WAIT_MS;
+  while (now() < deadline) {
+    let found = null;
+    try {
+      found = uploadState(await read(), build);
+    } catch (error) {
+      console.log('Could not read the upload status (' + error.message + '); trying again in 30 s');
+      await pause();
+      continue;
+    }
     if (found && UPLOAD_SETTLED.includes(found.state)) {
       if (found.state === 'FAILED') throw new Error('App Store Connect rejected build ' + build + ': ' + JSON.stringify(found.errors));
       console.log('App Store Connect finished processing the upload of build ' + build + '.');
-      return;
+      return found.state;
     }
     console.log('Build ' + build + (found ? ' is ' + found.state : ' is not listed yet') + ' - checking again in 30 s');
-    await new Promise(done => setTimeout(done, 30000));
+    await pause();
   }
   throw new Error('Build ' + build + ' is still processing after 30 minutes; check `asc.mjs status` before testers or attach-build.');
 }

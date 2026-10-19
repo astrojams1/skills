@@ -95,3 +95,15 @@ test('the build checks every bundle and the scene manifest, and never runs EAS',
   assert.match(ios.releaseEnv({ EXPO_PUBLIC_API: 'http://localhost', PATH: '/bin' }, { CI: '1' }).EXPO_NO_DOTENV, /1/);
   assert.equal(ios.releaseEnv({ EXPO_PUBLIC_API: 'http://localhost' }, {}).EXPO_PUBLIC_API, undefined);
 });
+
+// A status read that cannot reach Apple is retried, since the upload itself already succeeded (Space Worms #1969).
+test('upload polling retries an unreachable status read and settles on Apple\'s answer', async () => {
+  let clock = 0;
+  const answers = [() => { throw new Error('fetch failed'); }, () => [], () => [{ attributes: { cfBundleVersion: '7', state: { state: 'COMPLETE' } } }]];
+  const io = { read: async () => answers.shift()(), pause: async () => { clock += 30000; }, now: () => clock, deadline: 600000 };
+  assert.equal(await ios.waitForUpload(7, io), 'COMPLETE');
+  const failed = { read: async () => [{ attributes: { cfBundleVersion: '7', state: { state: 'FAILED', errors: [{ code: 'X' }] } } }], pause: async () => {}, now: () => 0, deadline: 1 };
+  await assert.rejects(ios.waitForUpload(7, failed), /rejected build 7/);
+  const stuck = { read: async () => { throw new Error('offline'); }, pause: async () => { clock += 30000; }, now: () => clock, deadline: clock + 60000 };
+  await assert.rejects(ios.waitForUpload(7, stuck), /still processing after 30 minutes/);
+});
