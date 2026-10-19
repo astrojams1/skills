@@ -50,8 +50,10 @@ test('archive and export use Apple-managed signing through the API key, and alto
   assert.match(options, /<key>method<\/key><string>app-store-connect<\/string>/);
   assert.match(options, /<key>signingStyle<\/key><string>automatic<\/string>/);
   assert.match(options, /<key>manageAppVersionAndBuildNumber<\/key><false\/>/);
-  const upload = ios.altoolArgs('--upload-app', '/out/export/App.ipa', key);
-  assert.deepEqual(upload.slice(0, 3), ['altool', '--upload-app', '-f']);
+  const upload = ios.altoolArgs('--upload-package', '/out/export/App.ipa', key);
+  assert.deepEqual(upload.slice(0, 3), ['altool', '--upload-package', '/out/export/App.ipa']);
+  assert.ok(upload.includes('--wait'));
+  assert.deepEqual(ios.altoolArgs('--validate-app', '/out/export/App.ipa', key).slice(0, 6), ['altool', '--validate-app', '-f', '/out/export/App.ipa', '-t', 'ios']);
   assert.equal(upload[upload.indexOf('--p8-file-path') + 1], key.path);
   assert.ok(!upload.includes('--auth-string'));
   const echoed = ios.redactArgs(archive.concat(upload)).join(' ');

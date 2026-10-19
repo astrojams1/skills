@@ -53,10 +53,19 @@ function token() {
 }
 
 // api sends one JSON request and throws Apple's error list on failure so a half-finished step is never reported done.
-export async function api(path, method, payload) {
+// A dropped connection (fetch throws) is retried up to three times; an HTTP error is not (Newsworthy #210).
+export async function api(path, method, payload, attempt) {
   const options = { method: method || 'GET', headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' } };
   if (payload) options.body = JSON.stringify(payload);
-  const response = await fetch(API + path, options);
+  let response;
+  try {
+    response = await fetch(API + path, options);
+  } catch (error) {
+    const tries = attempt || 1;
+    if (tries >= 3) throw error;
+    await new Promise(done => setTimeout(done, 5000 * tries));
+    return api(path, method, payload, tries + 1);
+  }
   const text = await response.text();
   const body = text ? JSON.parse(text) : null;
   if (!response.ok) {

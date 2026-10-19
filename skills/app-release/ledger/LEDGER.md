@@ -43,8 +43,9 @@ Audit of Newsworthy and Space Worms, which had each grown its own release skill 
   hold-for-review commit.
 - **Local builds, no EAS.** Both apps had already moved store builds to the owner's Mac (14–15 October)
   after the shared free plan's 15 monthly iOS credits ran out; EAS submission and the stalled-upload
-  fallback are gone from the instructions. Neither app had uploaded a locally built `.ipa` yet (both reached
-  `altool --validate-app` VERIFY SUCCEEDED): record the first `upload` outcome here.
+  fallback are gone from the instructions. Newsworthy uploaded the first locally built `.ipa` (build 28,
+  2026-10-14, `altool --upload-package`, VALID and in Release QA, recorded in its open PR #210); Space Worms'
+  local archives have only been validated so far.
 - **One ledger format.** Space Worms kept only a hand-written ledger; Newsworthy kept a JSON gate ledger
   (112 gates, about 30 of them product verification) plus a build ledger. Both now keep the JSON gate ledger
   with a generated view (release gates first, product verification after), a hand-written run log, and an

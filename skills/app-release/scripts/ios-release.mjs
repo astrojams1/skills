@@ -100,8 +100,12 @@ export function exportArgs(archivePath, exportPath, optionsPath, key) {
 }
 
 // altoolArgs validates or uploads the .ipa; the key goes by file path so its body never appears in the process list.
+// Validation uses --validate-app (both apps, 2026-10-14); upload uses --upload-package with --wait, the form that
+// uploaded Newsworthy's build 28 (#210).
 export function altoolArgs(verb, ipaPath, key) {
-  return ['altool', verb, '-f', ipaPath, '-t', 'ios', '--api-key', key.keyId, '--api-issuer', key.issuerId, '--p8-file-path', key.path];
+  const auth = ['--api-key', key.keyId, '--api-issuer', key.issuerId, '--p8-file-path', key.path];
+  if (verb === '--upload-package') return ['altool', '--upload-package', ipaPath].concat(auth, ['--wait', '--output-format', 'normal']);
+  return ['altool', verb, '-f', ipaPath, '-t', 'ios'].concat(auth);
 }
 
 // entitlementValue reads one entitlement from codesign's XML: true/false for booleans, the text for a string, the
@@ -304,7 +308,7 @@ async function upload(build) {
   const ipa = ipaFor(build);
   const problem = uploadProblem(summary, existsSync(ipa) ? sha256(ipa) : null);
   if (problem) throw new Error('Build ' + build + ' cannot be uploaded: ' + problem);
-  run('xcrun', altoolArgs('--upload-app', ipa, writeKey()), { cwd: CONFIG.root });
+  run('xcrun', altoolArgs('--upload-package', ipa, writeKey()), { cwd: CONFIG.root });
   await waitForUpload(build);
 }
 

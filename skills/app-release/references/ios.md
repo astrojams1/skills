@@ -59,10 +59,9 @@ may then do steps 1 and 2 there if the owner has authorized it.
    record, so an archive never uploaded skips a number; that is harmless), and writes `summary.json` (version, Xcode, SDK, commit, dirty flag, SHA-256). About
    6–7 minutes on the M4 Mac.
 4. **Validate, then upload, with the owner's OK.** `validate <N>` asks Apple to check the `.ipa` without
-   uploading. `upload <N>` refuses a dirty or changed archive, sends it with `altool --upload-app` and polls
-   Apple's upload record until `COMPLETE` or `FAILED` (5–30 minutes), retrying a status read that fails. Neither app had uploaded locally when
-   this path was written (both stopped at `VERIFY SUCCEEDED`); record the first real upload's outcome in the
-   skill ledger, and use Transporter if `altool` breaks.
+   uploading. `upload <N>` refuses a dirty or changed archive, sends it with `altool --upload-package --wait` (the
+   form that uploaded Newsworthy's first local build, 28, on 2026-10-14) and polls Apple's upload record until
+   `COMPLETE` or `FAILED` (5–30 minutes), retrying a status read that fails. Use Transporter if `altool` breaks.
 5. **TestFlight.** `ios-release.mjs testers <N>` waits for `VALID` and adds the build to the internal group
    (`ios.testflightGroup`); an uploaded build reaches no tester otherwise. Tell the owner it is available only
    once `buildBetaDetail` shows it testable. `release` runs archive, upload and testers in one go.
