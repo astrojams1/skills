@@ -382,6 +382,16 @@ export function replacementLeaderboards(refreshed, heldItems) {
   return refreshed.concat(carried);
 }
 
+// whatsNewPlan decides whether a version's copy carries release notes. Apple refuses "What's New" on an app's first
+// version, so nothing is sent before a version is live; every later version is an update and must ship notes, so an
+// update with empty notes stops the command instead of reaching App Review without them.
+export function whatsNewPlan(live, whatsNew) {
+  const notes = typeof whatsNew === 'string' ? whatsNew.trim() : '';
+  if (!live) return { send: false };
+  if (!notes) throw new Error('This version is an update: write its release notes in listing.whatsNew (store data) before `listing`.');
+  return { send: true, whatsNew: notes };
+}
+
 // manualTestflightGroups returns the configured internal group when it needs the build added; a group with access to
 // all builds receives every build on its own and rejects a manual add, and other groups are left alone.
 export function manualTestflightGroups(groups, name) {
@@ -537,9 +547,9 @@ async function listing() {
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
   const copyAttributes = { description: copy.description, keywords: copy.keywords, promotionalText: copy.promotionalText, supportUrl: copy.supportUrl, marketingUrl: copy.marketingUrl };
-  // Apple rejects "What's New" on an app's first version, so it is sent only once a version is live.
   const live = (await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS')).some(item => LIVE_STATES.includes(versionState(item)));
-  if (live && copy.whatsNew) copyAttributes.whatsNew = copy.whatsNew;
+  const notes = whatsNewPlan(live, copy.whatsNew);
+  if (notes.send) copyAttributes.whatsNew = notes.whatsNew;
   const savedCopy = await api('/v1/appStoreVersionLocalizations/' + localization.id, 'PATCH', { data: { type: 'appStoreVersionLocalizations', id: localization.id, attributes: copyAttributes } });
   assertSaved('Version localization', copyAttributes, savedCopy.data.attributes);
   console.log('Saved and verified name, subtitle, privacy URL, categories, content rights, copyright and listing copy.');

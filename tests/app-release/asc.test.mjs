@@ -173,3 +173,12 @@ test('leaderboard readiness and resubmission never send a smaller set than confi
   assert.equal(asc.cancelSettled(null), true);
   assert.deepEqual(asc.missingSubmissionItems([], 'v', []), { version: true, leaderboards: [] });
 });
+
+test('release notes are left out of a first version and required on every update', () => {
+  assert.deepEqual(asc.whatsNewPlan(false, ''), { send: false });
+  assert.deepEqual(asc.whatsNewPlan(false, 'New intro!'), { send: false });
+  assert.deepEqual(asc.whatsNewPlan(true, '  New intro!\n'), { send: true, whatsNew: 'New intro!' });
+  assert.throws(() => asc.whatsNewPlan(true, ''), /release notes/);
+  assert.throws(() => asc.whatsNewPlan(true, '   '), /release notes/);
+  assert.throws(() => asc.whatsNewPlan(true, undefined), /release notes/);
+});
