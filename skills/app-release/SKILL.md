@@ -57,7 +57,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm` ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
-| Update recheck | Every update, every app, both stores: screenshots, preview, Play graphics and listing copy rechecked against the build, release notes written ([media](references/media.md#every-update)) |
+| Update recheck | Every update, every app, both stores: screenshots, preview, Play graphics and listing copy rechecked against the build, release notes written (Every update in [media](references/media.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 
 **Every update of every app** after the first release: recheck the screenshots, preview, Play graphics and listing
