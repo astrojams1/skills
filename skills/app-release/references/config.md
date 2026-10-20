@@ -66,7 +66,7 @@ Environment overrides, for a run without the vault: `ASC_KEY_ID`, `ASC_ISSUER_ID
 | Field | Used by | Meaning |
 |---|---|---|
 | `version` | `asc.mjs` | The marketing version being prepared (`1.0.0`); `listing` creates or renames the iOS version to it |
-| `listing` | `asc.mjs listing` | `locale`, `name`, `subtitle`, `promotionalText`, `description`, `keywords`, `whatsNew` (sent only once a version is live), `supportUrl`, `marketingUrl`, `privacyPolicyUrl`, `copyright`, `primaryCategory`, optional `primarySubcategories` (games only) and `secondaryCategory`, `contentRightsDeclaration`, `releaseType` (`MANUAL` by default; `AFTER_APPROVAL` releases on approval) |
+| `listing` | `asc.mjs listing` | `locale`, `name`, `subtitle`, `promotionalText`, `description`, `keywords`, `whatsNew` (sent only once a version is live; required on every update), `supportUrl`, `marketingUrl`, `privacyPolicyUrl`, `copyright`, `primaryCategory`, optional `primarySubcategories` (games only) and `secondaryCategory`, `contentRightsDeclaration`, `releaseType` (`MANUAL` by default; `AFTER_APPROVAL` releases on approval) |
 | `ageRating` | `asc.mjs age-rating` | Answers keyed by Apple's current attribute names; unknown keys are reported, unanswered ones listed |
 | `review` | `asc.mjs review-details` | `firstName`, `lastName`, `email`, `notes` (4,000 characters), `demoAccountRequired`. The phone comes from `ASC_REVIEW_PHONE` or the same person's existing review detail |
 | `pricing` | `asc.mjs pricing` | `baseTerritory` (`USA`) and `basePrice` (`0` for free, `1.00`…); Apple equalizes other storefronts |

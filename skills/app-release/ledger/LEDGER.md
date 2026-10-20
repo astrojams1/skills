@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.0.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.1.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -31,6 +31,12 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.1.0 (2026-10-20)
+
+- Space Worms' owner, preparing its first update: every update rechecks the store screenshots and copy against the
+  build and ships release notes written for the app's audience (features and what feels faster, no jargon).
+  `asc.mjs listing` now refuses an update whose `listing.whatsNew` is empty, where it used to skip the notes silently.
 
 ## Lessons incorporated into v2.0.0 (2026-10-19)
 

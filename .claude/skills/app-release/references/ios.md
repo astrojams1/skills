@@ -126,7 +126,7 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   of the same source; never relabel it.
 - **Simulator control:** the Simulator panel drives only devices the owner has granted; `xcrun simctl io
   <device> screenshot` reads the screen without a grant.
-- **`whatsNew` is refused on an app's first version**; `listing` sends it only once a version is live.
+- **`whatsNew` is refused on an app's first version**; `listing` sends it only once a version is live, and refuses an update whose `whatsNew` is empty.
 - **Pick categories from the API** (`GET /v1/appCategories/GAMES/subcategories`); Apple retires some.
 - **Never name another app or trademark** in keywords or copy (guideline 2.3.7).
 - **Guideline 5.1.1(i)** needs the privacy policy linked inside the app as well as in the listing; App

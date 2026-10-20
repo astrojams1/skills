@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # App release
@@ -58,6 +58,12 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
+
+**Every update** after the first release: recheck the screenshots, preview and listing copy against the build
+being submitted (recapture anything the build no longer matches), and ship release notes in the store data's
+`listing.whatsNew` for Apple's What's New and Play's release notes (`android-release.mjs --notes`). `asc.mjs
+listing` refuses an update without them. Write them for the app's audience, naming new features and what feels
+faster, never implementation; the owner approves the wording before submission.
 
 Check current official documentation and the actual account for changing rules; dates in references are
 observations, not permanent requirements.
