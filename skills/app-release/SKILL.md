@@ -57,10 +57,12 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm` ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
+| Update recheck | Every update, every app, both stores: screenshots, preview, Play graphics and listing copy rechecked against the build, release notes written ([media](references/media.md#every-update)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 
-**Every update** after the first release: recheck the screenshots, preview and listing copy against the build
-being submitted (recapture anything the build no longer matches), and ship release notes in the store data's
+**Every update of every app** after the first release: recheck the screenshots, preview, Play graphics and listing
+copy on both stores against the build being submitted (recapture anything the build no longer matches, and record
+the recheck in the ledger), and ship release notes in the store data's
 `listing.whatsNew` for Apple's What's New and Play's release notes (`android-release.mjs --notes`). `asc.mjs
 listing` refuses an update without them. Write them for the app's audience, naming new features and what feels
 faster, never implementation; the owner approves the wording before submission.

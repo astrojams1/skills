@@ -105,6 +105,20 @@ current image requirements in a validator rather than relying on memory.
   avoid price/ranking/install-promotional overlays.
   [Google preview assets](https://support.google.com/googleplay/android-developer/answer/9866151).
 
+## Every update
+
+Before any update of any app goes to review, on both stores:
+
+1. Read what each store holds now (`asc.mjs status`, `play.mjs status`) and compare it with the store data.
+2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
+   show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
+3. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
+   against the build; correct anything it no longer does and add what it newly does.
+4. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
+   smoother, never how. The owner approves the wording.
+5. Record the recheck, what changed and the owner's approval in the ledger before `submit --confirm` or a Play
+   release.
+
 ## Uploading
 
 `asc.mjs screenshots` uploads missing files, keeps finished identical ones, replaces unfinished uploads, and —
