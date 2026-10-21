@@ -58,8 +58,22 @@ def main():
     check(abs(rail[0] - expected[0]) <= 3 and abs(rail[1] - expected[1]) <= 3,
           f"the rail maps to frame {rail[:2]}, expected about {expected}")
 
+    # The preview lays the marked controls and everything outside the video
+    # over another frame, and nothing else.
+    import os, tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        other = Image.fromarray(255 - np.asarray(frame)).copy()
+        path = os.path.join(tmp, "other.png")
+        other.save(path)
+        out = Image.open(fit_screenshot.preview(shot, frame, result, [[1045, 1310, 1175, 2320]], path)).convert("RGB")
+        px = np.asarray(out, dtype=np.int16)
+        expected = np.asarray(fit_screenshot.place(other, shot.size, result), dtype=np.int16)
+        check(px[1800, 1100].min() > 240, "the marked rail is drawn over the other frame")
+        check(np.abs(px[1200, 600] - expected[1200, 600]).max() < 12, "away from the marks the other frame shows")
+        check(px[2500, 600].max() < 30, "the tab bar below the video comes from the screenshot")
+
     print("=" * 50)
-    print(f"Results: {4 + 1 - failures} passed, {failures} failed")
+    print(f"Results: {8 - failures} passed, {failures} failed")
     print("OVERALL: " + ("PASS" if failures == 0 else "FAIL"))
     sys.exit(1 if failures else 0)
 

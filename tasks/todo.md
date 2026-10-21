@@ -311,3 +311,20 @@ public repository.
   recovers a known placement within 0.003 in scale and 3 px.
 - The checker on the trailer flags the same beats the owner saw: supers in the
   top band, cards under the rail, phone mock-ups under the stack.
+
+## youtube-shorts 0.2.0: compose, don't shrink — October 21, 2026
+
+- [x] Record the owner's correction in `tasks/lessons.md`.
+- [x] SKILL.md and the safe-zone reference: compose for the box's proportions;
+      devices may run off the bottom edge; one-line caption headlines.
+- [x] `fit-screenshot.py --preview`: lay a screenshot's marked controls over
+      new frames; tested on a synthetic placement.
+- [x] Ledger version row; Newsworthy's third cut as a run.
+
+### Review
+
+- Diff-based control extraction was tried first and ghosted: anything that
+  moved between the screenshot and the frame, and every edge YouTube's
+  re-encode softened, came along. Marked boxes plus "white inside the mark"
+  are deterministic and clean.
+

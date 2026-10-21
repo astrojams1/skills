@@ -25,8 +25,8 @@ video, so a browser preview, an editor or the rendered file never shows it.
 
 ## Where information goes
 
-`safe`: x 96–864, y 288–1440 (768×1152). Every word, number, face,
-product screen and call to action sits inside it. `safeAboveRail` adds
+`safe`: x 96–864, y 288–1440 (768×1152). Every word, number, face, call to
+action and what a product's screen shows sits inside it. `safeAboveRail` adds
 x 864–984 above y 1020, where the rail has not started yet. Both clear every
 measured zone by at least 32 px, so a slightly different phone or a two-line
 title does not reach them.
@@ -37,12 +37,18 @@ title does not reach them.
 - **The top band is controls, not only the status bar.** Text at y 130–280
   sits under back, search and the menu. Start supers at y 288.
 - **The lower half loses its right edge.** Cards, screenshots and phone
-  mock-ups below y 1060 must end by x 864 or the rail covers them.
+  mock-ups below y 1060 must end by x 864 or the rail covers them; a device's
+  body should end by x 898, where the rail starts.
 - **The bottom fifth is the title.** Nothing readable below y 1440: the
   owner's own view adds rows that viewers do not see, a long title takes two
   lines, and a Related video link adds a row above the title.
-- **Backgrounds and motion may bleed.** Only information is confined; colour,
-  texture and movement should fill the frame so the crop never shows an edge.
+- **Backgrounds, motion and devices may bleed.** Only information is
+  confined; colour, texture and movement should fill the frame so the crop
+  never shows an edge. A phone running off the bottom edge under the title
+  reads as intended; one ending just under the title reads as a mistake.
+- **Proportion, not just position.** The box is nearly 2:3. A layout scaled
+  down into it leaves the product small and the type too big; recompose it
+  (SKILL.md, "Compose for it").
 
 ## Published figures
 
@@ -77,7 +83,11 @@ player, or the ledger has no measurement for a device that matters.
    YouTube's controls are white in `diff.png`.
 4. Read each control's box off the screenshot (in screenshot pixels) and pass
    them as `--mark x0,y0,x1,y1`. The output gives each in frame pixels, and
-   `visible` gives the side crop.
+   `visible` gives the side crop. Keep the marks: with `--preview new.png`
+   the same call lays those controls over any new frame, which is how to see
+   a new cut as a viewer will before it is uploaded. Mark tightly; white video
+   inside a mark comes along, and avatars and YouTube's glass pills are not
+   carried over.
 5. Record the measurement in the ledger. If it moves a zone, change
    `assets/zones.json` (keep `safe` at least `margin` px clear of every zone;
    `tests/youtube-shorts/safe-zone.test.mjs` checks) and add a version row.

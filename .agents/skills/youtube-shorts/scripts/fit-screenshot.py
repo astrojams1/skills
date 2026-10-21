@@ -2,7 +2,8 @@
 """Map a phone screenshot of a playing Short back onto the video's own pixels.
 
     python3 fit-screenshot.py --frame frame.png --screenshot shot.png \
-        [--box x0,y0,x1,y1] [--mark x0,y0,x1,y1 ...] [--diff diff.png]
+        [--box x0,y0,x1,y1] [--mark x0,y0,x1,y1 ...] [--diff diff.png] \
+        [--preview new.png ...]
 
 --frame is the video's frame at the moment of the screenshot (extract it with
 ffmpeg -ss <t> -i video.mp4 -frames:v 1 frame.png). --box is a textured
@@ -12,16 +13,21 @@ offset, the part of the frame the phone shows, and each --mark (a box in
 screenshot pixels around a YouTube control) converted to frame pixels: the
 numbers that go into assets/zones.json. --diff writes |screenshot - frame|
 in screenshot space; YouTube's controls stand out in it, which is where to
-put the marks. Needs numpy and Pillow.
+put the marks. --preview puts YouTube's controls, lifted from the
+screenshot, over other frames of the same size (a new cut, a still) and writes
+<name>-phone.png beside each: what a viewer would see, before uploading. It
+takes the white pixels inside each --mark, so mark each control tightly: any
+white video inside a mark comes along. Needs numpy and Pillow.
 """
 
 import argparse
 import json
+import os
 import sys
 
 try:
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageFilter
 except ImportError:
     sys.exit("fit-screenshot.py needs numpy and Pillow: python3 -m pip install numpy pillow")
 
@@ -86,6 +92,60 @@ def to_frame(result, rect):
     return [round((x0 - ox) / s), round((y0 - oy) / s), round((x1 - ox) / s), round((y1 - oy) / s)]
 
 
+def place(frame, size, result):
+    """The frame drawn where the player draws it, on a canvas the screenshot's size."""
+    s = result["scale"]
+    canvas = Image.new("RGB", size)
+    canvas.paste(frame.resize((round(frame.width * s), round(frame.height * s)), Image.BICUBIC),
+                 tuple(round(v) for v in result["offset"]))
+    return canvas
+
+
+def overlay(shot, frame, result, marks):
+    """YouTube's layer from the screenshot: its opacity, and the shade it casts on the video.
+
+    Inside each mark (a box around a control, in screenshot pixels) the white
+    pixels are YouTube's icons and text; outside the video, everything is
+    YouTube's. Telling controls from video by difference ghosts whatever
+    moved, and every edge the upload's re-encode softened.
+    """
+    a = np.asarray(shot, dtype=np.float64)
+    f = np.asarray(place(frame, shot.size, result), dtype=np.float64)
+    la, lf = a.mean(axis=2), f.mean(axis=2)
+    video = np.zeros(la.shape)
+    x0, y0, x1, y1 = [round(v) for v in to_screen(result, [0, 0, frame.width, frame.height])]
+    video[max(0, y0):max(0, y1), max(0, x0):max(0, x1)] = 1
+    alpha = 1 - video
+    for x0, y0, x1, y1 in marks:
+        alpha[y0:y1, x0:x1] = np.maximum(alpha[y0:y1, x0:x1], np.clip((la[y0:y1, x0:x1] - 190) / 30, 0, 1))
+    alpha = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)), dtype=np.float64) / 255
+    # The player darkens the video behind its controls, top and bottom: per
+    # row, the median ratio of screenshot to frame over the frame's lit pixels.
+    shade = np.ones(la.shape[0])
+    for y in range(la.shape[0]):
+        lit = (lf[y] > 60) & (video[y] > 0) & (alpha[y] < 0.05)
+        if lit.sum() > 12:
+            shade[y] = np.clip(np.median(la[y, lit] / lf[y, lit]), 0.3, 1)
+    shade = np.convolve(np.pad(shade, 30, mode="edge"), np.ones(61) / 61, mode="valid")[:, None, None]
+    return alpha[..., None], shade
+
+
+def preview(shot, frame, result, marks, path):
+    alpha, shade = overlay(shot, frame, result, marks)
+    new = np.asarray(place(Image.open(path).convert("RGB"), shot.size, result), dtype=np.float64) * shade
+    out = new * (1 - alpha) + np.asarray(shot, dtype=np.float64) * alpha
+    target = os.path.splitext(path)[0] + "-phone.png"
+    Image.fromarray(np.clip(out, 0, 255).astype(np.uint8)).save(target)
+    return target
+
+
+def to_screen(result, rect):
+    s = result["scale"]
+    ox, oy = result["offset"]
+    x0, y0, x1, y1 = rect
+    return [x0 * s + ox, y0 * s + oy, x1 * s + ox, y1 * s + oy]
+
+
 def rect(text):
     values = [int(v) for v in text.split(",")]
     if len(values) != 4:
@@ -100,6 +160,7 @@ def main():
     parser.add_argument("--box", type=rect)
     parser.add_argument("--mark", type=rect, action="append", default=[])
     parser.add_argument("--diff")
+    parser.add_argument("--preview", action="append", default=[])
     a = parser.parse_args()
 
     frame = Image.open(a.frame).convert("RGB")
@@ -121,6 +182,11 @@ def main():
         d = np.abs(np.asarray(shot, dtype=np.int16) - np.asarray(placed, dtype=np.int16)).max(axis=2)
         Image.fromarray(np.where(d > 40, 255, 0).astype(np.uint8)).save(a.diff)
         result["diff"] = a.diff
+
+    if a.preview:
+        if not a.mark:
+            raise SystemExit("--preview needs a --mark around each of YouTube's controls on the screenshot")
+        result["previews"] = [preview(shot, frame, result, a.mark, path) for path in a.preview]
 
     print(json.dumps(result, indent=2))
 

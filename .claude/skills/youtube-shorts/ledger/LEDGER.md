@@ -11,6 +11,7 @@ and **Open issues** before every run.
 |---|---|---|---|
 | 0.1.0 | 2026-10-21 | Initial skill: measured zones (`assets/zones.json`), contact-sheet checker (`safe-zone.mjs`), screenshot fit (`fit-screenshot.py`), safe-zone and posting references. | Newsworthy's trailer, posted as a Short, had its headlines under the top controls and its cards under the rail and title stack; nothing in the workflow had looked at the phone. |
 | 0.1.1 | 2026-10-21 | `safe-zone.mjs` lays out the frames ffmpeg actually samples (t < duration), so a film an exact multiple of `--every` long no longer gets an empty last row. | The re-framed Newsworthy trailer's 32.00 s sheet ended in a blank row labelled 32.0 s. |
+| 0.2.0 | 2026-10-21 | "Compose for it; do not shrink into it": the product large and running off the bottom edge, one-line caption headlines, move what does not fit; `fit-screenshot.py --preview` lays a screenshot's marked controls over new frames. | The owner rejected Newsworthy's second cut: everything fitted, but the phone was a thumbnail and the headlines outweighed it. The skill had said where things may go, not how to compose for the space left. |
 
 ## Measurements
 

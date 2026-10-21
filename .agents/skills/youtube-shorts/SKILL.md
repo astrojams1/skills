@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "0.1.1"
+  version: "0.2.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -23,7 +23,7 @@ after posting means a new upload, and a new upload starts from zero views.
 |---|---|
 | `assets/zones.json` | The measured keep-out zones and the safe box, in 1080×1920 frame pixels, with where they were measured |
 | `scripts/safe-zone.mjs` | Draws the zones over a video (a contact sheet), one frame (`--at`) or a still. Node 22 and ffmpeg |
-| `scripts/fit-screenshot.py` | Maps a phone screenshot of a playing Short onto the frame's pixels, to measure the zones again. numpy and Pillow |
+| `scripts/fit-screenshot.py` | Maps a phone screenshot of a playing Short onto the frame's pixels, to measure the zones again, and with `--preview` lays its YouTube controls over new frames. numpy and Pillow |
 | `references/safe-zone.md` | The measurement, layout rules, the published (ad) figures and how to re-measure |
 | `references/posting.md` | The upload package: file, title, description, hashtags, related video, cover, captions, settings, after upload |
 | `ledger/LEDGER.md` | Versions, measurements, runs and open issues. Read before starting |
@@ -36,21 +36,47 @@ On a 1080×1920 frame, as measured on an iPhone in YouTube for iOS
 - **Hidden:** y < 245 (top controls), x > 898 below y 1061 (the action rail),
   y > 1534 left of the rail (the title stack), and about 54 px off each side
   on a 19.5:9 phone, more on taller ones.
-- **Safe:** x 96–864, y 288–1440. Every word, number, face, product screen
-  and call to action goes here. Above y 1020 it may run right to x 984.
-- Backgrounds, colour and motion should still fill the whole frame.
+- **Safe:** x 96–864, y 288–1440. Every word, number, face, call to action
+  and what a product's screen shows goes here. Above y 1020 it may run right
+  to x 984.
+- Backgrounds, colour, motion and a device's body should still fill the frame.
+
+## Compose for it; do not shrink into it
+
+The safe box is about 768×1150, nearly 2:3. Scaling a layout made for the
+whole frame down until it fits makes a whole phone a thumbnail and leaves a
+headline set for 1920 px outweighing it (Newsworthy's second cut, which the
+owner rejected for exactly that). Recompose instead:
+
+- **The product is the subject.** Show a device large, its body running off
+  the frame's bottom edge under YouTube's title, so its lower edge is never
+  seen there; a phone that ends just under the title reads as a mistake. Only
+  what its screen shows has to be in the box. Centre it a little left of the
+  frame's centre (x ≈ 520) so it clears the action rail.
+- **Headlines are captions.** One line, about 60 px, above the picture. Big
+  type is for scenes that are only type.
+- **Move what does not fit, don't shrink everything.** A notification can
+  rest nearer the clock and lift up and out; a card can rise a short way
+  instead of across the title.
+- **Look through the real overlay.** Lay a screenshot's controls over new
+  frames (`fit-screenshot.py --preview`) before rendering the whole film; the
+  zone boxes show what is hidden, not whether the picture works.
 
 ## Workflow
 
 1. **Read the ledger:** the newest measurement and the open issues.
-2. **Storyboard inside the safe box.** Lay out each beat's text and key image
-   in frame pixels against `assets/zones.json`. For video rendered from code,
-   read the zones from that file and assert each text element's box in tests,
-   rather than copying numbers.
+2. **Storyboard for the safe box**, composed for its proportions (above). Lay
+   out each beat's text and key image in frame pixels against
+   `assets/zones.json`. For video rendered from code, read the zones from that
+   file and assert each text element's box in tests, rather than copying
+   numbers; assert the composition too (a device runs off the frame, clears
+   the rail, is not a thumbnail).
 3. **Render**, then **check every frame:** `node scripts/safe-zone.mjs <video>
    --every 0.5` and look at each tile of the sheet, then `--at <s>` full size
    for any beat that comes close. Anything readable in red, or crossing the
-   green line, gets moved and re-rendered. Check the cover the same way.
+   green line, gets moved and re-rendered. Check the cover the same way. Then
+   look at the busiest beats under the real overlay (`--preview`) and judge
+   them as a viewer would.
 4. **Package the upload** with `references/posting.md`: title, description,
    hashtags, related video, cover, captions and settings.
 5. **After posting, watch it on a phone** as the owner and as a viewer.
@@ -67,9 +93,8 @@ On a 1080×1920 frame, as measured on an iPhone in YouTube for iOS
   usual "title safe" height sits behind back, search and the menu.
 - **The safe box is off centre.** Its middle is x 480. Centred text is limited
   to 648 px wide; centre wider elements on x 480.
-- **Phone mock-ups run into the stack.** A device frame tall enough to read
-  puts its bottom third under the title and the rail. Crop it, scale it or
-  move it up.
+- **Shrinking to fit is not framing.** A whole phone that clears the title
+  stack is a thumbnail. Let it run off the bottom edge instead (above).
 - **The owner sees more chrome than viewers.** Analytics, the view count and
   "Share your video" sit in the owner's bottom stack. Design for the larger
   one; the owner will judge the video from that view.
