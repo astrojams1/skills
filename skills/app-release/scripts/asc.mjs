@@ -1133,7 +1133,8 @@ export function assetReference(fileName, bytes) {
 export const ASSET_PLACEMENTS = {
   PRODUCT_PAGE_HEADER_ASSET: ['DEFAULT_PROFILE'],
   APP_STORE_SEARCH_RESULTS_ASSET: ['DEFAULT_PROFILE'],
-  APP_SCREENSHOT: ['IPHONE_DUO_PROFILE', 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE', 'IPAD_13_PROFILE'],
+  // Other screenshot profiles have display types that `screenshots` manages; only Duo has none.
+  APP_SCREENSHOT: ['IPHONE_DUO_PROFILE'],
 };
 
 // assetEntryProblem checks one store-data `assetLibrary` entry, returning what is wrong or null.
@@ -1155,11 +1156,18 @@ export function assetUploadAction(images, reference) {
   return { action: 'keep', id: found.id };
 }
 
-// assetPlacementMissing says whether an image still needs a placement of `type` in `group` on the localization.
-export function assetPlacementMissing(placements, type, group, localizationId) {
-  return !placements.some(item => item.attributes.placementType === type && item.attributes.placementGroup === group
-    && item.relationships && item.relationships.appStoreVersionLocalization && item.relationships.appStoreVersionLocalization.data
-    && item.relationships.appStoreVersionLocalization.data.id === localizationId);
+// PLACEABLE_STATES are the image states a placement accepts: processed, and not failed or archived.
+export const PLACEABLE_STATES = ['COMPLETE', 'PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'ACCEPTED', 'APPROVED'];
+
+// placementPlan compares a localization's placements of one type and profile with the images store data wants there,
+// in order: which images still need a placement, and which placements hold an image store data no longer lists.
+export function placementPlan(existing, wantedImageIds) {
+  const imageOf = item => (item.relationships && item.relationships.image && item.relationships.image.data ? item.relationships.image.data.id : null);
+  const placedImages = existing.map(imageOf);
+  return {
+    missing: wantedImageIds.filter(id => !placedImages.includes(id)),
+    stale: existing.filter(item => !wantedImageIds.includes(imageOf(item))).map(item => item.id),
+  };
 }
 
 // assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images: the product page header,
@@ -1184,35 +1192,65 @@ async function assets(mode) {
   }
   if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place]');
   const localization = mode === 'place' ? await versionLocalization((await context()).version.id, false) : null;
+  // Each placement type and profile, with the image ids store data wants there in order.
+  const wanted = new Map();
   for (const entry of entries) {
     const path = resolve(CONFIG.root, entry.file);
     const bytes = readFileSync(path);
     const reference = assetReference(basename(path), bytes);
     const plan = assetUploadAction(images, reference);
-    let imageId = plan.id;
-    if (mode === 'upload' && plan.action !== 'keep') {
+    if (mode === 'upload') {
+      if (plan.action === 'keep') {
+        console.log('kept', reference);
+        continue;
+      }
       if (plan.action === 'replace') await api('/v1/appAssetLibraryImages/' + plan.id, 'DELETE');
       const reserved = (await api('/v1/appAssetLibraryImages', 'POST', { data: { type: 'appAssetLibraryImages',
         attributes: { category: entry.category, fileName: basename(path), fileSize: statSync(path).size, referenceName: reference },
         relationships: { assetLibrary: relation('appAssetLibraries', library.id) } } })).data;
       await uploadParts(reserved.attributes.uploadOperations, bytes, basename(path));
       await api('/v1/appAssetLibraryImages/' + reserved.id, 'PATCH', { data: { type: 'appAssetLibraryImages', id: reserved.id, attributes: { uploaded: true } } });
-      imageId = reserved.id;
+      // A later entry with the same bytes then finds this upload instead of making another.
+      images.push({ id: reserved.id, attributes: { referenceName: reference, state: 'UPLOAD_COMPLETE' } });
       console.log('uploaded', reference, 'for', entry.placementType, entry.placementGroup);
-    } else if (mode === 'upload') {
-      console.log('kept', reference);
+      continue;
     }
-    if (mode === 'place') {
-      if (!imageId) throw new Error(reference + ' is not in the Asset Library; run `assets upload` first.');
-      const placements = await listAll('/v1/appAssetLibraryImages/' + imageId + '/placements?include=appStoreVersionLocalization');
-      if (!assetPlacementMissing(placements, entry.placementType, entry.placementGroup, localization.id)) {
-        console.log('kept placement', reference, entry.placementType);
-        continue;
-      }
+    const image = images.find(item => item.id === plan.id);
+    if (plan.action !== 'keep' || !PLACEABLE_STATES.includes(image.attributes.state)) {
+      throw new Error(reference + ' is ' + (image ? image.attributes.state : 'not in the Asset Library') + '; run `assets upload`, then `assets` until it has finished processing.');
+    }
+    const key = entry.placementType + ' ' + entry.placementGroup;
+    if (!wanted.has(key)) wanted.set(key, { type: entry.placementType, group: entry.placementGroup, ids: [] });
+    wanted.get(key).ids.push(plan.id);
+  }
+  for (const slot of wanted.values()) {
+    const query = '?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=image';
+    const existing = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
+    const plan = placementPlan(existing, slot.ids);
+    if (plan.stale.length && !IOS.pruneScreenshots) {
+      throw new Error(slot.type + ' ' + slot.group + ' holds ' + plan.stale.length + ' placement(s) store data does not list; remove them in App Store Connect, or set ios.pruneScreenshots.');
+    }
+    for (const id of plan.stale) {
+      await api('/v1/appAssetLibraryPlacements/' + id, 'DELETE');
+      console.log('removed placement', id, slot.type, slot.group, '(not in the store data)');
+    }
+    for (const imageId of plan.missing) {
       await api('/v1/appAssetLibraryPlacements', 'POST', { data: { type: 'appAssetLibraryPlacements',
-        attributes: { placementType: entry.placementType, placementGroup: entry.placementGroup },
+        attributes: { placementType: slot.type, placementGroup: slot.group },
         relationships: { image: relation('appAssetLibraryImages', imageId), appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
-      console.log('placed', reference, entry.placementType, entry.placementGroup);
+      console.log('placed', imageId, slot.type, slot.group);
+    }
+    if (slot.ids.length > 1) {
+      // Order the slot as store data lists it, as `screenshots` orders a set.
+      const placed = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
+      const imageOf = item => item.relationships.image.data.id;
+      const ordered = slot.ids.map(id => placed.find(item => imageOf(item) === id)).filter(Boolean);
+      await api('/v1/appAssetLibraryPlacementOrderingRequests', 'POST', { data: { type: 'appAssetLibraryPlacementOrderingRequests',
+        attributes: { placementGroup: slot.group },
+        relationships: { orderedPlacements: { data: ordered.map(item => ({ type: 'appAssetLibraryPlacements', id: item.id })) },
+          appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
+      const after = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
+      if (after.map(imageOf).join() !== slot.ids.join()) console.log('Order requested for', slot.type, slot.group + '; check it in App Store Connect, since the list did not read back in that order.');
     }
   }
   console.log('Run `assets` until every image has finished processing.');

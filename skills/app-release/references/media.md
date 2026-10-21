@@ -126,7 +126,8 @@ first-time visitor, key art inside the template safe area, a short phrase at mos
 - **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` (outward-facing: ask the owner)
   and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
   and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file
-  uploads as a new image. Images go to App Review with the version they are placed on; the version page also lets
+  uploads as a new image. `place` takes only processed images, puts screenshots in store-data order, and stops when
+  a slot holds an image store data no longer lists (with `ios.pruneScreenshots` it removes that placement instead). Images go to App Review with the version they are placed on; the version page also lets
   the owner pick an approved header while the version waits for release.
 - The regular screenshot display types (`asc.mjs screenshots`) also appear in the Asset Library; `assets` is for
   placements that have no screenshot display type.

@@ -204,9 +204,16 @@ test('Asset Library uploads keep finished copies, replace unfinished ones and tr
   assert.deepEqual(asc.assetUploadAction([image('ARCHIVED', ref)], ref), { action: 'upload' });
 });
 
-test('an image is placed once per type, profile and localization', () => {
-  const placed = (type, group, loc) => ({ attributes: { placementType: type, placementGroup: group }, relationships: { appStoreVersionLocalization: { data: { id: loc } } } });
-  assert.equal(asc.assetPlacementMissing([], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), true);
-  assert.equal(asc.assetPlacementMissing([placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1')], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), false);
-  assert.equal(asc.assetPlacementMissing([placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L0')], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), true);
+test('placements follow store data: missing images are placed and other images\' placements are stale', () => {
+  const placed = (id, image) => ({ id: id, relationships: { image: { data: { id: image } } } });
+  assert.deepEqual(asc.placementPlan([], ['a', 'b']), { missing: ['a', 'b'], stale: [] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'a')], ['a', 'b']), { missing: ['b'], stale: [] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'old'), placed('p2', 'a')], ['a']), { missing: [], stale: ['p1'] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'a')], []), { missing: [], stale: ['p1'] });
+});
+
+test('only processed images can be placed, and screenshots only on profiles without a display type', () => {
+  assert.ok(asc.PLACEABLE_STATES.includes('COMPLETE') && asc.PLACEABLE_STATES.includes('APPROVED'));
+  for (const state of ['AWAITING_UPLOAD', 'UPLOAD_COMPLETE', 'FAILED', 'REJECTED', 'ARCHIVED']) assert.ok(!asc.PLACEABLE_STATES.includes(state), state);
+  assert.match(asc.assetEntryProblem({ file: 's.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE' }), /does not take/);
 });
