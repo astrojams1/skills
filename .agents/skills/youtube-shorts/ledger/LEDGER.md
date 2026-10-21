@@ -26,6 +26,7 @@ what each side loses.
 | date | project | video | outcome |
 |---|---|---|---|
 | 2026-10-21 | Newsworthy | 32 s trailer, posted before this skill existed | On the phone: the top supers ("Optional notifications", "World news,", "One number.") under back, search and the menu; the notification card's right end under the rail; phone mock-ups' lower thirds under the title stack. The contact sheet flags the same beats. Re-framing it is the owner's call |
+| 2026-10-21 | Newsworthy | 32 s trailer, second cut, re-framed with this skill | The film reads `zones.json`: supers start below y 288, the phone is scaled to end above y 1440, lines set together share the size their widest fits, the end card's tagline sits above the rail. Newsworthy's `test/trailer.test.js` renders every 0.2 s and checks every marked word, number and screen against the zones (the first cut's layout: 394 placements outside; this cut: none), and fails if a marked part goes unseen. A worked answer to open issue 3 for code-rendered video. Not yet re-posted or seen on a phone |
 
 ## Open issues
 
