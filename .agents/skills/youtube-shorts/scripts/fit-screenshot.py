@@ -121,13 +121,29 @@ def overlay(shot, frame, result, marks):
     alpha = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)), dtype=np.float64) / 255
     # The player darkens the video behind its controls, top and bottom: per
     # row, the median ratio of screenshot to frame over the frame's lit pixels.
+    # Between the top controls and the title stack it does not, so a noisy
+    # estimate there would only band the preview.
+    top = to_screen(result, [0, 0, 0, zones_edge(marks, "top")])[3]
+    bottom = to_screen(result, [0, zones_edge(marks, "bottom"), 0, 0])[1]
     shade = np.ones(la.shape[0])
     for y in range(la.shape[0]):
+        if top < y < bottom:
+            continue
         lit = (lf[y] > 60) & (video[y] > 0) & (alpha[y] < 0.05)
         if lit.sum() > 12:
             shade[y] = np.clip(np.median(la[y, lit] / lf[y, lit]), 0.3, 1)
-    shade = np.convolve(np.pad(shade, 30, mode="edge"), np.ones(61) / 61, mode="valid")[:, None, None]
+    shade = np.array([np.median(shade[max(0, y - 50):y + 51]) for y in range(len(shade))])
+    shade = np.convolve(np.pad(shade, 20, mode="edge"), np.ones(41) / 41, mode="valid")[:, None, None]
     return alpha[..., None], shade
+
+
+def zones_edge(marks, side):
+    """Where YouTube's shading can reach, in frame pixels: below the lowest mark
+    in the top quarter, above the highest mark in the bottom half."""
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "zones.json")) as f:
+        zones = json.load(f)
+    z = {k["id"]: k for k in zones["keepOut"]}
+    return z["top"]["y"] + z["top"]["height"] if side == "top" else z["stack"]["y"]
 
 
 def preview(shot, frame, result, marks, path):
