@@ -12,6 +12,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, requireSection } from './lib/config.mjs';
 import { opRead, privateDir } from './lib/vault.mjs';
+import { freshBuildTmp } from './lib/build-tmp.mjs';
 
 const PLAY = 'https://androidpublisher.googleapis.com';
 const TOKEN_URI = 'https://oauth2.googleapis.com/token';
@@ -400,7 +401,8 @@ function bundle(key, code, flags, env) {
     provenance = { commit: before.commit, dirty: before.status !== '' };
     rmSync(summaryPath, { force: true });
     console.log('Building ' + ANDROID.package + ' versionCode ' + code + ' from ' + before.commit.slice(0, 7) + (before.status ? ' (dirty)' : ''));
-    const sets = { CI: '1' };
+    // A per-build TMPDIR keeps Metro's cache from another checkout out of the bundle (lib/build-tmp.mjs).
+    const sets = { CI: '1', TMPDIR: freshBuildTmp(out) };
     sets[ANDROID.versionCodeEnv] = String(code);
     sets[CONFIG.buildShaEnv] = before.commit.slice(0, 7);
     const services = googleServices();
