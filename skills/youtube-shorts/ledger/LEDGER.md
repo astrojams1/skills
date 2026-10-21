@@ -10,6 +10,7 @@ and **Open issues** before every run.
 | version | date | change | why |
 |---|---|---|---|
 | 0.1.0 | 2026-10-21 | Initial skill: measured zones (`assets/zones.json`), contact-sheet checker (`safe-zone.mjs`), screenshot fit (`fit-screenshot.py`), safe-zone and posting references. | Newsworthy's trailer, posted as a Short, had its headlines under the top controls and its cards under the rail and title stack; nothing in the workflow had looked at the phone. |
+| 0.1.1 | 2026-10-21 | `safe-zone.mjs` lays out the frames ffmpeg actually samples (t < duration), so a film an exact multiple of `--every` long no longer gets an empty last row. | The re-framed Newsworthy trailer's 32.00 s sheet ended in a blank row labelled 32.0 s. |
 
 ## Measurements
 

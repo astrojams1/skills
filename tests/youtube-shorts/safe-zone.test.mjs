@@ -51,8 +51,10 @@ test('durations parse from ffmpeg output and lay out into rows', () => {
   assert.equal(parseDuration('  Duration: 00:00:32.03, start: 0.000000'), 32.03);
   assert.equal(parseDuration('  Duration: 01:02:03.5, start'), 3723.5);
   assert.equal(parseDuration('no duration'), null);
-  assert.deepEqual(sheetLayout(32, 2, 6), { count: 17, rows: 3, legend: ['row 1: 0.0–10.0 s', 'row 2: 12.0–22.0 s', 'row 3: 24.0–32.0 s'] });
-  assert.equal(sheetLayout(30, 1, 6).count, 31);
+  // A film exactly 32 s long has no frame at 32 s: an extra row would be empty.
+  assert.deepEqual(sheetLayout(32, 2, 6), { count: 16, rows: 3, legend: ['row 1: 0.0–10.0 s', 'row 2: 12.0–22.0 s', 'row 3: 24.0–30.0 s'] });
+  assert.equal(sheetLayout(32, 1, 8).rows, 4);
+  assert.equal(sheetLayout(32.03, 1, 8).rows, 5);
 });
 
 test('a video becomes a contact sheet and a still keeps its size', { skip: !hasFfmpeg && 'ffmpeg not installed' }, () => {
@@ -65,7 +67,7 @@ test('a video becomes a contact sheet and a still keeps its size', { skip: !hasF
     const run = (...a) => spawnSync(process.execPath, [script, ...a], { encoding: 'utf8' });
     const sheet = run(video, '--every', '1', '--cols', '2', '--tile', '100');
     assert.equal(sheet.status, 0, sheet.stderr);
-    assert.match(sheet.stdout, /row 2: 2\.0–3\.0 s/);
+    assert.match(sheet.stdout, /row 2: 2\.0–2\.0 s/);
     assert.deepEqual(pngSize(path.join(dir, 'clip-safe-zone.png')), [2 * 100 + 3 * 6, 2 * 178 + 3 * 6]);
     const one = run(still);
     assert.equal(one.status, 0, one.stderr);
