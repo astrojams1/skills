@@ -287,3 +287,27 @@ new recording's actual coverage and unverified OS/build limits.
   actual media coverage and resubmission without claiming an unshown OS/build.
 - Installed-copy sync follows merge while retaining local-only history. No
   Newsworthy files, private recording paths or provider state changed here.
+
+## YouTube Shorts skill — October 21, 2026
+
+- [x] Measure what YouTube's player hides from the owner's screenshot of the
+      Newsworthy trailer playing on an iPhone 16 Pro, fitted to the source frame.
+- [x] Keep the zones as data (`assets/zones.json`) with a contact-sheet checker
+      and a screenshot-fit script, so later runs re-measure instead of guessing.
+- [x] Write SKILL.md, the safe-zone and posting references and the ledger.
+- [x] Tests for the zones, the checker (with ffmpeg) and the fit; refresh
+      discovery copies, including app-release's, stale since 2.2.0.
+
+Plan: The owner's report was that the trailer "does not frame well when viewed
+with all the YouTube chrome". Record that as a measured constraint, not a
+rule of thumb, and make the desk check show it before anything is uploaded.
+The screenshot shows the owner's face and channel, so only numbers enter this
+public repository.
+
+### Review
+
+- Fit on the real screenshot: scale 1.2378, offset (−66.4, −4.2), match 0.987
+  with the default box; 0.997 matching on the clock region. Synthetic test
+  recovers a known placement within 0.003 in scale and 3 px.
+- The checker on the trailer flags the same beats the owner saw: supers in the
+  top band, cards under the rail, phone mock-ups under the stack.

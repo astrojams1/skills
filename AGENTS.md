@@ -44,9 +44,15 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  youtube-shorts/
+    SKILL.md                               # Frame, check and post Shorts inside YouTube's measured safe zone
+    references/{safe-zone,posting}.md      # The measurement and layout rules; the upload package
+    scripts/safe-zone.mjs, scripts/fit-screenshot.py   # Contact-sheet checker (ffmpeg); screenshot-to-frame fit (numpy, Pillow)
+    assets/zones.json                      # Keep-out zones and safe box in 1080x1920 frame pixels
+    ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/ covers the release scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/ and tests/youtube-shorts/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -208,6 +214,24 @@ Consumer repos get it through the skills submodule and run the scripts from thei
 `node skills/skills/app-release/scripts/asc.mjs status`. Onboard a new app with `references/config.md`.
 Newsworthy and Space Worms use it. A change requested from an app repository is routed by `references/maintaining.md`: anything true of every app lands here, app facts stay in the app. After changing a script, run `node --test tests/app-release/*.test.mjs`.
 
+### YouTube Shorts — Frame, Check and Post
+
+**Skill:** `skills/youtube-shorts/SKILL.md`
+
+Make vertical video that frames well where it is actually watched: on a phone, under YouTube's controls. The
+player crops the sides of a 1080×1920 frame and draws the status bar, back, search and menu across the top, the
+action rail down the right and the channel and title stack across the bottom; none of it shows in an editor or a
+browser. The skill keeps those zones as measured data (`assets/zones.json`, from a phone screenshot fitted to the
+source frame), draws them over every frame of a render as a contact sheet before upload, covers the upload
+package (title, links that do not click, hashtags, related video, cover, captions, settings), and re-measures
+from a screenshot when YouTube's interface moves. Its ledger records each measurement and run.
+
+#### How to use
+
+Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a render with
+`node skills/youtube-shorts/scripts/safe-zone.mjs <video> --every 0.5` (needs ffmpeg). After changing a script or
+`zones.json`, run `node --test tests/youtube-shorts/*.test.mjs` and `python3 tests/test_youtube_shorts_fit.py`.
+
 ## Internal Skills
 
 These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
@@ -261,7 +285,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, and `node --test tests/app-release/*.test.mjs` (Node 22) to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 

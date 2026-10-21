@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.1.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.2.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -31,6 +31,26 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.2.0 (2026-10-20)
+
+- Space Worms' owner, reading App Store Connect's "New Ways to Market Apps" banner: every app uses the product page
+  header, the search-results creative and iPhone Duo screenshots. `asc.mjs assets` lists, uploads and places them
+  through the Asset Library (`appAssetLibraryImages`, `appAssetLibraryPlacements`, OpenAPI 4.5.1); the live specs
+  came from `appAssetLibraryRefData`. The Duo profile holds 10 screenshots for both displays together.
+
+## Lessons incorporated into v2.1.1 (2026-10-20)
+
+- Space Worms build 12: `ios-release.mjs archive` failed bundling because Metro's shared cache in the system
+  temporary folder held a DOM-component entry pointing into another checkout of the same app. Archives and Android
+  bundles now run with a fresh `<build>/tmp` as `TMPDIR` (`lib/build-tmp.mjs`), so every release bundles from its
+  own checkout alone.
+
+## Lessons incorporated into v2.1.0 (2026-10-20)
+
+- Space Worms' owner, preparing its first update: every update rechecks the store screenshots and copy against the
+  build and ships release notes written for the app's audience (features and what feels faster, no jargon).
+  `asc.mjs listing` now refuses an update whose `listing.whatsNew` is empty, where it used to skip the notes silently.
 
 ## Lessons incorporated into v2.0.0 (2026-10-19)
 

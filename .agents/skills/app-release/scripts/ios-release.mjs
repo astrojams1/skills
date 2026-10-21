@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
+import { freshBuildTmp } from './lib/build-tmp.mjs';
 
 const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
@@ -269,7 +270,8 @@ async function archive(flags) {
   const out = outDir(build);
   mkdirSync(out, { recursive: true });
   console.log(capture('xcodebuild', ['-version']).replace(/\n/g, ', ') + ' - commit ' + before.commit.slice(0, 7) + (before.status ? ' (dirty)' : ''));
-  const sets = { CI: '1', LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+  // A per-build TMPDIR keeps Metro's cache from another checkout out of the bundle (lib/build-tmp.mjs).
+  const sets = { CI: '1', LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8', TMPDIR: freshBuildTmp(out) };
   sets[IOS.buildNumberEnv] = String(build);
   sets[CONFIG.buildShaEnv] = before.commit.slice(0, 7);
   const env = IOS.scrubPublicEnv === false ? Object.assign({}, process.env, sets) : releaseEnv(process.env, sets);

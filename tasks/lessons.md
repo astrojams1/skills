@@ -175,3 +175,17 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   our recommendation when the reviewer did not expressly require replacement.
 - Inspect new media and retain its limits: visible features do not prove an OS or
   build number that the recording never shows. Do not make unsupported OS claims.
+
+## Vertical video is watched under someone else's interface
+
+**Source:** Owner's screenshot of the Newsworthy trailer as a YouTube Short (2026-10-21)
+
+- A frame that looks right in the renderer can still be wrong where it is
+  watched. Before calling a Short, Reel or TikTok done, draw the platform's
+  measured overlay on every frame (`youtube-shorts/scripts/safe-zone.mjs`),
+  and after posting, look at it on a phone.
+- Measure the overlay from a real screenshot fitted to the source frame;
+  published "safe zones" are ad specs and disagree with each other.
+- "Title safe" is not "Shorts safe": the top band is controls, the right edge
+  is a button rail and the sides are cropped on tall phones.
+
