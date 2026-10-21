@@ -189,3 +189,15 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - "Title safe" is not "Shorts safe": the top band is controls, the right edge
   is a button rail and the sides are cropped on tall phones.
 
+## Fitting is not framing
+
+**Source:** Owner's review of Newsworthy's re-framed trailer (2026-10-21): "you shrunk everything to fit but the video needs some deeper rethinking not just shrinking. it looks weird to have tiny phone and ratio of headlines to content feels off. look at it yourself."
+
+- A constraint met by scaling everything down is not a design. When a layout
+  has to fit a smaller space, recompose it for that space's proportions: the
+  subject large (cropped by the frame if need be), the type sized to the
+  subject, things moved rather than shrunk.
+- Passing checks (zones, tests, verify) say nothing about whether a frame
+  works. Look at it as the viewer will, through the real overlay, before
+  presenting it as fixed.
+
