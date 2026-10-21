@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.1.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.2.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -31,6 +31,13 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.2.0 (2026-10-20)
+
+- Space Worms' owner, reading App Store Connect's "New Ways to Market Apps" banner: every app uses the product page
+  header, the search-results creative and iPhone Duo screenshots. `asc.mjs assets` lists, uploads and places them
+  through the Asset Library (`appAssetLibraryImages`, `appAssetLibraryPlacements`, OpenAPI 4.5.1); the live specs
+  came from `appAssetLibraryRefData`. The Duo profile holds 10 screenshots for both displays together.
 
 ## Lessons incorporated into v2.1.1 (2026-10-20)
 

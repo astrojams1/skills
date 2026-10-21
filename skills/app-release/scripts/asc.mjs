@@ -14,7 +14,7 @@ import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './l
 import { opRead, pem } from './lib/vault.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
-const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release'];
+const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
 
 // CONFIG, IOS and STORE are read on first use, so tests can import the decision helpers without a configured app.
 let CONFIG = null;
@@ -1122,6 +1122,102 @@ async function release(flag) {
   console.log('Release requested for version', STORE.version + '; `status` shows it once Apple processes it.');
 }
 
+// assetReference names an Asset Library image by its file and content, so a rerun recognises an upload Apple already
+// holds and a changed file uploads as a new image instead of being mistaken for the old one.
+export function assetReference(fileName, bytes) {
+  return fileName + '@' + createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+}
+
+// ASSET_PLACEMENTS are the placement types `assets` places on a version's localization, each with the profile group
+// Apple's reference data gives it; anything else in store data stops the run before it uploads.
+export const ASSET_PLACEMENTS = {
+  PRODUCT_PAGE_HEADER_ASSET: ['DEFAULT_PROFILE'],
+  APP_STORE_SEARCH_RESULTS_ASSET: ['DEFAULT_PROFILE'],
+  APP_SCREENSHOT: ['IPHONE_DUO_PROFILE', 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE', 'IPAD_13_PROFILE'],
+};
+
+// assetEntryProblem checks one store-data `assetLibrary` entry, returning what is wrong or null.
+export function assetEntryProblem(entry) {
+  if (!entry || typeof entry.file !== 'string') return 'an entry has no file';
+  if (!['CREATIVE_ASSETS', 'APP_SCREENSHOTS_AND_PREVIEWS'].includes(entry.category)) return entry.file + ': unknown category ' + entry.category;
+  const groups = ASSET_PLACEMENTS[entry.placementType];
+  if (!groups) return entry.file + ': unsupported placementType ' + entry.placementType;
+  if (!groups.includes(entry.placementGroup)) return entry.file + ': placementGroup ' + entry.placementGroup + ' does not take ' + entry.placementType;
+  return null;
+}
+
+// assetUploadAction compares a file's reference with the library's images: keep a finished or in-review copy, replace
+// one whose upload never finished or failed, and upload when none exists. Archived images never count.
+export function assetUploadAction(images, reference) {
+  const found = images.find(image => image.attributes.referenceName === reference && image.attributes.state !== 'ARCHIVED');
+  if (!found) return { action: 'upload' };
+  if (['AWAITING_UPLOAD', 'FAILED'].includes(found.attributes.state)) return { action: 'replace', id: found.id };
+  return { action: 'keep', id: found.id };
+}
+
+// assetPlacementMissing says whether an image still needs a placement of `type` in `group` on the localization.
+export function assetPlacementMissing(placements, type, group, localizationId) {
+  return !placements.some(item => item.attributes.placementType === type && item.attributes.placementGroup === group
+    && item.relationships && item.relationships.appStoreVersionLocalization && item.relationships.appStoreVersionLocalization.data
+    && item.relationships.appStoreVersionLocalization.data.id === localizationId);
+}
+
+// assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images: the product page header,
+// the search-results creative and screenshots for profiles without a screenshot display type, such as iPhone Duo.
+// Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from App Store Connect.
+async function assets(mode) {
+  const entries = STORE.assetLibrary || [];
+  for (const entry of entries) {
+    const problem = assetEntryProblem(entry);
+    if (problem) throw new Error('store data assetLibrary: ' + problem);
+  }
+  const library = (await api('/v1/apps/' + IOS.ascAppId + '/assetLibrary')).data;
+  const images = await listAll('/v1/appAssetLibraries/' + library.id + '/images');
+  if (!mode) {
+    for (const image of images) {
+      const placements = await listAll('/v1/appAssetLibraryImages/' + image.id + '/placements');
+      console.log('  image', image.attributes.referenceName || image.attributes.fileName, image.attributes.category, image.attributes.state,
+        placements.map(item => item.attributes.placementType + '/' + item.attributes.placementGroup + ' ' + item.attributes.state).join(', ') || 'unplaced');
+    }
+    console.log(images.length + ' Asset Library images; store data lists ' + entries.length + '.');
+    return;
+  }
+  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place]');
+  const localization = mode === 'place' ? await versionLocalization((await context()).version.id, false) : null;
+  for (const entry of entries) {
+    const path = resolve(CONFIG.root, entry.file);
+    const bytes = readFileSync(path);
+    const reference = assetReference(basename(path), bytes);
+    const plan = assetUploadAction(images, reference);
+    let imageId = plan.id;
+    if (mode === 'upload' && plan.action !== 'keep') {
+      if (plan.action === 'replace') await api('/v1/appAssetLibraryImages/' + plan.id, 'DELETE');
+      const reserved = (await api('/v1/appAssetLibraryImages', 'POST', { data: { type: 'appAssetLibraryImages',
+        attributes: { category: entry.category, fileName: basename(path), fileSize: statSync(path).size, referenceName: reference },
+        relationships: { assetLibrary: relation('appAssetLibraries', library.id) } } })).data;
+      await uploadParts(reserved.attributes.uploadOperations, bytes, basename(path));
+      await api('/v1/appAssetLibraryImages/' + reserved.id, 'PATCH', { data: { type: 'appAssetLibraryImages', id: reserved.id, attributes: { uploaded: true } } });
+      imageId = reserved.id;
+      console.log('uploaded', reference, 'for', entry.placementType, entry.placementGroup);
+    } else if (mode === 'upload') {
+      console.log('kept', reference);
+    }
+    if (mode === 'place') {
+      if (!imageId) throw new Error(reference + ' is not in the Asset Library; run `assets upload` first.');
+      const placements = await listAll('/v1/appAssetLibraryImages/' + imageId + '/placements?include=appStoreVersionLocalization');
+      if (!assetPlacementMissing(placements, entry.placementType, entry.placementGroup, localization.id)) {
+        console.log('kept placement', reference, entry.placementType);
+        continue;
+      }
+      await api('/v1/appAssetLibraryPlacements', 'POST', { data: { type: 'appAssetLibraryPlacements',
+        attributes: { placementType: entry.placementType, placementGroup: entry.placementGroup },
+        relationships: { image: relation('appAssetLibraryImages', imageId), appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
+      console.log('placed', reference, entry.placementType, entry.placementGroup);
+    }
+  }
+  console.log('Run `assets` until every image has finished processing.');
+}
+
 // main dispatches one command.
 async function main() {
   const command = process.argv[2];
@@ -1143,6 +1239,7 @@ async function main() {
   if (command === 'testflight') await testflight(argument);
   if (command === 'submit') await submit(argument);
   if (command === 'release') await release(argument);
+  if (command === 'assets') await assets(argument);
 }
 
 // Run only when invoked as a command, so tests can import the decision helpers.

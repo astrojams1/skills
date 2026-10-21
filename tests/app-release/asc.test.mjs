@@ -182,3 +182,31 @@ test('release notes are left out of a first version and required on every update
   assert.throws(() => asc.whatsNewPlan(true, '   '), /release notes/);
   assert.throws(() => asc.whatsNewPlan(true, undefined), /release notes/);
 });
+
+test('Asset Library entries name their placement and profile, and unknown ones stop the run', () => {
+  assert.equal(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'DEFAULT_PROFILE' }), null);
+  assert.equal(asc.assetEntryProblem({ file: 'd.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), null);
+  assert.match(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'IPHONE_DUO_PROFILE' }), /does not take/);
+  assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'CREATIVE_ASSETS', placementType: 'TODAY_TAB_ADS_ASSET', placementGroup: 'DEFAULT_PROFILE' }), /unsupported/);
+  assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'OTHER', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /category/);
+});
+
+test('Asset Library uploads keep finished copies, replace unfinished ones and treat a changed file as new', () => {
+  const ref = asc.assetReference('header.png', Buffer.from('a'));
+  assert.match(ref, /^header\.png@[0-9a-f]{12}$/);
+  assert.notEqual(ref, asc.assetReference('header.png', Buffer.from('b')));
+  const image = (state, referenceName) => ({ id: state, attributes: { state: state, referenceName: referenceName } });
+  assert.deepEqual(asc.assetUploadAction([], ref), { action: 'upload' });
+  assert.deepEqual(asc.assetUploadAction([image('COMPLETE', ref)], ref), { action: 'keep', id: 'COMPLETE' });
+  assert.deepEqual(asc.assetUploadAction([image('APPROVED', ref)], ref), { action: 'keep', id: 'APPROVED' });
+  assert.deepEqual(asc.assetUploadAction([image('AWAITING_UPLOAD', ref)], ref), { action: 'replace', id: 'AWAITING_UPLOAD' });
+  assert.deepEqual(asc.assetUploadAction([image('FAILED', ref)], ref), { action: 'replace', id: 'FAILED' });
+  assert.deepEqual(asc.assetUploadAction([image('ARCHIVED', ref)], ref), { action: 'upload' });
+});
+
+test('an image is placed once per type, profile and localization', () => {
+  const placed = (type, group, loc) => ({ attributes: { placementType: type, placementGroup: group }, relationships: { appStoreVersionLocalization: { data: { id: loc } } } });
+  assert.equal(asc.assetPlacementMissing([], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), true);
+  assert.equal(asc.assetPlacementMissing([placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1')], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), false);
+  assert.equal(asc.assetPlacementMissing([placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L0')], 'PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE', 'L1'), true);
+});

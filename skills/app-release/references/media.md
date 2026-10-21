@@ -105,6 +105,32 @@ current image requirements in a validator rather than relying on memory.
   avoid price/ranking/install-promotional overlays.
   [Google preview assets](https://support.google.com/googleplay/android-developer/answer/9866151).
 
+## Product page header, search results and iPhone Duo
+
+App Store Connect's "New Ways to Market Apps" (2026) adds creative assets beyond screenshots. Use them on every app:
+
+| Asset | Image | Video | Limit |
+|---|---|---|---|
+| Product page header | 3840x1646 PNG (21:9) | 3840x1646 MP4, 10-30 s, 30 or 60 fps | 1 |
+| Search-results creative | 3:2 JPEG or PNG, 1920x1280 to 3840x2560 | 3:2 MP4, 5-30 s | 1 |
+| Universal (either of the above) | 5244x2950 PNG (16:9) | - | - |
+| iPhone Duo screenshots | 1398x2034 (outer) or 2007x2853 (inner), JPEG or PNG | - | 10 for the Duo profile, both displays together |
+
+Read the live limits from `GET /v1/appAssetLibraryRefData` (image and video specs, profile groups, per-placement
+counts) before making assets; the numbers above are 2026-10-20 readings. Without a search-results creative, the
+store falls back to In-App Events, previews and screenshots. Apple's guidance: one clear idea, designed for a
+first-time visitor, key art inside the template safe area, a short phrase at most, no text that restates the UI.
+
+- **Make them from the real app**, like screenshots: no HUD, no onboarding controls, no mock-ups. Duo screenshots
+  are ordinary captures at the Duo sizes, with the HUD.
+- **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` (outward-facing: ask the owner)
+  and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
+  and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file
+  uploads as a new image. Images go to App Review with the version they are placed on; the version page also lets
+  the owner pick an approved header while the version waits for release.
+- The regular screenshot display types (`asc.mjs screenshots`) also appear in the Asset Library; `assets` is for
+  placements that have no screenshot display type.
+
 ## Every update
 
 Before any update of any app goes to review, on both stores:
@@ -112,11 +138,13 @@ Before any update of any app goes to review, on both stores:
 1. Read what each store holds now (`asc.mjs status`, `play.mjs status`) and compare it with the store data.
 2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
    show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
-3. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
+3. Check the product page header, search-results creative and iPhone Duo screenshots exist and still match (see
+   above); make any that are missing.
+4. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
    against the build; correct anything it no longer does and add what it newly does.
-4. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
+5. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
    smoother, never how. The owner approves the wording.
-5. Record the recheck, what changed and the owner's approval in the ledger before `submit --confirm` or a Play
+6. Record the recheck, what changed and the owner's approval in the ledger before `submit --confirm` or a Play
    release.
 
 ## Uploading
