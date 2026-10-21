@@ -182,3 +182,38 @@ test('release notes are left out of a first version and required on every update
   assert.throws(() => asc.whatsNewPlan(true, '   '), /release notes/);
   assert.throws(() => asc.whatsNewPlan(true, undefined), /release notes/);
 });
+
+test('Asset Library entries name their placement and profile, and unknown ones stop the run', () => {
+  assert.equal(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'DEFAULT_PROFILE' }), null);
+  assert.equal(asc.assetEntryProblem({ file: 'd.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), null);
+  assert.match(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'IPHONE_DUO_PROFILE' }), /does not take/);
+  assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'CREATIVE_ASSETS', placementType: 'TODAY_TAB_ADS_ASSET', placementGroup: 'DEFAULT_PROFILE' }), /unsupported/);
+  assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'OTHER', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /category/);
+});
+
+test('Asset Library uploads keep finished copies, replace unfinished ones and treat a changed file as new', () => {
+  const ref = asc.assetReference('header.png', Buffer.from('a'));
+  assert.match(ref, /^header\.png@[0-9a-f]{12}$/);
+  assert.notEqual(ref, asc.assetReference('header.png', Buffer.from('b')));
+  const image = (state, referenceName) => ({ id: state, attributes: { state: state, referenceName: referenceName } });
+  assert.deepEqual(asc.assetUploadAction([], ref), { action: 'upload' });
+  assert.deepEqual(asc.assetUploadAction([image('COMPLETE', ref)], ref), { action: 'keep', id: 'COMPLETE' });
+  assert.deepEqual(asc.assetUploadAction([image('APPROVED', ref)], ref), { action: 'keep', id: 'APPROVED' });
+  assert.deepEqual(asc.assetUploadAction([image('AWAITING_UPLOAD', ref)], ref), { action: 'replace', id: 'AWAITING_UPLOAD' });
+  assert.deepEqual(asc.assetUploadAction([image('FAILED', ref)], ref), { action: 'replace', id: 'FAILED' });
+  assert.deepEqual(asc.assetUploadAction([image('ARCHIVED', ref)], ref), { action: 'upload' });
+});
+
+test('placements follow store data: missing images are placed and other images\' placements are stale', () => {
+  const placed = (id, image) => ({ id: id, relationships: { image: { data: { id: image } } } });
+  assert.deepEqual(asc.placementPlan([], ['a', 'b']), { missing: ['a', 'b'], stale: [] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'a')], ['a', 'b']), { missing: ['b'], stale: [] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'old'), placed('p2', 'a')], ['a']), { missing: [], stale: ['p1'] });
+  assert.deepEqual(asc.placementPlan([placed('p1', 'a')], []), { missing: [], stale: ['p1'] });
+});
+
+test('only processed images can be placed, and screenshots only on profiles without a display type', () => {
+  assert.ok(asc.PLACEABLE_STATES.includes('COMPLETE') && asc.PLACEABLE_STATES.includes('APPROVED'));
+  for (const state of ['AWAITING_UPLOAD', 'UPLOAD_COMPLETE', 'FAILED', 'REJECTED', 'ARCHIVED']) assert.ok(!asc.PLACEABLE_STATES.includes(state), state);
+  assert.match(asc.assetEntryProblem({ file: 's.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE' }), /does not take/);
+});
