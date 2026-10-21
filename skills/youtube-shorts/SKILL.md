@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   ledger: ledger/LEDGER.md
 ---
 

@@ -43,8 +43,9 @@ export function parseDuration(text) {
   return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
 }
 
+// ffmpeg's fps filter samples t = 0, every, 2·every, … while t < duration.
 export function sheetLayout(duration, every, cols) {
-  const count = Math.floor(duration / every + 1e-9) + 1;
+  const count = Math.ceil(duration / every - 1e-9);
   const rows = Math.ceil(count / cols);
   const legend = Array.from({ length: rows }, (_, r) => {
     const first = r * cols * every;
