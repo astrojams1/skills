@@ -1,0 +1,4 @@
+interface:
+  display_name: "YouTube Shorts"
+  short_description: "Frame, check and post Shorts so YouTube's controls never cover what matters"
+  default_prompt: "Use $youtube-shorts to check this Short against the measured safe zone and prepare its upload."
