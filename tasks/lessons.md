@@ -212,3 +212,12 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   authentication. A broken browser tool does not establish that app creation requires the owner.
 - Preserve granted session scope. Ask only for a missing consequential decision or demonstrated human
   dependency, and verify the created record's identity before saving its Apple ID or retrying Create.
+
+## A creation warning can report partial success
+
+**Source:** Verified Importron record creation (2026-10-22).
+
+- Read the full provider message: “created” plus failed access settings is not a failed Create.
+- Resolve the resource by its intended bundle ID before retrying, even if the navigation button fails.
+- Preserve the intended access. Record creation and permission correctness need separate evidence;
+  all-user access may match one run and be an unresolved mismatch in another.

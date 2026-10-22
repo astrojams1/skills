@@ -4,10 +4,15 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
-- [x] Correct app-release app-record creation and authorization guidance (2.2.1).
-- [x] Trace the previous browser-created record and document supported Xcode fallback.
-- [x] Refresh discovery copies; run all repository checks and inspect affected consumers.
-- [ ] Review, commit and publish the shared change; consumer submodule bumps follow merge.
+- [x] Verify Importron app-record identity from the independent API receipt.
+- [x] Document Create's partial-success access warning in shared app-release 2.2.2.
+- [x] Refresh discovery copies and run all required repository checks.
+- [x] Prepare the shared change for a pull request; consumer updates follow merge.
+- [ ] Review and merge the shared pull request, then update consumer submodules.
+
+Plan: Keep the successful creation and user-access setting outcomes separate. Add only the reusable
+warning/readback lesson and a sanitized milestone; preserve app-specific live state in its own ledger.
+No config field, command contract or consumer migration changes.
 
 ## App release skill — September 16, 2026
 
@@ -347,3 +352,15 @@ Keep consumer repositories and provider state unchanged during this documentatio
   the same config fields and commands. Existing Newsworthy/Space Worms IDs remain in their app configs;
   Importron's ID remains empty while unverified. No consumer migration is required by this docs patch.
 - No claim of Importron app-record creation, upload or submission; provider work stays in its app ledger.
+
+## app-release 2.2.2: verified app-record creation — October 22, 2026
+
+### Review
+
+- App-release tests: 62 passed; management: 53 passed; specification: 138 passed, no warnings;
+  AGENTS-only identity passed; bundled-Python screenshot-fit test: 8 passed.
+- YouTube Shorts: 5 passed, 1 skipped because ffmpeg is unavailable. No failing tests.
+- Refreshed discovery copies; read-only consumer config review covers Newsworthy, Space Worms and
+  Importron. No config fields or commands changed; no app repositories edited by this patch.
+- Verified the sanitized public identity receipt. Record creation is proven independently of the UI
+  warning; access-setting correctness, upload, subscription setup, review and release remain distinct.
