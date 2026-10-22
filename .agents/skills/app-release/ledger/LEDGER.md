@@ -41,6 +41,10 @@ are stored here. See its canonical ledger before resuming.
 - Compound submission safety remains strict: unknown, duplicate, ambiguous and foreign resources are
   conflicts; partial attachment resumes through readback, and both submission/version states are read
   independently after submit. Mock API regressions cover ownership refusal and zero-mutation behavior.
+- Apple rejected a schema-valid include list containing both experiment variants. Item reads now request
+  all relationship fields but expand only supported resource types; the corrected query and ownership
+  chain were verified read-only against the real empty draft. No submission or attachment was performed
+  by that verification.
 - During the Importron upload, an independent processed/testable build readback advanced while its
   upload resource still reported processing. The iOS gotchas preserve these separate observations and
   require state inspection before retrying; this patch does not alter upload polling or claim COMPLETE.

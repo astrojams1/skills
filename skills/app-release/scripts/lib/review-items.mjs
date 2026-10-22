@@ -7,6 +7,16 @@ export const REVIEW_RELATIONSHIPS = [
   'subscriptionVersion', 'subscriptionGroupVersion',
 ];
 
+// Apple rejects including both experiment variants. All linkage fields still expose unsupported resources,
+// while includes are restricted to the resource types this workflow actually needs to expand.
+export function reviewItemsQuery() {
+  return new URLSearchParams({
+    include: 'appStoreVersion,gameCenterLeaderboardVersion,subscriptionVersion,subscriptionGroupVersion',
+    'fields[reviewSubmissionItems]': ['state', ...REVIEW_RELATIONSHIPS].join(','),
+    limit: '200',
+  }).toString();
+}
+
 export const resourceKey = resource => `${resource.relation}:${resource.type}:${resource.id}`;
 
 // Read all resource linkages, not just supported ones, so an unknown resource cannot hide behind a null version.

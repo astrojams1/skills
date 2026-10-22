@@ -12,7 +12,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
-import { REVIEW_RELATIONSHIPS, itemResource, resourceKey, reviewItemPlan, verifySubscriptionReview } from './lib/review-items.mjs';
+import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifySubscriptionReview } from './lib/review-items.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
@@ -839,8 +839,7 @@ async function submissionInReview(versionId, reviewTargets = []) {
 
 // submissionItems requests every resource linkage, so unsupported items remain visible to the conflict guard.
 function submissionItems(submissionId) {
-  const query = new URLSearchParams({ include: REVIEW_RELATIONSHIPS.join(','), 'fields[reviewSubmissionItems]': ['state', ...REVIEW_RELATIONSHIPS].join(','), limit: '200' });
-  return listAll('/v1/reviewSubmissions/' + submissionId + '/items?' + query);
+  return listAll('/v1/reviewSubmissions/' + submissionId + '/items?' + reviewItemsQuery());
 }
 
 // enableGameCenterCapability turns on the bundle ID's GAME_CENTER capability, which the app's entitlement needs; the

@@ -149,6 +149,11 @@ explicit subscription targets. Unexpected, ambiguous, removed, duplicate or fore
 the command before cancellation or attachment. A product ID alone does not authorize an unrelated
 subscription item already present in a draft.
 
+When reading items, request all relationship **fields** for conflict detection but include only the
+supported app, leaderboard, subscription and subscription-group versions. Apple rejects a request that
+includes both `appStoreVersionExperiment` and `appStoreVersionExperimentV2`, even though both are listed
+in the OpenAPI include enum. Expanding every schema relationship is not a safe generic query.
+
 The helper reads items before each attachment, skips existing targets and reads each new attachment
 back. After a lost write response it stops; rerunning reads provider state before attempting another
 write. A rejected submission missing required targets follows the existing cancel/wait/rebuild flow,

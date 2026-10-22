@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { verifySubscriptionReview, reviewItemPlan, itemResource, REVIEW_RELATIONSHIPS } from '../../skills/app-release/scripts/lib/review-items.mjs';
+import { verifySubscriptionReview, reviewItemPlan, itemResource, REVIEW_RELATIONSHIPS, reviewItemsQuery } from '../../skills/app-release/scripts/lib/review-items.mjs';
 import { fillSubmission, submissionPlan, resubmissionPlan, itemsToResolve } from '../../skills/app-release/scripts/asc.mjs';
 
 const config = { appStoreId: 'product', groupId: 'group', productId: 'com.example.yearly', subscriptionVersionId: 'sv1', subscriptionGroupVersionId: 'gv1' };
@@ -129,4 +129,13 @@ test('a concurrent unexpected item after a write prevents further attachment', a
   state.write = async (...args) => { await write(...args); state.items.push(item({ relation: 'appEvent', type: 'appEvents', id: 'concurrent' })); };
   await assert.rejects(fillSubmission({ id: 'draft' }, 'v1', [], targets, state), /did not read back/);
   assert.equal(state.writes.length, 1);
+});
+
+
+test('review-item reads avoid mutually exclusive includes while retaining every relationship field', () => {
+  const query = new URLSearchParams(reviewItemsQuery());
+  assert.deepEqual(query.get('include').split(','), ['appStoreVersion', 'gameCenterLeaderboardVersion', 'subscriptionVersion', 'subscriptionGroupVersion']);
+  for (const relationship of REVIEW_RELATIONSHIPS) assert.ok(query.get('fields[reviewSubmissionItems]').split(',').includes(relationship));
+  assert.ok(query.get('fields[reviewSubmissionItems]').includes('appStoreVersionExperimentV2'));
+  assert.equal(query.get('include').includes('appStoreVersionExperiment'), false);
 });

@@ -370,7 +370,7 @@ Keep consumer repositories and provider state unchanged during this documentatio
 
 ### Review
 
-- App-release: 77 passed (15 new), including the real submit orchestration against a mocked Apple API.
+- App-release: 78 passed (16 new), including the real submit orchestration against a mocked Apple API.
   Wrong app/bundle/product/version ownership and unexpected or duplicate held items produce zero writes.
 - Partial drafts resume without duplicate attachment; failed readback, dropped write response and
   concurrent unexpected resource tests stop further writes. No-subscription and leaderboard tests pass.
@@ -381,3 +381,7 @@ Keep consumer repositories and provider state unchanged during this documentatio
 - Checked include/fields and create-item relationships against Apple's downloaded OpenAPI 4.5.1 schema.
   Provider mutations were mocked; this change does not claim a live submission. Added a docs-only upload
   metadata lag observation separately from build validity/testability, without changing upload polling.
+
+- Live read-only API verification: corrected minimal includes plus all relationship fields succeeded
+  against the expected empty draft; subscription/product/group ownership chains verified, zero writes.
+  Apple's mutually exclusive experiment includes are regression-tested despite both appearing in schema.
