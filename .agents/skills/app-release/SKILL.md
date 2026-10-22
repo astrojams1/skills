@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.2.2"
+  version: "2.3.0"
 ---
 
 # App release
@@ -55,7 +55,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
 | Listing and media | Store data copy, real captures, required sizes ([media](references/media.md)) |
 | iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
-| iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm` ([ios](references/ios.md)) |
+| iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
 | Update recheck | Every update, every app, both stores: screenshots, preview, header, search-results creative, iPhone Duo screenshots, Play graphics and listing copy rechecked against the build, release notes written (Every update in [media](references/media.md)) |

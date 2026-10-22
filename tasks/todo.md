@@ -4,15 +4,16 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
-- [x] Verify Importron app-record identity from the independent API receipt.
-- [x] Document Create's partial-success access warning in shared app-release 2.2.2.
-- [x] Refresh discovery copies and run all required repository checks.
-- [x] Prepare the shared change for a pull request; consumer updates follow merge.
+- [x] Add explicit first-subscription review targets with API ownership checks before mutations.
+- [x] Reject duplicate, foreign and ambiguous review resources; read back every attachment.
+- [x] Add regression tests preserving no-subscription and Game Center behavior.
+- [x] Document optional store-data fields, bump 2.3.0, refresh discovery and run all required suites.
+- [x] Prepare a shared pull request for review; no provider or consumer mutations in this change.
 - [ ] Review and merge the shared pull request, then update consumer submodules.
 
-Plan: Keep the successful creation and user-access setting outcomes separate. Add only the reusable
-warning/readback lesson and a sanitized milestone; preserve app-specific live state in its own ledger.
-No config field, command contract or consumer migration changes.
+Plan: Extend the existing review workflow narrowly for configured subscription and group versions.
+Identity checks bind the group to this app, the product to the group, and each version to its parent.
+Unknown resources remain conflicts; a draft cannot submit until configured targets read back.
 
 ## App release skill — September 16, 2026
 
@@ -364,3 +365,23 @@ Keep consumer repositories and provider state unchanged during this documentatio
   Importron. No config fields or commands changed; no app repositories edited by this patch.
 - Verified the sanitized public identity receipt. Record creation is proven independently of the UI
   warning; access-setting correctness, upload, subscription setup, review and release remain distinct.
+
+## app-release 2.3.0: first-subscription review — October 22, 2026
+
+### Review
+
+- App-release: 78 passed (16 new), including the real submit orchestration against a mocked Apple API.
+  Wrong app/bundle/product/version ownership and unexpected or duplicate held items produce zero writes.
+- Partial drafts resume without duplicate attachment; failed readback, dropped write response and
+  concurrent unexpected resource tests stop further writes. No-subscription and leaderboard tests pass.
+- Management: 53 passed; specification: 138 passed, no warnings; identity passed; screenshot fit: 8 passed;
+  YouTube: 5 passed, 1 skipped because ffmpeg is unavailable. Whitespace and discovery equality passed.
+- Read-only consumer inspection: Newsworthy/Space Worms have no subscription review target fields;
+  Importron has explicit product/group versions. No config/command migration is required for existing apps.
+- Checked include/fields and create-item relationships against Apple's downloaded OpenAPI 4.5.1 schema.
+  Provider mutations were mocked; this change does not claim a live submission. Added a docs-only upload
+  metadata lag observation separately from build validity/testability, without changing upload polling.
+
+- Live read-only API verification: corrected minimal includes plus all relationship fields succeeded
+  against the expected empty draft; subscription/product/group ownership chains verified, zero writes.
+  Apple's mutually exclusive experiment includes are regression-tested despite both appearing in schema.

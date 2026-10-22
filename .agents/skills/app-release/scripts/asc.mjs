@@ -12,6 +12,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
+import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifySubscriptionReview } from './lib/review-items.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
@@ -213,14 +214,17 @@ export function leaderboardReadiness(configuredIds, boards, locale) {
 // (UNRESOLVED_ISSUES) submission take no new items, so one that lacks a leaderboard version that must go to review is
 // replaced by a new submission holding the version and every leaderboard (409 seen 2026-10-13); so is one that lacks
 // the app version `versionId`, such as a rejected submission holding only leaderboards.
-export function resubmissionPlan(submission, items, leaderboardVersionIds, versionId) {
-  const versions = items.filter(item => !relatedId(item, 'gameCenterLeaderboardVersion')).map(item => relatedId(item, 'appStoreVersion'));
-  // A submission holding anything but this version and leaderboards is never canceled.
-  if (new Set(versions).size > 1) return { action: 'conflict' };
+export function resubmissionPlan(submission, items, leaderboardVersionIds, versionId, reviewTargets = []) {
+  // Existing callers may omit versionId; infer only the app-version item for the legacy decision helper.
+  const intendedVersion = versionId || items.map(item => relatedId(item, 'appStoreVersion')).find(Boolean);
+  const plan = reviewItemPlan(items, intendedVersion, reviewTargets);
+  if (plan.conflict) return { action: 'conflict' };
   const present = items.map(item => relatedId(item, 'gameCenterLeaderboardVersion')).filter(Boolean);
   const missing = leaderboardVersionIds.filter(id => !present.includes(id));
-  const lacksVersion = Boolean(versionId) && !versions.includes(versionId);
-  if (submission.attributes.state === 'UNRESOLVED_ISSUES' && (missing.length || lacksVersion)) return { action: 'replace', missing: missing };
+  const lacksVersion = Boolean(versionId) && !plan.hasVersion;
+  if (submission.attributes.state === 'UNRESOLVED_ISSUES' && (missing.length || lacksVersion || plan.missing.length)) {
+    return { action: 'replace', missing: missing.concat(plan.missing.map(resourceKey)) };
+  }
   return { action: 'reuse' };
 }
 
@@ -251,12 +255,11 @@ function relatedId(item, name) {
   return link ? link.id : null;
 }
 
-// submissionPlan checks an open review submission's items: besides this version it may hold only Game Center
-// leaderboard versions, which `game-center` adds to go to App Review with it, and it gains the version if missing.
-export function submissionPlan(items, versionId) {
-  const versions = items.filter(item => !relatedId(item, 'gameCenterLeaderboardVersion')).map(item => relatedId(item, 'appStoreVersion'));
-  if (versions.some(id => id !== versionId)) return { action: 'conflict' };
-  return { action: versions.includes(versionId) ? 'submit' : 'add' };
+// submissionPlan accepts this version, existing Game Center items and explicitly verified subscription targets.
+export function submissionPlan(items, versionId, reviewTargets = []) {
+  const plan = reviewItemPlan(items, versionId, reviewTargets);
+  if (plan.conflict) return { action: 'conflict' };
+  return { action: plan.hasVersion && !plan.missing.length ? 'submit' : 'add' };
 }
 
 // staleScreenshotSets returns the sets whose display type the manifest no longer lists.
@@ -290,9 +293,14 @@ export function alreadyInReview(submission, items, versionId) {
 
 // itemsToResolve returns this version's and its leaderboards' rejected items, which Apple requires marked resolved
 // before resubmission.
-export function itemsToResolve(items, versionId) {
-  return items.filter(item => (itemVersionId(item) === versionId || relatedId(item, 'gameCenterLeaderboardVersion'))
-    && item.attributes && item.attributes.state === 'REJECTED');
+export function itemsToResolve(items, versionId, reviewTargets = []) {
+  const targetKeys = new Set(reviewTargets.map(resourceKey));
+  return items.filter(item => {
+    const resource = itemResource(item);
+    const intended = itemVersionId(item) === versionId || relatedId(item, 'gameCenterLeaderboardVersion') ||
+      (resource && targetKeys.has(resourceKey(resource)));
+    return intended && item.attributes && item.attributes.state === 'REJECTED';
+  });
 }
 
 // GAME_CENTER_EDITABLE are the leaderboard version states whose localizations can change and that can go to review.
@@ -483,7 +491,8 @@ async function status() {
 function describeItem(item) {
   if (relatedId(item, 'appStoreVersion')) return 'appStoreVersion ' + relatedId(item, 'appStoreVersion');
   if (relatedId(item, 'gameCenterLeaderboardVersion')) return 'leaderboard version ' + relatedId(item, 'gameCenterLeaderboardVersion');
-  return '';
+  const resource = itemResource(item);
+  return resource ? resource.relation + ' ' + resource.id : 'unrecognized resource';
 }
 
 // gameCenterStatus prints the bundle capability, Game Center detail, leaderboards and the version's Game Center link.
@@ -810,22 +819,27 @@ async function reviewDetails() {
 // none; `submit` sends it, and `game-center` adds the leaderboards to it first so they go to App Review together.
 async function openReviewSubmission() {
   const open = (await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES')).data;
+  if (open.length > 1) throw new Error('Multiple open review submissions; inspect App Store Connect before changing anything.');
   if (open.length) return open[0];
   return (await api('/v1/reviewSubmissions', 'POST', { data: { type: 'reviewSubmissions', attributes: { platform: 'IOS' }, relationships: { app: relation('apps', IOS.ascAppId) } } })).data;
 }
 
 // submissionInReview returns the submission already waiting for or in review with this version, or null.
-async function submissionInReview(versionId) {
+async function submissionInReview(versionId, reviewTargets = []) {
   const active = (await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=WAITING_FOR_REVIEW,IN_REVIEW')).data;
   for (const pending of active) {
-    if (alreadyInReview(pending, await submissionItems(pending.id), versionId)) return pending;
+    const items = await submissionItems(pending.id);
+    if (alreadyInReview(pending, items, versionId)) {
+      if (submissionPlan(items, versionId, reviewTargets).action !== 'submit') throw new Error('Pending review does not hold the exact configured review targets; inspect it before retrying.');
+      return pending;
+    }
   }
   return null;
 }
 
-// submissionItems lists a review submission's items with the version and leaderboard version each one carries.
+// submissionItems requests every resource linkage, so unsupported items remain visible to the conflict guard.
 function submissionItems(submissionId) {
-  return listAll('/v1/reviewSubmissions/' + submissionId + '/items?include=appStoreVersion,gameCenterLeaderboardVersion');
+  return listAll('/v1/reviewSubmissions/' + submissionId + '/items?' + reviewItemsQuery());
 }
 
 // enableGameCenterCapability turns on the bundle ID's GAME_CENTER capability, which the app's entitlement needs; the
@@ -932,6 +946,7 @@ async function gameCenter() {
   const config = STORE.gameCenter;
   if (!config || !Array.isArray(config.leaderboards) || !config.leaderboards.length) throw new Error('The store data has no gameCenter.leaderboards');
   const ctx = await context();
+  const reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
   const profileStale = await enableGameCenterCapability();
   const detail = await enableGameCenterDetail();
   // Archived leaderboards are read too, since a vendor identifier can never be reused and an archived one is restored.
@@ -943,7 +958,7 @@ async function gameCenter() {
     if (version) versions.push(version);
   }
   await enableVersionGameCenter(ctx.version.id);
-  const inReview = await submissionInReview(ctx.version.id);
+  const inReview = await submissionInReview(ctx.version.id, reviewTargets);
   if (inReview) {
     // A submission already in review cannot gain items; a draft beside it would only strand the leaderboards.
     console.log('Version', STORE.version, 'is', inReview.attributes.state, 'in submission', inReview.id + '; leaderboards join the next submission.');
@@ -951,7 +966,9 @@ async function gameCenter() {
   }
   const submission = await openReviewSubmission();
   const held = await submissionItems(submission.id);
-  if (resubmissionPlan(submission, held, versions.map(version => version.id), ctx.version.id).action === 'replace') {
+  const plan = resubmissionPlan(submission, held, versions.map(version => version.id), ctx.version.id, reviewTargets);
+  if (plan.action === 'conflict') throw new Error('Open review submission holds conflicting items; no leaderboards were attached.');
+  if (plan.action === 'replace') {
     // A rejected submission takes no new items; `submit --confirm` replaces it with one holding the leaderboards.
     console.log('Submission', submission.id, 'is rejected and cannot take the leaderboards; `submit --confirm` opens a new one with them.');
     if (profileStale) console.log('Regenerate the provisioning profile (references/ios.md, Game Center) before building.');
@@ -1011,24 +1028,39 @@ async function waitForCancel(id) {
 // COMPLETE (or gone), and returns the new draft; `fillSubmission` then adds the version and leaderboards.
 async function replaceRejectedSubmission(submission) {
   await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { canceled: true } } });
-  console.log('Canceled rejected submission', submission.id, 'so the leaderboards can go to review with the version');
+  console.log('Canceled rejected submission', submission.id, 'so the required items can go to review with the version');
   await waitForCancel(submission.id);
   return openReviewSubmission();
 }
 
-// fillSubmission adds whatever an open draft lacks (the version, any editable leaderboard version), reads the items
-// back and refuses to continue while something is still missing, so a rerun after a partial failure completes it.
-async function fillSubmission(submission, versionId, leaderboards) {
-  const missing = missingSubmissionItems(await submissionItems(submission.id), versionId, leaderboards);
-  if (missing.version) {
-    await api('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: { reviewSubmission: relation('reviewSubmissions', submission.id), appStoreVersion: relation('appStoreVersions', versionId) } } });
+// fillSubmission reads before every item mutation, then reads each attachment back. A lost response is never retried.
+export async function fillSubmission(submission, versionId, leaderboards, reviewTargets = [], transport = {}) {
+  const readItems = transport.readItems || submissionItems;
+  const write = transport.write || api;
+  const targets = [{ relation: 'appStoreVersion', type: 'appStoreVersions', id: versionId },
+    ...leaderboards.filter(version => GAME_CENTER_EDITABLE.includes(version.state) || version.carried === true)
+      .map(version => ({ relation: 'gameCenterLeaderboardVersion', type: 'gameCenterLeaderboardVersions', id: version.id })),
+    ...reviewTargets];
+  for (const target of targets) {
+    const held = await readItems(submission.id);
+    if (submissionPlan(held, versionId, reviewTargets).action === 'conflict') throw new Error('Review submission holds conflicting items; nothing further was attached or submitted.');
+    if (!held.some(item => resourceKey(itemResource(item)) === resourceKey(target))) {
+      await write('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: {
+        reviewSubmission: relation('reviewSubmissions', submission.id), [target.relation]: relation(target.type, target.id),
+      } } });
+      const saved = await readItems(submission.id);
+      if (submissionPlan(saved, versionId, reviewTargets).action === 'conflict' ||
+          !saved.some(item => itemResource(item) && resourceKey(itemResource(item)) === resourceKey(target))) {
+        throw new Error('Review item attachment did not read back; nothing was submitted. Rerun only after reading provider state.');
+      }
+    }
   }
-  for (const id of missing.leaderboards) {
-    await api('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: { reviewSubmission: relation('reviewSubmissions', submission.id), gameCenterLeaderboardVersion: relation('gameCenterLeaderboardVersions', id) } } });
+  const saved = await readItems(submission.id);
+  const left = missingSubmissionItems(saved, versionId, leaderboards);
+  if (submissionPlan(saved, versionId, reviewTargets).action !== 'submit' || left.version || left.leaderboards.length) {
+    throw new Error('Review submission ' + submission.id + ' still lacks configured review targets or holds conflicting items; nothing was submitted.');
   }
-  const left = missingSubmissionItems(await submissionItems(submission.id), versionId, leaderboards);
-  if (left.version || left.leaderboards.length) throw new Error('Review submission ' + submission.id + ' still lacks ' + (left.version ? 'the version' : left.leaderboards.length + ' leaderboard versions') + '; nothing was submitted.');
-  if (missing.version || missing.leaderboards.length) console.log('Submission', submission.id, 'now holds the version and', leaderboards.length, 'leaderboard versions');
+  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions and', reviewTargets.length, 'subscription review versions.');
 }
 
 // findBuild returns the processed build with the given build number.
@@ -1076,11 +1108,13 @@ async function testflight(buildNumber) {
 }
 
 // submit sends the prepared version to App Review; it needs --confirm because it is the one irreversible step.
-async function submit(flag) {
+export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
+  if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
+  let reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
-  const pending = await submissionInReview(ctx.version.id);
+  const pending = await submissionInReview(ctx.version.id, reviewTargets);
   if (pending) {
     console.log('Version', STORE.version, 'is already', pending.attributes.state, 'in submission', pending.id);
     return;
@@ -1095,22 +1129,36 @@ async function submit(flag) {
   let submission = await openReviewSubmission();
   const held = await submissionItems(submission.id);
   // The conflict guard runs before anything is canceled or added.
-  if (submissionPlan(held, ctx.version.id).action === 'conflict') throw new Error('Open review submission ' + submission.id + ' holds other items; clear it in App Store Connect first.');
-  if (resubmissionPlan(submission, held, leaderboards.map(board => board.id), ctx.version.id).action === 'replace') {
+  if (submissionPlan(held, ctx.version.id, reviewTargets).action === 'conflict') throw new Error('Open review submission ' + submission.id + ' holds other items; clear it in App Store Connect first.');
+  if (resubmissionPlan(submission, held, leaderboards.map(board => board.id), ctx.version.id, reviewTargets).action === 'replace') {
     submission = await replaceRejectedSubmission(submission);
     // A cancel returns accepted items to the developer, so refresh readiness and carry what the old submission held.
     leaderboards = replacementLeaderboards(await editableLeaderboardVersions(), held);
+    reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
   }
-  if (submission.attributes.state === 'READY_FOR_REVIEW') await fillSubmission(submission, ctx.version.id, leaderboards);
+  if (submission.attributes.state === 'READY_FOR_REVIEW') await fillSubmission(submission, ctx.version.id, leaderboards, reviewTargets);
   const items = await submissionItems(submission.id);
-  const plan = submissionPlan(items, ctx.version.id);
+  const plan = submissionPlan(items, ctx.version.id, reviewTargets);
   if (plan.action !== 'submit') throw new Error('Review submission ' + submission.id + ' does not hold version ' + STORE.version + '; nothing was submitted.');
-  for (const rejected of itemsToResolve(items, ctx.version.id)) {
+  for (const rejected of itemsToResolve(items, ctx.version.id, reviewTargets)) {
     await api('/v1/reviewSubmissionItems/' + rejected.id, 'PATCH', { data: { type: 'reviewSubmissionItems', id: rejected.id, attributes: { resolved: true } } });
     console.log('Marked rejected item', rejected.id, 'resolved');
   }
-  const saved = await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
-  console.log('Review submission', submission.id, 'is', saved.data.attributes.state);
+  // Revalidate ownership and item completeness immediately before the outward-facing submission.
+  reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
+  const finalItems = await submissionItems(submission.id);
+  if (submissionPlan(finalItems, ctx.version.id, reviewTargets).action !== 'submit' ||
+      missingSubmissionItems(finalItems, ctx.version.id, leaderboards).leaderboards.length) {
+    throw new Error('Review targets changed before submission; nothing was submitted.');
+  }
+  await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
+  const saved = (await api('/v1/reviewSubmissions/' + submission.id)).data;
+  const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
+  if (!['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(saved.attributes.state) ||
+      !['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(versionState(version))) {
+    throw new Error('Review submission/version readback is not waiting for or in review; inspect provider state before retrying.');
+  }
+  console.log('Review submission', submission.id, 'is', saved.attributes.state, '; app version is', versionState(version));
 }
 
 // release publishes an approved version held for manual release; it needs --confirm and the owner's physical-device OK.

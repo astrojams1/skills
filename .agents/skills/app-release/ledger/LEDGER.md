@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.2.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.3.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,25 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.3.0 (2026-10-22)
+
+- A first-subscription submission contains distinct product and group review-version items. Treating
+  every non-leaderboard item as an app version falsely rejected a valid subscription draft. Optional
+  store-data targets now bind both versions through their API parents before attachment and submission.
+- Compound submission safety remains strict: unknown, duplicate, ambiguous and foreign resources are
+  conflicts; partial attachment resumes through readback, and both submission/version states are read
+  independently after submit. Mock API regressions cover ownership refusal and zero-mutation behavior.
+- Apple rejected a schema-valid include list containing both experiment variants. Item reads now request
+  all relationship fields but expand only supported resource types; the corrected query and ownership
+  chain were verified read-only against the real empty draft. No submission or attachment was performed
+  by that verification.
+- During the Importron upload, an independent processed/testable build readback advanced while its
+  upload resource still reported processing. The iOS gotchas preserve these separate observations and
+  require state inspection before retrying; this patch does not alter upload polling or claim COMPLETE.
+- Newsworthy and Space Worms have no configured subscription review targets and retain their existing
+  config/command contracts. Importron supplies explicit targets in its own store data. This shared
+  change itself performed no provider writes or app-repository changes; live evidence stays in each app.
 
 ## Lessons incorporated into v2.2.2 (2026-10-22)
 
