@@ -118,6 +118,52 @@ change when evidence establishes that dependency. Keep independent build and lis
    release on simulator evidence alone.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
+## First-subscription review
+
+A first subscription can need review with the app version. Apple's review-item schema supports both
+`subscriptionVersion` and `subscriptionGroupVersion`; these are review-version resource IDs, distinct
+from the product's Apple ID and its StoreKit `productId`. Configure the already-created product and group
+in the store data's optional `subscription` object:
+
+```json
+{
+  "subscription": {
+    "appStoreId": "<subscription-resource-id>",
+    "groupId": "<subscription-group-resource-id>",
+    "productId": "com.example.app.yearly",
+    "subscriptionVersionId": "<subscription-review-version-id>",
+    "subscriptionGroupVersionId": "<group-review-version-id>"
+  }
+}
+```
+
+Discover the IDs with the existing authenticated API: the app's `subscriptionGroups`, that group's
+`subscriptions` and `versions`, and the subscription's `versions`. Finish product localization, pricing,
+availability and required review evidence separately; this capability does not create products or decide
+which versions should go to review. Use the actual current store requirements and agreed monetization.
+
+Before any draft mutation, `submit --confirm` verifies the app/bundle identity, group ownership under
+this app, product membership in that group and exact `productId`, and both review versions under their
+respective parents. It accepts only this app version, existing Game Center leaderboard items and these
+explicit subscription targets. Unexpected, ambiguous, removed, duplicate or foreign-version items stop
+the command before cancellation or attachment. A product ID alone does not authorize an unrelated
+subscription item already present in a draft.
+
+The helper reads items before each attachment, skips existing targets and reads each new attachment
+back. After a lost write response it stops; rerunning reads provider state before attempting another
+write. A rejected submission missing required targets follows the existing cancel/wait/rebuild flow,
+carrying the configured subscription targets into the replacement. Before submitting, ownership and the
+complete item set are checked again. Afterwards, independent submission and app-version reads must show
+`WAITING_FOR_REVIEW` or `IN_REVIEW`; a successful PATCH response alone is insufficient.
+
+Keep these two review-version fields only while those exact versions are intended for the current
+submission. After they settle, read provider state and remove them for an update that does not need
+subscription review, or replace them with the next explicitly intended versions. With neither field set,
+no subscription API reads or attachments are added; apps without subscriptions retain their existing
+workflow. Never remove fields merely to bypass a conflict or submit a smaller intended set.
+[Apple review-item schema](https://developer.apple.com/documentation/appstoreconnectapi/reviewsubmissionitem),
+[create review item](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-reviewsubmissionitems).
+
 ## When App Review rejects
 
 1. **See it in the API.** `status` shows the version `REJECTED` and the submission `UNRESOLVED_ISSUES` with
@@ -161,6 +207,12 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   cycle is required"). Both apps adopt it through an Expo config plugin and Expo's scene delegate; after an
   Expo upgrade, check the plugin still matches the template and launch on iOS 27 before releasing. The
   archive check refuses an app without a scene manifest.
+- **Upload metadata can lag a processed build.** In the Importron run, `buildUploads` still read
+  `PROCESSING` with no errors while the corresponding `builds` resource was `VALID`, the intended version
+  had that build attached and its beta detail was `IN_BETA_TESTING`. Read each resource independently
+  before diagnosing a stall or retrying an upload. Advanced build/testability evidence does not establish
+  that the upload resource itself reached `COMPLETE`; preserve both observed states and stop only the
+  status-monitor process you own when appropriate. Do not reupload merely to clear a lagging status.
 - **Build numbers only rise.** Apple holds every number it accepted, including uploads still processing, so
   the scripts read both. A locally generated simulator bundle may carry another number than the store build
   of the same source; never relabel it.

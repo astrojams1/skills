@@ -73,6 +73,7 @@ Environment overrides, for a run without the vault: `ASC_KEY_ID`, `ASC_ISSUER_ID
 | `pricing` | `asc.mjs pricing` | `baseTerritory` (`USA`) and `basePrice` (`0` for free, `1.00`…); Apple equalizes other storefronts |
 | `screenshots` | `asc.mjs screenshots` | Groups `[{ "displayType": "APP_IPHONE_67", "files": [...] }]`, or `{ "manifest": "store/assets/manifest.json", "base": "store" }` to read an asset manifest's `ios` entries |
 | `gameCenter` | `asc.mjs game-center` | `leaderboards`: `vendorIdentifier`, `referenceName`, `defaultFormatter`, `submissionType`, `scoreSortType`, `localization` |
+| `subscription` | `asc.mjs submit` | Optional first-subscription review identity: `appStoreId` (product resource ID), `groupId`, `productId`, `subscriptionVersionId`, `subscriptionGroupVersionId`. When either review-version ID is set, all five fields are required and verified through API parent collections. Product pricing, creation and readiness are separate setup; see [iOS subscriptions](ios.md#first-subscription-review) |
 | `google` | `play.mjs` | `locale`, `title` (30), `shortDescription` (80), `fullDescription` (4,000), optional `video`, `contactEmail`, `contactWebsite`, and `images`: `icon`, `featureGraphic`, `phoneScreenshots` (2–8; a list, or `{ manifest, base, prefix }`), optional tablet screenshots |
 
 Keep store copy in one place: other docs and pages link to the store data rather than copying it.

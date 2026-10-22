@@ -221,3 +221,12 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Resolve the resource by its intended bundle ID before retrying, even if the navigation button fails.
 - Preserve the intended access. Record creation and permission correctness need separate evidence;
   all-user access may match one run and be an unresolved mismatch in another.
+
+## Distinct review resources need explicit identities
+
+**Source:** Importron first-subscription review preparation (2026-10-22).
+
+- A valid subscription review item has no appStoreVersion relationship. Check its resource kind,
+  configured version ID and API parent ownership instead of treating a null app version as foreign.
+- Preserve the conflict guard: supporting another resource kind does not authorize arbitrary items
+  already present in a draft. Verify the full set, reject duplicates, and read mutations back.
