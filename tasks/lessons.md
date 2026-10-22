@@ -201,3 +201,14 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   works. Look at it as the viewer will, through the real overlay, before
   presenting it as fixed.
 
+
+## A missing public API operation is not a human-only task
+
+**Source:** Owner correction during Importron onboarding (2026-10-22).
+
+- Check earlier successful release evidence before assigning a routine store task to the owner.
+  Space Worms' history records agent use of an authorized signed-in browser to create the app record.
+- Distinguish API capabilities, available authorized UI sessions, tool failures and missing human
+  authentication. A broken browser tool does not establish that app creation requires the owner.
+- Preserve granted session scope. Ask only for a missing consequential decision or demonstrated human
+  dependency, and verify the created record's identity before saving its Apple ID or retrying Create.

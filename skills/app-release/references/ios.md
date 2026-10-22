@@ -13,25 +13,58 @@ keeps the key in memory; `ios-release.mjs` writes it to a mode-700 temporary dir
 Never print, log or commit a key, token or the review phone. Plain `op whoami` fails without the token; that
 is expected.
 
-**Check status with the API, not the browser.** The built-in browser is usually not signed in to App Store
-Connect and Apple's login fails there; `asc.mjs status` needs no sign-in.
+**Check existing app status with the API first.** `asc.mjs status` needs no browser sign-in once
+`ios.ascAppId` is known. New app records require a different route below.
 
-## What only the owner can do
+## Create or reuse the app record
 
-Apple's API cannot do these, and no agent signs in to Apple with a password. Ask for them in one message
-that starts with **Waiting on you:**, and keep working on everything else.
+The public App Store Connect API does not expose app creation: the observed `POST /v1/apps` response was
+403, “does not allow CREATE”. This is an API limitation, not an owner-only task. Use an authorized
+signed-in browser or Xcode session. Preserve the owner's existing scope authorization; do not ask them
+to create a record merely because the API cannot. Do not sign in with the owner's password or extract
+browser cookies; sign-in and security challenges need the owner when no authorized session is available.
 
-1. **Create the app record** (App Store Connect → Apps → +). `POST /v1/apps` answers 403. Store names are
-   unique: a taken name needs a variant (Space Worms became `Space Worms: Swarm`; the home-screen name can
-   stay short).
-2. **App Privacy answers** (once, and again when data practices change): there is no API. Answer from the
-   [privacy evidence](privacy.md), then Publish.
-3. **Business gates**: agreements, tax, banking, DSA (see [accounts](accounts.md)).
-4. **Approve the submission** (`submit --confirm`) and, for `MANUAL` release, **approve the release** after
-   their physical-device check (`release --confirm`).
+1. **Check for an existing record first.** In the intended team, query
+   `GET /v1/apps?filter[bundleId]=<bundle-id>` with the existing API key. Reuse exactly one matching app;
+   stop and resolve mismatches or multiple matches before creating anything.
+2. **Use the signed-in UI.** In [App Store Connect → Apps](https://appstoreconnect.apple.com/apps), choose
+   **+ → New App**. Enter the platforms, store name, primary language, registered bundle ID and unique SKU
+   from this app's agreed identity. Verify the team and fields, then Create under the existing
+   authorization. Store names are unique; if taken, resolve a name variant within the owner's scope
+   before retrying. Never invent or substitute a bundle ID to get past an error.
+3. **Read back before retrying.** Inspect the new record's App Information and platform/version. Read
+   `GET /v1/apps?filter[bundleId]=<bundle-id>` again and verify the Apple ID, `bundleId`, `name`, `sku`,
+   `primaryLocale`, and intended platform (`GET /v1/apps/<id>/appStoreVersions` or the UI). Allow for
+   propagation after a successful or uncertain Create; an initially empty API result is not proof that
+   nothing was created. Do not repeat the mutation until existing state is resolved.
+4. **Persist and continue.** Save the verified Apple ID in `app-release.config.json` → `ios.ascAppId`
+   (and any existing app-specific consumer such as an EAS submission profile). Record observed evidence
+   in the app's ledger, then run `node $S/asc.mjs status`. A draft record is separate from an uploaded
+   build, subscription setup, review submission and public availability.
 
-When the owner has signed in to App Store Connect in the built-in browser, that session persists; an agent
-may then do steps 1 and 2 there if the owner has authorized it.
+**Xcode fallback:** Apple documents record creation from the archive distribution assistant. With an
+available signed-in Xcode account, open the intended archive in **Organizer → Archives → Distribute App
+→ Custom → App Store Connect → Upload**. If no record exists, Xcode requests the name, SKU, primary
+language and bundle ID. Verify those values and complete only the already-authorized steps, then perform
+the same readback and persistence above. A record-creation prompt or completed archive is not proof of an
+upload. This is a GUI workflow, not a claim that `xcodebuild -exportArchive` or `altool` creates records.
+[Apple distribution guide](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases),
+[Apple TestFlight tutorial](https://developer.apple.com/tutorials/develop-in-swift/test-your-beta-app).
+
+If browser or Computer Use fails, record the exact tool failure as an agent/environment blocker and try
+another supported authorized route. Ask for only a missing unlock, sign-in, security approval or role
+change when evidence establishes that dependency. Keep independent build and listing work moving.
+
+## Privacy, Business and release authorization
+
+- **App Privacy:** enter answers from the [privacy evidence](privacy.md) in an authorized signed-in
+  browser, then Publish within the owner's granted scope. Saved answers and published answers are
+  separate observations; the public API does not provide this attestation workflow.
+- **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
+  legal certifications, facts and security steps that require the owner.
+- **Submission and release:** honor existing explicit authorization for `submit --confirm`. For `MANUAL`
+  release, complete the owner's physical-device check and obtain authorization for `release --confirm`
+  if public release is outside the scope already granted.
 
 ## Release loop
 

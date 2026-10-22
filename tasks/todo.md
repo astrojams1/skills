@@ -4,7 +4,10 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
-- [ ] (no active tasks)
+- [x] Correct app-release app-record creation and authorization guidance (2.2.1).
+- [x] Trace the previous browser-created record and document supported Xcode fallback.
+- [x] Refresh discovery copies; run all repository checks and inspect affected consumers.
+- [ ] Review, commit and publish the shared change; consumer submodule bumps follow merge.
 
 ## App release skill — September 16, 2026
 
@@ -328,3 +331,19 @@ public repository.
   re-encode softened, came along. Marked boxes plus "white inside the mark"
   are deterministic and clean.
 
+
+## app-release 2.2.1: app-record creation — October 22, 2026
+
+Plan: Correct the public-API/owner-only conflation in shared guidance, retain historical evidence,
+document verified identity readback and a supported Xcode fallback, then run all repository checks.
+Keep consumer repositories and provider state unchanged during this documentation update.
+
+### Review
+
+- Management: 53 passed; specification: 138 passed, no warnings; AGENTS-only identity passed.
+- App-release: 62 passed. YouTube Shorts: 5 passed, 1 skipped because ffmpeg is unavailable.
+- Screenshot-fit checks passed with the bundled Python runtime (system Python lacked numpy/Pillow).
+- Read-only review: Newsworthy uses `vendor/skills`, Space Worms and Importron use `skills`; all retain
+  the same config fields and commands. Existing Newsworthy/Space Worms IDs remain in their app configs;
+  Importron's ID remains empty while unverified. No consumer migration is required by this docs patch.
+- No claim of Importron app-record creation, upload or submission; provider work stays in its app ledger.
