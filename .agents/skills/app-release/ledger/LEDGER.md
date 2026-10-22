@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.2.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.2.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -23,6 +23,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-09-24 Newsworthy store follow-up](runs/2026-09-24-newsworthy-store-followup.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | iOS 21 still waiting; Apple paid/address and Google verification gates remain; Android artifact predates current features; Firebase project created, Android push setup pending | Unknown / unknown |
 | [2026-09-24 Newsworthy Android push and renewed Apple request](runs/2026-09-24-newsworthy-android-push-apple-request.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Android 12 delivery/shade/cold-start tap verified on emulator; physical Android untested; Apple 21 rejected under 2.1 with new recording pending | Unknown / unknown |
 | [2026-09-24 Newsworthy recording correction and resubmission](runs/2026-09-24-newsworthy-recording-correction-resubmission.md) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.md) | Earlier new-recording interpretation corrected; original attachment verified; new 39-second video/reply/Notes delivered; build 21 WAITING_FOR_REVIEW | Unknown / unknown |
+| [2026-10-22 Importron app-record creation](runs/2026-10-22-importron-app-record.md) | [Canonical app ledger](https://github.com/astrojams1/importron/blob/main/store/ledger.json) | Browser creation independently verified through the API; access-settings warning did not mean record creation failed | Unknown / unknown |
 | 2026-10-19 v2.0.0 consolidation | Newsworthy [`store/ledger.json`](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json); Space Worms [`local-skills/app-store-release/ledger.json`](https://github.com/astrojams1/space-worms-2/blob/main/local-skills/app-store-release/ledger.json) | Both apps moved onto the shared scripts and ledger format; see v2.0.0 below | Unknown / unknown |
 
 The initial Newsworthy record is a **historical extraction**, not an agent claim to have
@@ -31,6 +32,15 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.2.2 (2026-10-22)
+
+- Importron's record was created in an authorized signed-in Chrome session and independently read back
+  through the public API. Apple reported success for creation but a failure saving user-access settings;
+  the expected draft record still existed. Separate the two outcomes, verify identity before retrying,
+  and compare actual/intended access instead of silently treating the warning as harmless for every app.
+- This documentation patch changes no config fields or command contracts. Newsworthy, Space Worms and
+  Importron use the same existing app-ID setting; consumer pointer updates follow merge.
 
 ## Lessons incorporated into v2.2.1 (2026-10-22)
 

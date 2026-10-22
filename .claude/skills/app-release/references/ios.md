@@ -37,6 +37,13 @@ browser cookies; sign-in and security challenges need the owner when no authoriz
    `primaryLocale`, and intended platform (`GET /v1/apps/<id>/appStoreVersions` or the UI). Allow for
    propagation after a successful or uncertain Create; an initially empty API result is not proof that
    nothing was created. Do not repeat the mutation until existing state is resolved.
+
+   If Create reports that the app **has been created** but user-access settings could not be saved,
+   treat these as separate outcomes. Do not click Create again or assume the record failed because
+   **Go to App Information** does not navigate. Query the app by bundle ID and verify its identity as
+   above. Compare the warning's stated access with the selected access: if restricted access was
+   requested but Apple reports all users have access, keep the access gate unresolved and correct it
+   within the existing authorization. Do not mark permission settings verified from record creation.
 4. **Persist and continue.** Save the verified Apple ID in `app-release.config.json` → `ios.ascAppId`
    (and any existing app-specific consumer such as an EAS submission profile). Record observed evidence
    in the app's ledger, then run `node $S/asc.mjs status`. A draft record is separate from an uploaded
