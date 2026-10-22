@@ -88,3 +88,8 @@ Keep store copy in one place: other docs and pages link to the store data rather
 4. Write a thin repository skill (see [the template](../assets/repo-skill.template.md)) that points here
    and adds only this app's facts and gates.
 5. Read [accounts](accounts.md) for what the shared developer accounts already have, and [app types](app-types.md).
+6. For a first iOS release, create or reuse the App Store Connect record with the authorized browser or
+   Xcode workflow in [iOS onboarding](ios.md). Verify team, bundle ID, name, SKU, primary locale and
+   platform; persist its verified Apple ID as `ios.ascAppId`, then run `asc.mjs status`. Leave the ID empty
+   while unverified; never copy another app's ID or treat the public API's missing create operation as
+   a requirement that the owner create it manually.

@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.2.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.2.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -31,6 +31,19 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.2.1 (2026-10-22)
+
+- An API limitation was incorrectly presented as owner-only work during Importron onboarding. Historical
+  proof shows Space Worms' record was created in the owner's signed-in browser session on 2026-10-12:
+  [commit e4eeecba](https://github.com/astrojams1/space-worms-2/commit/e4eeecba35e41251ddcdc2e8b74c9ce5d8019b5e).
+  The workflow now creates or reuses records through authorized browser UI, verifies identity and
+  platform, and persists `ios.ascAppId`; Apple's documented Xcode Organizer flow is a fallback.
+- Existing session authorization remains in force. Failed UI automation is a tooling blocker, not proof
+  that the owner must create an app. This documentation correction does not establish that Importron's
+  record was created or that any build was uploaded or submitted.
+- Compatibility review covers Newsworthy (`vendor/skills`), Space Worms (`skills`) and Importron
+  (`skills`): no config or command contract changes; consumer submodule bumps follow merge.
 
 ## Lessons incorporated into v2.2.0 (2026-10-20)
 

@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.2.0"
+  version: "2.2.1"
 ---
 
 # App release
@@ -48,6 +48,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 
 | Gate | Result / reference |
 |---|---|
+| App record | Create or reuse through an authorized signed-in browser or Xcode, verify identity and save `ios.ascAppId` ([ios](references/ios.md)) |
 | Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments — shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
@@ -82,14 +83,18 @@ commit a key, token, password, review phone or bank detail; check access without
 ## Autonomy and approvals
 
 - Continue authorized, reversible work — builds, checks, store data, listing drafts, repository changes —
-  without asking. Use the API, a CLI or a signed-in browser session before declaring anything owner-only.
-- **Ask before each outward-facing step:** an upload to App Store Connect or Play, a track promotion, a Play
-  listing or image commit, `submit --confirm`, `release --confirm`, a production release, a support message.
-  The owner's approval of one step does not cover the next.
-- **Owner-only:** creating app records, App Privacy and Data safety attestations when not authorized in the
-  browser, agreements, tax, banking, identity and device verification, the physical-device check, tester
-  recruitment. Ask once, in one message starting **Waiting on you:**, with the exact destination and the
-  observation that will unblock it; keep working meanwhile.
+  without asking. This includes creating app records in an authorized signed-in browser or Xcode session
+  ([iOS onboarding](references/ios.md)). A public API limitation does not make the task owner-only.
+- Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
+  `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
+  already granted in this session; ask only when the next action is outside it. An upload request alone
+  does not authorize public release.
+- **Owner involvement:** sign-in or security challenges without an available authorized session; legal,
+  tax and banking facts or certifications; identity and device verification; the physical-device check;
+  tester recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
+  verified evidence. Ask only for the missing human action, once, with the exact destination and readback
+  that will unblock it. A failed automation tool is an agent/environment blocker; record its failure and
+  attempted alternatives without claiming the owner must create the app.
 - Spending is never implied: never upgrade a plan, buy anything or switch accounts to get around a cap.
 - When the owner takes over a page, stop and let them finish; reinspect afterwards and record what they did.
 

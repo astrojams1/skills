@@ -29,6 +29,11 @@ account task waits. Preserve existing authorization rather than inventing a new
 approval gate for each routine field. If the active tool requires confirmation,
 identify that exact restriction and prepare the concrete action first.
 
+App-record creation is routine app setup through an authorized signed-in browser or Xcode session
+([iOS onboarding](ios.md)); it is not an Account Holder certification. Public API creation being
+unavailable, or a browser tool failing, does not establish an owner-only account gate. Record tooling
+failures separately and ask only for a demonstrated missing human dependency such as sign-in or unlock.
+
 Record the project's actual monetization intent: free download, paid download,
 IAP, subscription, or other supported model; base currency/price; territories;
 release timing. **Do not inherit Newsworthy's $1 price or product restrictions as
