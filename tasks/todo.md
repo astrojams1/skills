@@ -9,7 +9,8 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Verify Apple schema and add optional owned IAP review targets without changing existing flows.
 - [x] Exercise attachment, submission, rejection replacement and refusal paths with mocked Apple API.
 - [x] Document config and lessons, inspect consumers, refresh discovery, run all required suites.
-- [ ] Commit and open a PR for parent review; do not merge or mutate Apple state.
+- [x] Commit and open [PR #88](https://github.com/astrojams1/skills/pull/88) for parent review;
+      leave merge and consumer pointer updates to the owning app run.
 
 Plan: Bind explicitly configured IAP review versions to an app-owned product and its exact StoreKit
 product ID before every submission guard. Preserve unknown-resource conflicts, idempotent readback,
