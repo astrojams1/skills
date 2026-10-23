@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,16 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.2 (2026-10-23)
+
+- App Store Connect status and metadata commands must validate their API/store inputs independently of
+  Xcode signing settings. Requiring an unverified signing team prevented an authorized read from even
+  reaching Apple and concealed the actual provider response. Archive/upload validation remains strict;
+  no signing identity is inferred from API access. Null required fields are missing, just like blanks.
+- End-to-end CLI regressions use synthetic keys and a mocked API: absent/blank signing settings permit
+  read-only status, an API denial remains visible, missing API inputs produce no requests, and incomplete
+  signing settings still prevent archive work. No live account or consumer state is changed by this fix.
 
 ## Lessons incorporated into v2.4.1 (2026-10-22)
 

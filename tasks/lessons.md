@@ -260,3 +260,12 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   before PATCH/readback. Undefined config values omitted from JSON cannot be compared as deletions.
 - Preserve omitted required/demo fields and never borrow unrelated contacts. A changed person needs
   an explicit phone; every contact field must remain hidden in readback errors.
+
+## Store API access is independent of Xcode signing authority
+
+**Source:** Füd release continuation (2026-10-23).
+
+- Validate the inputs used by the requested operation. A deliberately unverified signing team must
+  prevent signing, but must not prevent a store API read that could resolve account state.
+- Preserve the strict archive boundary explicitly when shared setup becomes less restrictive; test
+  the real command path with synthetic credentials and zero live account access.
