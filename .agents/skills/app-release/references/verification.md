@@ -56,6 +56,49 @@ same commit exists. Record build number or version code, source commit, dirty-tr
 SHA-256 for every artifact; the scripts write them to `summary.json` and refuse to upload a dirty or changed
 one. Keep SDKs, archives and signing material outside tracked source.
 
+### Recover an isolated SSD simulator set
+
+Use the owner's designated SSD QA device set, with the same `simctl --set <qa-path>` on every device
+command. Reuse its named device and exact UUID; inspect existing devices and active jobs before creating
+anything. Never switch to, delete or reset another task's device or the default set to fix a local setup.
+
+If device creation repeatedly fails with `EPERM` while copying sample content on an external volume,
+inspect the failing path, free capacity, mount/ownership state and simulator logs. A volume mounted with
+ownership disabled is relevant evidence, not proof of the cause. An optional recovery is a private,
+disposable APFS sparse disk image **backed by that SSD**, with ownership enabled only on its own mounted
+filesystem. This recovered device creation, boot and app installation in one observed run; the app
+then crashed after the launch command returned a PID. Storage recovery does not establish healthy app
+startup or graphics, and it does not guarantee recovery on another machine.
+
+1. Check for an existing image/mount and the task's saved UUID first. Before creating a new image, verify
+   the backing SSD is present, has capacity for actual growth, and no active job uses the proposed image,
+   mount or QA path. Choose a bounded virtual size for the runtime/app; sparse allocation grows and is
+   not reserved free space. Keep the image outside tracked source with private permissions.
+2. Use the installed macOS disk-image command's local help/man page for creation and attachment.
+   Current macOS points to `diskutil image create` / `diskutil image attach`; older supported releases
+   may use `hdiutil`. Do not mechanically translate flags between them. The observed attach used
+   `hdiutil attach <image> -owners on -nobrowse -noautoopen`; newer diskutil syntax must be checked
+   locally. A direct mountpoint under the backing SSD was denied in that run; mounting the image under
+   `/Volumes` worked while its backing file and growing device data remained on SSD.
+3. Read back the mounted image's identity, backing file and ownership state (`diskutil info -plist`
+   exposes `GlobalPermissionsEnabled`). Enable ownership only for this disposable image when needed;
+   never change the shared SSD's ownership, TCC or permissions, or restart the shared CoreSimulator
+   service. If the designated QA directory is confirmed empty, private to this task and unused, it may
+   be replaced with a symlink to the mounted filesystem. Preserve its prior state for rollback. Never
+   overwrite or hide a nonempty/shared set; stop this recovery route if safe isolation is not established.
+4. Create/reuse the task's named device through the same QA path, record its UUID, then check boot,
+   installation, launch request and continued app execution separately. A returned PID alone proves
+   neither healthy startup nor a visible UI: inspect continued process state and crash diagnostics.
+   Keep CLI build/install/log evidence distinct from actual native UI verification; captures and
+   interactions must use the active supported UI tools and policy. Do not substitute `simctl`
+   screenshot/input when that route is prohibited.
+
+Save the image path, mount identity, QA symlink target, UUID/runtime, capacity and observed results in the
+app ledger so another session can reattach and reuse them. Preserve the image for resumption. Before a
+planned detach, shut down only the owned UUID through the same set and confirm no owned job uses it;
+never eject an in-use image or shut down unrelated devices. Failure of this optional recovery leaves
+other authorized build, backend and listing work available.
+
 ### When no Mac is available
 
 An Android bundle can be built in Linux with the Android SDK (cloud containers' Maven downloads may be

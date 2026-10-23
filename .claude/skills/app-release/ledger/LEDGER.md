@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.4**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.5**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,21 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.5 (2026-10-23)
+
+- An isolated SSD-backed APFS sparse image with ownership enabled on that image recovered simulator
+  creation, boot and app installation after repeated sample-content copy `EPERM` errors. The shared SSD
+  remained unchanged; this is an optional workaround, not a proven root cause or rendering verification.
+  The app later crashed after launch returned a PID; inspect continued execution and crash diagnostics
+  before reporting healthy startup, and verify actual UI separately.
+- Reuse the owned image/device, verify capacity and backing identity, and replace only a confirmed empty,
+  unused QA path. Never disturb shared/default devices, shared-volume ownership, TCC or CoreSimulator.
+  Current local disk-image syntax and supported UI capture policy remain authoritative.
+- App-specific paths, UUIDs, builds and current native verification belong in the app's canonical ledger.
+- Validation: 103 release, 53 management, 138 spec, identity, 8 screenshot-fit and skill validation pass;
+  YouTube 5 pass / 1 explicit ffmpeg skip. Read-only consumer inspection found no command/config migration.
+  Discovery regenerated; no runtime scripts, consumer copies or provider state were manually changed.
 
 ## Lessons incorporated into v2.4.4 (2026-10-23)
 

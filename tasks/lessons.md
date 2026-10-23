@@ -283,3 +283,13 @@ Atlas role verification and successful resume of the existing free cluster. Try 
 before handing back an unlock action; report tool behavior without claiming the owner's desktop state.
 The normal provider code-entry form also recovered an inert prefilled CLI authorization flow. Preserve
 the next real security challenge separately; never bypass a connector's withheld authentication code.
+
+# 2026-10-23 — Isolate simulator storage recovery
+
+A repeated sample-content copy permission failure did not require changing shared SSD ownership or
+abandoning local native QA. A disposable SSD-backed APFS image with image-only ownership enabled
+recovered device creation, boot and app installation. A returned launch PID preceded an app crash and
+did not prove healthy startup. Inspect continued execution and crash diagnostics; verify actual UI
+separately. Treat storage recovery as an optional observed workaround: verify empty
+private QA paths and backing identity, reuse the exact owned device, preserve other jobs, and keep actual
+UI/capture verification separate. Current local disk-image help governs syntax across macOS versions.
