@@ -128,7 +128,7 @@ export function editableAppInfo(infos) {
 }
 
 // PRIVATE_FIELDS are never printed, even in a readback error.
-const PRIVATE_FIELDS = ['contactPhone'];
+const PRIVATE_FIELDS = ['contactFirstName', 'contactLastName', 'contactEmail', 'contactPhone'];
 
 // assertSaved compares each requested attribute with Apple's echoed value; an attribute Apple leaves out reads as null.
 export function assertSaved(label, wanted, saved) {
@@ -784,30 +784,30 @@ async function reviewAttachment(file) {
   console.log(plan.action === 'keep' ? 'kept attachment' : 'attachment ready:', basename(path), 'COMPLETE');
 }
 
-// reviewDetails saves the App Review contact and notes; the phone number comes from ASC_REVIEW_PHONE or from an
-// existing review detail on any of the developer's apps, held in memory and never written to the repository.
-async function reviewDetails() {
+// reviewDetails retains this version's authorized contact when omitted from store data. First creation
+// requires a complete explicit identity and runtime phone; no account-wide contact lookup is performed.
+export async function reviewDetails() {
   const ctx = await context();
   const contact = STORE.review;
-  let phone = process.env.ASC_REVIEW_PHONE || '';
+  if (!contact || typeof contact !== 'object' || Array.isArray(contact)) throw new Error('store data review must be an object.');
   const current = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
-  if (!phone && current.data) phone = current.data.attributes.contactPhone || '';
-  if (!phone) {
-    for (const app of await listAll('/v1/apps')) {
-      for (const version of await listAll('/v1/apps/' + app.id + '/appStoreVersions?limit=5')) {
-        const detail = await related('/v1/appStoreVersions/' + version.id + '/appStoreReviewDetail');
-        const found = detail.data ? detail.data.attributes : null;
-        // Reuse only the same person's number, never another contact's.
-        if (found && found.contactPhone && found.contactFirstName === contact.firstName && found.contactLastName === contact.lastName) {
-          phone = found.contactPhone;
-          break;
-        }
-      }
-      if (phone) break;
-    }
+  const existing = current.data?.attributes || {};
+  const attributes = {};
+  for (const [field, attribute] of [['firstName', 'contactFirstName'], ['lastName', 'contactLastName'], ['email', 'contactEmail']]) {
+    const value = Object.hasOwn(contact, field) ? contact[field] : existing[attribute];
+    if (typeof value !== 'string' || !value.trim()) throw new Error('A complete review contact is required: supply review.' + field + ' or retain a valid current same-app contact.');
+    attributes[attribute] = value;
   }
-  if (!phone) throw new Error('Apple requires a review contact phone; set ASC_REVIEW_PHONE for this run and never commit it.');
-  const attributes = { contactFirstName: contact.firstName, contactLastName: contact.lastName, contactEmail: contact.email, contactPhone: phone, demoAccountRequired: contact.demoAccountRequired === true, notes: contact.notes };
+  // A different identity cannot silently inherit the prior contact's private phone number.
+  const sameContact = ['contactFirstName', 'contactLastName', 'contactEmail'].every(field => attributes[field] === existing[field]);
+  const phone = Object.hasOwn(process.env, 'ASC_REVIEW_PHONE') ? process.env.ASC_REVIEW_PHONE : sameContact ? existing.contactPhone : undefined;
+  if (typeof phone !== 'string' || !phone.trim()) throw new Error('A review contact phone is required; set ASC_REVIEW_PHONE for this run and never commit it.');
+  attributes.contactPhone = phone;
+  const demoAccountRequired = Object.hasOwn(contact, 'demoAccountRequired') ? contact.demoAccountRequired : existing.demoAccountRequired ?? false;
+  if (typeof demoAccountRequired !== 'boolean') throw new Error('review.demoAccountRequired must be a boolean.');
+  attributes.demoAccountRequired = demoAccountRequired;
+  if (Object.hasOwn(contact, 'notes')) attributes.notes = contact.notes;
+  else if (Object.hasOwn(existing, 'notes')) attributes.notes = existing.notes;
   const saved = current.data
     ? await api('/v1/appStoreReviewDetails/' + current.data.id, 'PATCH', { data: { type: 'appStoreReviewDetails', id: current.data.id, attributes: attributes } })
     : await api('/v1/appStoreReviewDetails', 'POST', { data: { type: 'appStoreReviewDetails', attributes: attributes, relationships: { appStoreVersion: relation('appStoreVersions', ctx.version.id) } } });

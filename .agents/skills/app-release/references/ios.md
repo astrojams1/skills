@@ -294,10 +294,17 @@ In the seed release, creating `appStoreReviewDetails` without `contactPhone`
 returned a required-field error even though the schema appeared permissive.
 Treat actual API validation as authoritative: submit the complete required
 payload, inspect errors, then read the resource back. When saving revised Notes,
-fetch the existing authorized `contactPhone` if no override is supplied and
-include it in the same API mutation; a notes-only request must not lose required
-contact information. Keep the value
-private. Notes are **not saved** when the request fails. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
+fetch the current same-app/version record and retain omitted first/last name, email, phone, Notes and
+`demoAccountRequired` values. Send the complete contact in the same mutation and compare that actual
+payload on readback; an omitted config field must not be compared against Apple's retained value as
+though it requested removal. Other demo-account fields remain untouched by the PATCH.
+
+First creation needs complete `review.firstName`, `lastName`, `email` and a private runtime
+`ASC_REVIEW_PHONE`. A changed contact identity also requires its own runtime phone; never silently
+reuse the old person's number or search unrelated apps for a replacement. Empty/null explicit identity
+overrides are rejected before saving. Keep all contact values out of logs and error messages. A provider
+request failure does not establish that Notes were saved; an echoed/readback mismatch or lost response
+requires inspecting provider state before retrying. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
 
 #### Respond to the actual review message
 
