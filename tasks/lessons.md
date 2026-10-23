@@ -1,5 +1,15 @@
 # Lessons Learned
 
+## Exhaust authorized release work before handoff
+
+**Source:** Owner correction during Füd relaunch (2026-10-22).
+
+- A screen-lock/tool response limits that UI route, not the whole Mac or release. Diagnose the exact
+  operation, try supported authorized alternatives, and finish independent work before asking for help.
+- Show available designs inline as previews; preserve the separate requirement for real native captures.
+- Mark only demonstrated human dependencies `waiting_user`; do not convert agent/tool failures into
+  assumed owner obligations or bypass real security/provider restrictions.
+
 Capture patterns and corrections here after any mistake or user feedback. Review at session start.
 
 ## Design System Migration Rigor

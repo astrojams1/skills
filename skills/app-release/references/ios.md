@@ -59,8 +59,9 @@ upload. This is a GUI workflow, not a claim that `xcodebuild -exportArchive` or 
 [Apple TestFlight tutorial](https://developer.apple.com/tutorials/develop-in-swift/test-your-beta-app).
 
 If browser or Computer Use fails, record the exact tool failure as an agent/environment blocker and try
-another supported authorized route. Ask for only a missing unlock, sign-in, security approval or role
-change when evidence establishes that dependency. Keep independent build and listing work moving.
+another supported authorized route. Exhaust useful independent work before asking for a missing unlock,
+sign-in, security approval or role change, and only when evidence establishes that precise dependency.
+A failed UI route cannot block CLI builds or listing preparation that still work.
 
 ## Privacy, Business and release authorization
 

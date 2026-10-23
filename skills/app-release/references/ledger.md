@@ -47,6 +47,11 @@ stays `waiting_verification` until you read it back; an unfinished gate needs `-
 `user` or `provider`; bases are `observed`, `user_reported` or `inferred`. `validate` fails on a malformed
 ledger and warns about history that predates these rules.
 
+Use `waiting_user` only for a demonstrated human dependency after checking supported authorized
+alternatives. A failed automation route belongs to the agent: record the failed attempt and recovery
+action, and keep independent gates active. Do not mark every build, listing or release gate as waiting
+on the owner because one UI check cannot run. Keep unavailable native QA separate from prepared previews.
+
 Release gate ids start with `scope`, `account`, `web`, `apple` or `google`; anything else (`design.*`,
 `widget.*`, `ui.*`) is product verification and is listed after them. Common release gates:
 

@@ -4,6 +4,30 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.3.1: autonomous continuation — October 22, 2026
+
+- [x] Correct shared autonomy and locked-screen guidance, retaining real security/provider limits.
+- [x] Distinguish agent/tool failures from demonstrated human dependencies in ledger guidance.
+- [x] Review affected consumers, refresh discovery copies, validate and run required repository checks.
+- [x] Publish the shared patch for review as [PR #87](https://github.com/astrojams1/skills/pull/87);
+      leave consumer submodule bumps to their own app changes.
+
+Plan: Update shared release guidance rather than adding Füd-only workarounds. Keep existing capture
+provenance, authorization and actual human certification requirements intact. No provider mutations.
+
+### Review
+
+- App-release: 78 passed; management: 53 passed; specification: 138 passed, no warnings; identity passed.
+  Skill-creator validation and whitespace checks pass. Its validator needed PyYAML, installed only in
+  an isolated build-tools virtual environment after both existing Python runtimes lacked it.
+- Read-only consumer review covers Füd, Importron, Newsworthy and Space Worms (including its worktree).
+  No command, config or ledger schema changed; no consumer migration is required beyond a submodule bump.
+- Reviewed the locked-UI, failed-connector, explicit provider-denial and actual human-certification
+  cases against the guidance. Independent work continues; security/provider restrictions and native
+  evidence limits remain. This is instruction review, not a claim of executing those provider cases.
+
+## Previous work
+
 - [x] Add explicit first-subscription review targets with API ownership checks before mutations.
 - [x] Reject duplicate, foreign and ambiguous review resources; read back every attachment.
 - [x] Add regression tests preserving no-subscription and Game Center behavior.
