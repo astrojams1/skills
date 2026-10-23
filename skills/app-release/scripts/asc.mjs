@@ -1219,6 +1219,23 @@ export function placementPlan(existing, wantedImageIds) {
   };
 }
 
+// SUBMITTABLE_ASSET_STATES are the Asset Library states an image can be sent to App Review from.
+export const SUBMITTABLE_ASSET_STATES = ['COMPLETE', 'PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW'];
+
+// assetsToSubmit picks the store data's images that still need App Review, and reports the others' states, so a rerun
+// never sends an image twice and an unprocessed or rejected one is named instead of sent.
+export function assetsToSubmit(images, references) {
+  const send = [];
+  const skipped = [];
+  for (const reference of references) {
+    const image = images.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
+    if (!image) skipped.push(reference + ' (not uploaded)');
+    else if (SUBMITTABLE_ASSET_STATES.includes(image.attributes.state)) send.push(image.id);
+    else skipped.push(reference + ' (' + image.attributes.state + ')');
+  }
+  return { send: send, skipped: skipped };
+}
+
 // assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images: the product page header,
 // the search-results creative and screenshots for profiles without a screenshot display type, such as iPhone Duo.
 // Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from App Store Connect.
@@ -1239,7 +1256,26 @@ async function assets(mode) {
     console.log(images.length + ' Asset Library images; store data lists ' + entries.length + '.');
     return;
   }
-  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place]');
+  if (mode === 'submit') {
+    // An approved version takes only approved images, so on such a version the images go to App Review on their own.
+    if (process.argv[4] !== '--confirm') throw new Error('Sending images to App Review is outward-facing; rerun as `asc.mjs assets submit --confirm` with the owner\'s approval.');
+    const references = entries.map(entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file))));
+    const plan = assetsToSubmit(images, references);
+    for (const line of plan.skipped) console.log('not sent:', line);
+    if (!plan.send.length) {
+      console.log('No listed image needs App Review.');
+      return;
+    }
+    const submission = await openReviewSubmission();
+    for (const id of plan.send) {
+      await api('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: {
+        reviewSubmission: relation('reviewSubmissions', submission.id), appAssetLibraryImage: relation('appAssetLibraryImages', id) } } });
+    }
+    const saved = await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
+    console.log('Review submission', submission.id, 'with', plan.send.length, 'image(s) is', saved.data.attributes.state);
+    return;
+  }
+  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');
   const localization = mode === 'place' ? await versionLocalization((await context()).version.id, false) : null;
   // Each placement type and profile, with the image ids store data wants there in order.
   const wanted = new Map();
