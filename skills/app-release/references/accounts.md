@@ -6,8 +6,9 @@ territory, roles, store policies, API capabilities and navigation change. Record
 evidence in the app's release ledger. Session lessons below are operational observations, not universal
 platform requirements.
 
-The owner's Apple team (`CWQ9AWJF8T`) and Google Play developer account are shared by every app: once a
-gate here is verified for one app, read its current status for the next app instead of repeating it.
+Verify the legal entity and account configured for this app. Apps may belong to different Apple teams
+or Google Play developer accounts. Reuse account setup only within that verified scope, reading its
+current status instead of repeating completed setup.
 
 ## 1. Separate account setup from each app's release
 
@@ -28,6 +29,12 @@ the account is inaccessible. Continue independent listing/build work while an
 account task waits. Preserve existing authorization rather than inventing a new
 approval gate for each routine field. If the active tool requires confirmation,
 identify that exact restriction and prepare the concrete action first.
+
+If a signed-in installed web app/PWA shows the account but its organization menu stays inert, inspect
+its built-in **Open in browser/Open in Chrome** action. When available, this can preserve the existing
+profile/session while restoring the controls. Verify the browser profile, account and selected legal
+entity before changing app state. This is an authorized-session alternative, not a reason to extract
+cookies, bypass security checks or infer signing authority from browser access.
 
 App-record creation is routine app setup through an authorized signed-in browser or Xcode session
 ([iOS onboarding](ios.md)); it is not an Account Holder certification. Public API creation being

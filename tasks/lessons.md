@@ -269,3 +269,9 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   prevent signing, but must not prevent a store API read that could resolve account state.
 - Preserve the strict archive boundary explicitly when shared setup becomes less restrictive; test
   the real command path with synthetic credentials and zero live account access.
+# 2026-10-23 — Verify per-app account scope and supported browser handoffs
+
+An inert installed-web-app menu is evidence about that interaction route. Inspect its supported browser
+handoff before declaring a missing owner sign-in. Read back the browser profile and legal entity after
+handoff, and keep API, UI and signing authority distinct. Shared release guidance must not turn a
+historical personal team into a default for every app.

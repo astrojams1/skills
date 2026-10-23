@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,16 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.3 (2026-10-23)
+
+- A store API key excluding one app and an inert PWA organization selector did not establish missing
+  account access. The PWA's supported Open in Chrome handoff preserved the existing session; the regular
+  browser then exposed the correct organization and existing app. Verify the same account/entity after
+  the handoff. This is a supported alternative when observed controls fail, not a universal PWA defect.
+- Shared account setup is scoped to the app's verified legal entity/account. Do not assume every app
+  uses one historical personal team. Browser access, API authorization and signing authority are
+  separate evidence, and none justifies bypassing provider security restrictions.
 
 ## Lessons incorporated into v2.4.2 (2026-10-23)
 

@@ -494,3 +494,18 @@ with synthetic end-to-end CLI tests, inspect every consumer, and run the reposit
   existing Space Worms workspaces). Füd intentionally leaves teamId unverified; all consumers have the
   API identities and store data needed by the narrower validation. Defaults retain vault/platform behavior.
   There is no config format or command migration and no consumer source or provider state was changed.
+# App-release browser session recovery (2026-10-23)
+
+- [x] Scope the observed PWA handoff and per-app account correction to shared account guidance.
+- [x] Preserve app-specific identifiers and current provider state in the consumer ledger.
+- [x] Regenerate discovery copies, validate the skill and run all required repository checks.
+- [ ] Review, push and merge the documentation patch; sync and verify the Füd consumer.
+
+Documentation-only patch: retain supported same-session browser alternatives before a sign-in handoff;
+verify each app's legal entity instead of applying one personal team to every app. No scripts, account
+permissions, signing credentials or provider state are changed by this patch.
+
+Verification:103 release tests,53 management checks,138 spec checks,8 screenshot-fit tests and identity
+passed. YouTube5 passed/1 explicit ffmpeg-unavailable skip. Quick validation passed using the existing
+SSD validation venv after the bundled runtime lacked PyYAML. Existing consumer configurations need no
+migration; command/script behavior is unchanged.
