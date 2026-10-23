@@ -275,3 +275,11 @@ An inert installed-web-app menu is evidence about that interaction route. Inspec
 handoff before declaring a missing owner sign-in. Read back the browser profile and legal entity after
 handoff, and keep API, UI and signing authority distinct. Shared release guidance must not turn a
 historical personal team into a default for every app.
+
+# 2026-10-23 — Inventory errors do not establish desktop state
+
+The owner disputed a Mac-lock report. Direct supported Chrome binding immediately worked and allowed
+Atlas role verification and successful resume of the existing free cluster. Try that narrow binding
+before handing back an unlock action; report tool behavior without claiming the owner's desktop state.
+The normal provider code-entry form also recovered an inert prefilled CLI authorization flow. Preserve
+the next real security challenge separately; never bypass a connector's withheld authentication code.

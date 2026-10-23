@@ -509,3 +509,16 @@ Verification:103 release tests,53 management checks,138 spec checks,8 screenshot
 passed. YouTube5 passed/1 explicit ffmpeg-unavailable skip. Quick validation passed using the existing
 SSD validation venv after the bundled runtime lacked PyYAML. Existing consumer configurations need no
 migration; command/script behavior is unchanged.
+
+## app-release 2.4.4: recover direct app access
+
+- [x] Verify direct Chrome access against the disputed inventory error on the real task.
+- [x] Document supported app binding and normal CLI code-entry recovery without security bypass.
+- [x] Check consumer configurations: guidance only, no fields, scripts or format changes.
+- [x] Run required checks and refresh discovery copies.
+- [ ] Publish the shared correction and sync Füd after merge.
+
+Review: the real recovery verified current project authority and restored the same M0 cluster to IDLE.
+The provider's withheld email code remains a separate verification step. This patch changes guidance,
+with no runtime changes or wording-matching tests. Validation: 103 release, 53 management, 138 spec,
+identity, 8 screenshot-fit checks, skill validator; YouTube 5 passed and 1 explicit ffmpeg skip.
