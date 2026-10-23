@@ -522,3 +522,22 @@ Review: the real recovery verified current project authority and restored the sa
 The provider's withheld email code remains a separate verification step. This patch changes guidance,
 with no runtime changes or wording-matching tests. Validation: 103 release, 53 management, 138 spec,
 identity, 8 screenshot-fit checks, skill validator; YouTube 5 passed and 1 explicit ffmpeg skip.
+
+## app-release 2.4.5: isolated SSD simulator recovery
+
+- [x] Consult current Agent Skills spec, skill-creator, shared conventions and maintaining reference.
+- [x] Branch from fresh origin/main; keep general recovery in verification and app facts in app ledger.
+- [x] Document bounded, SSD-backed private image recovery with existing-device reuse and UI boundaries.
+- [x] Inspect consumers, refresh discovery and run all required checks plus skill validation.
+- [ ] Review, push and open PR for parent review; leave merge and consumer sync to owning release run.
+
+Plan: Encode the demonstrated recovery without inferring a root cause or changing shared volume settings.
+Preserve resumable evidence and distinguish boot/install/launch from graphics, captures and store signing.
+
+Review: 103 app-release tests, 53 management checks, 138 specification checks, identity, 8 screenshot-fit
+checks and skill-creator validation pass with Node 22.23.3 for JS suites. YouTube: 5 pass, 1 explicit
+ffmpeg-unavailable skip. No script behavior changed; no wording-matching tests added. Discovery copies
+are regenerated and byte-identical; whitespace checks pass. Read-only inspection covered Füd, Importron,
+Newsworthy and all three existing Space Worms checkouts. No config/command changes or migrations;
+consumer pointer updates follow merge. No simulator, volume, account or provider state was changed by
+this documentation patch. Local macOS help/man pages verified disk-image flags and their deprecation.
