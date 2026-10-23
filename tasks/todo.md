@@ -4,6 +4,35 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.4.1: preserve review contact on notes updates
+
+- [x] Reproduce notes-only readback failure with a mocked Apple API.
+- [x] Preserve current same-app contact and required fields; validate creation before any mutation.
+- [x] Test override, privacy, missing-contact and uncertain-write cases; document and check consumers.
+- [x] Run required suites, refresh discovery and open [PR #89](https://github.com/astrojams1/skills/pull/89)
+      for parent review; leave merge and consumer pointer updates to the owning app run.
+
+Plan: Keep private contact fields in Apple's existing same-version record when no override is supplied.
+Remove account-wide contact lookup; require a complete explicitly supplied identity and phone for first
+creation or a changed contact. Compare the actual complete requested payload on readback without
+printing private contact values.
+
+### Review
+
+- App-release: 99 passed (7 new). Notes-only regression fails before the fix after the PATCH succeeds;
+  the corrected requested payload matches Apple's echoed retained contact and passes.
+- Tests cover unchanged contact, omitted Notes/demo requirement, untouched demo credentials, complete
+  first creation, missing/blank fields, changed contact phone, contact redaction and lost write response.
+- Management: 53 passed; identity passed; specification: 138 passed, no warnings; screenshot fit:
+  8 passed with bundled Python; skill-creator validation passed in the existing isolated environment.
+  YouTube: 5 passed, 1 skipped because ffmpeg is unavailable. No failing suites.
+- Read-only consumers: Importron intentionally omits contact names/email; Füd's review object is empty;
+  existing Newsworthy and Space Worms configurations have identity fields. Same-version contact reuse
+  handles omitted fields; creation/contact changes need an explicit runtime phone instead of an
+  account-wide lookup. No consumer files or live Apple state were mutated by this shared patch.
+- Discovery copies refreshed and byte-identical to source; whitespace checks passed. Consumer pointer
+  updates and provider notes readback remain with the owning app's release run after merge.
+
 ## app-release 2.4.0: explicit in-app purchase review
 
 - [x] Verify Apple schema and add optional owned IAP review targets without changing existing flows.

@@ -250,3 +250,13 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   explicitly and bind it through the app-owned product before accepting or attaching a review item.
 - Carry all selected purchase kinds through replacement and final guards; adding support must not
   silently accept arbitrary IAP items or disturb apps with no selected purchase review.
+
+
+## Optional contact config is not a request to erase Apple's saved contact
+
+**Source:** Importron notes-only App Review update (2026-10-22).
+
+- Build a complete wanted contact from explicit overrides and the current same-app/version record
+  before PATCH/readback. Undefined config values omitted from JSON cannot be compared as deletions.
+- Preserve omitted required/demo fields and never borrow unrelated contacts. A changed person needs
+  an explicit phone; every contact field must remain hidden in readback errors.

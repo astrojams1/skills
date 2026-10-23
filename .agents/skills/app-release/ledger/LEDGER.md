@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,17 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.1 (2026-10-22)
+
+- Notes-only review updates must retain this same-app/version's existing contact fields. Previously,
+  undefined configured names were omitted from the PATCH but compared against Apple's retained names,
+  falsely failing after saving Notes. Build and verify the actual complete payload instead.
+- Retain omitted Notes/demo requirement and untouched demo credentials; require a complete explicit
+  contact plus runtime phone for creation, or a new phone when the contact identity changes. Do not
+  borrow unrelated app contacts. Redact names, email and phone in readback errors.
+- Mocked before/after regression proves the original failure; privacy, missing contact, explicit
+  override and lost-response coverage use synthetic contacts only. Live app work stays in its ledger.
 
 ## Lessons incorporated into v2.4.0 (2026-10-22)
 
