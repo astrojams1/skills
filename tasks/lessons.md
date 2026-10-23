@@ -240,3 +240,13 @@ Capture patterns and corrections here after any mistake or user feedback. Review
   configured version ID and API parent ownership instead of treating a null app version as foreign.
 - Preserve the conflict guard: supporting another resource kind does not authorize arbitrary items
   already present in a draft. Verify the full set, reject duplicates, and read mutations back.
+
+
+## IAP products and review versions have separate ownership
+
+**Source:** Importron monetization change (2026-10-22).
+
+- A consumable's StoreKit product ID is not its review-version ID. Require the intended review version
+  explicitly and bind it through the app-owned product before accepting or attaching a review item.
+- Carry all selected purchase kinds through replacement and final guards; adding support must not
+  silently accept arbitrary IAP items or disturb apps with no selected purchase review.

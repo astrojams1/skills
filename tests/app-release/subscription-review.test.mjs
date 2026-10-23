@@ -134,7 +134,7 @@ test('a concurrent unexpected item after a write prevents further attachment', a
 
 test('review-item reads avoid mutually exclusive includes while retaining every relationship field', () => {
   const query = new URLSearchParams(reviewItemsQuery());
-  assert.deepEqual(query.get('include').split(','), ['appStoreVersion', 'gameCenterLeaderboardVersion', 'subscriptionVersion', 'subscriptionGroupVersion']);
+  assert.deepEqual(query.get('include').split(','), ['appStoreVersion', 'gameCenterLeaderboardVersion', 'inAppPurchaseVersion', 'subscriptionVersion', 'subscriptionGroupVersion']);
   for (const relationship of REVIEW_RELATIONSHIPS) assert.ok(query.get('fields[reviewSubmissionItems]').split(',').includes(relationship));
   assert.ok(query.get('fields[reviewSubmissionItems]').includes('appStoreVersionExperimentV2'));
   assert.equal(query.get('include').includes('appStoreVersionExperiment'), false);

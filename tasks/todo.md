@@ -4,6 +4,35 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.4.0: explicit in-app purchase review
+
+- [x] Verify Apple schema and add optional owned IAP review targets without changing existing flows.
+- [x] Exercise attachment, submission, rejection replacement and refusal paths with mocked Apple API.
+- [x] Document config and lessons, inspect consumers, refresh discovery, run all required suites.
+- [x] Commit and open [PR #88](https://github.com/astrojams1/skills/pull/88) for parent review;
+      leave merge and consumer pointer updates to the owning app run.
+
+Plan: Bind explicitly configured IAP review versions to an app-owned product and its exact StoreKit
+product ID before every submission guard. Preserve unknown-resource conflicts, idempotent readback,
+subscription ownership checks and no-config behavior. Apple OpenAPI confirms both parent collections
+and the inAppPurchaseVersion / inAppPurchaseVersions review relation.
+
+### Review
+
+- App-release: 92 passed (14 new). The IAP-only/mixed submission regression fails on unmodified main
+  because it silently submits only the app; it passes with the explicit-target implementation.
+- Ownership refusals produce zero writes; pagination, lost attachment/submit responses, concurrent
+  foreign items, pending reuse, rejected replacement and rejected-item resolution are covered.
+- Management: 53 passed; identity passed; specification: 138 passed, no warnings; screenshot fit:
+  8 passed with bundled Python; YouTube: 5 passed, 1 skipped because ffmpeg is unavailable.
+- Skill-creator validation passed using the existing isolated validation environment after bundled
+  Python lacked PyYAML. System-Python fit checks skipped without numpy/Pillow; bundled-runtime rerun
+  passed all 8. No dependency changes were made to the skills repository.
+- Read-only consumer inspection: Newsworthy, Space Worms (canonical and two worktrees) and Füd have
+  no selected IAP review targets; Importron retains its existing subscription fields until its own
+  monetization change. No existing field/command migrations are required. No consumer files or live
+  Apple state were mutated by this change; consumer submodule bumps follow merge.
+
 ## app-release 2.3.1: autonomous continuation — October 22, 2026
 
 - [x] Correct shared autonomy and locked-screen guidance, retaining real security/provider limits.
