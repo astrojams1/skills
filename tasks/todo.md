@@ -9,7 +9,8 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Reproduce notes-only readback failure with a mocked Apple API.
 - [x] Preserve current same-app contact and required fields; validate creation before any mutation.
 - [x] Test override, privacy, missing-contact and uncertain-write cases; document and check consumers.
-- [ ] Run required suites, refresh discovery, commit and open a PR for parent review without merging.
+- [x] Run required suites, refresh discovery and open [PR #89](https://github.com/astrojams1/skills/pull/89)
+      for parent review; leave merge and consumer pointer updates to the owning app run.
 
 Plan: Keep private contact fields in Apple's existing same-version record when no override is supplied.
 Remove account-wide contact lookup; require a complete explicitly supplied identity and phone for first
