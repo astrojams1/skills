@@ -9,7 +9,8 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Correct shared autonomy and locked-screen guidance, retaining real security/provider limits.
 - [x] Distinguish agent/tool failures from demonstrated human dependencies in ledger guidance.
 - [x] Review affected consumers, refresh discovery copies, validate and run required repository checks.
-- [ ] Publish the shared patch for review; leave consumer submodule bumps to their own app changes.
+- [x] Publish the shared patch for review as [PR #87](https://github.com/astrojams1/skills/pull/87);
+      leave consumer submodule bumps to their own app changes.
 
 Plan: Update shared release guidance rather than adding Füd-only workarounds. Keep existing capture
 provenance, authorization and actual human certification requirements intact. No provider mutations.
