@@ -151,7 +151,7 @@ the command before cancellation or attachment. A product ID alone does not autho
 subscription item already present in a draft.
 
 When reading items, request all relationship **fields** for conflict detection but include only the
-supported app, leaderboard, subscription and subscription-group versions. Apple rejects a request that
+supported app, leaderboard, IAP, subscription and subscription-group versions. Apple rejects a request that
 includes both `appStoreVersionExperiment` and `appStoreVersionExperimentV2`, even though both are listed
 in the OpenAPI include enum. Expanding every schema relationship is not a safe generic query.
 
@@ -169,6 +169,47 @@ no subscription API reads or attachments are added; apps without subscriptions r
 workflow. Never remove fields merely to bypass a conflict or submit a smaller intended set.
 [Apple review-item schema](https://developer.apple.com/documentation/appstoreconnectapi/reviewsubmissionitem),
 [create review item](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-reviewsubmissionitems).
+
+## In-app purchase review
+
+Consumable and nonconsumable purchases use a distinct `inAppPurchaseVersion` review item, not a
+subscription item. Configure the already-created product and its explicitly intended review version
+in the store data:
+
+```json
+{
+  "inAppPurchases": [
+    {
+      "appStoreId": "<iap-product-resource-id>",
+      "productId": "com.example.app.import",
+      "reviewVersionId": "<iap-review-version-id>"
+    }
+  ]
+}
+```
+
+`submit --confirm` verifies each product under `GET /v1/apps/{id}/inAppPurchasesV2?limit=200`, checks
+its exact StoreKit `productId`, then verifies the review version under
+`GET /v2/inAppPurchases/{id}/versions?limit=200`. The shared paginated reader follows every page.
+Only rows with `reviewVersionId` present select current targets. Omit that field when retaining a
+product identity that does not need review in this submission; a present empty/null value is invalid.
+Duplicate selected product IDs, product resource IDs or review-version IDs are refused. An empty or
+absent array adds no IAP API reads or attachments. Subscription targets can coexist and retain all of
+their own ownership checks.
+
+Product creation, type, localization, pricing, availability, review screenshot and review-version
+creation are separate setup; read their actual provider state before selecting a version. A product's
+version collection can be empty. When metadata is incomplete, a compound product GET that includes a
+missing related resource can return 404 even though the product exists: verify the plain product and
+read the documented related endpoints independently before retrying creation.
+
+The same exact-item conflict guards and attachment readbacks described above apply to IAP targets.
+Ownership is rechecked after rejected-submission replacement and immediately before submission.
+Unexpected or duplicate held resources stop cancellation/attachment; a lost write response stops the
+run, and a later rerun reads provider state before retrying. Remove or replace the review-version field
+only when the intended review scope changes after provider readback, never to bypass a conflict.
+[Apple IAP versions](https://developer.apple.com/documentation/appstoreconnectapi/get-v2-inapppurchases-_id_-versions),
+[Apple review item](https://developer.apple.com/documentation/appstoreconnectapi/reviewsubmissionitem).
 
 ## When App Review rejects
 

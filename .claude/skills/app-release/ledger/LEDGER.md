@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.3.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,18 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.0 (2026-10-22)
+
+- Consumable/nonconsumable review requires an explicit `inAppPurchaseVersion` target. Bind it through
+  the app's IAP collection, exact StoreKit product ID and that product's review-version collection.
+  A retained product ID alone does not authorize a current review target or arbitrary draft items.
+- Optional targets retain no-config behavior and subscription ownership guards. Rejected replacements,
+  pending submissions, attachment readback and final submit use the same complete verified target set.
+  Mock regressions cover mismatches, foreign/duplicate items and unknown write outcomes; no live Apple
+  mutations were performed by this shared-skill change.
+- A missing IAP related resource can make an include-bearing product GET return 404. Check the plain
+  product and separate documented relationships before treating this as failed product creation.
 
 ## Lessons incorporated into v2.3.1 (2026-10-22)
 

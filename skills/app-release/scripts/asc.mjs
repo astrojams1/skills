@@ -12,7 +12,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
-import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifySubscriptionReview } from './lib/review-items.mjs';
+import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
@@ -255,7 +255,7 @@ function relatedId(item, name) {
   return link ? link.id : null;
 }
 
-// submissionPlan accepts this version, existing Game Center items and explicitly verified subscription targets.
+// submissionPlan accepts this version, existing Game Center items and explicitly verified purchase targets.
 export function submissionPlan(items, versionId, reviewTargets = []) {
   const plan = reviewItemPlan(items, versionId, reviewTargets);
   if (plan.conflict) return { action: 'conflict' };
@@ -946,7 +946,7 @@ async function gameCenter() {
   const config = STORE.gameCenter;
   if (!config || !Array.isArray(config.leaderboards) || !config.leaderboards.length) throw new Error('The store data has no gameCenter.leaderboards');
   const ctx = await context();
-  const reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
+  const reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   const profileStale = await enableGameCenterCapability();
   const detail = await enableGameCenterDetail();
   // Archived leaderboards are read too, since a vendor identifier can never be reused and an archived one is restored.
@@ -1060,7 +1060,7 @@ export async function fillSubmission(submission, versionId, leaderboards, review
   if (submissionPlan(saved, versionId, reviewTargets).action !== 'submit' || left.version || left.leaderboards.length) {
     throw new Error('Review submission ' + submission.id + ' still lacks configured review targets or holds conflicting items; nothing was submitted.');
   }
-  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions and', reviewTargets.length, 'subscription review versions.');
+  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions and', reviewTargets.length, 'purchase review versions.');
 }
 
 // findBuild returns the processed build with the given build number.
@@ -1112,7 +1112,7 @@ export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
   if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
-  let reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
+  let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
   const pending = await submissionInReview(ctx.version.id, reviewTargets);
   if (pending) {
@@ -1134,7 +1134,7 @@ export async function submit(flag) {
     submission = await replaceRejectedSubmission(submission);
     // A cancel returns accepted items to the developer, so refresh readiness and carry what the old submission held.
     leaderboards = replacementLeaderboards(await editableLeaderboardVersions(), held);
-    reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
+    reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   }
   if (submission.attributes.state === 'READY_FOR_REVIEW') await fillSubmission(submission, ctx.version.id, leaderboards, reviewTargets);
   const items = await submissionItems(submission.id);
@@ -1145,7 +1145,7 @@ export async function submit(flag) {
     console.log('Marked rejected item', rejected.id, 'resolved');
   }
   // Revalidate ownership and item completeness immediately before the outward-facing submission.
-  reviewTargets = await verifySubscriptionReview(STORE.subscription, IOS.ascAppId, listAll);
+  reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   const finalItems = await submissionItems(submission.id);
   if (submissionPlan(finalItems, ctx.version.id, reviewTargets).action !== 'submit' ||
       missingSubmissionItems(finalItems, ctx.version.id, leaderboards).leaderboards.length) {
