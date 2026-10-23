@@ -42,6 +42,12 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `pruneScreenshots` | `true` lets `asc.mjs screenshots` delete App Store screenshots and whole sets the store data no longer lists; by default they are reported and left in place |
 | `scrubPublicEnv` | `false` keeps inherited `EXPO_PUBLIC_*` values and `.env` files; by default both are dropped |
 
+`asc.mjs` requires the app/bundle identity, vault and platform (defaults apply), plus the store data file.
+It does not require the Xcode-only `teamId`, `scheme` or `buildNumberEnv`: store access can be checked while
+signing authority is still unverified. `ios-release.mjs` retains the full iOS requirements, including those
+signing/build settings. A successful API read never establishes the signing team; leave it unverified
+until supported by account evidence. Empty or null required fields fail before external work.
+
 `android`:
 
 | Field | Meaning |

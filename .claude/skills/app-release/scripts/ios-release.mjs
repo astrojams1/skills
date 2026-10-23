@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
 import { freshBuildTmp } from './lib/build-tmp.mjs';
+import { requireSection } from './lib/config.mjs';
 
 const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
@@ -382,7 +383,7 @@ async function main(args) {
   const flags = parseArgs(args);
   const loaded = setupAsc();
   CONFIG = loaded.config;
-  IOS = loaded.ios;
+  IOS = requireSection(CONFIG, 'ios');
   if (flags.command === 'next-build-number') {
     const numbers = await readBuildNumbers();
     console.log(nextBuildNumber(numbers.builds, numbers.uploads));

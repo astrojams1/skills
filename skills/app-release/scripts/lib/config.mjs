@@ -33,16 +33,16 @@ export function expandHome(path) {
   return path && path.startsWith('~/') ? join(homedir(), path.slice(2)) : path;
 }
 
-// REQUIRED lists the fields each section needs before any command uses it, so a typo fails before an API call.
+// REQUIRED lists the full platform requirements; API-only commands select their own narrower inputs.
 const REQUIRED = {
   root: ['app', 'slug', 'ledger'],
   ios: ['ascAppId', 'bundleId', 'teamId', 'scheme', 'buildNumberEnv'],
   android: ['package', 'vault', 'versionCodeEnv', 'artifactName']
 };
 
-// missingFields names the required fields a section leaves out.
-export function missingFields(section, value) {
-  return REQUIRED[section].filter(key => value === undefined || value === null || value[key] === undefined || value[key] === '');
+// missingFields names the required fields a section leaves out; commands can require only the fields they use.
+export function missingFields(section, value, fields = REQUIRED[section]) {
+  return fields.filter(key => value === undefined || value === null || value[key] === undefined || value[key] === null || value[key] === '');
 }
 
 // normalizeConfig fills defaults and resolves repository-relative paths; it never reads the network or the vault.
@@ -86,8 +86,8 @@ export function loadConfig(start) {
 }
 
 // requireSection returns one platform's settings, failing with the exact fields still missing.
-export function requireSection(config, section) {
-  const missing = missingFields(section, config[section]);
+export function requireSection(config, section, fields) {
+  const missing = missingFields(section, config[section], fields);
   if (missing.length) throw new Error(CONFIG_NAME + ' ' + section + ' section lacks ' + missing.join(', '));
   return config[section];
 }

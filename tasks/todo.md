@@ -467,3 +467,30 @@ Keep consumer repositories and provider state unchanged during this documentatio
 - Live read-only API verification: corrected minimal includes plus all relationship fields succeeded
   against the expected empty draft; subscription/product/group ownership chains verified, zero writes.
   Apple's mutually exclusive experiment includes are regression-tested despite both appearing in schema.
+
+## app-release 2.4.2: separate ASC and signing configuration — October 23, 2026
+
+Plan: Let App Store Connect commands use verified API/store configuration while Xcode signing
+settings remain unverified. Keep archive validation strict, demonstrate the previous failure
+with synthetic end-to-end CLI tests, inspect every consumer, and run the repository checks.
+
+- [x] Consult the Agent Skills specification and inspect configuration validation.
+- [x] Reproduce the status failure and provider-denial masking with CLI regression tests.
+- [x] Separate API validation from signing validation without inferring signing authority.
+- [x] Update the focused reference, skill version, lesson and generated discovery copies.
+- [x] Check consumer compatibility and complete required tests.
+- [x] Review the patch and prepare its PR for merge after passing checks.
+
+### Review
+
+- App-release: 103 passed, including four real-CLI regression cases with synthetic credentials and mocked
+  Apple requests. Read-only status works without signing fields, provider denials are visible, missing API
+  configuration causes zero requests, and archive still refuses absent/blank/null signing settings.
+- Management: 53 passed; specification: 138 passed, no warnings; AGENTS-only identity passed; screenshot
+  fit: 8 passed. YouTube Shorts: 5 passed, 1 skipped because ffmpeg is unavailable. No failing tests.
+- The skill-creator validator passed with a private SSD PyYAML dependency directory after both Python
+  runtimes reported that the optional yaml dependency was absent. No repository dependency was added.
+- Read-only config and command inspection covers Newsworthy, Importron, Füd and Space Worms (including
+  existing Space Worms workspaces). Füd intentionally leaves teamId unverified; all consumers have the
+  API identities and store data needed by the narrower validation. Defaults retain vault/platform behavior.
+  There is no config format or command migration and no consumer source or provider state was changed.
