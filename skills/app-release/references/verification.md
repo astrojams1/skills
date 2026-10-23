@@ -85,6 +85,14 @@ screens. If those tools prohibit shell-driven UI, do not substitute `adb input`,
 screencap or AppleScript. CLI build/install/log inspection remains distinct from
 UI control and must follow the active tool policy.
 
+A locked-screen response establishes that this UI route is unavailable at that moment, not that the
+whole Mac, build toolchain or release is inaccessible. Check other supported authorized routes and
+existing capture artifacts, then continue CLI builds, tests, logs, backend work, listing preparation and
+artwork that remain possible. Show available design previews in the conversation; label a layout or
+render as a preview, never as a real app screenshot or completed native QA. Record the exact unverified
+interaction/capture and alternatives tried. Ask for an unlock only when that specific remaining check
+requires it and no supported authorized route remains; do not bypass the lock or end independent work.
+
 Verify the release-profile app's launch, online data, error/retry state, navigation,
 sharing, light/dark rendering, saved/offline data and recovery, large text and
 accessibility relevant to the app. Capture the actual platform with its build ID,
@@ -118,7 +126,7 @@ for that simulator/widget, not for Android widgets or physical devices.
 | Android widget build cannot resolve ListenableFuture | Native compile classpath/plugin dependency; in the observed app explicit Android Guava fixed it |
 | Widget missing or stale | Extension/receiver packaging, widget host setup and OS refresh; distinguish “no widget” from delayed data |
 | Widget flickers or resize handles disappear | Native widget/launcher logs, worker scheduling, receiver/component changes and repeated onUpdate; check for an app-driven update loop before blaming UI controls |
-| UI tool says the Mac is locked | Ask the owner to unlock; continue non-UI work without bypassing the lock |
+| UI tool says the Mac is locked | Diagnose this UI route only; try supported authorized alternatives, show available previews and continue independent work as above |
 
 In Newsworthy's Expo SDK 57 build, Android expo-image's data fetcher decoded SVG
 payloads as base64; percent-encoded SVG URLs caused `IllegalArgumentException:
