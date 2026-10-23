@@ -288,6 +288,8 @@ the next real security challenge separately; never bypass a connector's withheld
 
 A repeated sample-content copy permission failure did not require changing shared SSD ownership or
 abandoning local native QA. A disposable SSD-backed APFS image with image-only ownership enabled
-recovered create, boot, install and launch. Treat this as an optional observed workaround: verify empty
+recovered device creation, boot and app installation. A returned launch PID preceded an app crash and
+did not prove healthy startup. Inspect continued execution and crash diagnostics; verify actual UI
+separately. Treat storage recovery as an optional observed workaround: verify empty
 private QA paths and backing identity, reuse the exact owned device, preserve other jobs, and keep actual
 UI/capture verification separate. Current local disk-image help governs syntax across macOS versions.

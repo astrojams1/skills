@@ -66,8 +66,9 @@ If device creation repeatedly fails with `EPERM` while copying sample content on
 inspect the failing path, free capacity, mount/ownership state and simulator logs. A volume mounted with
 ownership disabled is relevant evidence, not proof of the cause. An optional recovery is a private,
 disposable APFS sparse disk image **backed by that SSD**, with ownership enabled only on its own mounted
-filesystem. This recovered creation, boot, install and launch in one observed run; it does not guarantee
-recovery on another machine or establish that graphics render correctly.
+filesystem. This recovered device creation, boot and app installation in one observed run; the app
+then crashed after the launch command returned a PID. Storage recovery does not establish healthy app
+startup or graphics, and it does not guarantee recovery on another machine.
 
 1. Check for an existing image/mount and the task's saved UUID first. Before creating a new image, verify
    the backing SSD is present, has capacity for actual growth, and no active job uses the proposed image,
@@ -86,9 +87,11 @@ recovery on another machine or establish that graphics render correctly.
    be replaced with a symlink to the mounted filesystem. Preserve its prior state for rollback. Never
    overwrite or hide a nonempty/shared set; stop this recovery route if safe isolation is not established.
 4. Create/reuse the task's named device through the same QA path, record its UUID, then check boot,
-   install and launch separately. Keep CLI build/install/log evidence distinct from native UI evidence;
-   captures and interactions must use the active supported UI tools and policy. Do not substitute
-   `simctl` screenshot/input when that route is prohibited.
+   installation, launch request and continued app execution separately. A returned PID alone proves
+   neither healthy startup nor a visible UI: inspect continued process state and crash diagnostics.
+   Keep CLI build/install/log evidence distinct from actual native UI verification; captures and
+   interactions must use the active supported UI tools and policy. Do not substitute `simctl`
+   screenshot/input when that route is prohibited.
 
 Save the image path, mount identity, QA symlink target, UUID/runtime, capacity and observed results in the
 app ledger so another session can reattach and reuse them. Preserve the image for resumption. Before a

@@ -36,8 +36,10 @@ are stored here. See its canonical ledger before resuming.
 ## Lessons incorporated into v2.4.5 (2026-10-23)
 
 - An isolated SSD-backed APFS sparse image with ownership enabled on that image recovered simulator
-  creation, boot, install and launch after repeated sample-content copy `EPERM` errors. The shared SSD
+  creation, boot and app installation after repeated sample-content copy `EPERM` errors. The shared SSD
   remained unchanged; this is an optional workaround, not a proven root cause or rendering verification.
+  The app later crashed after launch returned a PID; inspect continued execution and crash diagnostics
+  before reporting healthy startup, and verify actual UI separately.
 - Reuse the owned image/device, verify capacity and backing identity, and replace only a confirmed empty,
   unused QA path. Never disturb shared/default devices, shared-volume ownership, TCC or CoreSimulator.
   Current local disk-image syntax and supported UI capture policy remain authoritative.

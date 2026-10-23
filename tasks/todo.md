@@ -532,7 +532,8 @@ identity, 8 screenshot-fit checks, skill validator; YouTube 5 passed and 1 expli
 - [ ] Review, push and open PR for parent review; leave merge and consumer sync to owning release run.
 
 Plan: Encode the demonstrated recovery without inferring a root cause or changing shared volume settings.
-Preserve resumable evidence and distinguish boot/install/launch from graphics, captures and store signing.
+Preserve resumable evidence and distinguish boot/install/launch requests from continued runtime health,
+graphics, captures and store signing.
 
 Review: 103 app-release tests, 53 management checks, 138 specification checks, identity, 8 screenshot-fit
 checks and skill-creator validation pass with Node 22.23.3 for JS suites. YouTube: 5 pass, 1 explicit
@@ -541,3 +542,8 @@ are regenerated and byte-identical; whitespace checks pass. Read-only inspection
 Newsworthy and all three existing Space Worms checkouts. No config/command changes or migrations;
 consumer pointer updates follow merge. No simulator, volume, account or provider state was changed by
 this documentation patch. Local macOS help/man pages verified disk-image flags and their deprecation.
+
+Follow-up evidence correction: the launch command returned a PID before an app startup crash. The shared
+procedure and lessons now record storage/device boot/install recovery only, require process continuity
+and crash diagnostics before healthy-startup claims, and keep actual UI verification separate. The app's
+lifecycle repair and exact crash evidence remain in the consumer release run.
