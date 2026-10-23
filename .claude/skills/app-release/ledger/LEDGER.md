@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.3**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.4**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,15 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.4 (2026-10-23)
+
+- An inventory lock report contradicted by the owner did not prevent a supported direct Chrome
+  binding. Current Atlas roles, the same free cluster's successful resume, original hostname and
+  IDLE state were then verified. Scope failures to their observed route rather than the whole Mac.
+- The provider's normal device-code entry page recovered a disabled prefilled CLI login control.
+  Its later email security challenge remained a separate boundary when the mail connector withheld
+  the code. Neither recovery requires extracting session cookies or weakening security settings.
 
 ## Lessons incorporated into v2.4.3 (2026-10-23)
 

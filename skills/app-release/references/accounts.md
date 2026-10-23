@@ -36,6 +36,18 @@ profile/session while restoring the controls. Verify the browser profile, accoun
 entity before changing app state. This is an authorized-session alternative, not a reason to extract
 cookies, bypass security checks or infer signing authority from browser access.
 
+An inventory error is evidence about that tool call, not proof of the desktop's state. If the owner
+disputes a lock report, or existing app access may still work, try the supported direct binding to the
+intended app or known tab once before requesting an unlock. During one release, inventory reported a
+locked Mac while direct Chrome access immediately exposed the existing signed-in session. Record
+which route failed and which worked; do not repeat automatic unlock attempts or bypass OS security.
+
+For a CLI's device login, a prefilled verification URL can leave its authorization button disabled.
+Use the provider's normal code-entry page and enter the code from the CLI, then inspect the resulting
+request before confirming the normal sign-in. Keep the same account and scope. An emailed security
+code withheld by a connector is a real access boundary: ask for the exact verification step instead
+of seeking the hidden code through another route. Never record authentication codes in release logs.
+
 App-record creation is routine app setup through an authorized signed-in browser or Xcode session
 ([iOS onboarding](ios.md)); it is not an Account Holder certification. Public API creation being
 unavailable, or a browser tool failing, does not establish an owner-only account gate. Record tooling
