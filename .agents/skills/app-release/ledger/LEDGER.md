@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.5**. This index preserves sanitized outcomes and lessons across
+Skill version **2.4.7**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,18 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.4.7 (2026-10-23)
+
+- Füd: a correctly pasted .p8 was flattened into a single-line credential field. Normalize its PEM
+  armor and whitespace before signing; a generated P-256 signing regression proves identity is
+  preserved. Unicode item titles require stable IDs in secret references, not another owner handoff.
+
+## Lessons incorporated into v2.4.6 (2026-10-23)
+
+- Space Worms: placing Asset Library images on an already-approved version fails with 409 "The asset must be in the
+  APPROVED state because the parent is already approved". `asc.mjs assets submit --confirm` sends the listed,
+  processed images to App Review in their own submission; `place` follows once they are approved.
 
 ## Lessons incorporated into v2.4.5 (2026-10-23)
 

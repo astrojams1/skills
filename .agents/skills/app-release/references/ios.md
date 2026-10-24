@@ -6,12 +6,17 @@ Everything here runs from the app repository on the owner's Mac, with the App St
 ## Credentials
 
 The vault item (`ios.vault`, normally `op://API Tokens/App Store Connect`) holds `credential` (the `.p8` body
-without its PEM header and footer), `key id` and `issuer id`; one key reads every app on the team. The
+without its PEM header and footer, or the complete file contents), `key id` and `issuer id`; one key reads every app on the team. The
 service-account token is in `OP_KEY` with a literal `OP_KEY=` prefix, which the scripts strip. `asc.mjs`
 keeps the key in memory; `ios-release.mjs` writes it to a mode-700 temporary directory for `xcodebuild` and
 `altool`, passes it by path, hides its identifiers in echoed commands, and deletes it on exit or signal.
 Never print, log or commit a key, token or the review phone. Plain `op whoami` fails without the token; that
 is expected.
+
+A credential field can flatten pasted line breaks; the reader normalizes both armored and body-only
+keys before signing. Verify a saved entry against the intended app, without printing its value. If an
+item title contains characters unsupported in secret references (for example an em dash), use its
+stable vault/item IDs in `ios.vault`; the owner does not need to rename the item or re-enter the key.
 
 **Check existing app status with the API first.** `asc.mjs status` needs no browser sign-in once
 `ios.ascAppId` is known. New app records require a different route below.
