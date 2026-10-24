@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.5.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.5.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,15 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.5.1 (2026-10-24)
+
+- Automatic internal-group access does not establish TestFlight testability. Füd's processed build was
+  initially blocked by missing export compliance. Verify the exact release/build, group membership and
+  internal beta state on both automatic and manual paths; never repeat an unverified group mutation.
+- Keep optional marketing assets and future SDK/date requirements separate from current submission
+  requirements. Honor existing authorization for methods and routine listing work; a UI tool's lock
+  diagnostic is not independent evidence of the owner's desktop state.
 
 ## Lessons incorporated into v2.5.0 (2026-10-23)
 

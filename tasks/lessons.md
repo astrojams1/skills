@@ -293,3 +293,10 @@ did not prove healthy startup. Inspect continued execution and crash diagnostics
 separately. Treat storage recovery as an optional observed workaround: verify empty
 private QA paths and backing identity, reuse the exact owned device, preserve other jobs, and keep actual
 UI/capture verification separate. Current local disk-image help governs syntax across macOS versions.
+
+## 2026-10-24 — Verify internal TestFlight readiness on every group path
+
+Automatic group access caused the release helper to return before checking a processed build's beta
+state. Read back exact group membership and internal readiness even when no add is necessary. Group
+member history does not identify the build installed. Keep optional/future creative separate from
+current store requirements, and check existing method authorization before asking the owner again.

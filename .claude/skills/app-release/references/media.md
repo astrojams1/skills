@@ -107,7 +107,9 @@ current image requirements in a validator rather than relying on memory.
 
 ## Product page header, search results and iPhone Duo
 
-App Store Connect's "New Ways to Market Apps" (2026) adds creative assets beyond screenshots. Use them on every app:
+App Store Connect's "New Ways to Market Apps" (2026) adds creative assets beyond screenshots.
+Check current requirements and the app's marketing plan before adding them; availability of a slot does
+not make it a submission requirement. Recheck existing placements against every updated build.
 
 | Asset | Image | Video | Limit |
 |---|---|---|---|
@@ -120,6 +122,11 @@ Read the live limits from `GET /v1/appAssetLibraryRefData` (image and video spec
 counts) before making assets; the numbers above are 2026-10-20 readings. Without a search-results creative, the
 store falls back to In-App Events, previews and screenshots. Apple's guidance: one clear idea, designed for a
 first-time visitor, key art inside the template safe area, a short phrase at most, no text that restates the UI.
+
+As checked on 2026-10-24, Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
+make Duo screenshots required starting April 2027 for apps using the iOS27.1 SDK or later. Before that
+condition applies, they are optional unless requested for the app. Verify the current date, SDK and
+provider requirements instead of turning future or optional creative into an owner dependency.
 
 - **Make them from the real app**, like screenshots: no HUD, no onboarding controls, no mock-ups. Duo screenshots
   are ordinary captures at the Duo sizes, with the HUD.
@@ -142,14 +149,14 @@ Before any update of any app goes to review, on both stores:
 1. Read what each store holds now (`asc.mjs status`, `play.mjs status`) and compare it with the store data.
 2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
    show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
-3. Check the product page header, search-results creative and iPhone Duo screenshots exist and still match (see
-   above); make any that are missing.
+3. Recheck existing product page headers, search-results creative and Duo images. Supply missing assets when
+   currently required or included in the app's agreed plan; optional slots alone are not release blockers.
 4. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
    against the build; correct anything it no longer does and add what it newly does.
 5. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
-   smoother, never how. The owner approves the wording.
-6. Record the recheck, what changed and the owner's approval in the ledger before `submit --confirm` or a Play
-   release.
+   smoother, never how. Follow the app's wording-approval requirements; otherwise use existing authorization
+   for routine listing edits. Keep the saved wording reviewable and never invent an exact-text approval.
+6. Record the recheck, what changed and the actual authorization basis before `submit --confirm` or a Play release.
 
 ## Uploading
 
