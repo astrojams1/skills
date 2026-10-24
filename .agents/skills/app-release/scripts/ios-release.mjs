@@ -8,8 +8,8 @@
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
@@ -31,6 +31,7 @@ const WAIT_MS = 30 * 60 * 1000;
 
 let CONFIG = null;
 let IOS = null;
+let STORE = null;
 
 // parseArgs reads the command and its documented options, so a typo never silently skips a check.
 export function parseArgs(args) {
@@ -69,16 +70,32 @@ export function nextBuildNumber(buildVersions, uploadVersions) {
   return latest + 1;
 }
 
-// exportOptionsPlist describes an App Store Connect export signed by Xcode's automatic, Apple-managed signing. Xcode
-// must not renumber the build: the number is chosen before prebuild.
-export function exportOptionsPlist(teamId) {
+// Signing defaults to automatic; manual mode reuses a verified local distribution identity/profile.
+export function signingSettings(value) {
+  if (value !== undefined && (!value || typeof value !== 'object' || Array.isArray(value))) throw new Error('ios.signing must be an object');
+  const signing = value || {};
+  const style = signing.style === undefined ? 'automatic' : signing.style;
+  if (!['automatic', 'manual'].includes(style)) throw new Error('ios.signing.style must be automatic or manual');
+  if (style === 'automatic') return { style };
+  if (!/^[a-fA-F0-9]{40}$/.test(signing.certificate || '')) throw new Error('Manual signing needs ios.signing.certificate: the installed distribution certificate SHA-1');
+  if (typeof signing.profile !== 'string' || !signing.profile.trim() || /[\r\n\0]/.test(signing.profile)) throw new Error('Manual signing needs ios.signing.profile: the verified distribution profile name or UUID');
+  return { style, certificate: signing.certificate, profile: signing.profile };
+}
+
+const xmlText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+export function exportOptionsPlist(teamId, configuredSigning, bundleId) {
+  const signing = signingSettings(configuredSigning);
+  if (signing.style === 'manual' && !bundleId) throw new Error('Manual export needs the app bundle ID');
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
     '<plist version="1.0">\n<dict>\n' +
     '  <key>method</key><string>app-store-connect</string>\n' +
     '  <key>destination</key><string>export</string>\n' +
-    '  <key>signingStyle</key><string>automatic</string>\n' +
-    '  <key>teamID</key><string>' + teamId + '</string>\n' +
+    '  <key>signingStyle</key><string>' + signing.style + '</string>\n' +
+    '  <key>teamID</key><string>' + xmlText(teamId) + '</string>\n' +
+    (signing.style === 'manual' ? '  <key>signingCertificate</key><string>' + xmlText(signing.certificate) + '</string>\n' +
+      '  <key>provisioningProfiles</key><dict><key>' + xmlText(bundleId) + '</key><string>' + xmlText(signing.profile) + '</string></dict>\n' : '') +
     '  <key>manageAppVersionAndBuildNumber</key><false/>\n' +
     '  <key>uploadSymbols</key><true/>\n' +
     '</dict>\n</plist>\n';
@@ -89,16 +106,22 @@ export function authArgs(key) {
   return ['-allowProvisioningUpdates', '-authenticationKeyPath', key.path, '-authenticationKeyID', key.keyId, '-authenticationKeyIssuerID', key.issuerId];
 }
 
-// archiveArgs builds the Release device archive with automatic signing for the store team.
-export function archiveArgs(ios, archivePath, derivedData, key) {
+// archiveArgs builds the Release device archive with the configured store signing and chosen build number.
+export function archiveArgs(ios, archivePath, derivedData, key, build) {
+  const signing = signingSettings(ios.signing);
+  const signingArgs = signing.style === 'manual'
+    ? ['CODE_SIGN_STYLE=Manual', 'CODE_SIGN_IDENTITY=' + signing.certificate, 'PROVISIONING_PROFILE_SPECIFIER=' + signing.profile]
+    : authArgs(key).concat(['CODE_SIGN_STYLE=Automatic']);
+  if (ios.prebuild === false && build === undefined) throw new Error('A tracked native archive needs its chosen build number');
   return ['-workspace', ios.workspace, '-scheme', ios.scheme, '-configuration', 'Release', '-destination', 'generic/platform=iOS',
     '-archivePath', archivePath, '-derivedDataPath', derivedData]
-    .concat(authArgs(key), ['CODE_SIGN_STYLE=Automatic', 'DEVELOPMENT_TEAM=' + ios.teamId, 'archive']);
+    .concat(signingArgs, ['DEVELOPMENT_TEAM=' + ios.teamId], build === undefined ? [] : ['CURRENT_PROJECT_VERSION=' + parseBuildNumber(build)], ['archive']);
 }
 
 // exportArgs re-signs the archive for App Store distribution into an .ipa.
-export function exportArgs(archivePath, exportPath, optionsPath, key) {
-  return ['-exportArchive', '-archivePath', archivePath, '-exportPath', exportPath, '-exportOptionsPlist', optionsPath].concat(authArgs(key));
+export function exportArgs(archivePath, exportPath, optionsPath, key, configuredSigning) {
+  return ['-exportArchive', '-archivePath', archivePath, '-exportPath', exportPath, '-exportOptionsPlist', optionsPath]
+    .concat(signingSettings(configuredSigning).style === 'manual' ? [] : authArgs(key));
 }
 
 // altoolArgs validates or uploads the .ipa; the key goes by file path so its body never appears in the process list.
@@ -118,9 +141,15 @@ export function entitlementValue(xml, name) {
   if (flag) return flag[1] === 'true';
   const text = xml.match(new RegExp(key + '<string>([^<]*)</string>'));
   if (text) return text[1];
-  const list = xml.match(new RegExp(key + '<array>([\\s\\S]*?)</array>'));
-  if (list) return (list[1].match(/<string>([^<]*)<\/string>/g) || []).map(item => item.replace(/<\/?string>/g, '')).join(',');
+  const list = entitlementArray(xml, name);
+  if (list) return list.join(',');
   return null;
+}
+
+function entitlementArray(xml, name) {
+  const key = '<key>' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</key>\\s*';
+  const list = xml.match(new RegExp(key + '<array>([\\s\\S]*?)</array>'));
+  return list ? (list[1].match(/<string>([^<]*)<\/string>/g) || []).map(item => item.replace(/<\/?string>/g, '')) : null;
 }
 
 // entitlementProblems lists what is wrong with a signed store binary's entitlements: each configured entitlement must
@@ -131,7 +160,9 @@ export function entitlementProblems(xml, required, appGroup) {
   for (const name of Object.keys(required || {})) {
     const wanted = required[name];
     const found = entitlementValue(xml, name);
-    const ok = typeof wanted === 'string' && typeof found === 'string' ? found.split(',').includes(wanted) : found === wanted;
+    const array = Array.isArray(wanted) ? entitlementArray(xml, name) : null;
+    const ok = Array.isArray(wanted) ? array !== null && wanted.every(value => array.includes(value))
+      : typeof wanted === 'string' && typeof found === 'string' ? found.split(',').includes(wanted) : found === wanted;
     if (!ok) problems.push(name + (found === null ? ' is missing' : ' is ' + JSON.stringify(found) + ', expected ' + JSON.stringify(wanted)));
   }
   if (appGroup) {
@@ -151,11 +182,14 @@ export function uploadState(uploads, buildNumber) {
 }
 
 // uploadProblem names why an archived build may not go to App Store Connect, or returns null.
-export function uploadProblem(summary, digest) {
+export function uploadProblem(summary, digest, expected) {
   if (!summary) return 'it has no summary.json; run archive first';
   if (summary.dirty !== false) return 'it was archived from uncommitted changes; archive again from a clean commit';
   if (!/^[0-9a-f]{40}$/.test(String(summary.commit))) return 'its summary names no commit; archive it again';
   if (digest !== summary.sha256) return 'the .ipa changed since it was verified; archive it again';
+  for (const name of ['bundleId', 'version', 'build']) {
+    if (expected && String(summary[name]) !== String(expected[name])) return 'its ' + name + ' does not match the requested release; archive it again';
+  }
   return null;
 }
 
@@ -224,6 +258,42 @@ function bundlesIn(app) {
 // plist reads one Info.plist value.
 const plist = (file, key) => capture('plutil', ['-extract', key, 'raw', '-o', '-', file]);
 
+// Tracked-native mode supports a flat workspace of local projects plus generated Pods.
+// Check the actual workspace references, not just that some native project is in Git.
+function checkedNativeInfo() {
+  if (!IOS.infoPlist) throw new Error('ios.prebuild=false needs ios.infoPlist, relative to the ios directory');
+  const root = resolve(CONFIG.projectDir, 'ios');
+  const tracked = new Set(capture('git', ['ls-files', '-z']).split('\0'));
+  const requireTracked = path => {
+    const local = relative(CONFIG.root, path);
+    if (isAbsolute(local) || local.startsWith('..') || !tracked.has(local) || !existsSync(path)) throw new Error('Tracked native input must exist in Git: ' + local);
+    if (realpathSync(path) !== resolve(realpathSync(CONFIG.root), local)) throw new Error('Tracked native inputs must not use symlinks: ' + local);
+  };
+  const info = resolve(root, IOS.infoPlist);
+  const workspace = resolve(root, IOS.workspace, 'contents.xcworkspacedata');
+  for (const path of [info, workspace, join(root, 'Podfile'), join(root, 'Podfile.lock')]) requireTracked(path);
+  const xml = readFileSync(workspace, 'utf8');
+  if (/<Group\b/.test(xml)) throw new Error('Tracked native mode needs a flat workspace; nested workspace groups are unsupported');
+  const projects = [...xml.matchAll(/<FileRef\b[^>]*\blocation\s*=\s*(["'])([^"']+)\1/g)].map(match => match[2]);
+  if (!projects.length) throw new Error('Tracked native workspace has no project references');
+  if (projects.length !== [...xml.matchAll(/<FileRef\b/g)].length) throw new Error('Unsupported tracked native workspace reference syntax');
+  const schemePaths = [join(dirname(workspace), 'xcshareddata', 'xcschemes', IOS.scheme + '.xcscheme')];
+  let appProjects = 0;
+  for (const location of projects) {
+    if (location === 'group:Pods/Pods.xcodeproj') continue;
+    if (!location.startsWith('group:') || !location.endsWith('.xcodeproj') || /[&<>]/.test(location)) throw new Error('Unsupported tracked native project reference: ' + location);
+    const project = resolve(dirname(dirname(workspace)), location.slice(6));
+    requireTracked(join(project, 'project.pbxproj'));
+    appProjects++;
+    schemePaths.push(join(project, 'xcshareddata', 'xcschemes', IOS.scheme + '.xcscheme'));
+  }
+  if (!appProjects) throw new Error('Tracked native workspace needs a reviewed app project');
+  const scheme = schemePaths.find(path => tracked.has(relative(CONFIG.root, path)) && existsSync(path));
+  if (!scheme) throw new Error('Tracked native mode needs the configured shared scheme in Git');
+  requireTracked(scheme);
+  return info;
+}
+
 // verify unpacks the exported app and checks, for the app and every extension, the build number, the signing team, the
 // entitlements the configuration requires and the app group; the app also needs a scene manifest, since an iOS 27 SDK
 // build without the UIScene life cycle stops at launch. It returns the summary written beside the .ipa.
@@ -237,6 +307,7 @@ function verify(out, build, ipa, provenance) {
   const app = join(payload, appName);
   const info = join(app, 'Info.plist');
   for (const bundle of bundlesIn(app)) {
+    capture('codesign', ['--verify', '--deep', '--strict', bundle]);
     const found = plist(join(bundle, 'Info.plist'), 'CFBundleVersion');
     if (found !== String(build)) throw new Error(bundle + ' has CFBundleVersion ' + found + ', expected ' + build);
     const signing = spawnSync('codesign', ['-dv', bundle], { encoding: 'utf8' });
@@ -249,9 +320,11 @@ function verify(out, build, ipa, provenance) {
   }
   const bundleId = plist(info, 'CFBundleIdentifier');
   if (bundleId !== IOS.bundleId) throw new Error('The app is ' + bundleId + ', expected ' + IOS.bundleId);
+  const version = plist(info, 'CFBundleShortVersionString');
+  if (version !== STORE.version) throw new Error('The app version is ' + version + ', expected ' + STORE.version);
   capture('plutil', ['-extract', 'UIApplicationSceneManifest', 'xml1', '-o', '-', info]);
   return {
-    build: build, version: plist(info, 'CFBundleShortVersionString'), bundleId: bundleId,
+    build: build, version: version, bundleId: bundleId,
     xcode: plist(info, 'DTXcodeBuild'), sdk: plist(info, 'DTSDKName'), commit: provenance.commit, dirty: provenance.dirty,
     ipa: ipa, sha256: sha256(ipa)
   };
@@ -260,6 +333,12 @@ function verify(out, build, ipa, provenance) {
 // archive runs prebuild, pod install, archive, export and verify from the checkout, refusing a dirty one unless
 // --allow-dirty, and refusing to record a build whose checkout moved during the run.
 async function archive(flags) {
+  const signing = signingSettings(IOS.signing);
+  if (IOS.prebuild !== undefined && typeof IOS.prebuild !== 'boolean') throw new Error('ios.prebuild must be true or false');
+  if (IOS.prebuild === false) {
+    const nativeInfo = checkedNativeInfo();
+    if (plist(nativeInfo, 'CFBundleVersion') !== '$(CURRENT_PROJECT_VERSION)') throw new Error('Tracked native CFBundleVersion must be $(CURRENT_PROJECT_VERSION) so the chosen build number can be applied without editing source');
+  }
   const before = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (before.status && !flags.allowDirty) throw new Error('The checkout has uncommitted changes; archive from a clean commit or pass --allow-dirty for a test build.');
   let build = flags.build;
@@ -270,25 +349,34 @@ async function archive(flags) {
   }
   const out = outDir(build);
   mkdirSync(out, { recursive: true });
+  // A failed rerun must not retain an earlier success receipt beside replacement artifacts.
+  rmSync(join(out, 'summary.json'), { force: true });
   console.log(capture('xcodebuild', ['-version']).replace(/\n/g, ', ') + ' - commit ' + before.commit.slice(0, 7) + (before.status ? ' (dirty)' : ''));
   // A per-build TMPDIR keeps Metro's cache from another checkout out of the bundle (lib/build-tmp.mjs).
   const sets = { CI: '1', LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8', TMPDIR: freshBuildTmp(out) };
   sets[IOS.buildNumberEnv] = String(build);
   sets[CONFIG.buildShaEnv] = before.commit.slice(0, 7);
   const env = IOS.scrubPublicEnv === false ? Object.assign({}, process.env, sets) : releaseEnv(process.env, sets);
-  const key = writeKey();
   const archivePath = join(out, IOS.scheme + '.xcarchive');
   const exportPath = join(out, 'export');
   rmSync(archivePath, { recursive: true, force: true });
   rmSync(exportPath, { recursive: true, force: true });
-  run('npx', ['expo', 'prebuild', '--platform', 'ios', '--no-install', '--clean'], { env: env });
+  if (IOS.prebuild === false) {
+    // Evaluate the same release config/guards without replacing a reviewed native project.
+    run('npx', ['expo', 'config', '--type', 'public', '--json'], { env: env, log: join(out, 'expo-config.json') });
+  } else {
+    run('npx', ['expo', 'prebuild', '--platform', 'ios', '--no-install', '--clean'], { env: env });
+  }
   // CocoaPods fails on Unicode normalization without a UTF-8 locale.
-  run('pod', ['install'], { cwd: join(CONFIG.projectDir, 'ios'), env: env, log: join(out, 'pod-install.log') });
-  run('xcodebuild', archiveArgs(IOS, archivePath, join(CONFIG.buildRoot, 'xcode', CONFIG.slug, 'DerivedData'), key),
+  run('pod', IOS.prebuild === false ? ['install', '--deployment'] : ['install'], { cwd: join(CONFIG.projectDir, 'ios'), env: env, log: join(out, 'pod-install.log') });
+  const prepared = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
+  if (prepared.commit !== before.commit || prepared.status !== before.status) throw new Error('Native preparation changed tracked source; review and commit those changes, then archive again with the same chosen build number. No archive or export was started.');
+  const key = signing.style === 'automatic' ? writeKey() : null;
+  run('xcodebuild', archiveArgs(IOS, archivePath, join(CONFIG.buildRoot, 'xcode', CONFIG.slug, 'DerivedData'), key, build),
     { cwd: join(CONFIG.projectDir, 'ios'), env: env, log: join(out, 'xcodebuild-archive.log') });
   const optionsPath = join(out, 'ExportOptions.plist');
-  writeFileSync(optionsPath, exportOptionsPlist(IOS.teamId));
-  run('xcodebuild', exportArgs(archivePath, exportPath, optionsPath, key), { env: env, log: join(out, 'xcodebuild-export.log') });
+  writeFileSync(optionsPath, exportOptionsPlist(IOS.teamId, IOS.signing, IOS.bundleId));
+  run('xcodebuild', exportArgs(archivePath, exportPath, optionsPath, key, IOS.signing), { env: env, log: join(out, 'xcodebuild-export.log') });
   const after = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (after.commit !== before.commit || after.status !== before.status) throw new Error('The checkout changed during the build, so the archive may mix sources; archive again without touching it');
   const ipa = ipaFor(build);
@@ -311,7 +399,7 @@ async function upload(build) {
   const summaryPath = join(outDir(build), 'summary.json');
   const summary = existsSync(summaryPath) ? JSON.parse(readFileSync(summaryPath, 'utf8')) : null;
   const ipa = ipaFor(build);
-  const problem = uploadProblem(summary, existsSync(ipa) ? sha256(ipa) : null);
+  const problem = uploadProblem(summary, existsSync(ipa) ? sha256(ipa) : null, { bundleId: IOS.bundleId, version: STORE.version, build });
   if (problem) throw new Error('Build ' + build + ' cannot be uploaded: ' + problem);
   run('xcrun', altoolArgs('--upload-package', ipa, writeKey()), { cwd: CONFIG.root });
   await waitForUpload(build);
@@ -383,6 +471,7 @@ async function main(args) {
   const flags = parseArgs(args);
   const loaded = setupAsc();
   CONFIG = loaded.config;
+  STORE = loaded.store;
   IOS = requireSection(CONFIG, 'ios');
   if (flags.command === 'next-build-number') {
     const numbers = await readBuildNumbers();
