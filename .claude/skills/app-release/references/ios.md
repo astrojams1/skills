@@ -81,6 +81,38 @@ A failed UI route cannot block CLI builds or listing preparation that still work
 
 ## Release loop
 
+### Reviewed native projects and existing signing
+
+Defaults remain Expo prebuild and automatic signing. For an app whose reviewed native project must be
+preserved, set `ios.prebuild: false` and `ios.infoPlist` relative to its `ios/` directory. The configured
+workspace's `contents.xcworkspacedata`, referenced app project, shared scheme, Info.plist, Podfile and
+Podfile.lock must be in Git. This path supports a flat workspace with local `group:*.xcodeproj`
+references and generated `group:Pods/Pods.xcodeproj`; nested groups and other reference forms stop with
+an explicit error. Do not claim ignored native inputs belong to a clean source commit.
+
+Use `$(CURRENT_PROJECT_VERSION)` for the native Info.plist's `CFBundleVersion`. The archive command
+passes the chosen number as `CURRENT_PROJECT_VERSION` without editing source. It evaluates Expo's
+public config and release guards, runs `pod install --deployment`, and refuses to archive if preparation
+changes source. Review and commit legitimate generated changes before rerunning; never discard them
+just to make a build look clean. This mode does not regenerate icons, launch assets or other Expo plugin
+output: update and review those native assets explicitly when app configuration changes.
+
+When an installed distribution identity/profile is already verified for the intended team, manual
+signing can reuse it. Set `ios.signing.style: "manual"`, `certificate` to the installed certificate's
+40-character SHA-1 and `profile` to the distribution profile name or UUID. Keep the private key and
+keychain password outside Git. Confirm the profile covers this bundle, team and required capabilities.
+Manual mode currently exports one main app; do not use it for extensions requiring separate profiles.
+Archive/export omit provisioning updates and API-key arguments in this mode. API credentials remain
+necessary to choose the next build number, validate, upload and manage TestFlight.
+
+Both paths verify exported version/build, bundle identity, signing team, strict signatures, required
+entitlements and scene metadata. Successful Xcode App Store export establishes the distribution path;
+local signature checks alone do not establish distribution-profile validity. A rerun invalidates the old
+summary before replacing artifacts, and upload requires a matching artifact hash and current release
+target. Fixture tests prove orchestration, not actual Xcode export or native UI behavior.
+
+### Commands
+
 1. **Start from facts.** Pull, read the ledger (`ledger.mjs status`), then `node $S/asc.mjs status`: versions,
    recent builds, review submissions with their items, attached build, screenshot and attachment delivery,
    and Game Center when configured.

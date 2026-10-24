@@ -565,3 +565,22 @@ the intended Apple app and team without printing values or changing the item. 10
 138 spec, identity, 8 screenshot-fit checks and skill validator pass. YouTube has 5 passes and its existing
 ffmpeg-unavailable skip. Six consumer configurations need no migration; only Füd uses stable IDs for
 its Unicode item title. Discovery copies refreshed, including prior upstream Asset Library changes.
+
+## app-release: reviewed native projects and existing distribution signing
+
+- [x] Inspect Füd's observed prebuild/provenance and signing failures; consult skill-creator/spec.
+- [x] Add opt-in tracked-native/manual-single-bundle archive settings with unchanged defaults.
+- [x] Test real command orchestration in isolated fixtures, signing XML/entitlements and safety failures.
+- [x] Inspect consumers, refresh discovery, run required repository checks and independent review.
+- [ ] Publish upstream, sync Füd, configure reviewed native metadata and validate the actual local path.
+
+Plan: keep reviewed native input immutable, use the chosen Xcode build-number setting, preserve locked
+Pods and source-change detection, and verify signatures/version/entitlements before any upload.
+No store upload, UI capture, permission change or final public URL is implied by this tooling work.
+
+Review: new regressions fail against the previous source (0/10 before); focused native coverage passes
+12/12 after fixes. Independent review reproduced ignored-input and stale-summary defects, then external
+symlinks and single-quoted workspace references; all four are fixed and regression-tested. Existing
+consumer configs retain automatic/prebuild defaults, with no required migration. Final checks: 117 app-release tests, 53 management checks, 139 specification checks, AGENTS identity,
+8 screenshot-fit checks and skill-creator validation pass. YouTube has 5 passes and its existing explicit
+ffmpeg-unavailable skip. Independent final probes pass 14/14; discovery equality and whitespace pass.

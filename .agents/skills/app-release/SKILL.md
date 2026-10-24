@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.4.7"
+  version: "2.5.0"
 ---
 
 # App release
@@ -70,6 +70,10 @@ faster, never implementation; the owner approves the wording before submission.
 
 Check current official documentation and the actual account for changing rules; dates in references are
 observations, not permanent requirements.
+
+Existing reviewed native projects and installed distribution identities can opt into the tracked-native
+and manual-signing paths in [iOS](references/ios.md), “Reviewed native projects and existing signing.”
+Automatic signing and Expo prebuild remain the defaults.
 
 ## Credentials
 

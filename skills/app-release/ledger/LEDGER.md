@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.4.7**. This index preserves sanitized outcomes and lessons across
+Skill version **2.5.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,19 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.5.0 (2026-10-23)
+
+- Füd's reviewed native workspace differs from Expo regeneration. An optional tracked-native path
+  evaluates release configuration without replacing the project, preserves locked Pods and applies
+  the chosen build number through Xcode. Required native entry points must be tracked, with no
+  symlink indirection; all flat-workspace project references and the shared scheme are checked.
+- Reuse an already verified local distribution identity/profile through optional manual single-app
+  signing. Automatic signing and prebuild remain defaults. Array-valued required entitlements retain
+  their actual type; strict signature and expected app version checks precede the verification receipt.
+- Invalidate the previous summary before replacing artifacts on a rerun. Upload checks the recorded
+  artifact digest and release target. Isolated orchestration fixtures do not prove native rendering,
+  actual Xcode export or App Store submission; those stay separate in the app ledger.
 
 ## Lessons incorporated into v2.4.7 (2026-10-23)
 
