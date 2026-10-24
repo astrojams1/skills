@@ -547,3 +547,21 @@ Follow-up evidence correction: the launch command returned a PID before an app s
 procedure and lessons now record storage/device boot/install recovery only, require process continuity
 and crash diagnostics before healthy-startup claims, and keep actual UI verification separate. The app's
 lifecycle repair and exact crash evidence remain in the consumer release run.
+
+## app-release 2.4.7: single-line credential compatibility
+
+- [x] Verify the saved credential matches the received key without printing either value.
+- [x] Reproduce cryptographic failure with a generated P-256 key flattened into a field.
+- [x] Normalize armor/whitespace and document stable-ID references for Unicode titles.
+- [x] Run required checks and verify the real saved key against Apple.
+- [ ] Publish the fix and sync Füd.
+
+Plan: preserve existing body-only and armored input, including single-line pastes. Do not rewrite the
+owner's correct vault item or ask for another credential handoff. No key, token or private contact in tests.
+
+Review: regression fails with OpenSSL decoder error before the fix and passes afterward using generated
+P-256 keys for armored, single-line and body-only inputs. Actual read-only vault input authenticates
+the intended Apple app and team without printing values or changing the item. 105 release, 53 management,
+138 spec, identity, 8 screenshot-fit checks and skill validator pass. YouTube has 5 passes and its existing
+ffmpeg-unavailable skip. Six consumer configurations need no migration; only Füd uses stable IDs for
+its Unicode item title. Discovery copies refreshed, including prior upstream Asset Library changes.

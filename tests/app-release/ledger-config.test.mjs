@@ -5,6 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createPrivateKey, generateKeyPairSync, sign, verify } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -125,6 +126,17 @@ test('the vault token loses its OP_KEY= prefix and a .p8 body regains its armor'
   const key = pem(body);
   assert.match(key, /^-----BEGIN PRIVATE KEY-----\nA{64}\nA{36}\n-----END PRIVATE KEY-----\n$/);
   assert.equal(pem(key), key);
+});
+
+test('a private key pasted into a single-line vault field still signs the same payload', () => {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  const original = privateKey.export({ format: 'pem', type: 'pkcs8' });
+  const body = original.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '');
+  for (const saved of [original, original.replace(/\s+/g, ' '), original.replace(/[\r\n]/g, ''), body]) {
+    const restored = createPrivateKey(pem(saved));
+    const payload = Buffer.from('release credential format regression');
+    assert.equal(verify('sha256', payload, publicKey, sign('sha256', payload, restored)), true);
+  }
 });
 
 test('the ledger CLI initializes, records, renders and checks inside an app repository', () => {

@@ -27,10 +27,10 @@ export function opRead(item, field, outFile) {
   return result.stdout.trim();
 }
 
-// pem restores the armor the vault strips from an App Store Connect .p8 body.
+// pem restores canonical armor and line breaks after a single-line vault field flattens a pasted .p8.
 export function pem(body) {
-  if (body.includes('BEGIN PRIVATE KEY')) return body.endsWith('\n') ? body : body + '\n';
-  const key = body.replace(/\s+/g, '');
+  const key = body.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '').replace(/\s+/g, '');
+  if (!key) throw new Error('The App Store Connect private key is empty');
   return '-----BEGIN PRIVATE KEY-----\n' + key.match(/.{1,64}/g).join('\n') + '\n-----END PRIVATE KEY-----\n';
 }
 
