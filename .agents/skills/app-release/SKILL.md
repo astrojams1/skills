@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.5.0"
+  version: "2.5.1"
 ---
 
 # App release
@@ -58,7 +58,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
-| Update recheck | Every update, every app, both stores: screenshots, preview, header, search-results creative, iPhone Duo screenshots, Play graphics and listing copy rechecked against the build, release notes written (Every update in [media](references/media.md)) |
+| Update recheck | Recheck existing media and listing copy against the build, supply required device families, and write release notes; optional placements follow the app's plan (Every update in [media](references/media.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 
 **Every update of every app** after the first release: recheck the screenshots, preview, Play graphics and listing
@@ -66,7 +66,9 @@ copy on both stores against the build being submitted (recapture anything the bu
 the recheck in the ledger), and ship release notes in the store data's
 `listing.whatsNew` for Apple's What's New and Play's release notes (`android-release.mjs --notes`). `asc.mjs
 listing` refuses an update without them. Write them for the app's audience, naming new features and what feels
-faster, never implementation; the owner approves the wording before submission.
+faster, never implementation. Save reviewable wording and follow the app's approval requirements;
+existing authorization for routine listing edits remains valid. Do not invent a separate approval
+gate or claim the owner approved exact wording they have not reviewed.
 
 Check current official documentation and the actual account for changing rules; dates in references are
 observations, not permanent requirements.
@@ -94,6 +96,9 @@ commit a key, token, password, review phone or bank detail; check access without
   sessions and saved artifacts, then keep independent work moving. Do not invent a human dependency
   from a missing API operation, one failed tool or an untested access assumption. Respect explicit
   provider restrictions and tool security boundaries; repeating a denied request is not an alternative.
+  Check existing user and repository instructions for authorized methods before requesting permission
+  again. An unavailable UI tool does not prove the desktop is locked; report the observed tool failure
+  separately from the owner's device state.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
   `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone

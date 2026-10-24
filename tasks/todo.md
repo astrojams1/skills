@@ -584,3 +584,22 @@ symlinks and single-quoted workspace references; all four are fixed and regressi
 consumer configs retain automatic/prebuild defaults, with no required migration. Final checks: 117 app-release tests, 53 management checks, 139 specification checks, AGENTS identity,
 8 screenshot-fit checks and skill-creator validation pass. YouTube has 5 passes and its existing explicit
 ffmpeg-unavailable skip. Independent final probes pass 14/14; discovery equality and whitespace pass.
+# app-release 2.5.1: verify internal TestFlight readiness
+
+- [x] Reproduce automatic-group false success with provider-response fixtures.
+- [x] Verify exact build membership and internal testability for automatic and manual groups.
+- [x] Correct optional media guidance and honor existing UI-method authorization.
+- [ ] Check consumer compatibility, run required validation, publish and sync Füd.
+
+Plan: fix shared verification without changing signing, encryption answers, account settings or
+store submissions. Keep required screenshots distinct from optional marketing placements.
+
+Review: with the old behavior exported through an injected provider fixture, one test passes and six
+fail, including actual false success for MISSING_EXPORT_COMPLIANCE and a successful membership POST
+that never reads back. All seven pass after correction.124 release tests,139 specification checks,
+53 management checks, identity, eight screenshot-fit checks and skill validation pass. YouTube has
+five passes and the existing ffmpeg-unavailable skip. The system Python lacked image packages; the
+already bundled workspace Python runs all eight fit checks without installation. Actual read-only
+TestFlight191 verification succeeds through the corrected helper. No account/certification mutation.
+Direct consumer inspection found Füd, Newsworthy and two Space Worms checkouts with unchanged config
+and commands; additional known linked checkouts are checked before pointer updates.

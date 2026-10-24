@@ -141,8 +141,11 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    form that uploaded Newsworthy's first local build, 28, on 2026-10-14) and polls Apple's upload record until
    `COMPLETE` or `FAILED` (5–30 minutes), retrying a status read that fails. Use Transporter if `altool` breaks.
 5. **TestFlight.** `ios-release.mjs testers <N>` waits for `VALID` and adds the build to the internal group
-   (`ios.testflightGroup`); an uploaded build reaches no tester otherwise. Tell the owner it is available only
-   once `buildBetaDetail` shows it testable. `release` runs archive, upload and testers in one go.
+   (`ios.testflightGroup`) unless it receives every build automatically. Both paths read back exact build
+   membership and require `buildBetaDetail.internalBuildState` to be `READY_FOR_BETA_TESTING` or
+   `IN_BETA_TESTING`. `VALID` alone can still mean `MISSING_EXPORT_COMPLIANCE`; resolve the verified
+   technical classification separately, never infer it from group access. A member's historical installed
+   state is not evidence they tested this build. `release` runs archive, upload and testers in one go.
 6. **Store data.** `asc.mjs listing`, `age-rating`, `pricing` (first release, or when the price changes),
    `screenshots`, `review-details`; then `status` until every screenshot reads `COMPLETE`. Every attribute
    write is read back and a mismatch fails the command. Before patching copy on a version Apple has seen,

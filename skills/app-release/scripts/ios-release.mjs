@@ -433,34 +433,59 @@ export async function waitForUpload(build, io) {
   throw new Error('Build ' + build + ' is still processing after 30 minutes; check `asc.mjs status` before testers or attach-build.');
 }
 
-// testers waits for build N to be VALID, then adds it to the configured internal group unless that group already gets
-// every build; a processed build otherwise reaches no tester.
-async function testers(build) {
+// VALID and automatic group access do not establish testability: export compliance can still block a build.
+// Verify exact group membership and the build's internal beta state on both group paths.
+export async function testers(build, io) {
+  const config = io ? io.ios : IOS;
+  const version = io ? io.version : STORE.version;
+  const read = io ? io.api : api;
+  const all = io ? io.listAll : listAll;
+  const pause = io ? io.pause : () => new Promise(done => setTimeout(done, 30000));
+  const now = io ? io.now : Date.now;
+  const log = io ? io.log : console.log;
   let found = null;
-  const deadline = Date.now() + WAIT_MS;
-  while (Date.now() < deadline) {
-    const { data } = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&filter[version]=' + build + '&fields[builds]=version,processingState');
-    found = data[0] || null;
+  const deadline = io ? io.deadline : now() + WAIT_MS;
+  while (now() < deadline) {
+    const { data } = await read('/v1/builds?filter[app]=' + config.ascAppId + '&filter[version]=' + build +
+      '&filter[preReleaseVersion.version]=' + encodeURIComponent(version) + '&filter[preReleaseVersion.platform]=IOS&fields[builds]=version,processingState');
+    if (data.length > 1) throw new Error('Expected one iOS build ' + version + '/' + build + ', found ' + data.length);
+    found = data.find(item => String(item.attributes.version) === String(build)) || null;
     const state = found ? found.attributes.processingState : null;
     if (state === 'VALID') break;
     if (state === 'FAILED' || state === 'INVALID') throw new Error('Build ' + build + ' is ' + state);
-    await new Promise(done => setTimeout(done, 30000));
+    await pause();
   }
   if (!found || found.attributes.processingState !== 'VALID') throw new Error('Build ' + build + ' is not VALID after 30 minutes');
   // The app's own /v1/apps/{id}/betaGroups refuses filter[name] with a 400; the top-level collection takes both.
-  const groups = (await api('/v1/betaGroups?filter[app]=' + IOS.ascAppId + '&filter[name]=' + encodeURIComponent(IOS.testflightGroup))).data
-    .filter(group => group.attributes.isInternalGroup);
-  if (groups.length !== 1) throw new Error('Expected one internal TestFlight group named ' + IOS.testflightGroup + ', found ' + groups.length);
+  const groups = (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' + encodeURIComponent(config.testflightGroup))).data
+    .filter(group => group.attributes.isInternalGroup && group.attributes.name === config.testflightGroup);
+  if (groups.length !== 1) throw new Error('Expected one internal TestFlight group named ' + config.testflightGroup + ', found ' + groups.length);
   const group = groups[0];
   if (group.attributes.hasAccessToAllBuilds) {
-    console.log(IOS.testflightGroup + ' receives every build on its own.');
-    return;
+    log(config.testflightGroup + ' receives every build on its own.');
+  } else {
+    const present = await all('/v1/betaGroups/' + group.id + '/builds?limit=200');
+    if (present.some(item => item.id === found.id)) log('Build ' + build + ' is already in ' + config.testflightGroup + '.');
+    else await read('/v1/betaGroups/' + group.id + '/relationships/builds', 'POST', { data: [{ type: 'builds', id: found.id }] });
   }
-  const present = await listAll('/v1/betaGroups/' + group.id + '/builds?limit=200');
-  if (present.some(item => item.id === found.id)) console.log('Build ' + build + ' is already in ' + IOS.testflightGroup + '.');
-  else await api('/v1/betaGroups/' + group.id + '/relationships/builds', 'POST', { data: [{ type: 'builds', id: found.id }] });
-  const detail = (await api('/v1/builds/' + found.id + '/buildBetaDetail')).data.attributes;
-  console.log('Build ' + build + ' (' + found.id + ') is in ' + IOS.testflightGroup + '; internal state ' + detail.internalBuildState + '.');
+  let internalBuildState = null;
+  let buildPresent = false;
+  while (now() < deadline) {
+    const detail = (await read('/v1/builds/' + found.id + '/buildBetaDetail')).data.attributes;
+    internalBuildState = detail.internalBuildState;
+    const testable = ['READY_FOR_BETA_TESTING', 'IN_BETA_TESTING'].includes(internalBuildState);
+    if (!testable && internalBuildState !== 'PROCESSING') {
+      throw new Error('Build ' + build + ' is not internally testable: ' + internalBuildState + '; resolve that state in App Store Connect before requesting a device check.');
+    }
+    buildPresent = (await all('/v1/betaGroups/' + group.id + '/builds?limit=200')).some(item => item.id === found.id);
+    if (testable && buildPresent) {
+      log('Build ' + build + ' (' + found.id + ') is in ' + config.testflightGroup + '; internal state ' + internalBuildState + '.');
+      return { build: String(build), buildId: found.id, groupId: group.id, internalBuildState, buildPresent };
+    }
+    log('Waiting for build ' + build + ' internal TestFlight readiness: ' + internalBuildState + ', group membership ' + buildPresent + '.');
+    await pause();
+  }
+  throw new Error('Build ' + build + ' is not internally testable after 30 minutes: ' + internalBuildState + ', group membership ' + buildPresent + '; read provider state before retrying.');
 }
 
 async function main(args) {
