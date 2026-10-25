@@ -9,7 +9,7 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Read Nametag's canonical provider snapshot, signed provenance and gate evidence.
 - [x] Add a sanitized history snapshot and index link without changing release mechanics.
 - [x] Refresh discovery copies and run the repository's required checks.
-- [ ] Publish the history PR.
+- [x] Publish [history PR #99](https://github.com/astrojams1/skills/pull/99).
 
 Plan: Record processed/TestFlight/device-check progress separately from incomplete
 native/IAP, privacy, review and public launch gates. Nametag's app ledger remains
