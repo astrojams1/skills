@@ -9,7 +9,7 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Verify Fastlane authentication, import format and replacement/publication behavior against primary sources.
 - [x] Route App Privacy to a narrow optional CLI reference while preserving credentials and attestation limits.
 - [x] Check affected consumers, refresh discovery copies and run required suites.
-- [ ] Publish the shared patch for review and record the consumer update state.
+- [x] Publish [PR #98](https://github.com/astrojams1/skills/pull/98) for review and record the consumer update state.
 
 Plan: Avoid turning an unavailable browser into a universal privacy-publication blocker. Use an existing
 authorized Fastlane session when available; otherwise preserve the genuine Apple ID sign-in dependency.
@@ -23,8 +23,9 @@ mutation or new authentication credential is part of this documentation change.
   YouTube: 5 passed, 1 skipped because ffmpeg is unavailable. No failing suites.
 - Independent primary-source review corrected the cached-session credential fallback, Fastlane's
   role requirement and the distinction between App Store Connect provider and signing team IDs.
-- The optional documentation path introduces no configuration or schema changes. Existing consumer
-  configurations parse cleanly; no live store, credentials or customer data were modified.
+- The optional documentation path introduces no configuration or schema changes. All 18 configurations
+  across Füd, Importron, Newsworthy and Space Worms roots/worktrees parse cleanly. Backend native
+  release work delegates to Füd. No live store, credentials or customer data were modified.
 - Discovery copies refreshed from source; whitespace checks pass. Consumer submodule bumps remain
   pending upstream merge, in their own app pull requests.
 
