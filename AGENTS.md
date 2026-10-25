@@ -242,7 +242,7 @@ Scans the past week's Product Hunt boards, drops big-brand, infrastructure and n
 
 #### How to use
 
-Say "PH clone scout" or "product hunt clones". A scheduled task runs it every Sunday morning (Pacific) in a fresh cloud session with the Gmail connector.
+Say "PH clone scout" or "product hunt clones". A scheduled task wakes a dedicated cloud session (it has this repo checked out and the Gmail connector) every Sunday at 7:47 AM Pacific; it pulls the latest skill and sends the report.
 
 ## Internal Skills
 
