@@ -130,7 +130,7 @@ provider requirements instead of turning future or optional creative into an own
 
 - **Make them from the real app**, like screenshots: no HUD, no onboarding controls, no mock-ups. Duo screenshots
   are ordinary captures at the Duo sizes, with the HUD.
-- **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` (outward-facing: ask the owner)
+- **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` under the established upload authorization
   and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
   and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file
   uploads as a new image. On a version Apple has already approved, a placement takes only approved images (409
@@ -139,6 +139,13 @@ provider requirements instead of turning future or optional creative into an own
   `APPROVED`. `place` takes only processed images, puts screenshots in store-data order, and stops when
   a slot holds an image store data no longer lists (with `ios.pruneScreenshots` it removes that placement instead). Images go to App Review with the version they are placed on; the version page also lets
   the owner pick an approved header while the version waits for release.
+- Image-only submission checks every held item in an existing draft before any
+  attachment. A draft containing an app version, IAP, unknown resource or duplicate
+  image is a conflict, not permission to submit it. Reuse only the intended image
+  subset, verify additions and the final exact image set, then verify submitted
+  state. Preserve mixed/rejected drafts and uncertain writes for readback; use a
+  supported combined-review route when that broader scope is intended.
+  [Apple asset review](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-assets-from-asset-library).
 - The regular screenshot display types (`asc.mjs screenshots`) also appear in the Asset Library; `assets` is for
   placements that have no screenshot display type.
 
