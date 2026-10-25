@@ -307,3 +307,11 @@ Automatic group access caused the release helper to return before checking a pro
 state. Read back exact group membership and internal readiness even when no add is necessary. Group
 member history does not identify the build installed. Keep optional/future creative separate from
 current store requirements, and check existing method authorization before asking the owner again.
+
+## 2026-10-25 — Check which account a mail connector sends from
+
+A "Gmail" connector is whichever Google account was connected, not necessarily the address in the
+task. The first ph-clone-scout report went out from a work account (cleanstreets.io) because the send
+tool was called without checking. Before any send, read the sender of one recent sent message and
+stop if it isn't the intended account. Connector server names also differ between sessions, so find
+the send tool by keyword, never by a hard-coded name.

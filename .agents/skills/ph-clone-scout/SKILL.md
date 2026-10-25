@@ -26,6 +26,8 @@ Judge build effort (weekend / 1-2 wks / 3+ wks), outside dependency risk (paid o
 ## 5. Email the report
 Load the Gmail connector's send tool with ToolSearch query `gmail send message` and send to astrojams1@gmail.com. Search by keyword: the server name varies by session (`mcp__Gmail__send_message` in one, `mcp__<uuid>__send_message` in another).
 
+Before sending, check which account the connector is signed in to: search one recent `in:sent` message and read its sender. Send only if it is astrojams1@gmail.com. Any other account (a work account such as cleanstreets.io) means don't send; use the fallback below and name the account you found.
+
 Subject: `Product Hunt clone picks, week of <Mon D>` (the week's Monday, e.g. `week of Oct 19`).
 
 Body, plain text, nothing else:
@@ -38,7 +40,7 @@ Body, plain text, nothing else:
 
 No greeting, no intro, no sign-off, no methodology. If nothing worth cloning showed up, the body is one line: `No good clone targets this week.`
 
-If the Gmail tool won't load, don't stop silently: end the session with the same subject and body as your final message, saying the email couldn't be sent because the Gmail connector isn't attached to the session.
+If the Gmail tool won't load or is signed in to the wrong account, don't stop silently: end the session with the same subject and body as your final message, saying why the email wasn't sent.
 
 ## Gotchas
 - Leaderboards show a "score", not upvotes, and rank is frozen at the end of the period, so scores can look out of order. Use rank.
