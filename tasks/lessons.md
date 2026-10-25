@@ -294,6 +294,13 @@ separately. Treat storage recovery as an optional observed workaround: verify em
 private QA paths and backing identity, reuse the exact owned device, preserve other jobs, and keep actual
 UI/capture verification separate. Current local disk-image help governs syntax across macOS versions.
 
+## 2026-10-25 — Check privacy CLI authentication independently
+
+A public API gap does not establish browser-only operation. Fastlane documents an App Privacy action
+using an authorized Apple ID owner/admin session, while the App Store Connect key is unsupported.
+Prepare evidence-backed JSON and inspect session availability separately. Its action replaces usage
+rows, and a reported published flag is weaker than readback of the intended published answers.
+
 ## 2026-10-24 — Verify internal TestFlight readiness on every group path
 
 Automatic group access caused the release helper to return before checking a processed build's beta

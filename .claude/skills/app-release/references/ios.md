@@ -70,9 +70,9 @@ A failed UI route cannot block CLI builds or listing preparation that still work
 
 ## Privacy, Business and release authorization
 
-- **App Privacy:** enter answers from the [privacy evidence](privacy.md) in an authorized signed-in
-  browser, then Publish within the owner's granted scope. Saved answers and published answers are
-  separate observations; the public API does not provide this attestation workflow.
+- **App Privacy:** publish answers from the [privacy evidence](privacy.md) through an authorized
+  signed-in browser or the documented Fastlane alternative described there. Saved and published
+  answers are separate observations; the public API key does not authenticate the Fastlane action.
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
 - **Submission and release:** honor existing explicit authorization for `submit --confirm`. For `MANUAL`

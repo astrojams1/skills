@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.5.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.5.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -32,6 +32,15 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.5.2 (2026-10-25)
+
+- A missing public privacy-write API and unavailable browser do not rule out Fastlane's documented
+  privacy action with an existing authorized Apple ID owner/admin session. Check that session
+  separately; the App Store Connect API key cannot replace it. Prepared JSON is not publication.
+- Preserve existing answers before using the action, which replaces usage rows. Its normal login
+  can fall back to stored owner credentials; an available cache is not a session-only guarantee.
+  Verify actual rows and the published result rather than relying on a reported published flag.
 
 ## Lessons incorporated into v2.5.1 (2026-10-24)
 
