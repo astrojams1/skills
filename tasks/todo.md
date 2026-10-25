@@ -4,6 +4,23 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## Nametag initial TestFlight milestone
+
+- [x] Read Nametag's canonical provider snapshot, signed provenance and gate evidence.
+- [x] Add a sanitized history snapshot and index link without changing release mechanics.
+- [x] Refresh discovery copies and run the repository's required checks.
+- [ ] Publish the history PR.
+
+Plan: Record processed/TestFlight/device-check progress separately from incomplete
+native/IAP, privacy, review and public launch gates. Nametag's app ledger remains
+authoritative. Preserve other skills checkouts and their unrelated changes.
+
+Review: management 53 passed; identity passed; specification 139 passed with no
+warnings; screenshot fit 8 passed; app-release 124 passed; YouTube 5 passed and 1
+skipped because ffmpeg is unavailable. Node 22.23.3 was used for Node suites.
+No failing checks. This change adds historical documentation only; no shared
+release instruction, script, provider state or credential changes.
+
 ## app-release 2.5.2: check the documented privacy CLI alternative
 
 - [x] Verify Fastlane authentication, import format and replacement/publication behavior against primary sources.
