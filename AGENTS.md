@@ -34,6 +34,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     scripts/{ledger.py,check_refs.py,build.sh}   # Run ledger, reference resolver, strict LaTeX build
     assets/template/main.tex               # arXiv preprint template
     ledger/LEDGER.md, ledger/runs/         # The skill's own ledger: versions, runs, tokens, issues
+  ph-clone-scout/
+    SKILL.md                               # Weekly Product Hunt scan for easy-to-clone launches, emailed
   simplify/
     SKILL.md                               # Code quality review — find and fix over-engineering
   skill-integration-prompt/
@@ -231,6 +233,16 @@ from a screenshot when YouTube's interface moves. Its ledger records each measur
 Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a render with
 `node skills/youtube-shorts/scripts/safe-zone.mjs <video> --every 0.5` (needs ffmpeg). After changing a script or
 `zones.json`, run `node --test tests/youtube-shorts/*.test.mjs` and `python3 tests/test_youtube_shorts_fit.py`.
+
+### PH Clone Scout — Weekly Product Hunt Scan
+
+**Skill:** `skills/ph-clone-scout/SKILL.md`
+
+Scans the past week's Product Hunt boards, drops big-brand, infrastructure and network-effect launches, checks the top ~6 product pages, and emails a three-line report of the easiest launches for a solo builder to clone with a better angle.
+
+#### How to use
+
+Say "PH clone scout" or "product hunt clones". A scheduled task runs it every Sunday morning (Pacific) in a fresh cloud session with the Gmail connector.
 
 ## Internal Skills
 
