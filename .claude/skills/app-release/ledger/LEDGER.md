@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.5.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.6.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -8,6 +8,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-25 Nametag native purchase recovery](runs/2026-10-25-nametag-native-purchases.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | 16 local native StoreKit checks pass; both IAP review images COMPLETE and products READY_TO_SUBMIT; review blocked by unpublished App Privacy answers | Unknown / no paid services or purchases |
 | [2026-10-25 Nametag TestFlight milestone](runs/2026-10-25-nametag-testflight.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Build 1 VALID and installed in TestFlight; owner device check complete; IAP/native QA, privacy, review and public launch remain open | Unknown / no paid services or purchases |
 | [2026-09-16 Newsworthy snapshot](runs/2026-09-16-newsworthy.md) ([JSON](runs/2026-09-16-newsworthy.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Web live; Apple binary/listing saved; both store releases incomplete | Unknown / unknown |
 | [2026-09-16 Newsworthy review milestone](runs/2026-09-16-newsworthy-review-submitted.md) ([JSON](runs/2026-09-16-newsworthy-review-submitted.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Apple WAITING_FOR_REVIEW; paid release unverified; Google owner/device and host gates remain | Unknown / unknown |
@@ -33,6 +34,18 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.6.0 (2026-10-25)
+
+- Verify the actual XCTest launcher's Apple identity and service entitlements;
+  a strict-valid ad-hoc copy can still be rejected by dtarbiter. The new read-only
+  `native-qa.mjs preflight` rejects that known failure and accepts the original.
+- A separately identified local StoreKitTest simulator host can exercise unchanged
+  production purchase methods when stock XCTest cannot discover the designated
+  SSD set. Keep local API checks, UI gestures and physical/store evidence distinct.
+- Required IAP review screenshots still attach to the parent product after the v2
+  metadata migration. `iap-review-screenshots` verifies ownership, preserves
+  conflicting/uncertain assets and requires delivery/checksum readback.
 
 ## Lessons incorporated into v2.5.2 (2026-10-25)
 

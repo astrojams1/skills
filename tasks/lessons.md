@@ -307,3 +307,16 @@ Automatic group access caused the release helper to return before checking a pro
 state. Read back exact group membership and internal readiness even when no add is necessary. Group
 member history does not identify the build installed. Keep optional/future creative separate from
 current store requirements, and check existing method authorization before asking the owner again.
+# Native QA failure attribution (2026-10-25)
+
+- A UI tool's lock diagnostic does not establish the owner's desktop state.
+  Report the route's observed failure and use other already authorized tools.
+- A copied, ad-hoc-signed Apple launcher can pass strict signature verification
+  and still lose the identity/entitlements required by dtarbiter. Correlate the
+  rejected client PID and verify Apple's code requirement before blaming services.
+- If XCTest cannot discover the designated SSD set, an isolated simulator-only
+  StoreKitTest host can exercise unchanged production purchase methods through
+  supported simctl. Missing developer XCTest frameworks require child runtime
+  search paths, not re-signing Apple tools or asking the owner to redo QA.
+- Preserve exact-build physical feedback already received. Scope local StoreKit
+  evidence honestly and inspect a clean baseline capture before uploading it.

@@ -99,6 +99,67 @@ planned detach, shut down only the owned UUID through the same set and confirm n
 never eject an in-use image or shut down unrelated devices. Failure of this optional recovery leaves
 other authorized build, backend and listing work available.
 
+### Diagnose XCTest launcher identity
+
+Before treating a test-runner connection failure as a simulator outage, run
+`node $S/native-qa.mjs preflight`. To inspect a previously used launcher, add
+`--launcher <path>`. The read-only guard verifies the Apple code requirement,
+designated identity and service-control entitlements, separately from signature
+integrity. It never executes the candidate launcher.
+
+In the 2026-10-25 Nametag run, a copied, ad-hoc-signed `xcodebuild` discovered the
+SSD devices but lost Apple's identity and entitlements. `dtarbiter` rejected that
+client with `-67050` (code requirements not met). The original Apple tools passed
+strict verification. A valid ad-hoc signature was therefore insufficient; the
+earlier attribution to broken simulator services was wrong. Correlate the denied
+PID and launcher with logs before choosing recovery.
+
+Use the original selected Apple tools. Do not re-sign them, transplant private
+entitlements, inject a device-set override, or reset shared services to repair a
+launcher identity failure. Check installed Xcode help for supported destination
+options: `simctl --set` support does not imply `xcodebuild` supports that custom
+set. Preserve the designated SSD set and other tasks' devices.
+
+### Isolated local StoreKit checks
+
+When XCTest destination discovery cannot reach the designated QA set, purchase
+controller checks can still run in a separately identified **simulator-only QA
+host** launched with the supported `simctl --set` route. This route requires
+authorization under the active tool policy; it does not grant UI control itself.
+Compile the unchanged production purchase controller and shop with the app's real
+`.storekit` configuration, plus Apple's `StoreKitTest` framework and a small test
+entrypoint. Keep the host out of the shipping target and give it a distinct bundle
+ID so production app data remains intact.
+
+- Create `SKTestSession` from the bundled configuration. Reset defaults **before**
+  setting `disableDialogs`, clear only this QA session's transactions, then run
+  serialized checks through the actual production methods. Exercise verified
+  purchase, restore into a fresh controller, refunds and `Transaction.updates`,
+  Ask to Buy approval, cancellation and recoverable errors as relevant.
+- A directly launched host may crash loading `@rpath/XCTest.framework/XCTest`.
+  In the observed Xcode 27.1 / iOS 18.4 run, the selected platform's developer
+  frameworks resolved it. Derive the platform with
+  `xcrun --sdk iphonesimulator --show-sdk-platform-path`; pass its
+  `Developer/Library/Frameworks` and `Developer/Library/PrivateFrameworks` as
+  `SIMCTL_CHILD_DYLD_FRAMEWORK_PATH`, and `Developer/usr/lib` as
+  `SIMCTL_CHILD_DYLD_LIBRARY_PATH`, only to the owned QA launch. Inspect the actual
+  loader error and installed directories; do not change global runtime paths.
+- Use a fresh run identifier, bounded result wait and explicit failed checks.
+  Record source/config hashes, host binary digest, Xcode/runtime, exact UUID/set
+  and cleanup. Preserve initial boot/status-bar state; terminate only the QA host.
+- Transaction tests can leave a production alert visible after completion.
+  For a review screenshot, save test results first, relaunch a clean load-only
+  host, wait for products and native rendering, then capture through the
+  authorized tool. Inspect the pixels before upload; never paint over the alert.
+
+This proves local StoreKit/controller behavior. It does not establish live product
+availability, TestFlight sandbox transactions, physical-device behavior or UI
+button gestures. State those scopes separately. A local configuration's prices
+must be compared with App Store Connect, not reported as provider-fetched prices.
+Do not hand these agent-executable checks to the owner because one UI or XCTest
+route failed, or repeat an already completed exact-build physical check.
+[Apple SKTestSession](https://developer.apple.com/documentation/storekittest/sktestsession).
+
 ### When no Mac is available
 
 An Android bundle can be built in Linux with the Android SDK (cloud containers' Maven downloads may be

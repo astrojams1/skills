@@ -243,6 +243,25 @@ version collection can be empty. When metadata is incomplete, a compound product
 missing related resource can return 404 even though the product exists: verify the plain product and
 read the documented related endpoints independently before retrying creation.
 
+For a required IAP review screenshot, set the row's `reviewScreenshot` to a native
+image file and run `asc.mjs iap-review-screenshots`. This is separate from the
+public screenshot gallery and promotional IAP images. The command preflights all
+configured rows, files, app/bundle and paginated product ownership before writes;
+it reserves, uploads, commits and reads back the image. Identical completed images
+are retained; conflicts and incomplete/unknown reservations are preserved for
+inspection, not deleted. Rerun after processing and require `COMPLETE` with the
+matching checksum before recording delivery as done.
+
+Despite the IAP metadata v2 migration, this review screenshot remains attached to
+the **parent product**: reserve through
+`POST /v1/inAppPurchaseAppStoreReviewScreenshots` with relationship
+`inAppPurchaseV2` (type `inAppPurchases`), and read through
+`GET /v2/inAppPurchases/{id}/appStoreReviewScreenshot`. A review version's `image`
+relationship is not a substitute. Use real purchase UI and record whether capture
+came from a local StoreKit QA host or the exact store build; local test success
+does not prove TestFlight product availability.
+[Apple metadata migration](https://developer.apple.com/documentation/appstoreconnectapi/migrating-in-app-purchase-metadata-to-v2).
+
 The same exact-item conflict guards and attachment readbacks described above apply to IAP targets.
 Ownership is rechecked after rejected-submission replacement and immediately before submission.
 Unexpected or duplicate held resources stop cancellation/attachment; a lost write response stops the
