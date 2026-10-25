@@ -15,7 +15,7 @@ import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
-const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
+const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
 
 // CONFIG, IOS and STORE are read on first use, so tests can import the decision helpers without a configured app.
 let CONFIG = null;
@@ -89,11 +89,11 @@ async function related(path) {
 }
 
 // listAll follows `links.next` so collections longer than one page are read completely.
-export async function listAll(path) {
+export async function listAll(path, request = api) {
   const items = [];
   let next = path;
   while (next) {
-    const page = await api(next);
+    const page = await request(next);
     for (const item of page.data) items.push(item);
     next = page.links && page.links.next ? page.links.next.replace(API, '') : null;
   }
@@ -447,6 +447,9 @@ async function versionLocalization(versionId, create) {
 async function status() {
   const app = (await api('/v1/apps/' + IOS.ascAppId)).data;
   console.log('App', app.attributes.name, app.attributes.bundleId, 'id', app.id);
+  for (const image of await iapReviewScreenshotStatus({ app })) {
+    console.log('  IAP review screenshot', image.productId, image.state, 'id', image.id || 'none', 'checksum', image.checksum || 'pending');
+  }
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   for (const item of versions) console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
   const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5');
@@ -721,14 +724,154 @@ async function screenshots() {
 }
 
 // uploadParts sends a reserved asset's bytes through the upload operations Apple returned, one part per operation.
-async function uploadParts(operations, bytes, label) {
+export async function uploadParts(operations, bytes, label, send = fetch) {
   for (const operation of operations) {
     const headers = {};
     for (const header of operation.requestHeaders) headers[header.name] = header.value;
     const part = bytes.subarray(operation.offset, operation.offset + operation.length);
-    const response = await fetch(operation.url, { method: operation.method, headers: headers, body: part });
+    const response = await send(operation.url, { method: operation.method, headers: headers, body: part });
     if (!response.ok) throw new Error('Upload of ' + label + ' failed with ' + response.status);
   }
+}
+
+const IAP_REVIEW_SCREENSHOT_TYPE = 'inAppPurchaseAppStoreReviewScreenshots';
+const IAP_REVIEW_SCREENSHOT_PATH = '/v1/' + IAP_REVIEW_SCREENSHOT_TYPE;
+
+// Only explicit image rows opt in. Product identities and screenshot paths remain app facts.
+function iapReviewScreenshotRows(store) {
+  if (store?.inAppPurchases === undefined) return [];
+  if (!Array.isArray(store.inAppPurchases)) throw new Error('store data inAppPurchases must be an array.');
+  const selected = [];
+  const ids = new Set(); const productIds = new Set();
+  for (const row of store.inAppPurchases) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('store data inAppPurchases rows must be objects.');
+    if (!Object.hasOwn(row, 'reviewScreenshot')) continue;
+    for (const field of ['appStoreId', 'productId', 'reviewScreenshot']) {
+      if (typeof row[field] !== 'string' || !row[field].trim() || row[field] !== row[field].trim() || row[field].includes('\0')) {
+        throw new Error('inAppPurchases.' + field + ' must be an explicit nonblank string for a review screenshot.');
+      }
+    }
+    if (ids.has(row.appStoreId) || productIds.has(row.productId)) throw new Error('Duplicate inAppPurchases screenshot identity; nothing was uploaded.');
+    ids.add(row.appStoreId); productIds.add(row.productId); selected.push(row);
+  }
+  return selected;
+}
+
+// Ownership is read from the app's entire paginated parent collection before any reservation.
+async function iapReviewScreenshotTargets(rows, ios, request, readAll, app) {
+  if (!rows.length) return [];
+  if (!ios?.ascAppId || !ios?.bundleId) throw new Error('Configured app ID and bundle ID are required for IAP review screenshots.');
+  const found = app || (await request('/v1/apps/' + encodeURIComponent(ios.ascAppId))).data;
+  if (found?.id !== ios.ascAppId || found.type !== 'apps' || found.attributes?.bundleId !== ios.bundleId) {
+    throw new Error('IAP review screenshot app/bundle identity mismatch; nothing was uploaded.');
+  }
+  const products = await readAll('/v1/apps/' + encodeURIComponent(ios.ascAppId) + '/inAppPurchasesV2?limit=200');
+  for (const row of rows) {
+    const matches = products.filter(item => item.id === row.appStoreId);
+    if (matches.length !== 1 || matches[0].type !== 'inAppPurchases' || matches[0].attributes?.productId !== row.productId ||
+        products.filter(item => item.attributes?.productId === row.productId).length !== 1) {
+      throw new Error('IAP review screenshot product ownership or identity mismatch for ' + row.productId + '; nothing was uploaded.');
+    }
+  }
+  const targets = [];
+  for (const row of rows) {
+    let screenshot;
+    try {
+      screenshot = (await request('/v2/inAppPurchases/' + encodeURIComponent(row.appStoreId) + '/appStoreReviewScreenshot')).data;
+    } catch (error) {
+      if (!String(error.message).includes(' -> 404 ')) throw error;
+      screenshot = null;
+    }
+    if (screenshot !== null && (!screenshot?.id || screenshot.type !== IAP_REVIEW_SCREENSHOT_TYPE)) {
+      throw new Error('Ambiguous linked IAP review screenshot for ' + row.productId + '; nothing was uploaded.');
+    }
+    targets.push({ ...row, screenshot });
+  }
+  return targets;
+}
+
+function iapReviewImageState(image) {
+  return { id: image?.id || null, state: image?.attributes?.assetDeliveryState?.state || (image ? 'UNKNOWN' : 'MISSING'),
+    checksum: image?.attributes?.sourceFileChecksum || null };
+}
+
+// A missing checksum is an unknown outcome, not permission to replace a reserved image.
+export function iapReviewScreenshotPlan(image, source) {
+  if (!image) return { action: 'upload' };
+  const current = iapReviewImageState(image);
+  if (current.checksum && current.checksum.toLowerCase() !== source.checksum) return { action: 'conflict' };
+  if (current.state === 'COMPLETE') return { action: current.checksum ? 'keep' : 'conflict' };
+  if (!current.checksum && ((image.attributes?.fileName && image.attributes.fileName !== source.fileName) ||
+      (image.attributes?.fileSize !== undefined && image.attributes.fileSize !== source.bytes.length))) return { action: 'conflict' };
+  return { action: current.state === 'FAILED' ? 'failed' : 'pending' };
+}
+
+// This read-only status needs no local screenshot bytes and makes no IAP calls for apps without opted-in rows.
+export async function iapReviewScreenshotStatus({ ios = IOS, store = STORE, request = api, readAll = path => listAll(path, request), app } = {}) {
+  const targets = await iapReviewScreenshotTargets(iapReviewScreenshotRows(store), ios, request, readAll, app);
+  return targets.map(target => ({ productId: target.productId, ...iapReviewImageState(target.screenshot) }));
+}
+
+// Review screenshots still target the parent IAP after the metadata-to-v2 migration.
+// Reserve, transfer, commit and read back once; a rerun reads uncertain outcomes instead of duplicating them.
+export async function iapReviewScreenshots({ config = CONFIG, ios = IOS, store = STORE, request = api,
+  readAll = path => listAll(path, request), upload = uploadParts, report = console.log } = {}) {
+  const rows = iapReviewScreenshotRows(store);
+  if (!rows.length) { report('No IAP review screenshots configured.'); return []; }
+  // Read every source before any mutation, retaining these exact bytes throughout the upload.
+  const sources = rows.map(row => {
+    const path = resolve(config.root, row.reviewScreenshot);
+    if (!statSync(path).isFile()) throw new Error('IAP review screenshot source is not a file: ' + row.reviewScreenshot);
+    const bytes = readFileSync(path);
+    if (!bytes.length) throw new Error('IAP review screenshot source is empty: ' + row.reviewScreenshot);
+    return { ...row, bytes, fileName: basename(path), checksum: createHash('md5').update(bytes).digest('hex') };
+  });
+  const targets = await iapReviewScreenshotTargets(sources, ios, request, readAll);
+  const plans = targets.map(target => ({ ...target, plan: iapReviewScreenshotPlan(target.screenshot, target) }));
+  for (const target of plans) {
+    if (target.plan.action === 'conflict' || target.plan.action === 'failed') {
+      throw new Error('IAP review screenshot ' + target.plan.action + ' for ' + target.productId + '; existing images were preserved and nothing was uploaded.');
+    }
+  }
+  const results = [];
+  for (const target of plans) {
+    let image = target.screenshot;
+    let action = target.plan.action;
+    if (action === 'upload') {
+      let reserved;
+      try {
+        reserved = (await request(IAP_REVIEW_SCREENSHOT_PATH, 'POST', { data: {
+          type: IAP_REVIEW_SCREENSHOT_TYPE, attributes: { fileName: target.fileName, fileSize: target.bytes.length },
+          relationships: { inAppPurchaseV2: relation('inAppPurchases', target.appStoreId) },
+        } })).data;
+      } catch {
+        throw new Error('IAP review screenshot reservation outcome unknown for ' + target.productId + '; rerun to read its state before another upload.');
+      }
+      if (!reserved?.id || reserved.type !== IAP_REVIEW_SCREENSHOT_TYPE || !Array.isArray(reserved.attributes?.uploadOperations) || !reserved.attributes.uploadOperations.length) {
+        throw new Error('IAP review screenshot reservation was incomplete for ' + target.productId + '; preserved for readback on rerun.');
+      }
+      try {
+        await upload(reserved.attributes.uploadOperations, target.bytes, target.fileName);
+        await request(IAP_REVIEW_SCREENSHOT_PATH + '/' + encodeURIComponent(reserved.id), 'PATCH', { data: {
+          type: IAP_REVIEW_SCREENSHOT_TYPE, id: reserved.id, attributes: { uploaded: true, sourceFileChecksum: target.checksum },
+        } });
+      } catch {
+        throw new Error('IAP review screenshot transfer/commit outcome unknown for ' + target.productId + '; reservation preserved. Rerun to read its state; no duplicate was reserved.');
+      }
+      image = (await request(IAP_REVIEW_SCREENSHOT_PATH + '/' + encodeURIComponent(reserved.id))).data;
+      if (image?.id !== reserved.id || image.type !== IAP_REVIEW_SCREENSHOT_TYPE ||
+          iapReviewScreenshotPlan(image, target).action === 'conflict') {
+        throw new Error('IAP review screenshot readback mismatch for ' + target.productId + '; reservation preserved.');
+      }
+      const current = iapReviewImageState(image);
+      if (current.state === 'FAILED') throw new Error('Apple reports FAILED for IAP review screenshot ' + target.productId + '; reservation preserved.');
+      action = current.state === 'COMPLETE' && current.checksum ? 'uploaded' : 'pending';
+    }
+    const result = { productId: target.productId, action, ...iapReviewImageState(image) };
+    results.push(result);
+    report('IAP review screenshot', result.productId, result.action, result.state, 'id', result.id, 'checksum', result.checksum || 'pending');
+  }
+  return results;
 }
 
 // waitForAttachment polls an attachment until Apple finishes processing it, returning 'complete', 'failed', or
@@ -1355,6 +1498,7 @@ async function main() {
   if (command === 'age-rating') await ageRating();
   if (command === 'pricing') await pricing();
   if (command === 'screenshots') await screenshots();
+  if (command === 'iap-review-screenshots') await iapReviewScreenshots();
   if (command === 'review-details') await reviewDetails();
   if (command === 'review-attachment') await reviewAttachment(argument);
   if (command === 'game-center') await gameCenter();

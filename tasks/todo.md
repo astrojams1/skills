@@ -4,6 +4,27 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release: diagnose QA launch failures before owner handoff
+
+- [x] Reproduce native/browser capability failures and inspect the launcher's signing evidence.
+- [x] Test an isolated supported iOS StoreKit route without changing production sources or Apple tools.
+- [x] Add the verified recovery and failure-attribution checks to shared app-release, with regression coverage.
+- [ ] Check consumers, refresh discovery copies, run all required suites and publish the fix.
+
+Plan: The owner rejected handing agent QA back after a tool failure. Preserve
+their completed physical check. Distinguish an altered launcher's signature
+rejection from simulator/App Store failure, test supported alternatives, and
+encode only observed recovery. No lock bypass, private Apple entitlement grants,
+default-device mutation or fabricated paid-design captures.
+
+Review: 147 app-release tests, 53 management checks, 140 specification checks,
+identity, eight screenshot-fit checks and skill validation pass. YouTube has
+five passes and one explicit unavailable-ffmpeg skip. Native serial QA passed
+16 checks, both actual IAP review images read COMPLETE, and Apple identified
+unpublished App Privacy answers as the review blocker. Original launcher guard
+passes; the prior strict-valid ad-hoc copy is rejected. Four unique consumer app
+configurations checked; propagation follows the shared merge.
+
 ## Nametag initial TestFlight milestone
 
 - [x] Read Nametag's canonical provider snapshot, signed provenance and gate evidence.
