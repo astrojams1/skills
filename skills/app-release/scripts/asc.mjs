@@ -1379,6 +1379,58 @@ export function assetsToSubmit(images, references) {
   return { send: send, skipped: skipped };
 }
 
+// An image-only action must never inherit another item's submission authorization.
+// Inspect every resource linkage (including unsupported ones), preserving uncertain or conflicting drafts.
+function assetReviewItems(items, wanted) {
+  const seen = new Set();
+  for (const item of items) {
+    const resource = itemResource(item);
+    if (!resource || resource.relation !== 'appAssetLibraryImage' || resource.type !== 'appAssetLibraryImages' ||
+        !wanted.has(resource.id) || seen.has(resource.id)) {
+      throw new Error('Image review submission holds conflicting items; nothing further was attached or submitted.');
+    }
+    seen.add(resource.id);
+  }
+  return seen;
+}
+
+// Read all held items before each add, read each attachment back, and require the exact final image set.
+// Transport injection exercises this same orchestration without credentials or provider mutations.
+export async function submitAssetImages(imageIds, { openSubmission = openReviewSubmission, readItems = submissionItems, request = api, report = console.log } = {}) {
+  if (!Array.isArray(imageIds) || !imageIds.length || imageIds.some(id => typeof id !== 'string' || !id.trim())) {
+    throw new Error('Image review submission needs explicit image IDs.');
+  }
+  const wanted = new Set(imageIds);
+  const submission = await openSubmission();
+  if (!submission?.id || submission.attributes?.state !== 'READY_FOR_REVIEW') {
+    throw new Error('Image review submission must be READY_FOR_REVIEW; existing draft preserved. Inspect rejected or changed submissions separately.');
+  }
+  assetReviewItems(await readItems(submission.id), wanted);
+  for (const id of wanted) {
+    if (assetReviewItems(await readItems(submission.id), wanted).has(id)) continue;
+    await request('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: {
+      reviewSubmission: relation('reviewSubmissions', submission.id), appAssetLibraryImage: relation('appAssetLibraryImages', id) } } });
+    if (!assetReviewItems(await readItems(submission.id), wanted).has(id)) {
+      throw new Error('Image review attachment did not read back; nothing was submitted. Read provider state before retrying.');
+    }
+  }
+  const path = '/v1/reviewSubmissions/' + submission.id;
+  const current = (await request(path)).data;
+  if (current?.id !== submission.id || current.attributes?.state !== 'READY_FOR_REVIEW') {
+    throw new Error('Image review submission changed before submission; nothing was submitted.');
+  }
+  const final = assetReviewItems(await readItems(submission.id), wanted);
+  if (final.size !== wanted.size) throw new Error('Image review submission is missing intended images; nothing was submitted.');
+  // Writes are attempted once. An uncertain response stops this run before any retry or replacement draft.
+  await request(path, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
+  const saved = (await request(path)).data;
+  if (saved?.id !== submission.id || !['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(saved.attributes?.state)) {
+    throw new Error('Image review submission readback is not waiting for or in review; inspect provider state before retrying.');
+  }
+  report('Review submission', submission.id, 'with', wanted.size, 'image(s) is', saved.attributes.state);
+  return saved;
+}
+
 // assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images: the product page header,
 // the search-results creative and screenshots for profiles without a screenshot display type, such as iPhone Duo.
 // Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from App Store Connect.
@@ -1409,13 +1461,7 @@ async function assets(mode) {
       console.log('No listed image needs App Review.');
       return;
     }
-    const submission = await openReviewSubmission();
-    for (const id of plan.send) {
-      await api('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: {
-        reviewSubmission: relation('reviewSubmissions', submission.id), appAssetLibraryImage: relation('appAssetLibraryImages', id) } } });
-    }
-    const saved = await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
-    console.log('Review submission', submission.id, 'with', plan.send.length, 'image(s) is', saved.data.attributes.state);
+    await submitAssetImages(plan.send);
     return;
   }
   if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');

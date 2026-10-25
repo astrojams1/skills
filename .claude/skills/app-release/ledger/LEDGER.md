@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.6.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.6.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -34,6 +34,14 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.6.1 (2026-10-25)
+
+- Image-only Asset Library review must inspect the complete held resource set of
+  an existing draft. A draft can also hold an app or IAP version; submitting the
+  whole draft would send those items too. Refuse mixed, unknown or duplicate
+  resources before attachment, read back additions and the final exact image set,
+  and verify actual submitted state. Preserve conflicts and uncertain outcomes.
 
 ## Lessons incorporated into v2.6.0 (2026-10-25)
 

@@ -29,3 +29,13 @@ and [native StoreKit provenance](https://github.com/astrojams1/nametag/blob/main
 No production app code, Apple tool, default simulator or account security was
 changed. No actual-money transaction or paid service was used. Token/dollar cost
 is unavailable.
+
+Cross-app review then found an inherited Asset Library image-submit scope gap:
+an existing draft could hold an app/IAP version as well as images. The2.6.1
+patch verifies all held linkages before attachment, each add and the final exact
+image set, then reads back actual submitted state. Nine initial transport
+regressions failed against the unguarded behavior; all eleven corrected cases
+pass. No provider asset submission was executed to verify this fix. The final
+shared suite has158 release tests passing; management53, spec140, identity,
+eight screenshot-fit checks and skill validation also pass, with the existing
+YouTube unavailable-ffmpeg skip.

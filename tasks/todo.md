@@ -4,12 +4,30 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.6.1: preserve image-only review scope
+
+- [x] Refuse mixed, unknown and duplicate held resources before image review writes.
+- [x] Read back each attachment and exact final image set; stop after unknown writes.
+- [x] Run transport regressions, refresh discovery copies and all required suites.
+- [ ] Publish shared guard, then propagate final skill SHA to consumer apps.
+
+Plan: Cross-app review found that the existing Asset Library submit path could
+reuse a draft containing an app/IAP version and submit that unrelated item too.
+Keep this correction in shared code, preserve conflicting drafts, and add no
+consumer workaround or provider mutation during verification.
+
+Review: nine initial transport regressions failed against the unguarded
+behavior. The corrected workflow passes all eleven new cases and 158 release
+tests. Management53, specification140, identity, eight screenshot-fit checks
+and skill validation pass; YouTube has five passes and one unavailable-ffmpeg
+skip. Existing app/IAP review drafts remain untouched by this verification.
+
 ## app-release: diagnose QA launch failures before owner handoff
 
 - [x] Reproduce native/browser capability failures and inspect the launcher's signing evidence.
 - [x] Test an isolated supported iOS StoreKit route without changing production sources or Apple tools.
 - [x] Add the verified recovery and failure-attribution checks to shared app-release, with regression coverage.
-- [ ] Check consumers, refresh discovery copies, run all required suites and publish the fix.
+- [x] Check consumers, refresh discovery copies, run all required suites and publish the fix.
 
 Plan: The owner rejected handing agent QA back after a tool failure. Preserve
 their completed physical check. Distinguish an altered launcher's signature
@@ -23,7 +41,8 @@ five passes and one explicit unavailable-ffmpeg skip. Native serial QA passed
 16 checks, both actual IAP review images read COMPLETE, and Apple identified
 unpublished App Privacy answers as the review blocker. Original launcher guard
 passes; the prior strict-valid ad-hoc copy is rejected. Four unique consumer app
-configurations checked; propagation follows the shared merge.
+configurations checked; shared fix merged in PR100 and Nametag adoption/evidence
+merged in PR3. Cross-app propagation caught the Asset Library issue below.
 
 ## Nametag initial TestFlight milestone
 

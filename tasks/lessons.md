@@ -320,3 +320,11 @@ current store requirements, and check existing method authorization before askin
   search paths, not re-signing Apple tools or asking the owner to redo QA.
 - Preserve exact-build physical feedback already received. Scope local StoreKit
   evidence honestly and inspect a clean baseline capture before uploading it.
+
+# Image-only review must inspect held items (2026-10-25)
+
+- Apple reviews all items held by one submission together. A command authorized
+  only for image review must verify an existing draft contains only its intended
+  images before writing or submitting, then verify the complete final set.
+- A successful attachment is not proof that the draft has no unrelated version,
+  subscription or IAP item. Refuse ambiguity and read back unknown outcomes.
