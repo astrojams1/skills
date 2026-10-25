@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.6.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.7.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -8,6 +8,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-25 issue logging and closure](runs/2026-10-25-issue-closure.md) | [Canonical skill issue log](runs/2026-10-25-issue-closure.json) | Both encountered issues fixed and verified; read-only completion check passes;166 release tests pass | Unknown / no new paid service |
 | [2026-10-25 Nametag native purchase recovery](runs/2026-10-25-nametag-native-purchases.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | 16 local native StoreKit checks pass; both IAP review images COMPLETE and products READY_TO_SUBMIT; review blocked by unpublished App Privacy answers | Unknown / no paid services or purchases |
 | [2026-10-25 Nametag TestFlight milestone](runs/2026-10-25-nametag-testflight.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Build 1 VALID and installed in TestFlight; owner device check complete; IAP/native QA, privacy, review and public launch remain open | Unknown / no paid services or purchases |
 | [2026-09-16 Newsworthy snapshot](runs/2026-09-16-newsworthy.md) ([JSON](runs/2026-09-16-newsworthy.json)) | [Canonical live ledger](https://github.com/astrojams1/newsworthy/blob/main/store/ledger.json) | Web live; Apple binary/listing saved; both store releases incomplete | Unknown / unknown |
@@ -34,6 +35,16 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.7.0 (2026-10-25)
+
+- Log execution issues promptly as issue.* gates, preserving diagnosis, recovery
+  and verification history. Reconcile command/test/provider failures before finish.
+- `ledger.mjs issues` is a read-only completion check, separate from structural
+  validation and generated-view integrity. Open issues and failed/uncertain gates
+  block success; evidence-free exclusions or legacy inferred closures cannot pass.
+- Fix issues within the agent's control in the same invocation. Genuine external
+  dependencies remain open and the run partial, with exact next actions.
 
 ## Lessons incorporated into v2.6.1 (2026-10-25)
 

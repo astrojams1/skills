@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.6.1"
+  version: "2.7.0"
 ---
 
 # App release
@@ -20,7 +20,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 
 | Script | Does |
 |---|---|
-| `ledger.mjs` | Gate ledger: `init`, `record`, `status`, `render`, `check`, `validate` |
+| `ledger.mjs` | Gate and issue ledger: `init`, `record`, `status`, `render`, `check`, `validate`, `issues` (verified issue closure) |
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
 | `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `release --confirm` |
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
@@ -40,7 +40,9 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 4. Establish the requested platforms and target state (testing, review, live), monetization, territories
    and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
    choice that is genuinely missing. Never import another app's price, claims, IDs or design.
-5. Write the intended gates into the ledger, then advance independent work while account verification,
+5. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
+   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume.
+6. Write the intended gates into the ledger, then advance independent work while account verification,
    provider processing or review is pending.
 
 For an app that has none of this yet, follow Onboarding a new app in [config](references/config.md).
@@ -128,10 +130,21 @@ The full protocol is in [ledger](references/ledger.md).
 
 ## Fix what the release finds
 
-Treat each release run as bug-finding work: reproduce a defect, add a regression test that fails before the
-fix, make the smallest root-cause correction, and ship it on its own branch and pull request (or this run's
-when tightly related), recorded in the run log's bug-fix table. Follow the repository's own PR, review and
-merge rules; a user-facing change waits for the owner's OK where the repository says so.
+Keep an issue log **while the skill runs**, including failed commands, tooling defects, wrong diagnoses,
+API errors, failed checks and missing workflow steps. Record each unexpected problem promptly as an
+`issue.<id>` gate, preserving its original failure and recovery events, and include it in the dated run
+log's issue/fix table. Record symptom and evidence first; label an unknown cause honestly.
+
+Address each issue within the agent's control in this invocation: reproduce it, correct the root cause,
+add a regression test where code changed, and rerun the original failing operation or an appropriate
+verification. A patch, retry, PR or recorded TODO alone does not close an issue. Close only with observed
+verification evidence, and publish reusable workflow/tool fixes here so later apps inherit them. Follow
+repository PR/review rules and existing authorization; the detailed protocol is in [ledger](references/ledger.md).
+
+Before declaring the run complete, reconcile the command/test/provider results with the issue log and
+run `node $S/ledger.mjs issues`. It must pass alongside ledger validation and view checks. Fixable issues
+cannot be left as follow-up work just to finish the run. A demonstrated external dependency stays open
+with attempts, owner, exact dependency and next action; report the run as partial/blocked, never complete.
 
 ## Changing this skill
 
@@ -144,6 +157,8 @@ procedure, including checking every app that uses this skill, is in [maintaining
 
 ## Finish
 
+Complete the issue reconciliation and closure check above first. Do not equate a valid ledger or a
+successful store upload with a clean run; say which encountered issues were fixed and how verified.
 Report what is saved, uploaded, processed, in review, approved and live — separately, per store — with links
 to the ledger and artifacts. Show available design previews inline, clearly distinguishing them from
 verified native captures. List only demonstrated unresolved owner steps, each with exact instructions;

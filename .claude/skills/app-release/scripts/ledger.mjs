@@ -9,7 +9,8 @@
 //   node ledger.mjs record --gate ID --summary TEXT [--state S] [--owner O] [--basis B] [--evidence TEXT]... [--next TEXT]
 //   node ledger.mjs status [--stale-days N]   unfinished gates, release gates first, stale ones flagged, and a warning
 //                                             when this skill's checkout is behind the skills repository's main
-//   node ledger.mjs render | check | validate
+//   node ledger.mjs render | check | validate | issues
+//   issues fails while any recorded issue.* gate remains open or lacks verified closure evidence.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -32,6 +33,38 @@ const DEFAULT_ACTIVITY_HELPER = '~/.codex/skills/mac-memory-maintenance/scripts/
 // isReleaseGate reports whether a gate belongs to the store release rather than product verification.
 export function isReleaseGate(gate) {
   return RELEASE_PREFIXES.includes(gate.split(/[._-]/)[0]);
+}
+
+export function isIssueGate(gate) {
+  return gate.startsWith('issue.');
+}
+
+function observedIssueEvidence(step) {
+  return step.basis === 'observed' && Array.isArray(step.evidence) && step.evidence.length > 0 &&
+    step.evidence.every(item => typeof item === 'string' && item.trim());
+}
+
+// A valid ledger or a finished release gate does not establish that run issues were fixed.
+// Check every recorded issue, including earlier unresolved failures and external blockers.
+export function issueReport(ledger) {
+  const { errors } = validate(ledger);
+  if (errors.length) return { errors, issues: [], open: [] };
+  const issues = Object.entries(ledger.steps).filter(([gate]) => isIssueGate(gate));
+  const open = issues.filter(([, step]) => !FINISHED.includes(step.state));
+  for (const [gate, step] of Object.entries(ledger.steps)) {
+    if (!isIssueGate(gate) && ['failed', 'uncertain'].includes(step.state)) {
+      errors.push(gate + ': untriaged failure or uncertain outcome; log its issue and verify recovery before declaring the run complete');
+    }
+  }
+  for (const [gate, step] of issues) {
+    if (!OWNERS.includes(step.owner)) errors.push(gate + ': invalid issue owner');
+    if (typeof step.summary !== 'string' || !step.summary.trim()) errors.push(gate + ': issue needs a fix, exclusion or current-failure summary');
+    if (FINISHED.includes(step.state) && !observedIssueEvidence(step)) {
+      errors.push(gate + ': closing an issue needs observed, nonblank verification evidence');
+    }
+    if (!FINISHED.includes(step.state) && !step.next_action?.trim()) errors.push(gate + ': open issue needs a concrete next action');
+  }
+  return { errors, issues, open };
 }
 
 // timestamp formats a date the way existing ledgers store it: seconds precision with an explicit UTC offset.
@@ -72,7 +105,8 @@ export function render(ledger, source) {
     lines.push('');
   };
   table('Release gates', gates.filter(([gate]) => isReleaseGate(gate)));
-  table('Product verification gates', gates.filter(([gate]) => !isReleaseGate(gate)));
+  table('Run issues', gates.filter(([gate]) => isIssueGate(gate)));
+  table('Product verification gates', gates.filter(([gate]) => !isReleaseGate(gate) && !isIssueGate(gate)));
   lines.push('## Evidence and history', '');
   for (const event of ledger.events) {
     const result = event.result;
@@ -92,6 +126,7 @@ export function record(ledger, input, at) {
   const { gate, summary } = input;
   if (!gate || !summary) throw new Error('record needs --gate and --summary');
   if (!GATE_ID.test(gate)) throw new Error('gate ids are lowercase words joined by . _ or -, such as apple.review');
+  if (isIssueGate(gate) && (typeof summary !== 'string' || !summary.trim())) throw new Error('an issue needs a nonblank --summary');
   const previous = ledger.steps[gate] || null;
   const pick = (value, key) => (value !== undefined && value !== null ? value : previous ? previous[key] : undefined);
   const result = {
@@ -108,6 +143,9 @@ export function record(ledger, input, at) {
   if (!BASES.includes(result.basis)) throw new Error('basis must be one of ' + BASES.join(', ') + (previous ? '' : ' (a new gate needs --basis)'));
   if (result.state === 'done' && (result.basis !== 'observed' || !result.evidence.length)) {
     throw new Error('done needs --basis observed and at least one --evidence; record a user report as waiting_verification until you read it back');
+  }
+  if (isIssueGate(gate) && FINISHED.includes(result.state) && !observedIssueEvidence(result)) {
+    throw new Error('closing an issue needs --basis observed and nonblank --evidence for the verified fix or exclusion');
   }
   if (!FINISHED.includes(result.state) && !result.next_action) throw new Error('an unfinished gate needs --next');
   if (previous && sameClaim(previous, result)) return { ledger: ledger, changed: false };
@@ -169,8 +207,9 @@ export function staleGates(ledger, now, days) {
 export function statusLines(ledger, now, days) {
   const stale = new Set(staleGates(ledger, now, days));
   const lines = [ledger.app + ' — ' + ledger.objective, 'Updated ' + ledger.updated_at];
-  for (const [title, release] of [['Release gates', true], ['Product verification gates', false]]) {
-    const open = Object.entries(ledger.steps).filter(([gate, step]) => isReleaseGate(gate) === release && !FINISHED.includes(step.state));
+  for (const [title, include] of [['Release gates', isReleaseGate], ['Run issues', isIssueGate],
+    ['Product verification gates', gate => !isReleaseGate(gate) && !isIssueGate(gate)]]) {
+    const open = Object.entries(ledger.steps).filter(([gate, step]) => include(gate) && !FINISHED.includes(step.state));
     if (!open.length) continue;
     lines.push('', title + ':');
     for (const state of STATES) {
@@ -219,7 +258,7 @@ function appendActivity(config, gate, result) {
 }
 
 // FLAGS lists each command's options, so a typo such as --nxt fails instead of being ignored.
-const FLAGS = { init: ['objective', 'platforms'], record: ['gate', 'state', 'owner', 'basis', 'summary', 'evidence', 'next'], status: ['stale-days'], render: [], check: [], validate: [] };
+const FLAGS = { init: ['objective', 'platforms'], record: ['gate', 'state', 'owner', 'basis', 'summary', 'evidence', 'next'], status: ['stale-days'], render: [], check: [], validate: [], issues: [] };
 
 // parseFlags reads --name value pairs; --evidence repeats. With a command, only that command's options are accepted.
 export function parseFlags(args, command) {
@@ -272,6 +311,15 @@ async function main(args) {
     for (const warning of warnings) console.log('warning: ' + warning);
     if (errors.length) throw new Error(errors.join('\n'));
     console.log('Ledger valid: ' + Object.keys(ledger.steps).length + ' gates, ' + ledger.events.length + ' events, ' + warnings.length + ' warnings.');
+  } else if (command === 'issues') {
+    const report = issueReport(ledger);
+    for (const [gate, step] of report.issues) {
+      console.log(gate + ' [' + step.state + ', ' + step.owner + '] ' + step.summary + (step.next_action ? ' — next: ' + step.next_action : ''));
+    }
+    if (report.errors.length) throw new Error(report.errors.join('\n'));
+    if (report.open.length) throw new Error(report.open.length + ' unresolved issue(s); fix and verify them before declaring the run complete. External blockers leave the run partial, not complete.');
+    console.log(report.issues.length ? 'All ' + report.issues.length + ' recorded issues have observed closure evidence.' :
+      'No recorded issues. Reconcile command, test and provider failures with the run log before declaring the run complete.');
   } else if (command === 'status') {
     console.log(statusLines(ledger, new Date(), Number(flags['stale-days'] || 7)).join('\n'));
     // Every run starts here, so this is where an outdated copy of the skill is caught.
@@ -288,7 +336,7 @@ async function main(args) {
     appendActivity(config, flags.gate, outcome.ledger.steps[flags.gate]);
     console.log('Recorded ' + flags.gate + ' (' + outcome.ledger.steps[flags.gate].state + ') as event ' + outcome.ledger.events.length);
   } else {
-    throw new Error('Commands: init, record, status, render, check, validate');
+    throw new Error('Commands: init, record, status, render, check, validate, issues');
   }
 }
 
