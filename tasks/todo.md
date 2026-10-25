@@ -4,6 +4,25 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.7.0: log execution issues and verify closure
+
+- [x] Inspect existing logging, evidence rules and completion checks.
+- [x] Add a read-only issue closure check using existing issue.* gates/history.
+- [x] Require prompt issue logging, verified fixes and final result reconciliation.
+- [x] Test false completion, external blockers, exclusions, legacy claims and read-only behavior.
+- [ ] Refresh discovery, validate, publish and adopt the additive update.
+
+Plan: Reuse canonical gate history instead of adding a parallel issue database.
+Unresolved issues must prevent a successful completion claim; externally blocked
+runs remain partial. Existing commands and ledger schema stay compatible.
+
+Review:166 release tests,53 management checks,141 specification checks, identity,
+eight screenshot-fit checks and skill validation pass. YouTube:five passes and
+one explicit unavailable-ffmpeg skip. Independent targeted review:22/22 pass.
+The maintenance run logs its own completion-check gap and whitespace failure,
+then verified fixes; its validate/check/issues commands all pass.
+
+
 ## app-release 2.6.1: preserve image-only review scope
 
 - [x] Refuse mixed, unknown and duplicate held resources before image review writes.

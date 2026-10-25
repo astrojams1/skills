@@ -328,3 +328,13 @@ current store requirements, and check existing method authorization before askin
   images before writing or submitting, then verify the complete final set.
 - A successful attachment is not proof that the draft has no unrelated version,
   subscription or IAP item. Refuse ambiguity and read back unknown outcomes.
+# Log-and-fix must be checked before run completion (2026-10-25)
+
+- A generated ledger that matches JSON is not proof that issues encountered during
+  execution were fixed. Keep view integrity, structural validation and verified
+  issue closure as separate checks.
+- Log unexpected failures promptly, preserve their recovery history, reconcile
+  the log with actual command/test/provider results, and close only with observed
+  verification. A TODO or a proposed fix does not complete the run.
+- External dependencies remain open with precise next steps; report partial
+  progress instead of treating an evidence-free exclusion as successful recovery.

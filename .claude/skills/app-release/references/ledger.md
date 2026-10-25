@@ -6,7 +6,7 @@ Every app keeps the same three records, plus one shared one. Paths come from `ap
 |---|---|---|---|
 | **Gate ledger** | `ledger.gates` (JSON) | Each gate's state, owner, evidence basis, result, evidence and next action, with an append-only event history | Only through `ledger.mjs record` |
 | **Gate view** | `ledger.view` (Markdown) | Generated: release gates, then product verification gates, then history | `ledger.mjs render`; never by hand |
-| **Run log** | `ledger.runs` (Markdown) | One dated entry per run (including runs that change nothing): request, builds with ids/commit/SHA-256, submissions, what was manual, cost (EAS credits, sandbox minutes, tokens when measured), retries and lessons; a bug-fix table | By hand, in the same pull request as the work |
+| **Run log** | `ledger.runs` (Markdown) | One dated entry per run (including runs that change nothing): request, builds with ids/commit/SHA-256, submissions, what was manual, cost, retries and lessons; an issue/fix table reconciled with `issue.*` gates | By hand, in the same pull request as the work |
 | **Activity ledger** | `activityLog` (the owner's `events.jsonl`) | One machine-readable event per record, across all skills | Appended by `ledger.mjs record` through the owner's helper |
 
 The skill's own [LEDGER.md](../ledger/LEDGER.md) indexes sanitized run summaries and lessons across apps;
@@ -23,11 +23,14 @@ node $S/ledger.mjs record --gate apple.upload --state done --owner agent --basis
 node $S/ledger.mjs record --gate apple.review --state waiting_provider --owner provider --basis observed \
   --summary "Submission s1 WAITING_FOR_REVIEW with build 12" --next "asc.mjs status until Apple decides"
 node $S/ledger.mjs validate | render | check
+node $S/ledger.mjs issues                                             # read-only; fails until recorded issues have verified closure
 ```
 
 `record` keeps a gate's owner, basis and next action when omitted (`--next ""` clears it), writes the JSON
 atomically and regenerates the view. An identical retry adds nothing. Set `APP_RELEASE_RUN_ID` to group a
 run's activity events (default `app-release-<slug>-<date>`).
+
+Set a **unique invocation ID**, rather than relying on that daily fallback, when starting a skill run.
 
 ## Gate semantics
 
@@ -61,6 +64,46 @@ Release gate ids start with `scope`, `account`, `web`, `apple` or `google`; anyt
 `google.phone`, `google.app`, `google.play-api`, `google.build`, `google.native`, `google.listing`,
 `google.artwork`, `google.disclosures`, `google.closed-test`, `google.production-access`, `google.review`,
 `google.release`. Use only the applicable ones; completing `apple.upload` cannot complete `apple.review`.
+
+## Issue log and completion check
+
+Use the existing canonical JSON and append-only history for problems encountered by the skill:
+`issue.<stable-short-id>`. No second issue database or schema migration is needed. Issues appear in their
+own generated table. Reopen the same issue when it recurs; retain earlier failure and fix events.
+
+1. On discovery, record the symptom, observed evidence, affected operation and next investigation before
+   retrying or changing approach. Include unexpected tool/CLI failures, wrong assumptions, failed QA,
+   provider/API errors and defects in the release procedure. Keep raw secrets and signed URLs out of logs.
+2. Update the issue as diagnosis and recovery become known. The run-log table should name the issue ID,
+   symptom/root cause, correction or attempted alternatives, verification evidence and final state.
+3. Fix agent-controlled issues before finishing. For code defects, add a regression check that detects
+   the failure and passes after correction; rerun the failed workflow where feasible. For a setup or
+   usage mistake, verify the corrected operation. Save shared fixes in this skill and app-specific fixes
+   in the app. A proposed patch, passing unrelated test or open follow-up is not verified recovery.
+4. Close with `done`, observed evidence and a summary of the fix and verification. Use `not_applicable`
+   only for a demonstrated false alarm, duplicate or superseded requirement, with observed evidence and
+   the reason; it is not a way to waive an unfixed issue. Both closed states require nonblank evidence.
+5. Reconcile every unexpected failure in command/test/provider results against the issue entries. The
+   log must not omit a failure just because a later command succeeded. If none occurred, explicitly say
+   **none observed** in the dated run log; an empty issue list alone does not establish that.
+6. Run `validate`, `check` and `issues` before declaring completion. `validate` checks structure and
+   history; `check` checks the generated view; **`issues` checks closure**. It fails on open issues of
+   any owner, invalid issue closure evidence and failed/uncertain release gates that still need triage.
+
+```bash
+node $S/ledger.mjs record --gate issue.native-launcher --state in_progress --owner agent --basis observed \
+  --summary "Test launcher rejected; cause not yet established" --evidence "diagnostics/launcher.json" \
+  --next "Compare actual launcher identity and failing client PID"
+node $S/ledger.mjs record --gate issue.native-launcher --state done --owner agent --basis observed \
+  --summary "Original launcher verified; corrected native test route passes" \
+  --evidence "diagnostics/verified-recovery.json" --next ""
+node $S/ledger.mjs issues
+```
+
+For a genuine external dependency, leave the issue open with attempted supported alternatives, the exact
+dependency, responsible party and next readback/action. Keep advancing independent work. The check
+remains nonzero and the run remains partial/blocked; do not relabel the issue fixed or manufacture an
+owner task. Finishing the requested release and publishing the skill correction are separate outcomes.
 
 ## Discipline
 
