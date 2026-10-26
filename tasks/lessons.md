@@ -383,3 +383,23 @@ current store requirements, and check existing method authorization before askin
 - Retry a privacy-blocked submission after observed publication changes, not
   merely because another continuation started. Local skill checks do not verify
   a repaired live session or published store answers.
+
+
+# UI deadlines and browser identity (2026-10-26)
+
+- A wrapper deadline can hide the UI provider's actual error. One bounded, longer diagnostic call
+  exposed a native app-server initialization timeout. Do not confuse better diagnostics with recovery.
+- Inspect the selected provider's identity: an empty MCP Apps surface is not an App Store Connect
+  browser or proof of Apple sign-out. A native initialization error leaves installed apps uninspected.
+- Diagnose the supported control route before asking the owner to perform ordinary app setup. Verify
+  recovery against the intended surface and read app creation back through the public API.
+
+
+# Concurrent store sessions can share team selection (2026-10-26)
+
+- Preserve a PWA another agent is using, including its selected team. A new tab in that profile may
+  share the same state. A separate authorized browser can provide an independent route.
+- Verify the alternate browser's legal entity and app access. Normal saved-passkey selection is not
+  itself a demonstrated owner-only challenge; keep the tool's actual security boundary in force.
+- Successful later binding does not prove an earlier service restart caused recovery. Record the
+  working route and independent app readback without claiming an unproven infrastructure repair.

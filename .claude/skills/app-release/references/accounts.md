@@ -46,6 +46,14 @@ failure does not invalidate an existing session. In one release, direct app bind
 account after inventory/Chrome failed.
 Preserve that successful route on resume rather than starting again from inventory alone.
 
+When the owner or another agent is using that session, preserve its navigation and selected team.
+Tabs in one PWA/profile may share account and team selection; a second tab is not necessarily isolated.
+Use another available, authorized browser session for independent work when needed, then verify the
+selected legal entity and app access there against this app's configuration. Normal saved-passkey
+selection through the permitted UI can establish that session without an owner handoff when no human
+security challenge appears. Keep the original shared session untouched; do not copy its cookies or
+assume the alternate browser inherited its account.
+
 Keep a sanitized session-route record in the app's evidence, referenced from its ledger. Save the app or
 bundle identifier, safe profile alias/opaque identifier and tab/origin when available, last successful
 route and observation time. Reconfirm stale identifiers after reconnecting. Record these dimensions
@@ -77,6 +85,30 @@ establishes a changed, specific human dependency. Keep failed new-tab authentica
 and a locked vault distinct. Do not extract browser/session cookies, credentials or authentication
 codes, bypass OS security, or change accounts/profiles to evade a challenge. Keep private account
 details and sensitive URL parameters out of the session record.
+
+### Diagnose the control route before handing it back
+
+When a UI invocation expires at its own deadline, it may hide the provider's later diagnostic. Use the
+active tool's documented timeout control for one bounded diagnostic retry, long enough to distinguish
+its wrapper timeout from the underlying provider result. For example, a 30-second invocation deadline
+masked a native app-server initialization timeout; a 60-second inventory call returned that specific
+error after about 30 seconds. A longer deadline exposed the failure; it did not repair native control.
+Do not repeat longer waits or create app records again as a recovery strategy. Diagnose the returned
+connector/initialization error through supported tooling, preserving other active sessions.
+If the active tool requires explicit authorization for another UI technology, a request to fix the
+failure does not waive it. Do not substitute shell-based UI automation without that authorization.
+
+Inspect the returned provider identity and capabilities, even when selection was requested by URL. A
+result named **Codex MCP Apps** with type `mcpapps` and no tabs does not establish an App Store Connect
+browser or Apple's authentication state. A missing native-app list accompanied by a native
+initialization error means that inventory failed; it does not prove that the installed PWA is absent.
+Use a supported binding for the intended app/browser when available. Keep a generic fallback provider,
+a browser's missing tab, and an actual Apple login/challenge as separate observations.
+
+Record the invocation deadline, elapsed time, returned provider/error and recovery result without
+session secrets. Mark control restored only after reading the intended surface and completing a
+relevant interaction; for app creation, also perform the independent API identity readback in
+[iOS onboarding](ios.md). Local skill checks and a more informative error do not establish UI recovery.
 
 Respect app-access denials across routes. If the tool explicitly forbids controlling the host app,
 do not bind that native app to reach an unavailable embedded browser. Use another independently

@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.7.3**. This index preserves sanitized outcomes and lessons across
+Skill version **2.7.4**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -8,6 +8,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-26 control-route diagnostics and Safari recovery](runs/2026-10-26-control-route.md) | Shared guidance maintenance; live state in Data Center’s app ledger | Supported Safari route, app identity and internal TestFlight delivery verified; owner invited; concurrent PWA preserved; initialization-recovery cause unproven | Unknown / no new paid service |
 | [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |
 | [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
 | [2026-10-25 issue logging and closure](runs/2026-10-25-issue-closure.md) | [Canonical skill issue log](runs/2026-10-25-issue-closure.json) | Both encountered issues fixed and verified; read-only completion check passes;166 release tests pass | Unknown / no new paid service |
@@ -37,6 +38,16 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.7.4 (2026-10-26)
+
+- A wrapper timeout can hide the control provider's diagnostic. One bounded longer call may expose
+  it; longer waits alone are not a repair. Verify recovery against the intended surface.
+- Inspect returned provider identity. An empty MCP Apps provider is not an Apple browser session,
+  and a failed native inventory leaves installed applications uninspected.
+- Preserve another agent’s active PWA/team; a second tab may share its state. Verify the entity and
+  access in an independent authorized browser before mutating. Saved-passkey selection can complete
+  normal sign-in; respond only to an actual tool/security challenge when one appears.
 
 ## Lessons incorporated into v2.7.3 (2026-10-26)
 
