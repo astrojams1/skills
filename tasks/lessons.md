@@ -21,6 +21,16 @@ Capture patterns and corrections here after any mistake or user feedback. Review
 - Keep tool availability and app-access permission separate. An explicit host-app
   control denial cannot be bypassed by binding it natively to reach an embedded tab.
 
+## Shared discovery cleanup needs ownership evidence (2026-10-26)
+
+- Discovery roots can contain tracked repository skills, untracked local skills
+  and imported shared skills. Absence from upstream does not establish ownership.
+- Record imported copies and content hashes. Remove a retired directory only
+  when prior provenance matches unchanged content; preserve unknown or modified
+  copies, including when provenance is absent or malformed.
+- Restrict legacy flat-file migration to known shared skill names. Exercise
+  install, link and check auto-refresh against real local-skill fixtures.
+
 ## Design System Migration Rigor
 
 **Source:** User feedback (2026-03-04)

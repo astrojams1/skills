@@ -194,26 +194,72 @@ _sync_skill_dir() {
     return 0
 }
 
-# Remove skill directories under $target_dir that no longer exist in $source_dir
-# or are excluded via .skillsexclude.
+# Prune only unchanged copies recorded by a prior refresh. The discovery roots
+# also contain repository-owned skills; absence from shared source is not ownership.
 _remove_stale_skills() {
-    local source_dir="$1" target_dir="$2" root="${3:-}"
+    local source_dir="$1" target_dir="$2"
     [ -d "$target_dir" ] || return 0
-    for entry in "$target_dir"/*/; do
-        [ -d "$entry" ] || continue
-        local name
-        name="$(basename "$entry")"
-        if [ ! -d "$source_dir/$name" ]; then
-            rm -rf "$entry"
-            yellow "Removed stale skill directory: $entry"
-        elif [ -n "$root" ] && _is_excluded_skill "$name" "$root"; then
-            rm -rf "$entry"
-            yellow "Removed excluded skill directory: $entry"
-        fi
-    done
-    # Also clean up any leftover flat .md files from older versions
+    python3 - "$source_dir" "$target_dir" <<'PY'
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import tempfile
+
+source, target = map(Path, sys.argv[1:])
+manifest = target / '.astrojams-skills.json'
+previous = {}
+if manifest.exists():
+    try:
+        data = json.loads(manifest.read_text())
+        if data.get('version') != 1 or data.get('source') != 'astrojams1/skills' or not isinstance(data.get('skills'), dict):
+            raise ValueError('unrecognized provenance')
+        previous = data['skills']
+    except (OSError, ValueError, AttributeError):
+        print('Preserving unverified skill copies: cannot read ' + str(manifest))
+
+def digest(directory):
+    result = hashlib.sha256()
+    for entry in sorted(directory.rglob('*')):
+        name = entry.relative_to(directory).as_posix().encode()
+        if entry.is_symlink():
+            kind, content = b'link', os.readlink(entry).encode()
+        elif entry.is_file():
+            kind, content = b'file', entry.read_bytes()
+        elif entry.is_dir():
+            kind, content = b'directory', b''
+        else:
+            raise ValueError('unsupported file type: ' + str(entry))
+        result.update(kind + b'\0' + name + b'\0' + str(len(content)).encode() + b'\0' + content)
+    return result.hexdigest()
+
+managed = {}
+for entry in sorted(target.iterdir()):
+    if not entry.is_dir() or entry.is_symlink():
+        continue
+    upstream = source / entry.name
+    if upstream.is_dir():
+        if (upstream / 'SKILL.md').is_file():
+            managed[entry.name] = digest(entry)
+    elif entry.name in previous:
+        if digest(entry) == previous[entry.name]:
+            shutil.rmtree(entry)
+            print('Removed stale shared skill directory: ' + str(entry))
+        else:
+            managed[entry.name] = previous[entry.name]
+            print('Preserved modified stale shared skill: ' + str(entry))
+
+with tempfile.NamedTemporaryFile(mode='w', dir=target, delete=False) as temporary:
+    json.dump({'version': 1, 'source': 'astrojams1/skills', 'skills': managed}, temporary, indent=2)
+    temporary.write('\n')
+os.replace(temporary.name, manifest)
+PY
+    # Known source names identify legacy flat imports; preserve unrelated files.
     for flat in "$target_dir"/*.md; do
         [ -f "$flat" ] || continue
+        [ -f "$source_dir/$(basename "$flat" .md)/SKILL.md" ] || continue
         rm "$flat"
         yellow "Removed legacy flat skill file: $flat"
     done

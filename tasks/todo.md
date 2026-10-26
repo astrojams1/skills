@@ -4,6 +4,24 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## Preserve repository-owned skills during stale discovery cleanup
+
+- [x] Reproduce deletion of repository-owned skills during link/check refresh.
+- [x] Record shared-copy provenance and remove only unchanged proven stale copies.
+- [x] Verify consumer and standalone preservation, legacy migration and stale removal.
+- [x] Run required checks and obtain parent diff review; publish the separate PR.
+
+Plan: Keep the fix bounded to discovery cleanup. Unrecorded or changed copies
+remain preserved; managed shared copies retain automatic stale cleanup. Do not
+change consumer applications or unrelated installation behavior.
+
+Review: six new regressions failed against the original cleanup. The fix passes
+65 management checks, 166 release tests, 142 specification checks, identity,
+8 image-fit checks, shell syntax and skill validation. YouTube: 5 pass and
+1 existing unavailable-ffmpeg skip. Parent diff review found no issues. The old
+blanket no-flat-files assertion was narrowed to shared imports so it no longer
+rejects intentionally preserved repository instructions.
+
 ## app-release 2.7.2: honor current UI/session evidence
 
 - [x] Preserve the owner-identified app/profile/tab and explicit unlocked report in shared guidance.
