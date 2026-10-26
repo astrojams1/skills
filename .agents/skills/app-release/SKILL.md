@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.7.1"
+  version: "2.7.2"
 ---
 
 # App release
@@ -83,6 +83,8 @@ Automatic signing and Expo prebuild remain the defaults.
 For simulator/XCTest failures or purchase QA, read “Diagnose XCTest launcher identity” in
 [verification](references/verification.md) before handing checks to the owner. An altered launcher can fail Apple's service authorization even when
 its signature verifies. Preserve completed physical-device checks and use authorized native test routes.
+For simulator QA that changes app/device state, follow “Restore native QA state after every outcome”
+in that reference.
 
 ## Credentials
 
