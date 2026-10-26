@@ -114,6 +114,25 @@ inferring them from a previous run. Bind paths and backups to the manifest. Use
 platform-supported recovery for other native targets; simulator mechanics do not
 authorize replacing personal physical-device data.
 
+Before the first QA mutation, measure headroom on the actual destination
+filesystem for both candidate installation and original-build restoration,
+including temporary installer staging and simultaneous copies. Check the backing
+host filesystem separately: abundant host SSD space does not enlarge a mounted
+QA volume or sparse image's capacity. Reserve recovery headroom before replacing
+the original; an installation failure alone does not identify which volume is full.
+
+If capacity blocks restoration, preserve app/data backups. Stop owned jobs and
+shut down owned targets before a supported nonforced detach; preserve an in-use
+image if clean detachment fails. After clean detachment, create and hash-verify
+the backing-image rollback copy before resizing or changing the owned storage.
+Inspect the actual image format and installed tools' supported capabilities.
+A newer image command may reject a legacy sparse format that another installed,
+format-compatible tool supports. Use a supported method for that format, then
+read back both image limits and mounted filesystem capacity before retrying.
+Do not delete data, reset shared services or invent an owner step to clear space.
+Keep the app-restoration issue open until the original bundle/data and final
+state are independently verified; resizing or host free space is not recovery.
+
 Keep target, device, account and run-ID guards on every mutation and restoration.
 A failed identity guard prevents that stage from touching an uncertain target;
 it does not justify skipping other independently safe cleanup. Operate only on

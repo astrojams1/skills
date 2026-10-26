@@ -7,6 +7,7 @@ Track current work items here. Use checkable items for progress tracking.
 ## app-release 2.7.2: independently guarded native QA cleanup
 
 - [x] Document persisted pre-mutation state and independently guarded cleanup.
+- [x] Add destination-filesystem headroom and format-compatible recovery guidance.
 - [x] Review every local app-release consumer without changing its checkout.
 - [x] Refresh discovery copies and run the required integrity suites.
 - [x] Commit, push and open a draft shared-skill PR; preserve consumer pointers.
@@ -22,6 +23,11 @@ findings after isolating re-termination, initial-Shutdown capture and simulator
 scope. Seven consumer checkouts representing five apps need no config/command
 migration; their pointers stay unchanged pending shared merge and app PRs.
 Draft publication: https://github.com/astrojams1/skills/pull/104 (merge deferred).
+Storage follow-up: check destination capacity for candidate/restoration staging,
+preserve rollback after clean detachment, and select a supported method for the
+actual image format. The same suites pass again; independent review is clean.
+The procedure change does not close another run's pending native verification.
+
 
 ## app-release 2.7.0: log execution issues and verify closure
 

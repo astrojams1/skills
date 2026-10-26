@@ -39,6 +39,10 @@ are stored here. See its canonical ledger before resuming.
 
 ## Lessons incorporated into v2.7.2 (2026-10-26)
 
+- Check destination-filesystem headroom for candidate and original restoration,
+  including installer staging, before QA mutation. Host SSD free space does not
+  establish owned-volume capacity. Preserve rollback/data and use installed,
+  format-compatible storage methods; verify restoration before closing the issue.
 - Persist native QA recovery state before mutation and guard each cleanup stage
   independently. One optional window-geometry assertion previously stopped data
   restoration; failure injection now proves later shutdown/data stages still run.
