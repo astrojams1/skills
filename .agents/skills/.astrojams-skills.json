@@ -2,7 +2,7 @@
   "version": 1,
   "source": "astrojams1/skills",
   "skills": {
-    "app-release": "5060f60dc0f3b4fb74429641e6116c216c6b66265509ab43472501dbb4ee4109",
+    "app-release": "9f101c6cb507e506cbd468e3639e5c32d2c2d617ab6d86578ce6452d878d5032",
     "careful": "9424d454923a60e012295824b7474a6176377afebf7a17e882cf4333adca282a",
     "design-system": "3fadf8fa4521b188ae8baadfcf3cb017661b4f75dfa3882aea05f98a8276897e",
     "design-system-migration-prompt": "151583267dccb5d8820991c025e0cf812d6ee6fcc5f8da542acbcad8caaeb618",

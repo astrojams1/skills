@@ -1,5 +1,16 @@
 # Lessons Learned
 
+## Explain known provider boundaries before the owner asks
+
+**Source:** Rhythm TestFlight correction (2026-10-26).
+
+- A limitation buried in an optional reference is insufficient when it determines the next route.
+  Put the fact and its operational consequence in the skill entrypoint.
+- On initial Apple onboarding, distinguish bundle registration from app-record creation and explain
+  why the latter needs a supported UI route in the first relevant update. Keep credential success,
+  provider capability and UI-tool failure separate; continue authorized independent preparation.
+
+
 ## Exhaust authorized release work before handoff
 
 **Source:** Owner correction during Füd relaunch (2026-10-22).
