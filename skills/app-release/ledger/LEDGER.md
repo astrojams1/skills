@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.7.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.7.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -37,6 +37,16 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.7.3 (2026-10-26)
+
+- Rhythm's initial TestFlight run had working API credentials, a registered bundle ID
+  and a signed IPA, but no App Store Connect app record. The API limitation was
+  already in the iOS reference; the owner still had to ask why UI was required.
+- Promote that boundary into startup guidance and explain it in the first relevant
+  update. A registered bundle is separate from an app record. Keep working credentials
+  and independent preparation distinct from an unavailable UI route. No script or
+  configuration format changes; consumer migration is a shared-skill pointer update.
 
 ## Lessons incorporated into v2.7.2 (2026-10-26)
 

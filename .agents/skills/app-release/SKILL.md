@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.7.2"
+  version: "2.7.3"
 ---
 
 # App release
@@ -26,6 +26,26 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
+
+## Apple onboarding: explain the API boundary up front
+
+For a new iOS app, know this before choosing a release route: the public App Store
+Connect API manages existing **app records** but cannot create the initial one.
+Registering a **bundle ID** through the provisioning API is a separate operation;
+it does not create the App Store Connect record required for upload. Apple's
+[Apps API documentation](https://developer.apple.com/documentation/appstoreconnectapi/apps)
+states this limitation. Do not probe unsupported create endpoints or request new
+credentials to work around it.
+
+When the record is absent, explain this in the first relevant progress update,
+before the owner has to ask “why not use the API?” State the verified credential
+status, the authorized browser/Xcode route being used, and any observed tool failure
+separately. Continue independent preparation and use the
+[iOS app-record workflow](references/ios.md), “Create or reuse the app record”; a UI
+failure does not make credential access or all release work unavailable. Once the
+record exists, continue automated upload and TestFlight work with the existing key.
+Apply this known boundary immediately; recheck current Apple documentation during
+onboarding and revise the guidance if Apple changes the capability.
 
 ## Start or resume
 
