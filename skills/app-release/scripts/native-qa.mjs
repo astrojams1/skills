@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-// Read-only preflight for the Apple launcher needed by native XCTest automation.
+// Verify Apple's launcher, then route one xcodebuild process to an existing device set.
 import { spawnSync } from 'node:child_process';
+import { statSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const USAGE = 'Usage: node skills/skills/app-release/scripts/native-qa.mjs preflight [--launcher PATH]';
+const USAGE = 'Usage: node skills/skills/app-release/scripts/native-qa.mjs preflight [--launcher PATH]\n' +
+  '       node skills/skills/app-release/scripts/native-qa.mjs xcodebuild --device-set PATH -- <xcodebuild arguments>';
+const DEVICE_SET_OPTION = '-DVTSimulatorSetLocation=';
 const IDENTIFIER = 'com.apple.dt.xcodebuild';
 const APPLE_REQUIREMENT = 'identifier "' + IDENTIFIER + '" and anchor apple';
 const REQUIRED_ENTITLEMENTS = ['com.apple.private.DTServiceHubClient', 'com.apple.dt.testmanagerd.control.client'];
@@ -12,6 +15,12 @@ const REMEDY = 'Use the original Apple-signed xcodebuild selected by xcrun --fin
   'Do not re-sign Apple tools or transplant entitlements. A rejected launcher is not evidence of a broken simulator runtime.';
 
 export function parseArgs(args) {
+  if (args[0] === 'xcodebuild') {
+    if (args[1] !== '--device-set' || args[3] !== '--') throw new Error(USAGE);
+    const result = { command: 'xcodebuild', deviceSet: args[2], args: args.slice(4) };
+    validateInvocation(result);
+    return result;
+  }
   if (args[0] !== 'preflight') throw new Error(USAGE);
   let launcher = null;
   for (let index = 1; index < args.length; index += 1) {
@@ -20,6 +29,18 @@ export function parseArgs(args) {
     if (!launcher || launcher.startsWith('--') || launcher.includes('\0')) throw new Error(USAGE);
   }
   return { launcher };
+}
+
+function validateInvocation({ deviceSet, args }) {
+  if (typeof deviceSet !== 'string' || !isAbsolute(deviceSet) || /[\r\n\0]/.test(deviceSet)) {
+    throw new Error('Device set must be an absolute path.\n' + USAGE);
+  }
+  if (!Array.isArray(args) || args.length === 0 || args.some(arg => typeof arg !== 'string' || arg.includes('\0'))) {
+    throw new Error(USAGE);
+  }
+  if (args.some(arg => /^(?:--?)?DVTSimulatorSetLocation(?:=|$)/.test(arg))) {
+    throw new Error('Pass simulator routing only through --device-set; forwarded DVTSimulatorSetLocation is ambiguous.');
+  }
 }
 
 // Accept the displayed Apple requirement as a conjunction; unknown expressions fail closed.
@@ -164,13 +185,47 @@ export function preflight({ launcher = null, run = runCommand } = {}) {
   };
 }
 
+function executeXcodebuild(launcher, args) {
+  return spawnSync(launcher, args, { stdio: 'inherit', shell: false });
+}
+
+export function runXcodebuild({ deviceSet, args, run = runCommand, execute = executeXcodebuild, stat = statSync }) {
+  validateInvocation({ deviceSet, args });
+  try {
+    if (!stat(deviceSet).isDirectory()) throw new Error('not a directory');
+  } catch {
+    throw new Error('Device set must already exist as a directory: ' + deviceSet);
+  }
+  const checked = preflight({ run });
+  const result = { ...checked, command: 'xcodebuild', deviceSet, executed: false };
+  if (!checked.ok) return result;
+  // Xcode's built-in preference requires one equals-form argument. No shell,
+  // launcher modification, persistent preference, or device-set rewrite is used.
+  const child = execute(checked.launcher, [DEVICE_SET_OPTION + deviceSet, ...args]);
+  return {
+    ...result,
+    executed: true,
+    ok: child.status === 0 && !child.error && !child.signal,
+    exitCode: Number.isInteger(child.status) ? child.status : 1,
+    signal: child.signal || null,
+    issues: child.error ? ['launcher-execution-failed:' + child.error.code] : [],
+  };
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     if (process.argv[2] === '--help') console.log(USAGE);
     else {
-      const result = preflight(parseArgs(process.argv.slice(2)));
-      console.log(JSON.stringify(result, null, 2));
-      if (!result.ok) process.exitCode = 1;
+      const options = parseArgs(process.argv.slice(2));
+      if (options.command === 'xcodebuild') {
+        const result = runXcodebuild(options);
+        if (!result.executed || result.issues.length) console.error(JSON.stringify(result, null, 2));
+        process.exitCode = result.executed ? result.exitCode : 1;
+      } else {
+        const result = preflight(options);
+        console.log(JSON.stringify(result, null, 2));
+        if (!result.ok) process.exitCode = 1;
+      }
     }
   } catch (error) {
     console.error(error.message);
