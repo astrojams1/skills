@@ -38,9 +38,11 @@ cookies, bypass security checks or infer signing authority from browser access.
 
 ### Preserve session continuity
 
-Read the last working UI route from the app's ledger/run log before opening another login URL. Rebind
-the same installed app/PWA or existing browser profile and tab through the supported tool. A new tab can
-use a different profile or authentication context; its login failure does not invalidate an existing
+Start with the exact app/profile/tab the owner identifies as active, including an existing in-app
+browser, using its supported binding. Read the last working UI route from the app's ledger/run log
+before opening another login URL. Rebind the same installed app/PWA or existing browser profile and tab
+through the supported tool. A new tab can use a different profile or authentication context; its login
+failure does not invalidate an existing
 session. In one release, direct app binding exposed the signed-in account after inventory/Chrome failed.
 Preserve that successful route on resume rather than starting again from inventory alone.
 
@@ -63,13 +65,23 @@ biometric, MFA or device-approval challenge may require the owner under the tool
 precise challenge separately instead of restarting the whole sign-in flow.
 
 An inventory error or connector lock diagnostic is evidence about the tool call, not proof that the
-Mac is locked or Apple is signed out. If control fails again with the same error and unchanged state,
-reuse its recorded failure and diagnose the supported binding/connector route; do not repeat denied
+Mac is locked or Apple is signed out. When the owner explicitly says the Mac is unlocked, retain that
+as current owner-reported desktop evidence and correct the earlier inference; do not ask them to
+unlock again from the same diagnostic. A missing browser in inventory or an unavailable browser binding
+establishes that tool's availability, not the existing session's authentication state. Record Apple
+authentication as uninspected until that surface can be read, preserving the owner's sign-in report.
+If control fails again with the same error and unchanged state, reuse its recorded failure and diagnose
+the supported binding/connector route; do not repeat denied
 calls, automatic unlock attempts or the same owner sign-in request. Ask again only when new evidence
 establishes a changed, specific human dependency. Keep failed new-tab authentication, a PWA challenge
 and a locked vault distinct. Do not extract browser/session cookies, credentials or authentication
 codes, bypass OS security, or change accounts/profiles to evade a challenge. Keep private account
 details and sensitive URL parameters out of the session record.
+
+Respect app-access denials across routes. If the tool explicitly forbids controlling the host app,
+do not bind that native app to reach an unavailable embedded browser. Use another independently
+authorized, supported route for the operation; if none can read the needed content, retain the exact
+connector limitation and continue work that does not depend on it.
 
 For a CLI's device login, a prefilled verification URL can leave its authorization button disabled.
 Use the provider's normal code-entry page and enter the code from the CLI, then inspect the resulting

@@ -4,6 +4,23 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.7.2: honor current UI/session evidence
+
+- [x] Preserve the owner-identified app/profile/tab and explicit unlocked report in shared guidance.
+- [x] Distinguish unavailable browser bindings from sign-out and preserve app-access denials.
+- [x] Review affected consumers, refresh discovery and run required repository checks.
+- [ ] Publish the narrow documentation correction for review.
+
+Plan: Correct the misleading UI-tool signal in the shared release skill. Do not
+change app code, provider state, authentication settings or unrelated checkouts.
+Validation establishes guidance and repository integrity; live App Store access
+and ImportTron resubmission remain with the owning release agent.
+
+Review: 166 release tests, 53 management checks, 142 specification checks,
+identity, 8 image-fit checks and skill validation pass. YouTube: 5 pass and
+1 existing unavailable-ffmpeg skip. Seven configs/five apps need no migration.
+Missing PyYAML was resolved in an isolated SSD venv; no global runtime changed.
+
 ## app-release 2.7.0: log execution issues and verify closure
 
 - [x] Inspect existing logging, evidence rules and completion checks.

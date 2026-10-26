@@ -12,6 +12,15 @@
 
 Capture patterns and corrections here after any mistake or user feedback. Review at session start.
 
+## Honor current owner evidence when a UI diagnostic disagrees (2026-10-26)
+
+- Prioritize the exact active app/profile/tab the owner names. An unavailable
+  in-app browser binding says nothing about that page's Apple authentication.
+- Preserve the owner's explicit unlocked report and correct the inferred lock
+  claim. Do not repeat an unlock or sign-in request from the unchanged tool error.
+- Keep tool availability and app-access permission separate. An explicit host-app
+  control denial cannot be bypassed by binding it natively to reach an embedded tab.
+
 ## Design System Migration Rigor
 
 **Source:** User feedback (2026-03-04)
