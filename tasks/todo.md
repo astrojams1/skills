@@ -4,6 +4,24 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.7.2: independently guarded native QA cleanup
+
+- [x] Document persisted pre-mutation state and independently guarded cleanup.
+- [x] Review every local app-release consumer without changing its checkout.
+- [x] Refresh discovery copies and run the required integrity suites.
+- [ ] Commit, push and open a draft shared-skill PR; preserve consumer pointers.
+
+Plan: Keep the reusable Füd cleanup lesson in the native verification reference.
+Preserve target/account/run guards and existing authorization. No new script,
+API or app change is needed for this documentation correction.
+
+Review:166 release tests,53 management checks,142 specification checks, identity,
+eight screenshot-fit checks and skill validation pass. YouTube:five passes and
+one explicit unavailable-ffmpeg skip. Independent review has no remaining
+findings after isolating re-termination, initial-Shutdown capture and simulator
+scope. Seven consumer checkouts representing five apps need no config/command
+migration; their pointers stay unchanged pending shared merge and app PRs.
+
 ## app-release 2.7.0: log execution issues and verify closure
 
 - [x] Inspect existing logging, evidence rules and completion checks.

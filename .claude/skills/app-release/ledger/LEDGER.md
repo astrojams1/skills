@@ -37,6 +37,17 @@ privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
 
+## Lessons incorporated into v2.7.2 (2026-10-26)
+
+- Persist native QA recovery state before mutation and guard each cleanup stage
+  independently. One optional window-geometry assertion previously stopped data
+  restoration; failure injection now proves later shutdown/data stages still run.
+- Resolve owned app/data paths before Shutdown or from exact offline metadata;
+  post-Shutdown `get_app_container` can fail with code 149. Verify the full
+  original bundle/data manifest, preferences, auth/fixtures and device state.
+- Current captures and observed gestures guide unknown OS window geometry.
+  Preserve target/account/run guards; no shared resets or invented owner step.
+
 ## Lessons incorporated into v2.7.1 (2026-10-26)
 
 - Resume the last working app/PWA, profile and tab before starting a new login.

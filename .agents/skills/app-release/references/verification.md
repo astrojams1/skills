@@ -99,6 +99,73 @@ planned detach, shut down only the owned UUID through the same set and confirm n
 never eject an in-use image or shut down unrelated devices. Failure of this optional recovery leaves
 other authorized build, backend and listing work available.
 
+### Restore native QA state after every outcome
+
+For simulator QA that changes an installed build, app data or device preferences,
+persist a private run-owned recovery manifest on SSD. Before booting or changing
+anything, record the exact QA set/device UUID, app identity, authorized account
+context, unique run ID and original boot state. If the target starts Shutdown,
+record that before booting; resolve booted-only container paths and capture app
+state before replacing the build/data or changing preferences. Save full original
+app-bundle and data backups/manifests, appearance, text size, orientation and
+native window state before changing them. Capture the original window through
+the supported UI route; record unknown/unavailable fields explicitly rather than
+inferring them from a previous run. Bind paths and backups to the manifest. Use
+platform-supported recovery for other native targets; simulator mechanics do not
+authorize replacing personal physical-device data.
+
+Keep target, device, account and run-ID guards on every mutation and restoration.
+A failed identity guard prevents that stage from touching an uncertain target;
+it does not justify skipping other independently safe cleanup. Operate only on
+the owned app, companion process and device. Never reset shared simulator
+services, other devices or accounts to recover this run.
+
+Implement cleanup as independently guarded stages, each with its own attempt,
+result, evidence and failure record. Use `finally` to enter cleanup, but do not
+put the whole sequence under one guard: a failed assertion must not abort the
+remaining stages. Respect boot-dependent operations and process quiescence:
+
+1. Terminate the owned test app.
+2. If the run replaced its build, restore the original bundle while booted and
+   independently verify it before any optional launch of that build.
+3. Attempt optional pose/window restoration while booted using the verified
+   original build when a live app is required. Unknown window geometry needs a
+   current original capture and an observed supported gesture, not a hard-coded
+   list of accepted sizes. Record unresolved restoration and continue cleanup.
+4. Independently terminate the owned app again, even if window restoration failed.
+   Confirm it is stopped before final data restoration; if quiescence cannot be
+   established, preserve backups and record the blocked restore instead of
+   overwriting live data. Shutdown may establish quiescence in a later stage.
+5. Stop the run-owned companion process.
+6. Restore and read back saved appearance/text and other changed preferences
+   while those APIs are available, guarding each restoration independently.
+7. Restore the initial device state; when it was `Shutdown`, shut down only the
+   exact owned UUID through the same QA set. Independently confirm its final state.
+8. Restore final original data in the confirmed quiescent state, then independently
+   verify both the full app bundle and data manifest. Check all original files
+   and hashes, authentication/fixture state and any changed preferences, not a
+   representative file or build label. Keep the app stopped after final data
+   restoration so relaunch cannot rewrite restored data. A needed later launch
+   requires another restore and verification.
+
+`simctl get_app_container` can fail with code 149 after Shutdown. Use the paths
+saved while booted, or resolve the exact app's owned container from offline
+metadata under the recorded device/set with identity/path checks. Never guess a
+container from the newest UUID/directory or switch to another device to finish.
+
+Record every stage failure even when later stages succeed. Cleanup is verified
+only by the final bundle/data/preference/process/device evidence; reaching
+`finally` is not success. Distinguish an optional window-restore failure from
+successful data restoration. A failed reinstall or other restoration remains an
+open issue until that stage is recovered and verified; later cleanup success
+cannot close it.
+When changing a cleanup helper, inject an early optional-stage failure and prove
+that later shutdown and data restoration still run. In the observed Füd run, an
+optional geometry assertion aborted the original cleanup before data restoration;
+independent stages recovered the original bundle, all 34 data files, preferences
+and Shutdown state. This is a cleanup lesson, not a claim about another app's QA
+or an additional owner-only check.
+
 ### Diagnose XCTest launcher identity
 
 Before treating a test-runner connection failure as a simulator outage, run
