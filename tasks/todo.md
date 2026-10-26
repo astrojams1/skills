@@ -9,7 +9,7 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Preserve the owner-identified app/profile/tab and explicit unlocked report in shared guidance.
 - [x] Distinguish unavailable browser bindings from sign-out and preserve app-access denials.
 - [x] Review affected consumers, refresh discovery and run required repository checks.
-- [ ] Publish the narrow documentation correction for review.
+- [x] Publish the narrow documentation correction in [PR #105](https://github.com/astrojams1/skills/pull/105).
 
 Plan: Correct the misleading UI-tool signal in the shared release skill. Do not
 change app code, provider state, authentication settings or unrelated checkouts.

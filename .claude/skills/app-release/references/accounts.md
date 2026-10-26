@@ -42,8 +42,8 @@ Start with the exact app/profile/tab the owner identifies as active, including a
 browser, using its supported binding. Read the last working UI route from the app's ledger/run log
 before opening another login URL. Rebind the same installed app/PWA or existing browser profile and tab
 through the supported tool. A new tab can use a different profile or authentication context; its login
-failure does not invalidate an existing
-session. In one release, direct app binding exposed the signed-in account after inventory/Chrome failed.
+failure does not invalidate an existing session. In one release, direct app binding exposed the signed-in
+account after inventory/Chrome failed.
 Preserve that successful route on resume rather than starting again from inventory alone.
 
 Keep a sanitized session-route record in the app's evidence, referenced from its ledger. Save the app or
@@ -71,8 +71,8 @@ unlock again from the same diagnostic. A missing browser in inventory or an unav
 establishes that tool's availability, not the existing session's authentication state. Record Apple
 authentication as uninspected until that surface can be read, preserving the owner's sign-in report.
 If control fails again with the same error and unchanged state, reuse its recorded failure and diagnose
-the supported binding/connector route; do not repeat denied
-calls, automatic unlock attempts or the same owner sign-in request. Ask again only when new evidence
+the supported binding/connector route; do not repeat denied calls, automatic unlock attempts or the same
+owner sign-in request. Ask again only when new evidence
 establishes a changed, specific human dependency. Keep failed new-tab authentication, a PWA challenge
 and a locked vault distinct. Do not extract browser/session cookies, credentials or authentication
 codes, bypass OS security, or change accounts/profiles to evade a challenge. Keep private account
