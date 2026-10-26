@@ -773,7 +773,7 @@ with native JSON serialization and verified by parsing the actual artifact. Actu
 - [x] Apply the narrow shared workflow correction and patch version.
 - [x] Refresh discovery, check consumer compatibility, and run required validation.
 - [x] Review the shared correction; required checks and root diff review pass.
-- [ ] Publish the correction and record the PR.
+- [x] Publish the correction in draft PR #108: https://github.com/astrojams1/skills/pull/108.
 
 Review: guidance-only v2.7.3 exposes masked provider diagnostics and verifies returned browser identity.
 Required checks pass; all 12 consumer checkouts normalize unchanged. The release root confirmed the
