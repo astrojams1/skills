@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.7.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.7.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -8,6 +8,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
 | [2026-10-25 issue logging and closure](runs/2026-10-25-issue-closure.md) | [Canonical skill issue log](runs/2026-10-25-issue-closure.json) | Both encountered issues fixed and verified; read-only completion check passes;166 release tests pass | Unknown / no new paid service |
 | [2026-10-25 Nametag native purchase recovery](runs/2026-10-25-nametag-native-purchases.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | 16 local native StoreKit checks pass; both IAP review images COMPLETE and products READY_TO_SUBMIT; review blocked by unpublished App Privacy answers | Unknown / no paid services or purchases |
 | [2026-10-25 Nametag TestFlight milestone](runs/2026-10-25-nametag-testflight.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Build 1 VALID and installed in TestFlight; owner device check complete; IAP/native QA, privacy, review and public launch remain open | Unknown / no paid services or purchases |
@@ -35,6 +36,18 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.7.1 (2026-10-26)
+
+- Resume the last working app/PWA, profile and tab before starting a new login.
+  Inventory failure or a fresh tab's authentication failure does not invalidate it.
+- Persist control, Apple authentication, selected team and vault observations
+  independently. Reinspect the same surface after reported sign-in; an unchanged
+  connector error is not grounds for another identical owner handoff.
+- Keep actual human security challenges separate from authorized ordinary UI
+  navigation. Retain Fastlane's owner-password fallback restriction.
+- After a known unpublished-privacy rejection, verify publication before retrying
+  submission. Documentation validation does not prove live-session recovery.
 
 ## Lessons incorporated into v2.7.0 (2026-10-25)
 

@@ -704,3 +704,27 @@ already bundled workspace Python runs all eight fit checks without installation.
 TestFlight191 verification succeeds through the corrected helper. No account/certification mutation.
 Direct consumer inspection found Füd, Newsworthy and two Space Worms checkouts with unchanged config
 and commands; additional known linked checkouts are checked before pointer updates.
+
+## app-release 2.7.1: preserve authorized session continuity
+
+- [x] Read skill-creator, current Agent Skills specification and the observed session history.
+- [x] Preserve known working app/profile/tab and separate control, authentication, team and vault observations.
+- [x] Prevent repeated unchanged sign-in handoffs and privacy-blocked submission retries.
+- [x] Add sanitized run/issue history and lessons; refresh discovery copies.
+- [x] Run all required suites and skill validation; prepare commit for parent review without pushing.
+- [x] Owning release agent independently forward-tests and reviews the narrow source diff.
+- [ ] Owning release agent publishes and updates consumer pointers after merge.
+
+Plan: change guidance only, retaining Fastlane session/password-fallback restrictions. Current UI/authentication observations do not establish that the desktop is locked or that the provider session is restored. Actual publication and independent forward-testing remain with the owning release run.
+
+Review: 166 release tests, 53 management checks, 142 specification checks, identity, 8 screenshot-fit checks
+and skill validation pass. YouTube has 5 passes and its existing explicit ffmpeg-unavailable skip. The
+entrypoint initially used a fragment that the spec checker treated as a filename; the failure is logged,
+the link now names the existing file/section separately, and the original suite passes. Seven checkout
+configurations across five apps normalize without migration. No commands, schema, provider/account state or consumer files
+changed. Discovery copies are generated. The parent's independent dry-run preserves the known PWA/profile,
+separates session dimensions, avoids repeated owner handoff and waits for privacy readback. Its Fastlane
+ambiguity is resolved by explicitly rejecting normal login when session-only reuse cannot be guaranteed.
+The shared workflow issue is verified; live-session and App Privacy recovery remain unverified app gates.
+An evidence-summary writer also failed by mixing JSON/Python boolean syntax; it was logged, replaced
+with native JSON serialization and verified by parsing the actual artifact. Actual suite logs were intact.

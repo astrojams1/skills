@@ -26,8 +26,10 @@ stable vault/item IDs in `ios.vault`; the owner does not need to rename the item
 The public App Store Connect API does not expose app creation: the observed `POST /v1/apps` response was
 403, “does not allow CREATE”. This is an API limitation, not an owner-only task. Use an authorized
 signed-in browser or Xcode session. Preserve the owner's existing scope authorization; do not ask them
-to create a record merely because the API cannot. Do not sign in with the owner's password or extract
-browser cookies; sign-in and security challenges need the owner when no authorized session is available.
+to create a record merely because the API cannot. Do not extract browser cookies or trigger credential
+fallback outside the authorized sign-in scope. Ordinary authorized UI navigation and existing
+account/passkey selection are separate from a demonstrated human security challenge; follow the active
+tool's rules and preserve the known working surface using [session continuity](accounts.md#preserve-session-continuity).
 
 1. **Check for an existing record first.** In the intended team, query
    `GET /v1/apps?filter[bundleId]=<bundle-id>` with the existing API key. Reuse exactly one matching app;

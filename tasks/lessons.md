@@ -338,3 +338,18 @@ current store requirements, and check existing method authorization before askin
   verification. A TODO or a proposed fix does not complete the run.
 - External dependencies remain open with precise next steps; report partial
   progress instead of treating an evidence-free exclusion as successful recovery.
+
+# Preserve session continuity after reported sign-in (2026-10-26)
+
+- Retain the last working app/PWA, profile and tab across release turns. A later
+  failing inventory cannot erase direct-route success; a newly opened login tab
+  can have a different authentication context.
+- Separate UI-control errors, Apple sign-in/challenges, team selection and vault
+  lock state. A connector error or locked vault is not proof of Apple sign-out or
+  a locked desktop. Reinspect the same surface after an owner reports sign-in;
+  diagnose an unchanged connector failure instead of repeating the request.
+- Ordinary authorized UI navigation is distinct from a demonstrated human
+  security challenge. Keep CLI password-fallback protections and tool boundaries.
+- Retry a privacy-blocked submission after observed publication changes, not
+  merely because another continuation started. Local skill checks do not verify
+  a repaired live session or published store answers.
