@@ -29,6 +29,12 @@ active tool's actual attestation rules, preserving a pending-confirmation state
 if necessary. Read back the published result before reporting completion.
 [Apple privacy publication](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy).
 
+Resume the known working app/profile/tab using [session continuity](accounts.md#preserve-session-continuity)
+before opening a fresh login. Record control access, Apple authentication and publication independently.
+After `APP_DATA_USAGES_REQUIRED`, retain the exact provider error and existing review draft; do not
+repeat submission against the unchanged privacy gate. Publish and read back the intended answers first,
+then retry the authorized submission. A new login attempt or prepared JSON does not change that gate.
+
 ### Alternative when the Apple browser is unavailable
 
 Check Fastlane's documented
@@ -42,6 +48,10 @@ Fastlane's normal login can fall back to stored credentials when a session expir
 when authorized session reuse can be ensured without owner-password sign-in; otherwise leave
 normal sign-in and required security challenges to the owner. Do not extract browser cookies,
 use a stored owner password, or assume that stopping at a password prompt prevents that fallback.
+If the installed client cannot guarantee session-only reuse, record that route as unavailable without
+executing its normal login; do not treat this as evidence that the browser is signed out.
+This CLI fallback restriction does not make ordinary authorized UI navigation or existing account/passkey
+selection owner-only; inspect the actual challenge and active tool rules as described in session continuity.
 Confirm the App Store Connect team/provider separately: Fastlane's `team_id` is not the config's
 signing `ios.teamId`.
 

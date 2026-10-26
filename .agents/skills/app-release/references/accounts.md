@@ -36,11 +36,40 @@ profile/session while restoring the controls. Verify the browser profile, accoun
 entity before changing app state. This is an authorized-session alternative, not a reason to extract
 cookies, bypass security checks or infer signing authority from browser access.
 
-An inventory error is evidence about that tool call, not proof of the desktop's state. If the owner
-disputes a lock report, or existing app access may still work, try the supported direct binding to the
-intended app or known tab once before requesting an unlock. During one release, inventory reported a
-locked Mac while direct Chrome access immediately exposed the existing signed-in session. Record
-which route failed and which worked; do not repeat automatic unlock attempts or bypass OS security.
+### Preserve session continuity
+
+Read the last working UI route from the app's ledger/run log before opening another login URL. Rebind
+the same installed app/PWA or existing browser profile and tab through the supported tool. A new tab can
+use a different profile or authentication context; its login failure does not invalidate an existing
+session. In one release, direct app binding exposed the signed-in account after inventory/Chrome failed.
+Preserve that successful route on resume rather than starting again from inventory alone.
+
+Keep a sanitized session-route record in the app's evidence, referenced from its ledger. Save the app or
+bundle identifier, safe profile alias/opaque identifier and tab/origin when available, last successful
+route and observation time. Reconfirm stale identifiers after reconnecting. Record these dimensions
+separately; use `unknown` when the relevant surface cannot be inspected:
+
+| Dimension | Record the observation |
+| --- | --- |
+| UI control | Exact app/tab binding, last successful interaction, tool error and supported recovery attempted |
+| Apple authentication | Signed-in page, login/challenge shown, or unknown; keep an owner report distinct from readback |
+| Team and role | Intended entity and observed selected team/access; API authority does not prove browser authority |
+| Password manager | Locked, unlocked or uninspected, only when relevant; vault state does not establish Apple sign-out |
+
+After the owner reports signing in, rebind and inspect **that same surface** before starting another
+login or asking again. Continue ordinary authorized UI navigation and account/passkey selection when
+the active tool permits it. A chooser is not proof of completed authentication; an actual password,
+biometric, MFA or device-approval challenge may require the owner under the tool's rules. Preserve that
+precise challenge separately instead of restarting the whole sign-in flow.
+
+An inventory error or connector lock diagnostic is evidence about the tool call, not proof that the
+Mac is locked or Apple is signed out. If control fails again with the same error and unchanged state,
+reuse its recorded failure and diagnose the supported binding/connector route; do not repeat denied
+calls, automatic unlock attempts or the same owner sign-in request. Ask again only when new evidence
+establishes a changed, specific human dependency. Keep failed new-tab authentication, a PWA challenge
+and a locked vault distinct. Do not extract browser/session cookies, credentials or authentication
+codes, bypass OS security, or change accounts/profiles to evade a challenge. Keep private account
+details and sensitive URL parameters out of the session record.
 
 For a CLI's device login, a prefilled verification URL can leave its authorization button disabled.
 Use the provider's normal code-entry page and enter the code from the CLI, then inspect the resulting

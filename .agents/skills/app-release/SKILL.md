@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.7.0"
+  version: "2.7.1"
 ---
 
 # App release
@@ -105,7 +105,9 @@ commit a key, token, password, review phone or bank detail; check access without
   provider restrictions and tool security boundaries; repeating a denied request is not an alternative.
   Check existing user and repository instructions for authorized methods before requesting permission
   again. An unavailable UI tool does not prove the desktop is locked; report the observed tool failure
-  separately from the owner's device state.
+  separately from the owner's device state. Resume the known working app/profile/tab and preserve
+  session observations across turns ([accounts](references/accounts.md), “Preserve session continuity”);
+  do not turn an unchanged connector failure into another owner sign-in request.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
   `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
