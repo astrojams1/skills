@@ -102,7 +102,26 @@ git -C "$TMP_INSTALL" init --quiet
 git -C "$TMP_INSTALL" config user.email "test@example.com"
 git -C "$TMP_INSTALL" config user.name "Test User"
 
+# Existing project-owned skills share the discovery roots with imported skills.
+for discovery in .claude/skills .agents/skills; do
+    mkdir -p "$TMP_INSTALL/$discovery/repository-release/references"
+    echo "repository release instructions" > "$TMP_INSTALL/$discovery/repository-release/SKILL.md"
+    echo "repository release evidence" > "$TMP_INSTALL/$discovery/repository-release/references/evidence.md"
+    echo "repository flat instructions" > "$TMP_INSTALL/$discovery/repository-notes.md"
+done
+git -C "$TMP_INSTALL" add .claude/skills .agents/skills
+git -C "$TMP_INSTALL" -c commit.gpgsign=false commit -q -m "Add repository-owned skills"
+
 GIT_ALLOW_PROTOCOL=file SKILLS_REMOTE="$REPO_ROOT" bash "$MANAGE" install "$TMP_INSTALL" >/dev/null
+
+for discovery in .claude/skills .agents/skills; do
+    if [ "$(cat "$TMP_INSTALL/$discovery/repository-release/references/evidence.md" 2>/dev/null || true)" = "repository release evidence" ] \
+        && [ "$(cat "$TMP_INSTALL/$discovery/repository-notes.md" 2>/dev/null || true)" = "repository flat instructions" ]; then
+        pass "install preserves existing repository skills in $discovery"
+    else
+        fail "install removed existing repository skills from $discovery"
+    fi
+done
 
 # Commit staged files so check commands have a valid HEAD (required for check #2.5)
 git -C "$TMP_INSTALL" -c commit.gpgsign=false commit -q -m "chore: add skills submodule" 2>/dev/null || true
@@ -121,11 +140,11 @@ else
     fail "install did not create .agents/skills/design-system/SKILL.md directory"
 fi
 
-# Verify no flat .md files remain (old format)
-if ls "$TMP_INSTALL/.claude/skills"/*.md 2>/dev/null | grep -qv '/SKILL\.md$'; then
-    fail "flat .md files found in .claude/skills/ (old format not cleaned up)"
+# Shared imports use directory format; unrelated project flat skills are retained.
+if [ -f "$TMP_INSTALL/.claude/skills/design-system.md" ]; then
+    fail "shared skill still uses the legacy flat format"
 else
-    pass "no flat .md files in .claude/skills/ (clean directory structure)"
+    pass "shared skill uses directory format"
 fi
 
 # Verify the copied SKILL.md matches the source
@@ -269,6 +288,104 @@ if [ ! -f "$TMP_INSTALL/.agents/skills/design-system.md" ]; then
 else
     fail "link did not remove flat .md file from .agents/skills/"
 fi
+
+echo ""
+echo "Testing discovery cleanup ownership..."
+
+# Recreate local skills after install so link/check preservation is tested even
+# when an older installer deleted the initial fixtures.
+for discovery in .claude/skills .agents/skills; do
+    mkdir -p "$TMP_INSTALL/$discovery/repository-release/references"
+    echo "repository release instructions" > "$TMP_INSTALL/$discovery/repository-release/SKILL.md"
+    echo "repository release evidence" > "$TMP_INSTALL/$discovery/repository-release/references/evidence.md"
+    echo "repository flat instructions" > "$TMP_INSTALL/$discovery/repository-notes.md"
+done
+
+# Simulate two shared skills appearing, then disappearing upstream.
+for discovery in .claude/skills .agents/skills; do
+    mkdir -p "$TMP_INSTALL/$discovery/untracked-tool"
+    echo "local tool instructions" > "$TMP_INSTALL/$discovery/untracked-tool/SKILL.md"
+done
+for name in retired-shared retired-modified; do
+    mkdir -p "$TMP_INSTALL/skills/skills/$name"
+    echo "shared instructions" > "$TMP_INSTALL/skills/skills/$name/SKILL.md"
+done
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null 2>&1)
+echo "repository addition" > "$TMP_INSTALL/.agents/skills/retired-modified/local.md"
+rm -rf "$TMP_INSTALL/skills/skills/retired-shared" "$TMP_INSTALL/skills/skills/retired-modified"
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null 2>&1)
+
+for discovery in .claude/skills .agents/skills; do
+    if [ -f "$TMP_INSTALL/$discovery/repository-release/references/evidence.md" ] \
+        && [ -f "$TMP_INSTALL/$discovery/repository-notes.md" ] \
+        && [ -f "$TMP_INSTALL/$discovery/untracked-tool/SKILL.md" ]; then
+        pass "link preserves unmanaged directories and flat skills in $discovery"
+    else
+        fail "link removed unmanaged skills from $discovery"
+    fi
+    if [ ! -e "$TMP_INSTALL/$discovery/retired-shared" ]; then
+        pass "link removes an unchanged retired shared skill from $discovery"
+    else
+        fail "link retained an unchanged retired shared skill in $discovery"
+    fi
+done
+if [ -f "$TMP_INSTALL/.agents/skills/retired-modified/local.md" ] \
+    && [ ! -e "$TMP_INSTALL/.claude/skills/retired-modified" ]; then
+    pass "link preserves a changed retired shared copy while removing the unchanged copy"
+else
+    fail "link lost local changes or retained the unchanged retired shared copy"
+fi
+
+# Force check's auto-refresh path with a missing shared skill.
+rm -rf "$TMP_INSTALL/.agents/skills/design-system"
+(cd "$TMP_INSTALL" && bash "$MANAGE" check >/dev/null 2>&1) || true
+if [ -f "$TMP_INSTALL/.agents/skills/design-system/SKILL.md" ] \
+    && [ -f "$TMP_INSTALL/.agents/skills/repository-release/references/evidence.md" ] \
+    && [ -f "$TMP_INSTALL/.claude/skills/repository-release/references/evidence.md" ] \
+    && [ -f "$TMP_INSTALL/.agents/skills/retired-modified/local.md" ]; then
+    pass "check auto-refresh repairs shared copies and preserves repository-owned skills"
+else
+    fail "check auto-refresh removed repository-owned skills"
+fi
+
+echo ""
+echo "Testing standalone discovery cleanup..."
+standalone="$TMPDIR/standalone"
+mkdir -p "$standalone/bin" "$standalone/skills/shared-example"
+cp "$MANAGE" "$standalone/bin/manage.sh"
+echo "shared instructions" > "$standalone/skills/shared-example/SKILL.md"
+for discovery in .claude/skills .agents/skills; do
+    mkdir -p "$standalone/$discovery/local-tool"
+    echo "local instructions" > "$standalone/$discovery/local-tool/SKILL.md"
+done
+(cd "$standalone" && bash bin/manage.sh link >/dev/null 2>&1)
+rm -rf "$standalone/skills/shared-example"
+(cd "$standalone" && bash bin/manage.sh link >/dev/null 2>&1)
+for discovery in .claude/skills .agents/skills; do
+    if [ -f "$standalone/$discovery/local-tool/SKILL.md" ] \
+        && [ ! -e "$standalone/$discovery/shared-example" ]; then
+        pass "standalone link preserves local skills and removes proven stale copies in $discovery"
+    else
+        fail "standalone discovery cleanup lost ownership boundaries in $discovery"
+    fi
+done
+
+# Invalid ownership evidence must preserve the potentially local directory.
+mkdir -p "$standalone/skills/unverified-example"
+echo "shared instructions" > "$standalone/skills/unverified-example/SKILL.md"
+(cd "$standalone" && bash bin/manage.sh link >/dev/null 2>&1)
+for discovery in .claude/skills .agents/skills; do
+    echo "invalid provenance" > "$standalone/$discovery/.astrojams-skills.json"
+done
+rm -rf "$standalone/skills/unverified-example"
+(cd "$standalone" && bash bin/manage.sh link >/dev/null 2>&1)
+for discovery in .claude/skills .agents/skills; do
+    if [ -f "$standalone/$discovery/unverified-example/SKILL.md" ]; then
+        pass "link preserves an unverified stale copy after malformed provenance in $discovery"
+    else
+        fail "link deleted an unverified stale copy in $discovery"
+    fi
+done
 
 echo ""
 echo "Testing lowercase agent file cleanup..."

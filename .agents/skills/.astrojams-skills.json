@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "source": "astrojams1/skills",
+  "skills": {
+    "app-release": "5060f60dc0f3b4fb74429641e6116c216c6b66265509ab43472501dbb4ee4109",
+    "careful": "9424d454923a60e012295824b7474a6176377afebf7a17e882cf4333adca282a",
+    "design-system": "3fadf8fa4521b188ae8baadfcf3cb017661b4f75dfa3882aea05f98a8276897e",
+    "design-system-migration-prompt": "151583267dccb5d8820991c025e0cf812d6ee6fcc5f8da542acbcad8caaeb618",
+    "freeze": "d91b03559e3c46e563a8c30503f79734746a747f53217f8c32ca9661085b19db",
+    "health-check-prompt": "cedc9fa4ebd79143209aea4058f818062153c3cd3e0eef98c5f23819cac3cf41",
+    "health-check-review": "4a445cbc0f5c20fd76d56ba025e02d914e0a075d4da79124c3762456ca206a65",
+    "research-paper": "5aaf51467ae6254ef8d04fe6887ff2933dfd5feaa2b6589cd62a28cac0b60199",
+    "simplify": "025a34d898cdbbff56e323e6cf2a5c794a7f0962ed96fe3003c9b9426c3ccb44",
+    "skill-integration-prompt": "094182b4ffc00ac862cde597b5f7357a7010740fad054f20a20a09395119ce51",
+    "skill-orchestrator": "2f3698ebe3092a46d764c78809d833015030a300a22c72206cba3952e9a1abc6",
+    "workflow-orchestration": "793c64e3227ce3ecebd285fe0269b1f0351ccaded37ab6539d82f46e6e53d59b",
+    "youtube-shorts": "4df29dc8b7a1014b3995278043b12466edc3af2fb596bd2c317f460c0f5039f2"
+  }
+}
