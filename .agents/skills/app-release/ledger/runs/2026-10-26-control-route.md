@@ -48,3 +48,23 @@ Maintenance ledger and logs are at
 invocation IDs for app-release and skill-creator. Token/dollar usage is unknown; no paid service was
 added. The correction is published in [skills PR #108](https://github.com/astrojams1/skills/pull/108);
 consumer adoption follows merge under each app's workflow.
+
+
+## Verified TestFlight delivery
+
+Independent Apple API readback at **2026-10-26T22:21:33.053Z** confirmed internal TestFlight
+delivery for **Data Center: AI Frontier** (`6827325155`), personal team
+`CWQ9AWJF8T`. The original signed artifact was reused:
+
+- Version `0.1.0 (1)`, clean source `db355ef7cb88af39e0773d240cbd2d25e39b353d`.
+- IPA SHA-256 `a63f20059de72f2ad31657988b61ffbd87542b94e298f81d7e273d733ab2390c`.
+- Altool validation and upload exited `0`; upload `a852f234-0e77-43b3-9bd0-0c913513fb40` is
+  `COMPLETE`, and the build is `VALID` / `IN_BETA_TESTING`.
+- Internal **Release QA** group `711fbb17-01bc-4b7d-a4a4-f6e951799c92` contains the exact build;
+  the owner's tester state is `INVITED`. This does not claim invitation acceptance or installation.
+
+Supported CUA Safari created the record and internal group and selected the owner. The shared PWA
+remained untouched; no AppleScript, external beta review or public release was used. The app's
+`store/builds/testflight-delivery.json` is the delivery receipt, tracked with
+[Data Center PR #1](https://github.com/astrojams1/datacenter/pull/1). This final evidence update changes
+no guidance or runtime code. The shared skill PR remains draft and unmerged.
