@@ -816,4 +816,4 @@ underlying diagnostic and that live UI recovery remains unverified; no restart i
 - [x] Add the verified independent-browser/team-isolation pattern; bump to 2.7.4.
 - [x] Incorporate app-record API readback from the release root (6827325155, intended bundle/SKU/locale/iOS).
 - [x] Validate final guidance:166 release,65 management,143 spec,8 fit,identity and skill validation; YouTube5pass/1existing skip.
-- [ ] Update PR #108 with v2.7.4 and verified Safari app creation.
+- [x] Updated PR #108 with v2.7.4 and verified Safari app creation.
