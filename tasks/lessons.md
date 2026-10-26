@@ -12,6 +12,15 @@
 
 Capture patterns and corrections here after any mistake or user feedback. Review at session start.
 
+## Share simulator coverage and route the original runner (2026-10-26)
+
+- A simulator can test many apps; app names do not justify separate devices. Reuse a small pool by
+  OS/device coverage, reserve the exact UUID during use, and restore changed settings and boot state.
+- `simctl --set` does not route `xcodebuild`. On the observed Xcode, the original launcher reaches the
+  SSD set using one `-DVTSimulatorSetLocation=<path>` argument; split syntax is not equivalent.
+- Preserve Apple's original launcher and distinguish a built-in process-local preference from binary
+  re-signing/code injection. Destination discovery needs a real UI test before the runner issue closes.
+
 ## Honor current owner evidence when a UI diagnostic disagrees (2026-10-26)
 
 - Prioritize the exact active app/profile/tab the owner names. An unavailable

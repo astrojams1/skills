@@ -4,6 +4,28 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.8.0: route the original XCTest runner to shared SSD devices
+
+- [x] Consult current skill specification and inspect the observed discovery/real UI test evidence.
+- [x] Add narrow existing-set xcodebuild routing with launcher preflight and no persistent mutation.
+- [x] Add regressions for exact argv transport, ambiguous routing and zero execution on denied launchers.
+- [x] Document shared device coverage, reservations, setting restoration and observed native recovery.
+- [x] Refresh source discovery, run required checks and reconcile the source issue log.
+- [x] Parent reviews the patch and live evidence before source publication and consumer adoption.
+- [ ] Publish the source PR and merge only after current-head hosted review/CI is terminal and clean.
+
+Plan: Add the original-launcher per-command route, retain read-only preflight compatibility and leave
+existing devices/app data untouched. The parent owns live QA evidence, PR publication and consumer pins.
+
+Review: 172 release tests (18 launcher/routing), 65 management checks, 142 specification checks,
+identity, skill validation and 8 image-fit checks pass. YouTube: 5 pass and 1 existing unavailable-ffmpeg
+skip. The system-Python image dependency skip was corrected using the existing bundled runtime.
+Seven configs/five apps need no migration. Live original-runner UI smoke passes 1 test/0 failures;
+the same smoke also passes through the new helper on latest iOS 27.1 with prior Shutdown restored.
+Full app QA remains separate. Source issue validation, generated-view check and closure pass.
+Independent review found no defects; 25 real CLI subprocess fixtures pass with mocked system-tool
+identity checks and an actual fixture child, and the independent full suite passes all 172 tests.
+
 ## Preserve repository-owned skills during stale discovery cleanup
 
 - [x] Reproduce deletion of repository-owned skills during link/check refresh.

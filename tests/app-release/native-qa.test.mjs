@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseArgs, parseCodesignIdentity, parseCodesignEntitlements, assessLauncher, preflight } from '../../skills/app-release/scripts/native-qa.mjs';
+import { parseArgs, parseCodesignIdentity, parseCodesignEntitlements, assessLauncher, preflight, runXcodebuild } from '../../skills/app-release/scripts/native-qa.mjs';
 
 // Selected stock codesign output from the observed original and ad-hoc launchers.
 // No runtime logs, personal paths, or unrelated entitlement values are retained.
@@ -168,5 +168,98 @@ test('arguments are narrow and reject options that could silently skip preflight
   assert.deepEqual(parseArgs(['preflight', '--launcher', '/Volumes/ssd/qa/xcodebuild-test']), { launcher: '/Volumes/ssd/qa/xcodebuild-test' });
   for (const args of [[], ['run'], ['preflight', '--launcher'], ['preflight', '--launcher', ''], ['preflight', '--launchr', '/x'], ['preflight', '--launcher', '/x', '--launcher', '/y'], ['preflight', '--launcher', '--help']]) {
     assert.throws(() => parseArgs(args), /Usage/);
+  }
+});
+
+const originalLauncher = '/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild';
+const deviceSet = '/Volumes/ssd/QA devices; $(touch never)/qa';
+const exists = () => ({ isDirectory: () => true });
+function stockTools(command, args) {
+  if (command === '/usr/bin/xcrun') return { status: 0, stdout: originalLauncher + '\n' };
+  assert.equal(command, '/usr/bin/codesign');
+  if (args.includes('--requirements')) return { status: 0, stderr: APPLE_IDENTITY };
+  if (args.includes('--entitlements')) return { status: 0, stdout: APPLE_ENTITLEMENTS };
+  return { status: 0 };
+}
+
+test('xcodebuild parsing requires an existing-set argument and an explicit forwarding boundary', () => {
+  assert.deepEqual(parseArgs(['xcodebuild', '--device-set', deviceSet, '--', '-showdestinations']), {
+    command: 'xcodebuild', deviceSet, args: ['-showdestinations'],
+  });
+  for (const args of [
+    ['xcodebuild'], ['xcodebuild', '--device-set', deviceSet],
+    ['xcodebuild', '--device-set', deviceSet, '--'],
+    ['xcodebuild', '--device-set', 'relative/qa', '--', '-showdestinations'],
+    ['xcodebuild', '--device-set', '/qa\n/other', '--', '-showdestinations'],
+    ['xcodebuild', '--device-set', deviceSet, '--device-set', '/other', '--', '-showdestinations'],
+    ['xcodebuild', '--launcher', originalLauncher, '--', '-showdestinations'],
+  ]) assert.throws(() => parseArgs(args), /Usage/);
+});
+
+test('routed execution preserves argv and uses exactly one equals-form preference after original-launcher preflight', () => {
+  const calls = [];
+  const forwarded = ['test-without-building', '-destination', 'platform=iOS Simulator,id=owned-uuid', '-parallel-testing-enabled', 'NO', '-resultBundlePath', '/Volumes/ssd/QA results/run.xcresult'];
+  const result = runXcodebuild({ deviceSet, args: forwarded, stat: exists, run(command, args) {
+    calls.push({ command, args });
+    return stockTools(command, args);
+  }, execute(command, args) {
+    calls.push({ command, args });
+    assert.equal(calls.length, 6);
+    assert.equal(command, originalLauncher);
+    assert.deepEqual(args, ['-DVTSimulatorSetLocation=' + deviceSet, ...forwarded]);
+    return { status: 0 };
+  } });
+  assert.equal(result.ok, true);
+  assert.equal(result.executed, true);
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(calls.map(call => call.command), ['/usr/bin/xcrun', ...Array(4).fill('/usr/bin/codesign'), originalLauncher]);
+});
+
+test('denied launcher identity executes no xcodebuild command', () => {
+  let executions = 0;
+  const result = runXcodebuild({ deviceSet, args: ['-showdestinations'], stat: exists,
+    run(command, args) {
+      if (command === '/usr/bin/codesign' && args.includes('--test-requirement')) return { status: 3 };
+      return stockTools(command, args);
+    }, execute() { executions += 1; return { status: 0 }; },
+  });
+  assert.equal(executions, 0);
+  assert.equal(result.executed, false);
+  assert.equal(result.ok, false);
+  assert.ok(result.issues.includes('apple-code-requirement-not-met'));
+});
+
+test('forwarded routing overrides and malformed invocation fail before any execution', () => {
+  let calls = 0;
+  for (const route of ['-DVTSimulatorSetLocation=/other', '-DVTSimulatorSetLocation', 'DVTSimulatorSetLocation=/other', '--DVTSimulatorSetLocation=/other']) {
+    assert.throws(() => runXcodebuild({ deviceSet, args: ['-showdestinations', route], stat: exists,
+      run() { calls += 1; }, execute() { calls += 1; },
+    }), /routing only through --device-set/);
+  }
+  assert.throws(() => runXcodebuild({ deviceSet, args: ['bad\0argument'], stat: exists, run() { calls += 1; } }), /Usage/);
+  assert.equal(calls, 0);
+});
+
+test('a missing or non-directory device set is never created and stops before preflight', () => {
+  let calls = 0;
+  for (const stat of [() => { throw new Error('ENOENT'); }, () => ({ isDirectory: () => false })]) {
+    assert.throws(() => runXcodebuild({ deviceSet, args: ['-showdestinations'], stat,
+      run() { calls += 1; }, execute() { calls += 1; },
+    }), /must already exist as a directory/);
+  }
+  assert.equal(calls, 0);
+});
+
+test('routed execution reports xcodebuild failure, launch error and signal without retrying', () => {
+  for (const child of [{ status: 65 }, { status: null, error: { code: 'ENOENT' } }, { status: null, signal: 'SIGTERM' }]) {
+    let executions = 0;
+    const result = runXcodebuild({ deviceSet, args: ['test'], stat: exists, run: stockTools,
+      execute() { executions += 1; return child; },
+    });
+    assert.equal(executions, 1);
+    assert.equal(result.executed, true);
+    assert.equal(result.ok, false);
+    assert.equal(result.exitCode, child.status === 65 ? 65 : 1);
+    assert.equal(result.signal, child.signal || null);
   }
 });
