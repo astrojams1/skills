@@ -1,5 +1,16 @@
 # Lessons Learned
 
+## Explain known provider boundaries before the owner asks
+
+**Source:** Rhythm TestFlight correction (2026-10-26).
+
+- A limitation buried in an optional reference is insufficient when it determines the next route.
+  Put the fact and its operational consequence in the skill entrypoint.
+- On initial Apple onboarding, distinguish bundle registration from app-record creation and explain
+  why the latter needs a supported UI route in the first relevant update. Keep credential success,
+  provider capability and UI-tool failure separate; continue authorized independent preparation.
+
+
 ## Exhaust authorized release work before handoff
 
 **Source:** Owner correction during Füd relaunch (2026-10-22).
@@ -382,3 +393,13 @@ current store requirements, and check existing method authorization before askin
   browser or proof of Apple sign-out. A native initialization error leaves installed apps uninspected.
 - Diagnose the supported control route before asking the owner to perform ordinary app setup. Verify
   recovery against the intended surface and read app creation back through the public API.
+
+
+# Concurrent store sessions can share team selection (2026-10-26)
+
+- Preserve a PWA another agent is using, including its selected team. A new tab in that profile may
+  share the same state. A separate authorized browser can provide an independent route.
+- Verify the alternate browser's legal entity and app access. Normal saved-passkey selection is not
+  itself a demonstrated owner-only challenge; keep the tool's actual security boundary in force.
+- Successful later binding does not prove an earlier service restart caused recovery. Record the
+  working route and independent app readback without claiming an unproven infrastructure repair.

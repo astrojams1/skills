@@ -46,6 +46,14 @@ failure does not invalidate an existing session. In one release, direct app bind
 account after inventory/Chrome failed.
 Preserve that successful route on resume rather than starting again from inventory alone.
 
+When the owner or another agent is using that session, preserve its navigation and selected team.
+Tabs in one PWA/profile may share account and team selection; a second tab is not necessarily isolated.
+Use another available, authorized browser session for independent work when needed, then verify the
+selected legal entity and app access there against this app's configuration. Normal saved-passkey
+selection through the permitted UI can establish that session without an owner handoff when no human
+security challenge appears. Keep the original shared session untouched; do not copy its cookies or
+assume the alternate browser inherited its account.
+
 Keep a sanitized session-route record in the app's evidence, referenced from its ledger. Save the app or
 bundle identifier, safe profile alias/opaque identifier and tab/origin when available, last successful
 route and observation time. Reconfirm stale identifiers after reconnecting. Record these dimensions

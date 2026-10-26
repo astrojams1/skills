@@ -4,6 +4,36 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.7.3: explain Apple app creation at onboarding
+
+- [x] Put the known public API boundary and first-update explanation in the entrypoint.
+- [x] Keep detailed iOS routing sourced and separate bundle IDs, app records, credentials and UI availability.
+- [x] Check consumers, forward-test realistic onboarding, refresh discovery, run required suites.
+- [ ] Publish the shared change and record consumer adoption status.
+
+Plan: This applies to every new Apple app, so change the shared source skill. Keep
+its existing signed-in browser/Xcode routes; make the known reason for those routes
+available before the owner asks. Preserve the unrelated canonical-checkout edits.
+
+### Review
+
+- Independent tabletop forward test gave the API limitation, separate bundle/app
+  identities, working credential status and exact UI failure in its first update;
+  it continued independent work without inventing an owner sign-in dependency.
+- Required checks: 166 app-release tests; 65 management checks; 143 specification
+  checks; identity check; 8 image-fit checks; 5 YouTube tests passed. One existing
+  ffmpeg-dependent YouTube check skipped because ffmpeg is unavailable. Skill
+  creator validation and discovery/source byte comparison pass.
+- The first specification check rejected a Markdown fragment as a filename.
+  Linking the reference file and naming its section in prose fixes the failure;
+  the original suite passes on rerun. No validator behavior was changed.
+- Read-only consumers checked: Data Center, Füd, Importron, Nametag, Newsworthy,
+  Rhythm and Space Worms (including existing worktrees). No configuration or
+  command migration is needed. Other apps take the guidance on their normal
+  shared-skill sync; this task updates Rhythm after the shared change lands.
+
+
+
 ## Preserve repository-owned skills during stale discovery cleanup
 
 - [x] Reproduce deletion of repository-owned skills during link/check refresh.
@@ -778,3 +808,12 @@ with native JSON serialization and verified by parsing the actual artifact. Actu
 Review: guidance-only v2.7.3 exposes masked provider diagnostics and verifies returned browser identity.
 Required checks pass; all 12 consumer checkouts normalize unchanged. The release root confirmed the
 underlying diagnostic and that live UI recovery remains unverified; no restart is taught as a fix.
+
+
+### Data Center verified Safari continuation
+
+- [x] Integrate concurrent main update #109 and preserve its API-boundary guidance.
+- [x] Add the verified independent-browser/team-isolation pattern; bump to 2.7.4.
+- [x] Incorporate app-record API readback from the release root (6827325155, intended bundle/SKU/locale/iOS).
+- [x] Validate final guidance:166 release,65 management,143 spec,8 fit,identity and skill validation; YouTube5pass/1existing skip.
+- [ ] Update PR #108 with v2.7.4 and verified Safari app creation.
