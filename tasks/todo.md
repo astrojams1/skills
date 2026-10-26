@@ -763,3 +763,18 @@ ambiguity is resolved by explicitly rejecting normal login when session-only reu
 The shared workflow issue is verified; live-session and App Privacy recovery remain unverified app gates.
 An evidence-summary writer also failed by mixing JSON/Python boolean syntax; it was logged, replaced
 with native JSON serialization and verified by parsing the actual artifact. Actual suite logs were intact.
+
+
+## Data Center App Store Connect route recovery (2026-10-26)
+
+- [x] Read shared conventions, current app-release guidance, lessons, and Agent Skills specification.
+- [x] Isolate maintenance from the dirty canonical skills checkout.
+- [x] Obtain verified UI-route diagnosis from the release run; preserve live outcome separately from documentation checks.
+- [x] Apply the narrow shared workflow correction and patch version.
+- [x] Refresh discovery, check consumer compatibility, and run required validation.
+- [x] Review the shared correction; required checks and root diff review pass.
+- [ ] Publish the correction and record the PR.
+
+Review: guidance-only v2.7.3 exposes masked provider diagnostics and verifies returned browser identity.
+Required checks pass; all 12 consumer checkouts normalize unchanged. The release root confirmed the
+underlying diagnostic and that live UI recovery remains unverified; no restart is taught as a fix.

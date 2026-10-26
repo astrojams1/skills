@@ -78,6 +78,30 @@ and a locked vault distinct. Do not extract browser/session cookies, credentials
 codes, bypass OS security, or change accounts/profiles to evade a challenge. Keep private account
 details and sensitive URL parameters out of the session record.
 
+### Diagnose the control route before handing it back
+
+When a UI invocation expires at its own deadline, it may hide the provider's later diagnostic. Use the
+active tool's documented timeout control for one bounded diagnostic retry, long enough to distinguish
+its wrapper timeout from the underlying provider result. For example, a 30-second invocation deadline
+masked a native app-server initialization timeout; a 60-second inventory call returned that specific
+error after about 30 seconds. A longer deadline exposed the failure; it did not repair native control.
+Do not repeat longer waits or create app records again as a recovery strategy. Diagnose the returned
+connector/initialization error through supported tooling, preserving other active sessions.
+If the active tool requires explicit authorization for another UI technology, a request to fix the
+failure does not waive it. Do not substitute shell-based UI automation without that authorization.
+
+Inspect the returned provider identity and capabilities, even when selection was requested by URL. A
+result named **Codex MCP Apps** with type `mcpapps` and no tabs does not establish an App Store Connect
+browser or Apple's authentication state. A missing native-app list accompanied by a native
+initialization error means that inventory failed; it does not prove that the installed PWA is absent.
+Use a supported binding for the intended app/browser when available. Keep a generic fallback provider,
+a browser's missing tab, and an actual Apple login/challenge as separate observations.
+
+Record the invocation deadline, elapsed time, returned provider/error and recovery result without
+session secrets. Mark control restored only after reading the intended surface and completing a
+relevant interaction; for app creation, also perform the independent API identity readback in
+[iOS onboarding](ios.md). Local skill checks and a more informative error do not establish UI recovery.
+
 Respect app-access denials across routes. If the tool explicitly forbids controlling the host app,
 do not bind that native app to reach an unavailable embedded browser. Use another independently
 authorized, supported route for the operation; if none can read the needed content, retain the exact
