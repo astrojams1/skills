@@ -143,8 +143,9 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
 ### Commands
 
 1. **Start from facts.** Pull, read the ledger (`ledger.mjs status`), then `node $S/asc.mjs status`: versions,
-   recent builds, review submissions with their items, attached build, screenshot and attachment delivery,
-   and Game Center when configured.
+   recent builds with their internal and external TestFlight state, the TestFlight groups holding the newest
+   build, review submissions with their items, attached build, screenshot and attachment delivery, and Game
+   Center when configured.
 2. **Prove it compiles and launches, for free.** The repository's checks, then `CI=1 npx expo prebuild -p ios
    --no-install --clean`, `cd ios && LANG=en_US.UTF-8 pod install` (CocoaPods fails on Unicode normalization
    without UTF-8), and a Release simulator build:

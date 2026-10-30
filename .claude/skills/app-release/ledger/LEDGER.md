@@ -47,6 +47,10 @@ are stored here. See its canonical ledger before resuming.
 - `listing` now re-reads App Info after preparing a version, a few times while Apple
   creates the record (`awaitEditableInfo`, with a regression test). No config or store data
   changes; consumers only bump the submodule.
+- Asked whether Füd 1.2.0 was in TestFlight, `status` could not say: it listed builds without
+  their beta state. `status` now shows each recent build's internal and external TestFlight
+  state and which groups hold the newest build (`testflightState`, `testflightGroups`, with a
+  test), read-only. The `testflight` command adds builds, so it is not a substitute.
 
 ## Lessons incorporated into v2.7.3 (2026-10-26)
 

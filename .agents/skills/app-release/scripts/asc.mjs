@@ -429,6 +429,28 @@ export function manualTestflightGroups(groups, name) {
   return groups.filter(group => group.attributes.name === name && group.attributes.isInternalGroup && !group.attributes.hasAccessToAllBuilds);
 }
 
+// testflightState says where a build stands in TestFlight, from the buildBetaDetail a builds read includes: internal
+// testers can install it at IN_BETA_TESTING, while external testers need Beta App Review first.
+export function testflightState(build, included) {
+  const link = build.relationships && build.relationships.buildBetaDetail && build.relationships.buildBetaDetail.data;
+  const detail = link && (included || []).find(item => item.type === 'buildBetaDetails' && item.id === link.id);
+  const state = detail ? 'TestFlight internal ' + detail.attributes.internalBuildState + ', external ' + detail.attributes.externalBuildState
+    : 'TestFlight state unknown';
+  // Apple usually reports an expired build's beta states as EXPIRED already; say so only when it does not.
+  return build.attributes.expired && !state.includes('EXPIRED') ? state + ', expired' : state;
+}
+
+// testflightGroups reads every TestFlight group and whether it holds the build; `read` lists a collection, so a group
+// that receives every build on its own is still checked rather than assumed.
+export async function testflightGroups(appId, buildId, read = listAll) {
+  const groups = [];
+  for (const group of await read('/v1/apps/' + appId + '/betaGroups')) {
+    const builds = await read('/v1/betaGroups/' + group.id + '/builds?limit=200');
+    groups.push({ name: group.attributes.name, internal: group.attributes.isInternalGroup === true, hasBuild: builds.some(item => item.id === buildId) });
+  }
+  return groups;
+}
+
 // context finds the app, its editable App Info and the iOS version being prepared; writing commands pass
 // prepare=true to create or rename that version when the configured version string has none yet.
 async function context(prepare) {
@@ -475,8 +497,16 @@ async function status() {
   }
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   for (const item of versions) console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
-  const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5');
-  for (const item of builds.data) console.log('  build', item.attributes.version, item.attributes.processingState, item.attributes.uploadedDate);
+  const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5&include=buildBetaDetail');
+  for (const item of builds.data) {
+    console.log('  build', item.attributes.version, item.attributes.processingState, item.attributes.uploadedDate, testflightState(item, builds.included));
+  }
+  // The newest build is the one a tester asks about, attached to a version or not.
+  if (builds.data.length) {
+    for (const group of await testflightGroups(IOS.ascAppId, builds.data[0].id)) {
+      console.log('    TestFlight group', group.name, group.internal ? 'internal' : 'external', group.hasBuild ? 'has build ' + builds.data[0].attributes.version : 'does not have it');
+    }
+  }
   const submissions = await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&limit=5');
   for (const item of submissions.data) {
     console.log('  review submission', item.id, item.attributes.state, item.attributes.submittedDate || '');
