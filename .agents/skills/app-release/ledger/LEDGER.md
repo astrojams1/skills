@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.8.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.8.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -38,6 +38,19 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.8.1 (2026-10-30)
+
+- Füd 1.2.0: `asc.mjs listing` created the new version, then refused with "No editable
+  App Info" because it had read App Info before the version existed. An immediate rerun
+  saved the listing.
+- `listing` now re-reads App Info after preparing a version, a few times while Apple
+  creates the record (`awaitEditableInfo`, with a regression test). No config or store data
+  changes; consumers only bump the submodule.
+- Asked whether Füd 1.2.0 was in TestFlight, `status` could not say: it listed builds without
+  their beta state. `status` now shows each recent build's internal and external TestFlight
+  state and which groups hold the newest build (`testflightState`, `testflightGroups`, with a
+  test), read-only. The `testflight` command adds builds, so it is not a substitute.
 
 ## Lessons incorporated into v2.7.3 (2026-10-26)
 
