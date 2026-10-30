@@ -23,10 +23,11 @@ let IOS = null;
 let STORE = null;
 
 // setup reads the app's configuration and store data.
-export function setup(start) {
+export function setup(start, fields) {
   CONFIG = loadConfig(start);
   // API access does not establish Xcode signing authority; its team/scheme/build settings may still be unverified.
-  IOS = requireSection(CONFIG, 'ios', ['ascAppId', 'bundleId', 'vault', 'platform']);
+  // Callers that never address the app record (an archive with a chosen build number) may omit ascAppId.
+  IOS = requireSection(CONFIG, 'ios', fields || ['ascAppId', 'bundleId', 'vault', 'platform']);
   STORE = loadStoreData(CONFIG);
   return { config: CONFIG, ios: IOS, store: STORE };
 }
