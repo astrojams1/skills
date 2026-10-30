@@ -487,8 +487,20 @@ export async function testers(build, io) {
   }
   if (!found || found.attributes.processingState !== 'VALID') throw new Error('Build ' + build + ' is not VALID after 30 minutes');
   // The app's own /v1/apps/{id}/betaGroups refuses filter[name] with a 400; the top-level collection takes both.
-  const groups = (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' + encodeURIComponent(config.testflightGroup))).data
+  const readGroups = async () => (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' +
+    encodeURIComponent(config.testflightGroup))).data
     .filter(group => group.attributes.isInternalGroup && group.attributes.name === config.testflightGroup);
+  let groups = await readGroups();
+  const anyInternal = groups.length || (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[isInternalGroup]=true')).data.length;
+  if (!anyInternal) {
+    // A brand-new app has no internal groups, and the API can create one; read it back rather than trusting the reply.
+    // An app that already has internal groups but not this name keeps failing below, so a typo never adds a group.
+    await read('/v1/betaGroups', 'POST', { data: { type: 'betaGroups',
+      attributes: { name: config.testflightGroup, isInternalGroup: true, hasAccessToAllBuilds: false },
+      relationships: { app: { data: { type: 'apps', id: config.ascAppId } } } } });
+    groups = await readGroups();
+    log('Created the internal TestFlight group ' + config.testflightGroup + '; add its testers in App Store Connect or with the API.');
+  }
   if (groups.length !== 1) throw new Error('Expected one internal TestFlight group named ' + config.testflightGroup + ', found ' + groups.length);
   const group = groups[0];
   if (group.attributes.hasAccessToAllBuilds) {

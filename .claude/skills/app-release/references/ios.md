@@ -103,6 +103,29 @@ changes source. Review and commit legitimate generated changes before rerunning;
 just to make a build look clean. This mode does not regenerate icons, launch assets or other Expo plugin
 output: update and review those native assets explicitly when app configuration changes.
 
+**Bare Xcode projects.** A native Swift app with no Expo config, no `ios/` folder and no CocoaPods sets
+`ios.project` to its `.xcodeproj` (relative to `projectDir`) with `prebuild: false`; `infoPlist` is then relative
+to `projectDir`. `archive` checks that the Info.plist, `project.pbxproj` and the shared scheme are tracked, skips
+Expo and CocoaPods, and runs `xcodebuild -project` from `projectDir`. Giraffe Stretch (SwiftUI + SpriteKit, Xcode
+synchronized folders) shipped build 1 this way.
+
+**Teams with no registered devices.** Automatic archive signing uses a development profile, and Apple issues one
+only to a team with registered devices: Xcode stops with "Your team has no devices from which to generate a
+provisioning profile". Forcing `CODE_SIGN_IDENTITY=Apple Distribution` conflicts with automatic signing. Set
+`ios.archiveSigning: "export"`: the archive is built unsigned and the `app-store-connect` export signs it with the
+team's distribution certificate and an App Store profile, which need no devices.
+
+**A brand-new app's TestFlight group.** A new record has no beta groups. When the app has no internal group at all,
+`testers` creates `ios.testflightGroup` through the API, reads it back and adds the build; an app that already has
+internal groups but none with that name still stops, so a mistyped name never adds a group. The new group starts
+empty: add each internal tester (an App Store Connect user of that team) with `POST /v1/betaTesters` carrying the
+user's username as `email`, their names and a `betaGroups` relationship, then read the group's `betaTesters` back
+(state `INVITED` until they accept).
+
+**Archive before the app record exists.** `archive --build-number N` reads nothing from App Store Connect, so it
+runs without `ios.ascAppId`; prepare and verify the `.ipa` while the record is being created. `validate` and
+`upload` still need the record (altool error 19, "Unable to find Apple ID for Bundle ID").
+
 When an installed distribution identity/profile is already verified for the intended team, manual
 signing can reuse it. Set `ios.signing.style: "manual"`, `certificate` to the installed certificate's
 40-character SHA-1 and `profile` to the distribution profile name or UUID. Keep the private key and
@@ -315,6 +338,12 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 
 ## Gotchas
 
+- **App Store Connect rejects pictographic symbols in copy.** A description containing a check mark (U+2713)
+  failed with `ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_CHARACTERS` after the App Info had already saved; `listing`
+  now refuses dingbats and emoji before writing anything. Spell symbols out ("check-mark button").
+- **The age-rating declaration requires `socialMedia`** (observed 2026-10-30): the PATCH fails with
+  `ENTITY_ERROR.ATTRIBUTE.REQUIRED` until the store data answers it. `age-rating` lists the questions the store data
+  leaves unanswered; answer every one Apple marks required.
 - **iOS 27 SDK builds need the UIScene life cycle**, or the app stops at launch (SIGTRAP, "UIScene life
   cycle is required"). Both apps adopt it through an Expo config plugin and Expo's scene delegate; after an
   Expo upgrade, check the plugin still matches the template and launch on iOS 27 before releasing. The
