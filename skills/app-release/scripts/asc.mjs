@@ -23,10 +23,11 @@ let IOS = null;
 let STORE = null;
 
 // setup reads the app's configuration and store data.
-export function setup(start) {
+export function setup(start, fields) {
   CONFIG = loadConfig(start);
   // API access does not establish Xcode signing authority; its team/scheme/build settings may still be unverified.
-  IOS = requireSection(CONFIG, 'ios', ['ascAppId', 'bundleId', 'vault', 'platform']);
+  // Callers that never address the app record (an archive with a chosen build number) may omit ascAppId.
+  IOS = requireSection(CONFIG, 'ios', fields || ['ascAppId', 'bundleId', 'vault', 'platform']);
   STORE = loadStoreData(CONFIG);
   return { config: CONFIG, ios: IOS, store: STORE };
 }
@@ -391,6 +392,16 @@ export function replacementLeaderboards(refreshed, heldItems) {
   return refreshed.concat(carried);
 }
 
+// listingCharacterProblems names store copy fields holding pictographic symbols. Apple refused a description containing
+// a check mark (U+2713) with INVALID_CHARACTERS after the app info was already saved (Giraffe Stretch, 2026-10-30), so
+// dingbats and emoji are caught before any write.
+export function listingCharacterProblems(copy) {
+  const symbol = /[\u2700-\u27BF\u{1F000}-\u{1FAFF}\u2600-\u26FF]/u;
+  return ['name', 'subtitle', 'promotionalText', 'description', 'keywords', 'whatsNew']
+    .filter(field => typeof copy[field] === 'string' && symbol.test(copy[field]))
+    .map(field => field + ' contains ' + JSON.stringify(copy[field].match(symbol)[0]) + ', which App Store Connect rejects; spell it out');
+}
+
 // whatsNewPlan decides whether a version's copy carries release notes. Apple refuses "What's New" on an app's first
 // version, so nothing is sent before a version is live; every later version is an update and must ship notes, so an
 // update with empty notes stops the command instead of reaching App Review without them.
@@ -535,6 +546,9 @@ export function categoryRelationships(copy) {
 
 // listing saves the name, subtitle, privacy URL, categories, content rights, copyright and version copy.
 async function listing() {
+  // Checked before context(true), which may already create or rename the version.
+  const symbols = listingCharacterProblems(STORE.listing);
+  if (symbols.length) throw new Error('Store copy cannot be sent: ' + symbols.join('; '));
   const ctx = await context(true);
   requireEditableInfo(ctx);
   const copy = STORE.listing;

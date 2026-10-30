@@ -34,7 +34,9 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `bundleId`, `bundleIdResource` | The bundle identifier and its resource id (`GET /v1/bundleIds`), needed for capabilities such as Game Center |
 | `teamId` | The signing team; every bundle in the `.ipa` must be signed by it |
 | `scheme`, `workspace` | The Xcode scheme; the workspace defaults to `<scheme>.xcworkspace` |
-| `prebuild`, `infoPlist` | Default `prebuild: true` regenerates with Expo. `false` uses a reviewed tracked native project and requires `infoPlist` relative to `ios/`; see [iOS](ios.md#reviewed-native-projects-and-existing-signing) |
+| `prebuild`, `infoPlist` | Default `prebuild: true` regenerates with Expo. `false` uses a reviewed tracked native project and requires `infoPlist` relative to `ios/` (or to the project directory with `project`); see [iOS](ios.md#reviewed-native-projects-and-existing-signing) |
+| `project` | A bare Xcode app with no Expo config and no CocoaPods: the `.xcodeproj` path relative to `projectDir`. Needs `prebuild: false`; archives with `-project` from `projectDir` and skips Expo and `pod install` |
+| `archiveSigning` | `archive` (default) signs while archiving; `export` archives unsigned and lets the App Store export sign. Use `export` for a team with no registered devices, where automatic archive signing cannot get a development profile. Automatic signing only |
 | `signing` | Defaults to `{ "style": "automatic" }`. Manual single-app export requires `{ "style": "manual", "certificate": "<40-character installed certificate SHA-1>", "profile": "<verified profile name or UUID>" }`; no private key or password belongs in config |
 | `buildNumberEnv` | The variable the app config reads for `ios.buildNumber` during prebuild |
 | `vault` | The 1Password item holding the App Store Connect key (`op://API Tokens/App Store Connect`) |

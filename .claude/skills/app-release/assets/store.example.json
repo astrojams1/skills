@@ -17,7 +17,7 @@
     "contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
     "releaseType": "MANUAL"
   },
-  "ageRating": { "userGeneratedContent": false, "advertising": false },
+  "ageRating": { "userGeneratedContent": false, "advertising": false, "socialMedia": false },
   "review": {
     "firstName": "Owner",
     "lastName": "Name",
