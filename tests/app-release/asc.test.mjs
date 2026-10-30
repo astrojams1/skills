@@ -227,3 +227,17 @@ test('only processed, unsubmitted images listed in store data go to App Review',
   assert.deepEqual(plan.skipped, ['b@x (WAITING_FOR_REVIEW)', 'c@x (APPROVED)', 'e@x (not uploaded)', 'f@x (UPLOAD_COMPLETE)', 'g@x (REJECTED)', 'h@x (not uploaded)']);
 });
 
+
+test('a newly prepared version waits for its editable App Info instead of refusing the listing', async () => {
+  const info = (id, state) => ({ id: id, attributes: { state: state } });
+  const live = [info('live', 'READY_FOR_DISTRIBUTION')];
+  const reads = [live, live, [...live, info('next', 'PREPARE_FOR_SUBMISSION')]];
+  const waits = [];
+  const found = await asc.awaitEditableInfo(async () => reads.shift(), { wait: async ms => { waits.push(ms); } });
+  assert.equal(found.id, 'next');
+  assert.deepEqual(waits, [2000, 2000]);
+  let calls = 0;
+  const none = await asc.awaitEditableInfo(async () => { calls++; return live; }, { attempts: 3, wait: async () => {} });
+  assert.equal(none, null);
+  assert.equal(calls, 3);
+});

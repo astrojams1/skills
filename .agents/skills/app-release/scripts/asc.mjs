@@ -129,6 +129,17 @@ export function editableAppInfo(infos) {
   return infos.find(info => EDITABLE_STATES.includes(info.attributes.state || info.attributes.appStoreState || '')) || null;
 }
 
+// awaitEditableInfo re-reads App Info after a version is prepared. Apple makes the next version's editable App Info
+// only when that version exists, so the list read before creating it has none (Füd 1.2.0, 2026-10-30); the record can
+// lag the version briefly, so it reads a few times before giving up with null.
+export async function awaitEditableInfo(readInfos, { attempts = 5, delay = 2000, wait = ms => new Promise(done => setTimeout(done, ms)) } = {}) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const info = editableAppInfo(await readInfos());
+    if (info || attempt === attempts) return info;
+    await wait(delay);
+  }
+}
+
 // PRIVATE_FIELDS are never printed, even in a readback error.
 const PRIVATE_FIELDS = ['contactFirstName', 'contactLastName', 'contactEmail', 'contactPhone'];
 
@@ -424,7 +435,7 @@ async function context(prepare) {
   const app = (await api('/v1/apps/' + IOS.ascAppId)).data;
   const infos = await listAll('/v1/apps/' + IOS.ascAppId + '/appInfos');
   // Only metadata edits need an editable App Info; submit and release read the version alone.
-  const editableInfo = editableAppInfo(infos);
+  let editableInfo = editableAppInfo(infos);
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   let version = versions.find(item => item.attributes.versionString === STORE.version);
   if (!version && !prepare) throw new Error('No iOS version ' + STORE.version + ' yet; run `listing` to prepare it.');
@@ -435,6 +446,7 @@ async function context(prepare) {
     } else {
       version = (await api('/v1/appStoreVersions', 'POST', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: STORE.version }, relationships: { app: relation('apps', IOS.ascAppId) } } })).data;
     }
+    if (!editableInfo) editableInfo = await awaitEditableInfo(() => listAll('/v1/apps/' + IOS.ascAppId + '/appInfos'));
   }
   return { app: app, info: editableInfo, version: version };
 }
