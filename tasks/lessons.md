@@ -383,3 +383,8 @@ current store requirements, and check existing method authorization before askin
 - Retry a privacy-blocked submission after observed publication changes, not
   merely because another continuation started. Local skill checks do not verify
   a repaired live session or published store answers.
+
+
+## 2026-10-31 — Root-caused store rejections must improve the release skill
+
+The owner requires each diagnosed rejection to produce both an app correction and a verified reusable prevention check or evidence requirement. Logging a retry alone loses the lesson. Preserve the reviewer request, distinguish missing review evidence from a code bug, update the shared workflow at the right scope, and recheck that lesson before later submissions. A required physical demo remains a real dependency; neither simulator footage nor a written phone approval satisfies it.
