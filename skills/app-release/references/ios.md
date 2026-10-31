@@ -308,10 +308,12 @@ only when the intended review scope changes after provider readback, never to by
    2026-10-13) has no endpoint for the Resolution Center: `resolutionCenterThreads` paths answer 404 and
    `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read Apple's email to the owner's
    account through the Gmail connector (search App Store Connect / App Review), or ask the owner to paste it.
-3. **Answer through the API.** Put the answers in the store data's `review.notes` and run `review-details`.
-   Upload files App Review asked for (a screen recording) with `asc.mjs review-attachment <path>`: it
-   reserves, uploads and commits the file, waits for `COMPLETE`, and only then removes earlier copies with the
-   same name. Keep large media outside the repository (`/Volumes/ssd/projects/<slug>/`).
+3. **Provide the answers and attachments.** Put the answers in the store data's `review.notes` and run
+   `review-details`. For a local file, `asc.mjs review-attachment <path>` reserves, uploads and commits an
+   App Review Information attachment, waits for `COMPLETE`, and only then removes earlier copies with the
+   same name. Use the reply's **Attach File** control for correspondence attachments. Inspect its supported
+   chooser before introducing an exporter; see “Attach the owner's recording” below. Keep large media
+   outside the repository (`/Volumes/ssd/projects/<slug>/`).
 4. **Resubmit** with the owner's approval: `submit --confirm` marks the rejected items resolved and sends the
    submission again, or — when a rejected submission must gain items Apple will not add to it (leaderboards,
    409 "does not allow adding more items") — cancels it, waits for it to settle and opens a new one. A posted
@@ -458,6 +460,33 @@ Simulator captures do not satisfy a physical-device request. Leave missing
 evidence explicitly pending; do not send an incomplete package as a completed
 response or claim testing from device pairing alone. Apply the session's actual
 authorization when replying, inviting testers or resubmitting.
+
+#### Attach the owner's recording
+
+Before repeating selection, exporting again or asking the owner to move a file,
+check the intended saved-artifact location. A later picker failure or cancellation
+can coexist with an earlier successful export. Inspect the existing bytes, duration
+and playback, match them to the intended recording, and preserve a valid source.
+Keep success receipts and later attempt outcomes separately; a filename or the last
+status label alone establishes neither file validity nor failure.
+
+Use a public API when it covers the required destination and a usable local file
+is available. When continuing in an App Review reply, or when the owner asks for
+**Attach File**, inspect that control's native chooser first. It may expose
+**Media → Photos/Movies** as well as ordinary files. Select only the intended asset
+through the available supported surface, or choose its verified local path.
+An unavailable source in one chooser is not grounds for broad photo-library grants
+or private-library access. Introduce a custom exporter only after the useful
+supported chooser/API routes have a demonstrated limitation; record that reason
+and keep the fallback scoped to the requested file.
+
+Recheck actual flow coverage, submitted build and any requested device/OS evidence
+before treating the recording as a complete review response. Verify that upload
+has finished and the intended attachment is accessible in its destination.
+App Review Information attachments and reply attachments are separate collections;
+verify each one required by the reviewer's request. Preserve matching evidence
+references in Notes and correspondence. A chosen file, completed upload, saved
+draft or sent reply does not establish an accepted resubmission.
 
 #### TestFlight preparation is not physical QA
 
