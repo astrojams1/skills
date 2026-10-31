@@ -4,6 +4,25 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.9.1 — Never require mirroring
+
+Plan: correct the shared release process's confusion between required physical
+evidence and a chosen transport. Preserve completed exact-build owner approval,
+actual reviewer evidence requirements and the current main's unrelated changes.
+
+- [x] Read source instructions, skill creator, current specification and the owner's correction.
+- [x] Make mirroring optional only by explicit owner choice; preserve evidence-based alternatives.
+- [x] Check all consumer configs and independently exercise representative recovery scenarios.
+- [x] Refresh discovery copies; run required suites and skill validation.
+- [x] Prepare verified source for publication; retain exact-head review, merge and adoption receipts separately.
+
+Review: 191 release tests, 65 management checks, 146 specification checks, identity,
+8 image-fit checks, 5 YouTube tests and skill validation pass. One existing
+ffmpeg-dependent test skips. Eleven consumer configs normalize without migration.
+Independent scenarios preserve completed approval, retain actual missing evidence
+and allow only owner-chosen optional mirroring without making it a release gate.
+Publication and consumer adoption remain separate delivery records.
+
 ## app-release 2.8.4 — Use the available review attachment surface
 
 Plan: correct reusable attachment routing and retry reconciliation in the shared

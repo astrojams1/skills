@@ -1,5 +1,18 @@
 # Lessons Learned
 
+## Physical evidence does not require mirrored access
+
+**Source:** Owner correction during Nametag review recovery (2026-10-31).
+
+- Never turn Mac screen mirroring or iPhone Mirroring into a release dependency
+  or initiate setup/authentication requests. It is optional only when the owner
+  explicitly chooses it; no replacement remote-control tool is mandatory.
+- Preserve completed exact-build approval. Reuse owner feedback, supplied physical
+  recordings and supported native QA; ask only for a genuinely missing piece of
+  reviewer evidence, without prescribing its transport.
+- Keep required physical capture/build/OS/paid-flow evidence factual. Removing a
+  transport prerequisite does not make simulator video physical-device evidence.
+
 ## Inspect the direct attachment route before building a transfer tool
 
 **Source:** Nametag review-recording correction (2026-10-31).
