@@ -22,7 +22,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 |---|---|
 | `ledger.mjs` | Gate and issue ledger: `init`, `record`, `status`, `render`, `check`, `validate`, `issues` (verified issue closure) |
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
-| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `release --confirm` |
+| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
@@ -136,7 +136,7 @@ commit a key, token, password, review phone or bank detail; check access without
   chooser before building an exporter or handing file transfer back to the owner. Honor an explicit
   **Attach File** request; see [iOS](references/ios.md), “Attach the owner's recording”.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
-  `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
+  `submit --confirm`, `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
   does not authorize public release.
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,

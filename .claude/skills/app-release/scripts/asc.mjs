@@ -2,7 +2,7 @@
 // asc.mjs
 // Drives every App Store Connect step of an iOS release through Apple's API: status, listing copy, age rating,
 // pricing and availability, screenshots, App Review details and attachments, Game Center leaderboards, TestFlight,
-// build selection, submission and manual release. Identity comes from the app's app-release.config.json (`ios`) and
+// build selection, submission, withdrawal from review and manual release. Identity comes from the app's app-release.config.json (`ios`) and
 // copy from its store data file; credentials come from 1Password in memory; every write is read back so a release
 // never depends on clicking through the web console. Run from the app repository.
 
@@ -15,7 +15,7 @@ import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
-const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
+const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets'];
 
 // CONFIG, IOS and STORE are read on first use, so tests can import the decision helpers without a configured app.
 let CONFIG = null;
@@ -302,6 +302,15 @@ function itemVersionId(item) {
 // alreadyInReview reports whether a submission waiting for or in review already carries this version.
 export function alreadyInReview(submission, items, versionId) {
   return ['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(submission.attributes.state) && items.some(item => itemVersionId(item) === versionId);
+}
+
+// withdrawPlan picks the submission `withdraw --confirm` cancels: the one waiting for or in review with this version.
+// None means there is nothing to withdraw; more than one is a state the script will not guess its way through.
+export function withdrawPlan(active, itemsById, versionId) {
+  const holding = active.filter(submission => alreadyInReview(submission, itemsById[submission.id] || [], versionId));
+  if (!holding.length) return { action: 'none' };
+  if (holding.length > 1) return { action: 'conflict', ids: holding.map(submission => submission.id) };
+  return { action: 'cancel', id: holding[0].id };
 }
 
 // itemsToResolve returns this version's and its leaderboards' rejected items, which Apple requires marked resolved
@@ -1674,6 +1683,34 @@ async function assets(mode) {
   console.log('Run `assets` until every image has finished processing.');
 }
 
+// withdraw takes the version out of App Review so another build can be attached; `submit --confirm` then sends it
+// back. It needs --confirm because the version loses its place in Apple's queue.
+async function withdraw(flag) {
+  if (flag !== '--confirm') throw new Error('Withdrawing from review gives up the place in Apple\'s queue; rerun as `asc.mjs withdraw --confirm` once the owner has approved it.');
+  const ctx = await context();
+  if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was withdrawn.');
+  // A cancel an earlier run left in flight finishes first, so a rerun after a lost response reads the settled state.
+  for (const settling of settlingSubmissions((await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=CANCELING,COMPLETING')).data)) {
+    console.log('Waiting for submission', settling.id, 'to finish', settling.attributes.state);
+    await waitForCancel(settling.id);
+  }
+  const active = (await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=WAITING_FOR_REVIEW,IN_REVIEW')).data;
+  const items = {};
+  for (const submission of active) items[submission.id] = await submissionItems(submission.id);
+  const plan = withdrawPlan(active, items, ctx.version.id);
+  if (plan.action === 'conflict') throw new Error('Version ' + STORE.version + ' is in review in more than one submission (' + plan.ids.join(', ') + '); inspect App Store Connect. Nothing was withdrawn.');
+  if (plan.action === 'cancel') {
+    await api('/v1/reviewSubmissions/' + plan.id, 'PATCH', { data: { type: 'reviewSubmissions', id: plan.id, attributes: { canceled: true } } });
+    console.log('Canceled review submission', plan.id);
+    await waitForCancel(plan.id);
+  } else {
+    console.log('Version', STORE.version, 'is not waiting for or in review; nothing was withdrawn.');
+  }
+  const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
+  if (['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(versionState(version))) throw new Error('Version ' + STORE.version + ' still reads ' + versionState(version) + '; inspect provider state before retrying.');
+  console.log('Version', STORE.version, 'is', versionState(version) + '; attach a build with `attach-build <N>`, then `submit --confirm`.');
+}
+
 // main dispatches one command.
 async function main() {
   const command = process.argv[2];
@@ -1695,6 +1732,7 @@ async function main() {
   if (command === 'attach-build') await attachBuild(argument);
   if (command === 'testflight') await testflight(argument);
   if (command === 'submit') await submit(argument);
+  if (command === 'withdraw') await withdraw(argument);
   if (command === 'release') await release(argument);
   if (command === 'assets') await assets(argument);
 }
