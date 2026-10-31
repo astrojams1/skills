@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.2"
+  version: "2.8.3"
 ---
 
 # App release
@@ -61,7 +61,8 @@ onboarding and revise the guidance if Apple changes the capability.
    and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
    choice that is genuinely missing. Never import another app's price, claims, IDs or design.
 5. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
-   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume.
+   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume. Check
+   prior store-rejection lessons and rerun their applicable prevention checks before the next submission.
 6. Write the intended gates into the ledger, then advance independent work while account verification,
    provider processing or review is pending.
 
@@ -166,6 +167,14 @@ verification. A patch, retry, PR or recorded TODO alone does not close an issue.
 verification evidence, and publish reusable workflow/tool fixes here so later apps inherit them. Follow
 repository PR/review rules and existing authorization; the detailed protocol is in [ledger](references/ledger.md).
 
+For every store rejection or information request, preserve the reviewer's actual reason and establish
+the root cause before changing the app or resubmitting. Once established, correct this app **and update
+this shared skill to prevent the same cause recurring**: add the appropriate preflight check, regression
+test, scoped checklist or evidence requirement, then verify it. Keep app-specific facts in the app's
+records; publish reusable guidance/tooling here, record the lesson and its adoption status, and apply it
+to later submissions. Follow the rejection recovery loop in [ledger](references/ledger.md). A skill
+change and a successful resubmission are separate results; neither proves Apple approval.
+
 Before declaring the run complete, reconcile the command/test/provider results with the issue log and
 run `node $S/ledger.mjs issues`. It must pass alongside ledger validation and view checks. Fixable issues
 cannot be left as follow-up work just to finish the run. A demonstrated external dependency stays open
@@ -175,7 +184,8 @@ with attempts, owner, exact dependency and next action; report the run as partia
 
 When the owner asks to change how releases work — in any app repository, even when they name only that
 app's skill — or a run teaches something worth keeping, first decide where the change belongs and say so:
-true of every app goes **here** (the skills repository's `skills/app-release/`, on a branch with tests,
+reusable across apps or conditional on an app type goes **here** (the skills repository's
+`skills/app-release/`, on a branch with tests,
 then each app's submodule is bumped); a fact or choice of one app goes in that app's config, store data or
 repository skill; a mix is split. Never edit a discovery copy or the submodule checkout in place. The
 procedure, including checking every app that uses this skill, is in [maintaining](references/maintaining.md).

@@ -793,3 +793,17 @@ ambiguity is resolved by explicitly rejecting normal login when session-only reu
 The shared workflow issue is verified; live-session and App Privacy recovery remain unverified app gates.
 An evidence-summary writer also failed by mixing JSON/Python boolean syntax; it was logged, replaced
 with native JSON serialization and verified by parsing the actual artifact. Actual suite logs were intact.
+
+
+## app-release 2.8.3 — Learn from confirmed store rejections
+
+Plan: add a verified rejection-to-prevention loop in the shared skill while keeping app-specific evidence in each release ledger. Preserve concurrent work in other checkouts and keep the ongoing Nametag2.1 information response separate from skill delivery.
+
+- [x] Read skill-creator, current specification, source instructions and exact supplied reviewer request.
+- [x] Isolate this change from observed concurrent edits and preserve those files.
+- [x] Add a shared prevention requirement, prior-lesson recheck and detailed evidence/closure semantics.
+- [x] Record consumer compatibility and lesson; refresh generated discovery copies.
+- [x] Run all required suites, skill validation and independent recovery-scenario review.
+- [x] Prepare the verified source for publication; track actual PR/delivery/adoption state in the app and activity ledgers.
+
+Review:182 release,65 management,145 specification,identity,8 image-fit and5 YouTube checks pass; one existing ffmpeg-dependent check skips. Independent scenarios found two wording ambiguities, both corrected and rechecked. Missing validator PyYAML was recovered in an isolated SSD environment; the original validator passes. All ten consumer configurations need no migration.

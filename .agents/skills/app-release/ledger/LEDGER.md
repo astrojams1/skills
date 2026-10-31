@@ -1,13 +1,25 @@
 # App release skill ledger
 
-Skill version **2.8.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.8.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.8.3 (2026-10-31)
+
+- A diagnosed rejection must improve the shared release process as well as the current app. Preserve
+  the actual reviewer request, identify the missed earlier check, add a scoped prevention and verify it.
+- Review-information and attachment gaps are rejection causes too. Check the submitted build's actual
+  setup flow and every requested answer; keep a required physical-device demo distinct from simulator
+  footage or a written phone check.
+- Recheck applicable lessons on later submissions. Prepared/verified skill source, delivery/adoption,
+  resubmission acceptance and store approval remain separate; pending publication alone does not block
+  an otherwise complete authorized resubmission.
 
 ## Runs
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
 | [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
 | [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |
 | [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
