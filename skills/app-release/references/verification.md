@@ -189,6 +189,11 @@ screens. If those tools prohibit shell-driven UI, do not substitute `adb input`,
 screencap or AppleScript. CLI build/install/log inspection remains distinct from
 UI control and must follow the active tool policy.
 
+Apply the entrypoint's “Never require mirroring” rule to native QA too. A failed
+UI route does not reopen completed exact-build owner approval. Reuse that feedback
+and supported native test evidence; track any specifically missing physical
+recording or reviewer coverage separately, without requiring remote control.
+
 A locked-screen response establishes that this UI route is unavailable at that moment, not that the
 whole Mac, build toolchain or release is inaccessible. Check other supported authorized routes and
 existing capture artifacts, then continue CLI builds, tests, logs, backend work, listing preparation and

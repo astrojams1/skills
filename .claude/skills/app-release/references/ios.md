@@ -464,9 +464,12 @@ submitted app/build, preserve the unaltered recording and verify reviewer access
 Reassess older recordings after feature changes: a video of an earlier build
 cannot prove a new Settings flow or a different OS/build combination, but this
 alone does not establish why Apple repeated its request. Check the
-current official OS release information and the physical device's current version;
-last-seen device metadata and a busy/disconnected mirroring session are not fresh
-verification. Record unavailable physical access as a separate owner-device gate.
+current official OS release information and evidence of the physical device's version
+on the recording date; last-seen device metadata alone is not fresh verification.
+Reuse existing owner feedback and physical recordings without reopening completed
+exact-build approval. Any genuinely missing reviewer evidence is a separate,
+narrow evidence request, not a need for mirrored access or a particular transport
+(see “Never require mirroring” in the skill entrypoint).
 Inspect any newly supplied recording before sending it. Record only visible
 coverage; a current OS or build number cannot be established from a video that
 does not show them. Preserve those verification limits in the evidence record

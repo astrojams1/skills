@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.9.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.9.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -30,6 +30,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-31 no mirroring dependency](runs/2026-10-31-no-mirroring.md) | Shared process maintenance; current app state remains in its own ledger | Mirroring is never required or initiated as a release dependency; preserve completed exact-build approval and ask only for genuinely missing evidence | Unknown / no new paid service |
 | [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
 | [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
 | [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
