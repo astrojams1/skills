@@ -394,9 +394,16 @@ fetch the current same-app/version record and retain omitted first/last name, em
 payload on readback; an omitted config field must not be compared against Apple's retained value as
 though it requested removal. Other demo-account fields remain untouched by the PATCH.
 
-First creation needs complete `review.firstName`, `lastName`, `email` and a private runtime
-`ASC_REVIEW_PHONE`. A changed contact identity also requires its own runtime phone; never silently
-reuse the old person's number or search unrelated apps for a replacement. Empty/null explicit identity
+The team's other apps already hold an App Review contact with a phone, so **never ask the owner for a review
+contact or phone before `review-details` has run**. With no `review.firstName`, `lastName` or `email` and
+none on the version yet, it takes the team's newest complete contact from its other apps, name and phone
+together. A named contact's phone comes from `ASC_REVIEW_PHONE`, else this version's same contact, else the
+same person on the team's other apps (same email, else same first and last name; an email match, then the
+newest version, wins). It prints only which app and version a contact came from. A changed contact identity
+never inherits another person's number: with none on file for that person it stops and asks for
+`ASC_REVIEW_PHONE`, the only case where the owner is asked. Giraffe Stretch 1.0 (October 2026) asked the
+owner to name a contact and then for a phone while every other app on the team carried one; the owner
+corrected it. Empty/null explicit identity
 overrides are rejected before saving. Keep all contact values out of logs and error messages. A provider
 request failure does not establish that Notes were saved; an echoed/readback mismatch or lost response
 requires inspecting provider state before retrying. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).

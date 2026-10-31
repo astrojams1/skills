@@ -39,6 +39,18 @@ privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
 
+## Lessons incorporated into v2.8.2 (2026-10-30)
+
+- Giraffe Stretch 1.0: the agent asked the owner to name an App Review contact, then for a phone, then
+  searched the vault and the activity ledger (both refused by the session's permission checks), while every
+  other app on the team carried an established review contact with a phone in App Store Connect. The owner
+  had to type a number and was rightly annoyed.
+- `review-details` now finds what the team already has through the API: with no contact named and none on
+  the version, it takes the team's newest complete contact, name and phone together (`teamReviewContact`);
+  a named contact without a run phone gets that same person's number from the team's other apps
+  (`reviewPhoneOnFile`, email match first, then name, then newest). Another person's number is never used
+  and no contact value is printed. Tests cover both paths; consumers only bump the submodule.
+
 ## Lessons incorporated into v2.8.1 (2026-10-30)
 
 - Füd 1.2.0: `asc.mjs listing` created the new version, then refused with "No editable
