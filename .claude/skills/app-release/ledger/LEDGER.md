@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.8.3**. This index preserves sanitized outcomes and lessons across
+Skill version **2.8.4**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -19,6 +19,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
 | [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
 | [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
 | [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |

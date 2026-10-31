@@ -4,6 +4,23 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.8.4 — Use the available review attachment surface
+
+Plan: correct reusable attachment routing and retry reconciliation in the shared
+source. App-specific media, evidence and provider work remain with the app run;
+no source helper, account permission, config schema or store behavior changes.
+
+- [x] Read source instructions, skill creator, current specification and the owner's correction.
+- [x] Add direct-chooser discovery, saved-file reconciliation and separate delivery/evidence semantics.
+- [x] Check consumer compatibility and forward-test representative recovery scenarios.
+- [x] Refresh discovery copies; run required suites and skill validation.
+- [x] Prepare verified source for publication; retain actual PR/merge/adoption receipts separately.
+
+Review: all required suites and skill validation pass; eleven consumer configs
+need no migration. Independent scenarios confirm direct UI, saved-artifact and
+API routes without weakening evidence, authority or resubmission checks. Actual
+provider release and consumer adoption are not claimed by this source snapshot.
+
 ## app-release 2.7.3: explain Apple app creation at onboarding
 
 - [x] Put the known public API boundary and first-update explanation in the entrypoint.
