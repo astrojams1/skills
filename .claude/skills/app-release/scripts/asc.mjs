@@ -993,15 +993,33 @@ export async function reviewDetails() {
   const current = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   const existing = current.data?.attributes || {};
   const attributes = {};
-  for (const [field, attribute] of [['firstName', 'contactFirstName'], ['lastName', 'contactLastName'], ['email', 'contactEmail']]) {
-    const value = Object.hasOwn(contact, field) ? contact[field] : existing[attribute];
+  const identity = [['firstName', 'contactFirstName'], ['lastName', 'contactLastName'], ['email', 'contactEmail']];
+  // With no contact named in the store data and none on this version yet, the app takes the team's established review
+  // contact from its other apps, name and phone together, so the owner is never asked for what the team already has.
+  let adopted = null;
+  if (!identity.some(([field]) => Object.hasOwn(contact, field)) && !Object.hasOwn(process.env, 'ASC_REVIEW_PHONE')
+      && !identity.every(([, attribute]) => typeof existing[attribute] === 'string' && existing[attribute].trim())) {
+    adopted = teamReviewContact(await reviewContactsOnFile(IOS.ascAppId));
+    if (adopted) console.log('Using the App Review contact already on file with ' + adopted.appName + ' ' + adopted.versionString + '.');
+  }
+  for (const [field, attribute] of identity) {
+    const value = Object.hasOwn(contact, field) ? contact[field] : adopted ? adopted[attribute] : existing[attribute];
     if (typeof value !== 'string' || !value.trim()) throw new Error('A complete review contact is required: supply review.' + field + ' or retain a valid current same-app contact.');
     attributes[attribute] = value;
   }
   // A different identity cannot silently inherit the prior contact's private phone number.
   const sameContact = ['contactFirstName', 'contactLastName', 'contactEmail'].every(field => attributes[field] === existing[field]);
-  const phone = Object.hasOwn(process.env, 'ASC_REVIEW_PHONE') ? process.env.ASC_REVIEW_PHONE : sameContact ? existing.contactPhone : undefined;
-  if (typeof phone !== 'string' || !phone.trim()) throw new Error('A review contact phone is required; set ASC_REVIEW_PHONE for this run and never commit it.');
+  let phone = Object.hasOwn(process.env, 'ASC_REVIEW_PHONE') ? process.env.ASC_REVIEW_PHONE
+    : adopted ? adopted.contactPhone : sameContact ? existing.contactPhone : undefined;
+  if (phone === undefined) {
+    // The same person's number is already on file with the team's other apps: reuse it rather than ask the owner.
+    const found = reviewPhoneOnFile(attributes, await reviewContactsOnFile(IOS.ascAppId));
+    if (found) {
+      phone = found.contactPhone;
+      console.log('Using the review phone already on file for this contact with ' + found.appName + ' ' + found.versionString + '.');
+    }
+  }
+  if (typeof phone !== 'string' || !phone.trim()) throw new Error('A review contact phone is required and none is on file for this contact with the team\'s other apps; set ASC_REVIEW_PHONE for this run and never commit it.');
   attributes.contactPhone = phone;
   const demoAccountRequired = Object.hasOwn(contact, 'demoAccountRequired') ? contact.demoAccountRequired : existing.demoAccountRequired ?? false;
   if (typeof demoAccountRequired !== 'boolean') throw new Error('review.demoAccountRequired must be a boolean.');
@@ -1013,6 +1031,50 @@ export async function reviewDetails() {
     : await api('/v1/appStoreReviewDetails', 'POST', { data: { type: 'appStoreReviewDetails', attributes: attributes, relationships: { appStoreVersion: relation('appStoreVersions', ctx.version.id) } } });
   assertSaved('Review details', attributes, saved.data.attributes);
   console.log('Saved and verified the review contact and notes.');
+}
+
+// reviewPhoneOnFile picks, from the review contacts the team's other apps hold, the phone of the person being saved:
+// the same email, or failing that the same first and last name. An email match beats a name match, then the newest
+// version wins. Another person's number is never used. Returns the matching record, or null.
+export function reviewPhoneOnFile(identity, records) {
+  const lower = value => String(value || '').trim().toLowerCase();
+  const sameEmail = record => Boolean(lower(identity.contactEmail)) && lower(record.contactEmail) === lower(identity.contactEmail);
+  const sameName = record => Boolean(lower(identity.contactFirstName) && lower(identity.contactLastName))
+    && lower(record.contactFirstName) === lower(identity.contactFirstName) && lower(record.contactLastName) === lower(identity.contactLastName);
+  const matches = records.filter(record => typeof record.contactPhone === 'string' && record.contactPhone.trim() && (sameEmail(record) || sameName(record)));
+  matches.sort((a, b) => (Number(sameEmail(b)) - Number(sameEmail(a))) || String(b.createdDate || '').localeCompare(String(a.createdDate || '')));
+  return matches[0] || null;
+}
+
+// teamReviewContact is the team's established App Review contact: the newest one on file with a complete name, email
+// and phone. Returns the record, or null when no other app has one.
+export function teamReviewContact(records) {
+  const complete = records.filter(record => ['contactFirstName', 'contactLastName', 'contactEmail', 'contactPhone']
+    .every(field => typeof record[field] === 'string' && record[field].trim()));
+  complete.sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')));
+  return complete[0] || null;
+}
+
+// reviewContactsOnFile reads the App Review contact of every version of the team's other apps, with each app's name
+// and the version's string and creation date. Values stay in memory; callers print only where one came from.
+export async function reviewContactsOnFile(appId) {
+  const records = [];
+  for (const app of await listAll('/v1/apps?limit=200&fields[apps]=name')) {
+    if (app.id === appId) continue;
+    let next = '/v1/apps/' + app.id + '/appStoreVersions?limit=50&include=appStoreReviewDetail'
+      + '&fields[appStoreVersions]=versionString,createdDate,appStoreReviewDetail'
+      + '&fields[appStoreReviewDetails]=contactFirstName,contactLastName,contactEmail,contactPhone';
+    while (next) {
+      const page = await api(next);
+      const versions = new Map((page.data || []).map(version => [relatedId(version, 'appStoreReviewDetail'), version]));
+      for (const detail of page.included || []) {
+        const version = detail.type === 'appStoreReviewDetails' ? versions.get(detail.id) : null;
+        if (version) records.push({ ...detail.attributes, appName: app.attributes.name, versionString: version.attributes.versionString, createdDate: version.attributes.createdDate });
+      }
+      next = page.links && page.links.next ? page.links.next.replace(API, '') : null;
+    }
+  }
+  return records;
 }
 
 // openReviewSubmission returns the app's open (draft or rejected) review submission, creating a draft when there is

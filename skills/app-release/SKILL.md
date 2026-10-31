@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.1"
+  version: "2.8.2"
 ---
 
 # App release
@@ -119,6 +119,8 @@ commit a key, token, password, review phone or bank detail; check access without
 - Continue authorized, reversible work — builds, checks, store data, listing drafts, repository changes —
   without asking. This includes creating app records in an authorized signed-in browser or Xcode session
   ([iOS onboarding](references/ios.md)). A public API limitation does not make the task owner-only.
+- Never ask the owner for the App Review contact or phone: `asc.mjs review-details` reuses the one the team's
+  other apps already hold ([iOS](references/ios.md), “Review contact and API semantics”).
 - Exhaust useful authorized work and supported alternatives before handing work back. A failure blocks
   only the operation it actually prevents: discover available connectors, CLI/API credentials, existing
   sessions and saved artifacts, then keep independent work moving. Do not invent a human dependency
