@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.5"
+  version: "2.9.0"
 ---
 
 # App release
@@ -172,8 +172,9 @@ repository PR/review rules and existing authorization; the detailed protocol is 
 
 For every store rejection or information request, preserve the reviewer's actual reason and establish
 the root cause before changing the app or resubmitting. Once established, correct this app **and update
-this shared skill to prevent the same cause recurring**: add the appropriate preflight check, regression
-test, scoped checklist or evidence requirement, then verify it. Keep app-specific facts in the app's
+this shared skill to prevent the same cause recurring**: add the appropriate preflight check (as `submit`
+refuses a Kids Category app whose saved notes skip the Guideline 1.3 questions), regression test, scoped
+checklist or evidence requirement, then verify it. Keep app-specific facts in the app's
 records; publish reusable guidance/tooling here, record the lesson and its adoption status, and apply it
 to later submissions. Follow the rejection recovery loop in [ledger](references/ledger.md). A skill
 change and a successful resubmission are separate results; neither proves Apple approval.

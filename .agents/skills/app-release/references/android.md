@@ -115,6 +115,9 @@ testers (for example through the `reddit-posting` skill) is owner-approved outre
 - **News apps** (category News & Magazines) must complete the News declaration and show publisher and
   contact details inside the app; Newsworthy's version 16 was rejected under the News and Magazines policy
   until Settings showed the publisher (19 October 2026).
+- **Every rejection teaches the skill.** Play's rejection message is in Policy status and the Inbox in Play
+  Console. Once its root cause is established, follow [ledger](ledger.md), “Rejection recovery and
+  prevention”, as the News apps line above came from Newsworthy's version 16.
 - **Review states** live in Publishing overview ("Changes in review", "Changes not sent for review"); a
   committed edit with `--hold` has not been sent.
 - **A cloud container's Maven downloads can be rate-limited** (HTTP 429), and EAS sandboxes lack emulator

@@ -310,8 +310,11 @@ only when the intended review scope changes after provider readback, never to by
    each item's state.
 2. **The message is not in the API.** App Store Connect API 4.5.1 (checked against Apple's OpenAPI spec on
    2026-10-13) has no endpoint for the Resolution Center: `resolutionCenterThreads` paths answer 404 and
-   `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read Apple's email to the owner's
-   account through the Gmail connector (search App Store Connect / App Review), or ask the owner to paste it.
+   `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read the submission's Messages in
+   App Store Connect where the owner is signed in (App Review, then the submission;
+   `https://appstoreconnect.apple.com/apps/<ascAppId>/distribution/reviewsubmissions`), Apple's email to the
+   owner's account through the Gmail connector (search App Store Connect / App Review), or ask the owner to
+   paste it.
 3. **Provide the answers and attachments.** Put the answers in the store data's `review.notes` and run
    `review-details`. For a local file, `asc.mjs review-attachment <path>` reserves, uploads and commits an
    App Review Information attachment, waits for `COMPLETE`, and only then removes earlier copies with the
@@ -323,6 +326,14 @@ only when the intended review scope changes after provider readback, never to by
    409 "does not allow adding more items") — cancels it, waits for it to settle and opens a new one. A posted
    reply alone does not resubmit; the owner's request to resubmit authorizes these steps, nothing earlier does.
    Keep a receipt in the repository (submission id, build, what changed) and record `apple.review`.
+5. **Prevent a repeat.** With the root cause established, follow [ledger](ledger.md), “Rejection recovery and
+   prevention”: where `asc.mjs` can detect the cause, the prevention is a check that refuses before any write.
+
+**Kids Category apps** (an `ageRating.kidsAgeBand`) receive an automated 2.1 information request on their
+first submission asking how they meet Guideline 1.3: third-party analytics, third-party advertising, data
+shared with third parties, and other data collected (Giraffe Stretch 1.0, 31 October 2026). `submit` reads the
+saved review notes and refuses, naming the unanswered questions, until they answer all four
+([app types](app-types.md), "Kids apps").
 
 **Guideline 2.1 information requests for a new developer** have needed, for both apps: a physical-device
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the
