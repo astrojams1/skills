@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.2"
+  version: "2.9.0"
 ---
 
 # App release
@@ -170,6 +170,14 @@ Before declaring the run complete, reconcile the command/test/provider results w
 run `node $S/ledger.mjs issues`. It must pass alongside ledger validation and view checks. Fixable issues
 cannot be left as follow-up work just to finish the run. A demonstrated external dependency stays open
 with attempts, owner, exact dependency and next action; report the run as partial/blocked, never complete.
+
+**Fix a store rejection twice.** Once the root cause of a rejection or information request is
+established (from the store's actual message, not the version state), fix or answer it for this app, then
+change this skill so no app meets it again. Where the scripts can detect the cause, add a pre-submission
+check that refuses before any write: `submit` refuses a Kids Category app whose saved notes skip the
+Guideline 1.3 questions. Otherwise add a gate, an [app types](references/app-types.md) row or a gotcha.
+Route it per [maintaining](references/maintaining.md), add a lesson to the skill ledger and record
+`skill.app-release` in the app's ledger with the pull request. Resubmission does not wait for that pull request.
 
 ## Changing this skill
 

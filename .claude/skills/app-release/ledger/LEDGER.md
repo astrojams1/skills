@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.8.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.9.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -38,6 +38,21 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.9.0 (2026-10-31)
+
+- Giraffe Stretch 1.0 (Kids Category, `kidsAgeBand` FIVE_AND_UNDER) was held by an automated Guideline 2.1
+  information request asking how it meets Guideline 1.3: third-party analytics, third-party advertising, data
+  shared with third parties and other data collected. Its notes had said only that the app collects no data
+  and shows no ads. The answers, checked against the code, went into the review notes and the version was
+  resubmitted the same day. The message was read in App Store Connect where the owner was signed in; the API
+  still has no Resolution Center.
+- `submit` now reads the saved review notes of a Kids Category app and refuses before any write, naming each
+  unanswered question (`kidsReviewNotesProblems`, with unit and submit-path tests). Apps without a
+  `kidsAgeBand` make no extra read. `app-types.md` gains a kids apps section.
+- The owner asked that every root-caused rejection also change this skill so no app meets it again: SKILL.md
+  ("Fix a store rejection twice"), a fifth step in iOS's "When App Review rejects", a Play gotcha and a
+  `maintaining.md` example. Consumers only bump the submodule; no config or store data changes.
 
 ## Lessons incorporated into v2.8.2 (2026-10-30)
 

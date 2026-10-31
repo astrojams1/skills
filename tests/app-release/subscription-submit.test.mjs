@@ -25,7 +25,7 @@ const group = resource('subscriptionGroupVersion', 'subscriptionGroupVersions', 
 const item = target => ({ id: target.id + '-item', attributes: { state: 'READY_FOR_REVIEW' }, relationships: { [target.relation]: { data: { type: target.type, id: target.id } } } });
 
 function fixture(options = {}) {
-  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US' }, ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}) }));
+  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US' }, ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}), ...(Object.hasOwn(options, 'kidsNotes') ? { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } } : {}) }));
   setup(root);
   const state = { items: structuredClone(options.items || [item(app)]), writes: [], reads: [], submitted: false, activeId: 'draft' };
   globalThis.fetch = async (url, request) => {
@@ -81,6 +81,10 @@ function fixture(options = {}) {
     } else if (path === '/v1/reviewSubmissions/draft' && state.canceled) data = { id: 'draft', attributes: { state: 'COMPLETE' } };
     else if (path === '/v1/reviewSubmissions/' + state.activeId) data = { id: state.activeId, attributes: { state: state.submitted ? 'WAITING_FOR_REVIEW' : 'READY_FOR_REVIEW' } };
     else if (path === '/v1/appStoreVersions/v1') data = { id: 'v1', attributes: { appVersionState: options.staleReadback ? 'PREPARE_FOR_SUBMISSION' : 'WAITING_FOR_REVIEW' } };
+    else if (path === '/v1/appStoreVersions/v1/appStoreReviewDetail') {
+      if (options.kidsNotes === null) return { ok: false, status: 404, text: async () => JSON.stringify({ errors: [{ status: '404' }] }) };
+      data = { id: 'detail', attributes: { notes: options.kidsNotes } };
+    }
     else throw Error('Unexpected mocked API read ' + path);
     const links = options.paginatedIap && path === '/v1/apps/app/inAppPurchasesV2' && !u.searchParams.has('cursor')
       ? { next: 'https://api.appstoreconnect.apple.com/v1/apps/app/inAppPurchasesV2?cursor=next' } : undefined;
@@ -243,4 +247,27 @@ test('IAP ownership follows paginated app collections instead of refusing a prod
   await submit('--confirm');
   assert.equal(state.reads.filter(x => x === '/v1/apps/app/inAppPurchasesV2').length, 4);
   assert.equal(state.submitted, true);
+});
+
+test('a Kids Category app whose saved notes skip the Guideline 1.3 questions is refused before any write', async () => {
+  for (const kidsNotes of [null, 'The app collects no data and shows no ads.']) {
+    const state = fixture({ noSubscription: true, kidsNotes });
+    await assert.rejects(submit('--confirm'), /Guideline 1\.3[\s\S]*third-party analytics[\s\S]*nothing was submitted/);
+    assert.equal(state.writes.length, 0);
+    assert.equal(state.reads.includes('/v1/apps/app/reviewSubmissions'), false, 'refused before any submission is opened');
+  }
+});
+
+test('a Kids Category app whose saved notes answer the Guideline 1.3 questions is submitted', async () => {
+  const kidsNotes = 'No third-party analytics. No ads. No data shared with third parties. The app collects no user or device data.';
+  const state = fixture({ noSubscription: true, kidsNotes });
+  await submit('--confirm');
+  assert.ok(state.reads.includes('/v1/appStoreVersions/v1/appStoreReviewDetail'));
+  assert.equal(state.submitted, true);
+});
+
+test('apps outside the Kids Category never read the review notes at submit', async () => {
+  const state = fixture({ noSubscription: true });
+  await submit('--confirm');
+  assert.equal(state.reads.includes('/v1/appStoreVersions/v1/appStoreReviewDetail'), false);
 });

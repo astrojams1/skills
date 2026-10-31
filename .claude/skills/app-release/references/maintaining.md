@@ -10,9 +10,9 @@ and why.
 | The change is… | It belongs in | Examples |
 |---|---|---|
 | True of every app on these stores | **This skill** (skills repository, `skills/app-release/`) | A new Apple or Google rule or API behavior, a script bug or feature, a safer default, a gate, ledger format, approval policy, a gotcha that cost a retry |
-| True of one kind of app | **This skill**, in [app types](app-types.md) | A rule for games, news apps, paid downloads |
+| True of one kind of app | **This skill**, in [app types](app-types.md) | A rule for games, news apps, kids apps, paid downloads |
 | A fact or choice of one app | **The app repository**: `app-release.config.json`, the store data, or its repository skill | IDs, vault item names, copy, screenshots, price, its extra gates, the owner's preference for that app |
-| Both | Split it: the general part here, the app's part there, in two pull requests that link each other | "Hold Play commits while Newsworthy's rejection stands" → `--hold` here; the current hold in Newsworthy's ledger |
+| Both | Split it: the general part here, the app's part there, in two pull requests that link each other | "Hold Play commits while Newsworthy's rejection stands" → `--hold` here; the current hold in Newsworthy's ledger. A root-caused rejection → the check that stops the next app here (`submit` refuses a Kids Category app whose notes skip Guideline 1.3); the answer in Giraffe Stretch's review notes |
 
 When unsure, ask: would the next app need this? If yes, it goes here. An owner preference stated about one
 app stays with that app unless the owner says it applies to all of them.
