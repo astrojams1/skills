@@ -109,6 +109,20 @@ test('submission retries recognise a version already in review and resolve rejec
   assert.deepEqual(asc.itemsToResolve([item('v1', 'REJECTED'), item('v1', 'ACCEPTED'), item('v0', 'REJECTED')], 'v1').map(entry => entry.id), ['v1-REJECTED']);
 });
 
+test('withdraw cancels only the one submission in review with this version', () => {
+  const item = version => ({ attributes: { state: 'READY_FOR_REVIEW' }, relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version } } } });
+  const submission = (id, state) => ({ id, attributes: { state } });
+  const waiting = submission('s1', 'WAITING_FOR_REVIEW');
+  const reviewing = submission('s2', 'IN_REVIEW');
+  assert.deepEqual(asc.withdrawPlan([waiting], { s1: [item('v1')] }, 'v1'), { action: 'cancel', id: 's1' });
+  assert.deepEqual(asc.withdrawPlan([reviewing], { s2: [item('v1')] }, 'v1'), { action: 'cancel', id: 's2' });
+  // Another version's submission, or one whose items were not read, is never canceled.
+  assert.deepEqual(asc.withdrawPlan([waiting], { s1: [item('v0')] }, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([waiting], {}, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([], {}, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([waiting, reviewing], { s1: [item('v1')], s2: [item('v1')] }, 'v1'), { action: 'conflict', ids: ['s1', 's2'] });
+});
+
 test('Game Center setup turns the capability on only once and matches leaderboards by vendor identifier', () => {
   const capability = type => ({ attributes: { capabilityType: type } });
   assert.equal(asc.hasCapability([capability('IN_APP_PURCHASE')], 'GAME_CENTER'), false);
