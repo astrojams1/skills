@@ -61,7 +61,8 @@ onboarding and revise the guidance if Apple changes the capability.
    and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
    choice that is genuinely missing. Never import another app's price, claims, IDs or design.
 5. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
-   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume.
+   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume. Check
+   prior store-rejection lessons and rerun their applicable prevention checks before the next submission.
 6. Write the intended gates into the ledger, then advance independent work while account verification,
    provider processing or review is pending.
 
@@ -131,6 +132,9 @@ commit a key, token, password, review phone or bank detail; check access without
   separately from the owner's device state. Resume the known working app/profile/tab and preserve
   session observations across turns ([accounts](references/accounts.md), “Preserve session continuity”);
   do not turn an unchanged connector failure into another owner sign-in request.
+- For an owner-provided review file, reconcile saved artifacts and inspect the supported attachment
+  chooser before building an exporter or handing file transfer back to the owner. Honor an explicit
+  **Attach File** request; see [iOS](references/ios.md), “Attach the owner's recording”.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
   `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
@@ -166,24 +170,26 @@ verification. A patch, retry, PR or recorded TODO alone does not close an issue.
 verification evidence, and publish reusable workflow/tool fixes here so later apps inherit them. Follow
 repository PR/review rules and existing authorization; the detailed protocol is in [ledger](references/ledger.md).
 
+For every store rejection or information request, preserve the reviewer's actual reason and establish
+the root cause before changing the app or resubmitting. Once established, correct this app **and update
+this shared skill to prevent the same cause recurring**: add the appropriate preflight check (as `submit`
+refuses a Kids Category app whose saved notes skip the Guideline 1.3 questions), regression test, scoped
+checklist or evidence requirement, then verify it. Keep app-specific facts in the app's
+records; publish reusable guidance/tooling here, record the lesson and its adoption status, and apply it
+to later submissions. Follow the rejection recovery loop in [ledger](references/ledger.md). A skill
+change and a successful resubmission are separate results; neither proves Apple approval.
+
 Before declaring the run complete, reconcile the command/test/provider results with the issue log and
 run `node $S/ledger.mjs issues`. It must pass alongside ledger validation and view checks. Fixable issues
 cannot be left as follow-up work just to finish the run. A demonstrated external dependency stays open
 with attempts, owner, exact dependency and next action; report the run as partial/blocked, never complete.
 
-**Fix a store rejection twice.** Once the root cause of a rejection or information request is
-established (from the store's actual message, not the version state), fix or answer it for this app, then
-change this skill so no app meets it again. Where the scripts can detect the cause, add a pre-submission
-check that refuses before any write: `submit` refuses a Kids Category app whose saved notes skip the
-Guideline 1.3 questions. Otherwise add a gate, an [app types](references/app-types.md) row or a gotcha.
-Route it per [maintaining](references/maintaining.md), add a lesson to the skill ledger and record
-`skill.app-release` in the app's ledger with the pull request. Resubmission does not wait for that pull request.
-
 ## Changing this skill
 
 When the owner asks to change how releases work — in any app repository, even when they name only that
 app's skill — or a run teaches something worth keeping, first decide where the change belongs and say so:
-true of every app goes **here** (the skills repository's `skills/app-release/`, on a branch with tests,
+reusable across apps or conditional on an app type goes **here** (the skills repository's
+`skills/app-release/`, on a branch with tests,
 then each app's submodule is bumped); a fact or choice of one app goes in that app's config, store data or
 repository skill; a mix is split. Never edit a discovery copy or the submodule checkout in place. The
 procedure, including checking every app that uses this skill, is in [maintaining](references/maintaining.md).

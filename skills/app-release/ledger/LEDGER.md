@@ -4,10 +4,23 @@ Skill version **2.9.0**. This index preserves sanitized outcomes and lessons acr
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
+## Lessons incorporated into v2.8.3 (2026-10-31)
+
+- A diagnosed rejection must improve the shared release process as well as the current app. Preserve
+  the actual reviewer request, identify the missed earlier check, add a scoped prevention and verify it.
+- Review-information and attachment gaps are rejection causes too. Check the submitted build's actual
+  setup flow and every requested answer; keep a required physical-device demo distinct from simulator
+  footage or a written phone check.
+- Recheck applicable lessons on later submissions. Prepared/verified skill source, delivery/adoption,
+  resubmission acceptance and store approval remain separate; pending publication alone does not block
+  an otherwise complete authorized resubmission.
+
 ## Runs
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
+| [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
 | [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
 | [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |
 | [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
@@ -50,9 +63,9 @@ are stored here. See its canonical ledger before resuming.
 - `submit` now reads the saved review notes of a Kids Category app and refuses before any write, naming each
   unanswered question (`kidsReviewNotesProblems`, with unit and submit-path tests). Apps without a
   `kidsAgeBand` make no extra read. `app-types.md` gains a kids apps section.
-- The owner asked that every root-caused rejection also change this skill so no app meets it again: SKILL.md
-  ("Fix a store rejection twice"), a fifth step in iOS's "When App Review rejects", a Play gotcha and a
-  `maintaining.md` example. Consumers only bump the submodule; no config or store data changes.
+- This is the first script-level prevention under v2.8.3's rejection recovery loop: SKILL.md cites it as
+  the example of a preflight check, iOS "When App Review rejects" gains a "Prevent a repeat" step and the
+  Play gotchas a pointer to the loop. Consumers only bump the submodule; no config or store data changes.
 
 ## Lessons incorporated into v2.8.2 (2026-10-30)
 

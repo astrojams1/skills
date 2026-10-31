@@ -1,5 +1,19 @@
 # Lessons Learned
 
+## Inspect the direct attachment route before building a transfer tool
+
+**Source:** Nametag review-recording correction (2026-10-31).
+
+- An open App Review reply already offers Attach File. Inspect its supported
+  native chooser, including Media Photos/Movies when present, before creating an
+  exporter or asking the owner to repeat file transfer. Preserve public API use
+  where it meets the required destination and honor an explicit UI route.
+- Reconcile actual saved bytes and playback before trusting a later failure or
+  cancellation label. Preserve successful export receipts across retries; an
+  existing valid file should not become another owner handoff.
+- Separate acquisition, evidence coverage, upload completion, reply delivery and
+  accepted resubmission. Simpler transfer does not waive physical/build/OS proof.
+
 ## Explain known provider boundaries before the owner asks
 
 **Source:** Rhythm TestFlight correction (2026-10-26).
@@ -383,3 +397,8 @@ current store requirements, and check existing method authorization before askin
 - Retry a privacy-blocked submission after observed publication changes, not
   merely because another continuation started. Local skill checks do not verify
   a repaired live session or published store answers.
+
+
+## 2026-10-31 — Root-caused store rejections must improve the release skill
+
+The owner requires each diagnosed rejection to produce both an app correction and a verified reusable prevention check or evidence requirement. Logging a retry alone loses the lesson. Preserve the reviewer request, distinguish missing review evidence from a code bug, update the shared workflow at the right scope, and recheck that lesson before later submissions. A required physical demo remains a real dependency; neither simulator footage nor a written phone approval satisfies it.
