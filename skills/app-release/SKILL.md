@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.2"
+  version: "2.8.3"
 ---
 
 # App release
@@ -22,7 +22,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 |---|---|
 | `ledger.mjs` | Gate and issue ledger: `init`, `record`, `status`, `render`, `check`, `validate`, `issues` (verified issue closure) |
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
-| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `release --confirm` |
+| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
@@ -132,7 +132,7 @@ commit a key, token, password, review phone or bank detail; check access without
   session observations across turns ([accounts](references/accounts.md), “Preserve session continuity”);
   do not turn an unchanged connector failure into another owner sign-in request.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
-  `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
+  `submit --confirm`, `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
   does not authorize public release.
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,

@@ -1,6 +1,6 @@
 # App release skill ledger
 
-Skill version **2.8.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.8.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
@@ -38,6 +38,17 @@ an acknowledged address-correction request awaiting Apple approval, completed
 privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
+
+## Lessons incorporated into v2.8.3 (2026-10-30)
+
+- Füd 1.2.0: the owner asked to replace build 247 in App Review with 248, which fixed a banner they disliked.
+  `asc.mjs` could submit, attach a build and cancel a rejected submission, but it had no command for
+  withdrawing a version that was waiting for review.
+- `withdraw --confirm` now does it: `withdrawPlan` picks the one WAITING_FOR_REVIEW or IN_REVIEW submission
+  that holds this version (it stops on none or several), cancels it, waits for the cancel to settle and reads
+  the version back. It was run against Füd: the submission was canceled and the version read back
+  DEVELOPER_REJECTED. `attach-build 248` and `submit --confirm` then opened a new submission, which read back
+  WAITING_FOR_REVIEW with release MANUAL. A test covers the plan. Consumers only need to bump the submodule.
 
 ## Lessons incorporated into v2.8.2 (2026-10-30)
 

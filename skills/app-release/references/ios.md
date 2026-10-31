@@ -182,7 +182,11 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    compare the live values with the repository's previous copy so only the intended change goes out.
 7. **Attach and submit.** `asc.mjs attach-build <N>`, then with the owner's approval `asc.mjs submit
    --confirm`. Read back `WAITING_FOR_REVIEW` on both the version and the submission before saying it was
-   submitted; `READY_FOR_REVIEW` is still a draft.
+   submitted; `READY_FOR_REVIEW` is still a draft. To put a newer build in front of App Review, the owner
+   must approve giving up the version's place in the queue; then `asc.mjs withdraw --confirm` (cancels only
+   the one submission in review with this version, waits for the cancel to settle and reads the version
+   back, usually `DEVELOPER_REJECTED`), `attach-build <N>`, and `submit --confirm`, which opens a new
+   submission. Recheck the listing and screenshots against the new build first.
 8. **Release.** With `releaseType: MANUAL` an approved version waits as `PENDING_DEVELOPER_RELEASE`; after the
    owner's physical-device check of the TestFlight build, `asc.mjs release --confirm`. With
    `AFTER_APPROVAL` it goes live on approval, so the device check must happen before submitting. Never
