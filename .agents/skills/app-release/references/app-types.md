@@ -37,6 +37,19 @@ the store data. Never copy another app's answers: derive each from the shipped a
 | Notifications | Push needs `aps-environment: production` (iOS) and `google-services.json` with `string/google_app_id` (Android) checked in the build; notifications are not an emergency service |
 | Widgets | An app group on every bundle (`ios.appGroup`); verify each widget size natively ([verification](verification.md)) |
 
+## Kids apps (`ageRating.kidsAgeBand`, e.g. Giraffe Stretch)
+
+A `kidsAgeBand` (`FIVE_AND_UNDER`, `SIX_TO_EIGHT` or `NINE_TO_ELEVEN`) in the store data's `ageRating` puts the
+app in Apple's Kids Category, under Guidelines 1.3 and 5.1.4.
+
+| Topic | What to do |
+|---|---|
+| Guideline 1.3 questions | App Review holds a Kids Category submission with an automated 2.1 information request until the notes answer four questions: third-party analytics (and what they collect), third-party advertising (with a link to the ad network's kids policies), data shared with third parties (with whom, why, where it is stored) and other user or device data collected (and every use). Answer all four in `review.notes` from the shipped code before the first submission; `submit` refuses until the saved notes do (Giraffe Stretch 1.0, 31 October 2026) |
+| Parental gate | Purchases, links out of the app and settings sit behind a gate a young child cannot pass; describe it in the review notes |
+| SDKs | Keep to Apple's frameworks: Guideline 1.3 allows third-party analytics or ads only in narrow cases (no identifiable data about children; ad networks with published kids practices) |
+| Privacy | App Privacy, the privacy policy and the review notes say the same thing, and the code bears it out ([privacy](privacy.md)) |
+| Google Play | A target audience including children puts the app under Play's Families policy: complete Target audience and content, and use only Families self-certified ad SDKs, if any |
+
 ## Paid downloads (e.g. Newsworthy at US$1)
 
 - Apple: the Paid Apps Agreement, tax forms and banking must be active, or approved versions read

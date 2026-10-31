@@ -413,6 +413,24 @@ export function listingCharacterProblems(copy) {
     .map(field => field + ' contains ' + JSON.stringify(copy[field].match(symbol)[0]) + ', which App Store Connect rejects; spell it out');
 }
 
+// KIDS_CATEGORY_QUESTIONS are the four Guideline 1.3 questions App Review asks of every Kids Category app in an
+// automated information request, holding the version until they are answered (Giraffe Stretch 1.0, 2026-10-31). Each
+// pairs the question with the words an answer to it must use.
+const KIDS_CATEGORY_QUESTIONS = [
+  ['third-party analytics (whether the app includes any, and what data they collect)', /analytics/i],
+  ['third-party advertising (whether the app shows any, and a link to the ad network\'s policies for kids apps)', /\bads?\b|advertis/i],
+  ['data shared with third parties (with whom, for what, and where it is stored)', /\bshar(?:e|ed|es|ing)\b[^.]*third[- ]part|third[- ]part[^.]*\bshar(?:e|ed|es|ing)\b/i],
+  ['other user or device data the app collects (and every use of it)', /\bcollect/i],
+];
+
+// kidsReviewNotesProblems names the Kids Category questions the review notes leave unanswered. An app outside the Kids
+// Category (no kidsAgeBand in its age rating) is not asked them.
+export function kidsReviewNotesProblems(ageRating, notes) {
+  if (!ageRating || !ageRating.kidsAgeBand) return [];
+  const text = typeof notes === 'string' ? notes : '';
+  return KIDS_CATEGORY_QUESTIONS.filter(([, answered]) => !answered.test(text)).map(([question]) => question);
+}
+
 // whatsNewPlan decides whether a version's copy carries release notes. Apple refuses "What's New" on an app's first
 // version, so nothing is sent before a version is live; every later version is an update and must ship notes, so an
 // update with empty notes stops the command instead of reaching App Review without them.
@@ -1374,6 +1392,14 @@ export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
   if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
+  // A Kids Category app is held for Guideline 1.3 answers; the saved notes are what App Review reads, so they are checked.
+  if (STORE.ageRating && STORE.ageRating.kidsAgeBand) {
+    const detail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
+    const unanswered = kidsReviewNotesProblems(STORE.ageRating, detail.data?.attributes?.notes);
+    if (unanswered.length) throw new Error('A Kids Category app (kidsAgeBand ' + STORE.ageRating.kidsAgeBand + ') is held by App Review until '
+      + 'its notes answer how it meets Guideline 1.3. The saved review notes do not answer: ' + unanswered.join('; ')
+      + '. Answer each from the shipped code in the store data\'s review.notes, run `asc.mjs review-details`, then submit again; nothing was submitted.');
+  }
   let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
   const pending = await submissionInReview(ctx.version.id, reviewTargets);
