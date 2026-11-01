@@ -232,6 +232,44 @@ test('only processed images can be placed, and screenshots only on profiles with
   assert.match(asc.assetEntryProblem({ file: 's.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE' }), /does not take/);
 });
 
+test('app previews are videos placed per device profile, with an optional poster frame time code', () => {
+  const preview = { file: 'store/previews/tour.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_PREVIEW', placementGroup: 'IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE' };
+  assert.equal(asc.assetMedia('tour.MOV'), 'video');
+  assert.equal(asc.assetMedia('tour.m4v'), 'video');
+  assert.equal(asc.assetMedia('header.png'), 'image');
+  assert.equal(asc.assetEntryProblem(preview), null);
+  assert.equal(asc.assetEntryProblem({ ...preview, previewFrame: '00:00:14:15' }), null);
+  assert.equal(asc.assetEntryProblem({ ...preview, file: 'ipad.mp4', placementGroup: 'IPAD_13_PROFILE' }), null);
+  assert.match(asc.assetEntryProblem({ ...preview, previewFrame: '14.5' }), /time code/);
+  assert.match(asc.assetEntryProblem({ ...preview, file: 'still.png' }), /video/);
+  assert.match(asc.assetEntryProblem({ ...preview, placementGroup: 'DEFAULT_PROFILE' }), /does not take/);
+  assert.match(asc.assetEntryProblem({ file: 'clip.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /image/);
+  assert.match(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'DEFAULT_PROFILE', previewFrame: '00:00:01:00' }), /only a video/);
+});
+
+test('placements of videos are matched like images', () => {
+  const placed = (id, name, asset) => ({ id: id, relationships: { [name]: { data: { id: asset } } } });
+  assert.equal(asc.placedAsset(placed('p1', 'video', 'v1')), 'v1');
+  assert.equal(asc.placedAsset({ id: 'p0', relationships: { image: { data: null }, video: { data: { id: 'v2' } } } }), 'v2');
+  assert.equal(asc.placedAsset({ id: 'p0' }), null);
+  assert.deepEqual(asc.placementPlan([placed('p1', 'video', 'old'), placed('p2', 'video', 'v1')], ['v1', 'v2']), { missing: ['v2'], stale: ['p1'] });
+});
+
+test('featuring nominations are checked and never sent twice', () => {
+  const nomination = { name: 'Describe a meal', type: 'APP_ENHANCEMENTS', description: 'Type a meal in your own words.', publishStartDate: '2026-11-10T08:00:00Z' };
+  assert.equal(asc.nominationProblem(nomination), null);
+  assert.equal(asc.nominationProblem({ ...nomination, deviceFamilies: ['IPHONE', 'IPAD'], locales: ['en-US'], publishEndDate: '2026-12-10T08:00:00Z' }), null);
+  assert.match(asc.nominationProblem({ ...nomination, type: 'FEATURE' }), /type is one of/);
+  assert.match(asc.nominationProblem({ ...nomination, description: ' ' }), /description/);
+  assert.match(asc.nominationProblem({ ...nomination, publishStartDate: 'soon' }), /not a date/);
+  assert.match(asc.nominationProblem({ ...nomination, publishEndDate: '2026-11-01T00:00:00Z' }), /must follow/);
+  assert.match(asc.nominationProblem({ ...nomination, submitted: true }), /unknown field submitted/);
+  const held = (id, name, state) => ({ id: id, attributes: { name: name, state: state } });
+  const plan = asc.nominationPlan([nomination, { ...nomination, name: 'Draft one' }, { ...nomination, name: 'Sent' }],
+    [held('d', 'Draft one', 'DRAFT'), held('s', 'Sent', 'SUBMITTED')]);
+  assert.deepEqual(plan.map(step => [step.action, step.id]), [['create', undefined], ['submit', 'd'], ['keep', 's']]);
+});
+
 test('only processed, unsubmitted images listed in store data go to App Review', () => {
   const image = (id, ref, state) => ({ id: id, attributes: { referenceName: ref, state: state } });
   const images = [image('1', 'a@x', 'PREPARE_FOR_SUBMISSION'), image('2', 'b@x', 'WAITING_FOR_REVIEW'), image('3', 'c@x', 'APPROVED'),
