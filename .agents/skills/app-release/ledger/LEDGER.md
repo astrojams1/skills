@@ -1,8 +1,24 @@
 # App release skill ledger
 
-Skill version **2.9.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.10.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.10.0 (2026-11-01)
+
+- Füd 1.3.0: the owner asked for a high-quality video tour on the product page and for every other way Apple offers
+  to present and promote an app, recorded here so every app does the same. [promotion](../references/promotion.md)
+  is now a per-release checklist (preview, promotional text, header and search creative, featuring nomination) with
+  the conditional ones (custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt) and
+  the medical device declaration that blocks updates from early 2027.
+- Apple deprecated `appPreviewSets`/`appPreviews` in API 4.5.1; previews now go through the Asset Library. `asc.mjs
+  assets` uploads and places videos (`APP_PREVIEW` per device profile, `previewFrame` for the poster) and
+  `asc.mjs nominate --confirm` sends featuring nominations. `app-preview.swift` renders a preview from simulator
+  recordings with AVFoundation alone and checks it against the spec. Two writer deadlocks were found and fixed while
+  making Füd's preview: silent audio must run ahead of the video, and the audio input must be finished as soon as it
+  is complete, or AVAssetWriter stops taking frames.
+- A simulator recording only writes frames when the screen changes; list the bursts to find cut points instead of
+  scrubbing. Rehearse the tour first so one-time consent prompts and slow first loads stay out of the take.
 
 ## Lessons incorporated into v2.8.5 (2026-10-31)
 
@@ -30,6 +46,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-11-01 Füd preview and promotion](runs/2026-11-01-fud-preview-promotion.md) | [Füd release records](https://github.com/wendigo124/FSRN_Subs/blob/main/store/ledger.json) | App preview rendered from simulator footage with `app-preview.swift`, uploaded through the Asset Library; promotion checklist, `nominate` and video `assets` added for every app | Unknown / no new paid service |
 | [2026-10-31 no mirroring dependency](runs/2026-10-31-no-mirroring.md) | Shared process maintenance; current app state remains in its own ledger | Mirroring is never required or initiated as a release dependency; preserve completed exact-build approval and ask only for genuinely missing evidence | Unknown / no new paid service |
 | [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
 | [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |

@@ -149,6 +149,55 @@ provider requirements instead of turning future or optional creative into an own
 - The regular screenshot display types (`asc.mjs screenshots`) also appear in the Asset Library; `assets` is for
   placements that have no screenshot display type.
 
+## App preview video
+
+Every app with something to show in motion gets an app preview: it plays first on the product page, autoplays
+muted, and shows in search results. Make one per device family the screenshots cover (iPhone, and iPad when the app
+runs there), up to three per profile. As read on 2026-11-01 from
+[Apple's preview specification](https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications)
+and `GET /v1/appAssetLibraryRefData` (read it again before relying on these):
+
+| Profile (`placementGroup`) | Portrait / landscape |
+|---|---|
+| iPhone Dynamic Island and Face ID, large and medium; iPhone Duo | 886x1920 / 1920x886 |
+| iPhone with Home button, 5.5" and 4" | 1080x1920 / 1920x1080 |
+| iPhone with Home button, 4.7" | 750x1334 / 1334x750 |
+| iPad 13", 11", 10.5" (and 12.9" also 900x1200) | 1200x1600 / 1600x1200 |
+| iPad 9.7" | 900x1200 / 1200x900 |
+| Mac, Apple TV / Vision Pro | 1920x1080 / 3840x2160, landscape only |
+
+15 to 30 seconds, 23 to 30 fps, H.264 (10 to 12 Mbps target) or ProRes 422 HQ, `.mov`, `.mp4` or `.m4v`, at most
+500 MB, with a stereo audio track (`audioRequired` in the reference data: a silent AAC track satisfies it; without one
+the upload fails processing rather than being refused). Place the preview on the same profile as the screenshots and
+keep its aspect ratio: a preview whose ratio differs from the screenshots moves to "A Closer Look" instead of
+playing first.
+
+**Content** ([Apple's guidance](https://developer.apple.com/app-store/app-previews/), Guideline 2.3.4): footage captured
+from the app itself at its native resolution (no zooming in), no people or hands, plain dissolves and fades that do
+not imply features the app lacks, short legible captions because it plays muted, no prices and nothing seasonal,
+fictional data, and a disclosure of any sign-in, purchase or subscription the app needs, in the footage or the end
+frame. A caption band above a framed recording, like the screenshot artboards, keeps captions off the UI.
+
+**Make it** from a Release-configuration simulator build of the exact version going to review, against seeded
+synthetic data:
+
+1. Rehearse the whole tour first, so one-time prompts (consent, permissions) and slow first loads are out of the
+   way, and pick inputs whose results read well on screen. Reset the data, then record one continuous take with
+   `xcrun simctl io <device> recordVideo --codec=h264` (status bar overridden to 9:41, full battery not charging).
+   Drive it with the simulator tool's taps, typing and `touch_path` drags; leave a second of stillness after each step.
+2. Simulator recordings only write frames when the screen changes; list those bursts (sample timestamps) or draw
+   `swift $S/app-preview.swift sheet <take.mov> <out.png> <frames> <from> <to>` to find each moment's time.
+3. Write a render spec (see the script's header: size, fps, background, font, caption style, device frame, clips
+   with `from`/`to`/`speed`, timed captions and a closing `note` for the disclosure) beside the store data, and run
+   `swift $S/app-preview.swift render <spec.json>`. Keep real waiting time real; cut idle stretches, never speed up
+   the app's own processing.
+4. `swift $S/app-preview.swift check <preview.mov> <legacy preview type such as IPHONE_61>` must report no problems;
+   then look at a `sheet` of the whole cut and full-size `frame`s, and choose the poster frame (Apple's default is
+   5 s, which may land on a keyboard or a transition).
+5. Add it to store data's `assetLibrary` (`APP_PREVIEW`, its profile, `previewFrame`), keep the video and raw take in
+   the app's project home rather than Git, record their SHA-256, `asc.mjs assets upload`, wait for `assets` to show it
+   processed, then `assets place` on the version before `submit --confirm`. It goes to App Review with the version.
+
 ## Every update
 
 Before any update of any app goes to review, on both stores:
@@ -156,8 +205,9 @@ Before any update of any app goes to review, on both stores:
 1. Read what each store holds now (`asc.mjs status`, `play.mjs status`) and compare it with the store data.
 2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
    show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
-3. Recheck existing product page headers, search-results creative and Duo images. Supply missing assets when
-   currently required or included in the app's agreed plan; optional slots alone are not release blockers.
+3. Recheck existing app previews, product page headers, search-results creative and Duo images. A preview that
+   shows a changed screen is re-recorded, not trimmed around. Supply missing assets when currently required or
+   included in the app's agreed plan; optional slots alone are not release blockers.
 4. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
    against the build; correct anything it no longer does and add what it newly does.
 5. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
@@ -172,5 +222,5 @@ only when `ios.pruneScreenshots` is true — **removes** files and whole sets th
 (otherwise it reports them and leaves them), refuses to overwrite a finished file whose bytes changed (delete it in App Store
 Connect first), and puts each set in the listed order. Run `asc.mjs status` until every screenshot reads
 `COMPLETE`. `play.mjs images` replaces each listed Play image type in order and commits only when Play's
-SHA-256 of every image matches the repository's. Uploading App Store app previews (`appPreviewSets`) is not
-built; upload a preview in App Store Connect and record it.
+SHA-256 of every image matches the repository's. App previews upload through the Asset Library (`asc.mjs assets
+upload`, then `assets place`); Apple deprecated `appPreviewSets` in API 4.5.1, so there is no other path.

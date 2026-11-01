@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.9.1"
+  version: "2.10.0"
 ---
 
 # App release
@@ -22,7 +22,8 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 |---|---|
 | `ledger.mjs` | Gate and issue ledger: `init`, `record`, `status`, `render`, `check`, `validate`, `issues` (verified issue closure) |
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
-| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
+| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `assets` (Asset Library images and app preview videos), `nominate --confirm` (featuring nominations), `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
+| `app-preview.swift` | macOS AVFoundation, no ffmpeg: `render` an App Store preview from simulator recordings, `check` a file against Apple's preview spec, `sheet` and `frame` to review the cut (`swift $S/app-preview.swift …`) |
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
@@ -77,7 +78,8 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
-| Listing and media | Store data copy, real captures, required sizes ([media](references/media.md)) |
+| Listing and media | Store data copy, real captures, required sizes, an app preview video ([media](references/media.md)) |
+| Presentation and promotion | Every release: preview, promotional text, header and search creative, featuring nomination; when they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
 | iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
