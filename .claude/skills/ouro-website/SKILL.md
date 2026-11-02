@@ -78,6 +78,10 @@ screenshots for the owner; content and asset updates go straight to `main` once 
   `await stageScrollCheck()` at 1440×900 and 375×812. It must return `ok: true`. A full run takes a few minutes in a
   hidden browser pane; start it without awaiting (store the promise's result on `window`) and poll, since evaluation
   tools time out.
+- Every iPhone browser, Chrome included, runs WebKit, and the browser pane is Chromium. After a home-page or layout
+  change, also open the preview in Mobile Safari on an iOS Simulator (the simulator reaches the Mac's `localhost`;
+  follow the owner's simulator storage and lease rules) and check the stage at the phone size. The scroll check can
+  run there too: serve it from the built page and show its result on screen.
 - Open `dist/og/<slug>.png` (the link-preview card) and check the headline, icon and status fit.
 - A live app shows Apple's black badge, its rating once five people have rated it, a QR code on desktop and the
   sticky bar on phones; a coming-soon app shows "Coming soon to the App Store" and never the badge.
@@ -96,6 +100,8 @@ screenshots for the owner; content and asset updates go straight to `main` once 
 - Link-preview cards are drawn by satori from `.woff` Latin fonts: keep their text to Latin characters, no
   emoji or ★.
 - The browser preview pane can return the previous frame on the first screenshot after a scroll; take two.
+- WebKit sized a stage screenshot from its own 74svh cap instead of its grid cell's `100%`, so on iPhones it ran over
+  the jump dots and off the frame while Chromium looked perfect. The stage sizes screens with container query units.
 - Satori ignores padding when sizing a fixed-height box: give a padded card `height: 630 - top - bottom`, or its last
   row falls off the preview image.
 - Link only to public pages. Moment to Meaning's own site was private (HTTP 401) on 2026-11-02, so the page has no
