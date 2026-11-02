@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { submitAssetImages, listAll } from '../../skills/app-release/scripts/asc.mjs';
+import { reviewItemsQuery } from '../../skills/app-release/scripts/lib/review-items.mjs';
 
 const originalFetch = globalThis.fetch;
 test.before(() => { globalThis.fetch = async () => { throw new Error('Unexpected real network request'); }; });
@@ -19,6 +20,13 @@ function fixture(options = {}) {
   const submission = () => ({ type: 'reviewSubmissions', id: 'draft', attributes: { state: state.status } });
   const request = async (path, method = 'GET', payload) => {
     state.events.push({ path, method, payload });
+    if (method === 'GET' && path.startsWith('/v1/apps/app/appStoreVersions?')) {
+      if (options.versionError) throw new Error('version read denied');
+      const versions = options.versions ?? [{ id: 'approved', attributes: { appVersionState: 'READY_FOR_DISTRIBUTION' } }];
+      if (options.paginateVersions && !path.includes('cursor=versions')) return { data: [], links: {
+        next: 'https://api.appstoreconnect.apple.com/v1/apps/app/appStoreVersions?cursor=versions' } };
+      return { data: versions };
+    }
     if (method === 'GET' && path.startsWith('/v1/reviewSubmissions/draft/items?')) {
       const secondPage = path.includes('cursor=second');
       const data = options.readback ? options.readback(state) : state.items;
@@ -48,11 +56,37 @@ function fixture(options = {}) {
     }
     throw new Error('Unexpected transport call: ' + method + ' ' + path);
   };
-  return { state, transport: { request, report: () => {}, openSubmission: async () => { state.opens += 1; return submission(); },
-    readItems: () => listAll('/v1/reviewSubmissions/draft/items?limit=200', request) } };
+  return { state, transport: { appId: 'app', request, report: () => {}, openSubmission: async () => { state.opens += 1; return submission(); },
+    readItems: () => listAll('/v1/reviewSubmissions/draft/items?' + reviewItemsQuery(), request) } };
 }
 
 const writes = f => f.state.events.filter(event => event.method !== 'GET');
+
+test('no approved iOS version or an uncertain version read prevents opening a draft or writing any item', async () => {
+  for (const options of [
+    { versions: [] }, { versionError: true },
+    ...['PREPARE_FOR_SUBMISSION', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'ACCEPTED', 'REJECTED', 'UNKNOWN'].map(appVersionState =>
+      ({ versions: [{ id: 'first', attributes: { appVersionState, appStoreState: 'READY_FOR_SALE' } }] })),
+  ]) {
+    const f = fixture(options);
+    await assert.rejects(submitAssetImages(['wanted'], f.transport), /approved iOS version|version read denied/);
+    assert.equal(f.state.opens, 0);
+    assert.deepEqual(writes(f), []);
+  }
+});
+
+test('approved release states and legacy state fallback permit standalone review after all version pages are read', async () => {
+  for (const attributes of [
+    ...['PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE', 'PROCESSING_FOR_DISTRIBUTION', 'READY_FOR_DISTRIBUTION'].map(appVersionState => ({ appVersionState })),
+    { appStoreState: 'READY_FOR_SALE' }, { appStoreState: 'PROCESSING_FOR_APP_STORE' },
+  ]) {
+    const f = fixture({ versions: [{ id: 'approved', attributes }], paginateVersions: true });
+    await submitAssetImages(['wanted'], f.transport);
+    assert.ok(f.state.events.some(event => event.path.includes('cursor=versions')));
+    assert.equal(f.state.events[0].method, 'GET');
+    assert.match(f.state.events[0].path, /appStoreVersions\?filter\[platform\]=IOS/);
+  }
+});
 
 test('pre-existing app and IAP draft items stop image-only submission before any mutation', async () => {
   for (const other of [app(), iap()]) {

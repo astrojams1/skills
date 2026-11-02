@@ -1,4 +1,4 @@
-# Icons and screenshots
+# Icons, screenshots and optional lifestyle art
 
 Put images in `/Volumes/ssd/code/ouro-apps/src/assets/apps/<slug>/`. Astro resizes and converts them at build time,
 so keep sources modest and real. Stage downloads and captures under `/Volumes/ssd/projects/ouro-apps/` first.
@@ -34,6 +34,18 @@ sips -s format jpeg -s formatOptions 88 --resampleWidth 1000 SOURCE.png --out sr
 Look at every screenshot before committing it and write alt text that says what the screen shows. Apple's guidelines
 apply to device imagery: do not draw fake bezels, tilt or add reflections; plain screenshots with rounded corners
 are what the site uses.
+
+## Optional lifestyle art
+
+When the owner's direction calls for a model scene or generated lifestyle image,
+use the catalog's separate `lifestyle: { file, alt, caption }` field. Keep it out
+of `screenshots`; those remain genuine app captures. The visible caption and alt
+text must identify generated/model artwork, without implying a real customer,
+testimonial or endorsement. Keep generation and composition provenance in the
+site's media records, with original captures as the factual reference for any
+visible app UI. Preserve accurate UI and observe Apple's device/branding rules.
+Lifestyle art is optional; do not require it or add an approval gate beyond the
+owner's existing scope. Inspect its crop and disclosure at desktop and phone widths.
 
 ## Badge
 

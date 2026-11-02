@@ -4,6 +4,20 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.12.0 — Asset Library review preflight and readback
+
+Plan: fix the reusable helper and creative guidance in an isolated checkout from main.
+Keep existing app submissions and unrelated working copies untouched.
+
+- [x] Read personal/repository conventions, skill-creator, maintaining guidance and primary Apple/spec documents.
+- [x] Diagnose omitted image include against saved live readback; distinguish standalone review eligibility.
+- [x] Reproduce provider projection, first-version refusal and incomplete image processing with meaningful regressions.
+- [x] Correct query/preflight and scoped creative guidance; preserve strict conflict/unknown/duplicate guards.
+- [ ] Audit consumers, refresh discovery, run all required checks and independently review the final change.
+- [ ] Publish, review and merge the shared source; report exact consumer synchronization instructions.
+
+Review: real-CLI query projection and missing preflights reproduce five failures on main; corrected focused set passes53/53. Required suites pass:200 release tests,6 Ouro,159 spec,65 management, identity,8 fit checks,5 YouTube (one existing ffmpeg skip). Both skills validate using the existing PyYAML venv;11 consumer configs normalize without migration. Independent review/publication pending; no provider mutations performed. Ouro1.0.1 documents the already shipped optional lifestyle field; unrelated PR120/version1.1.0 remains untouched and will need rebasing.
+
 ## app-release 2.9.1 — Never require mirroring
 
 Plan: correct the shared release process's confusion between required physical

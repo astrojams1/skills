@@ -7,11 +7,12 @@ export const REVIEW_RELATIONSHIPS = [
   'subscriptionVersion', 'subscriptionGroupVersion',
 ];
 
-// Apple rejects including both experiment variants. All linkage fields still expose unsupported resources,
-// while includes are restricted to the resource types this workflow actually needs to expand.
+// Apple rejects including both experiment variants. Request every linkage field, but explicitly include
+// supported targets too: live image-item responses omit their linkage when only sparse fields request it.
+// Missing/unknown linkage still fails the conflict guards; never infer a resource from an encoded item ID.
 export function reviewItemsQuery() {
   return new URLSearchParams({
-    include: 'appStoreVersion,gameCenterLeaderboardVersion,inAppPurchaseVersion,subscriptionVersion,subscriptionGroupVersion',
+    include: 'appStoreVersion,appAssetLibraryImage,gameCenterLeaderboardVersion,inAppPurchaseVersion,subscriptionVersion,subscriptionGroupVersion',
     'fields[reviewSubmissionItems]': ['state', ...REVIEW_RELATIONSHIPS].join(','),
     limit: '200',
   }).toString();

@@ -1543,19 +1543,27 @@ export function placementPlan(existing, wantedAssetIds) {
 // SUBMITTABLE_ASSET_STATES are the Asset Library states an image can be sent to App Review from.
 export const SUBMITTABLE_ASSET_STATES = ['COMPLETE', 'PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW'];
 
-// assetsToSubmit picks the store data's images that still need App Review, and reports the others' states, so a rerun
-// never sends an image twice and an unprocessed or rejected one is named instead of sent.
+// assetsToSubmit picks images that still need App Review, retaining already reviewed/in-review copies.
+// A missing, processing, rejected or unknown selected image blocks the whole batch before opening a draft.
 export function assetsToSubmit(images, references) {
   const send = [];
   const skipped = [];
+  const pending = [];
   for (const reference of references) {
     const image = images.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
-    if (!image) skipped.push(reference + ' (not uploaded)');
+    if (!image) pending.push(reference + ' (not uploaded)');
     else if (SUBMITTABLE_ASSET_STATES.includes(image.attributes.state)) send.push(image.id);
-    else skipped.push(reference + ' (' + image.attributes.state + ')');
+    else if (['WAITING_FOR_REVIEW', 'IN_REVIEW', 'ACCEPTED', 'APPROVED'].includes(image.attributes.state)) skipped.push(reference + ' (' + image.attributes.state + ')');
+    else pending.push(reference + ' (' + image.attributes.state + ')');
   }
+  if (pending.length) throw new Error('Selected images are not ready: ' + pending.join(', ') + '; no draft was opened or image attached. Wait for processing or resolve the listed asset states, then read back before retrying.');
   return { send: send, skipped: skipped };
 }
+
+// Standalone assets require an approved version on this submission's platform (Apple help, checked 2026-11-02).
+// ACCEPTED can still have rejected companion items; it is not a completed app approval.
+const ASSET_APPROVED_VERSION_STATES = [...LIVE_STATES, 'PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE',
+  'PROCESSING_FOR_DISTRIBUTION', 'PROCESSING_FOR_APP_STORE'];
 
 // An image-only action must never inherit another item's submission authorization.
 // Inspect every resource linkage (including unsupported ones), preserving uncertain or conflicting drafts.
@@ -1574,11 +1582,16 @@ function assetReviewItems(items, wanted) {
 
 // Read all held items before each add, read each attachment back, and require the exact final image set.
 // Transport injection exercises this same orchestration without credentials or provider mutations.
-export async function submitAssetImages(imageIds, { openSubmission = openReviewSubmission, readItems = submissionItems, request = api, report = console.log } = {}) {
+export async function submitAssetImages(imageIds, { appId = IOS?.ascAppId, openSubmission = openReviewSubmission, readItems = submissionItems, request = api, report = console.log } = {}) {
   if (!Array.isArray(imageIds) || !imageIds.length || imageIds.some(id => typeof id !== 'string' || !id.trim())) {
     throw new Error('Image review submission needs explicit image IDs.');
   }
   const wanted = new Set(imageIds);
+  if (!appId) throw new Error('Image review submission needs the configured app ID.');
+  const versions = await listAll('/v1/apps/' + appId + '/appStoreVersions?filter[platform]=IOS&limit=200', request);
+  if (!versions.some(version => ASSET_APPROVED_VERSION_STATES.includes(versionState(version)))) {
+    throw new Error('Standalone image review requires an approved iOS version; no draft was opened or image attached. Include assets with the first app version, or wait for its approval. Preserve any active first-version submission.');
+  }
   const submission = await openSubmission();
   if (!submission?.id || submission.attributes?.state !== 'READY_FOR_REVIEW') {
     throw new Error('Image review submission must be READY_FOR_REVIEW; existing draft preserved. Inspect rejected or changed submissions separately.');
