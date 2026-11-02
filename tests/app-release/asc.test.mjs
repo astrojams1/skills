@@ -232,6 +232,19 @@ test('only processed images can be placed, and screenshots only on profiles with
   assert.match(asc.assetEntryProblem({ file: 's.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE' }), /does not take/);
 });
 
+test('an approved version refuses screenshot and preview placements but still takes header and search creative', () => {
+  for (const state of ['PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE', 'READY_FOR_SALE', 'READY_FOR_DISTRIBUTION', 'PROCESSING_FOR_DISTRIBUTION']) {
+    assert.equal(asc.versionLockedPlacement('APP_SCREENSHOT', state), true, state);
+    assert.equal(asc.versionLockedPlacement('APP_PREVIEW', state), true, state);
+    assert.equal(asc.versionLockedPlacement('PRODUCT_PAGE_HEADER_ASSET', state), false, state);
+    assert.equal(asc.versionLockedPlacement('APP_STORE_SEARCH_RESULTS_ASSET', state), false, state);
+  }
+  for (const state of ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', '']) {
+    assert.equal(asc.versionLockedPlacement('APP_SCREENSHOT', state), false, state);
+    assert.equal(asc.versionLockedPlacement('APP_PREVIEW', state), false, state);
+  }
+});
+
 test('app previews are videos placed per device profile, with an optional poster frame time code', () => {
   const preview = { file: 'store/previews/tour.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_PREVIEW', placementGroup: 'IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE' };
   assert.equal(asc.assetMedia('tour.MOV'), 'video');
