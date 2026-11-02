@@ -274,9 +274,12 @@ test('only processed, unsubmitted images listed in store data go to App Review',
   const image = (id, ref, state) => ({ id: id, attributes: { referenceName: ref, state: state } });
   const images = [image('1', 'a@x', 'PREPARE_FOR_SUBMISSION'), image('2', 'b@x', 'WAITING_FOR_REVIEW'), image('3', 'c@x', 'APPROVED'),
     image('4', 'd@x', 'COMPLETE'), image('5', 'e@x', 'ARCHIVED'), image('6', 'f@x', 'UPLOAD_COMPLETE'), image('7', 'g@x', 'REJECTED')];
-  const plan = asc.assetsToSubmit(images, ['a@x', 'b@x', 'c@x', 'd@x', 'e@x', 'f@x', 'g@x', 'h@x']);
+  const plan = asc.assetsToSubmit(images, ['a@x', 'b@x', 'c@x', 'd@x']);
   assert.deepEqual(plan.send, ['1', '4']);
-  assert.deepEqual(plan.skipped, ['b@x (WAITING_FOR_REVIEW)', 'c@x (APPROVED)', 'e@x (not uploaded)', 'f@x (UPLOAD_COMPLETE)', 'g@x (REJECTED)', 'h@x (not uploaded)']);
+  assert.deepEqual(plan.skipped, ['b@x (WAITING_FOR_REVIEW)', 'c@x (APPROVED)']);
+  for (const blocked of ['e@x', 'f@x', 'g@x', 'h@x']) {
+    assert.throws(() => asc.assetsToSubmit(images, ['a@x', blocked]), /Selected images are not ready/);
+  }
 });
 
 

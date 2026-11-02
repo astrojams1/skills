@@ -1,8 +1,25 @@
 # App release skill ledger
 
-Skill version **2.11.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.12.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.12.0 (2026-11-02)
+
+- Asset Library image review requested the sparse image field but omitted the image
+  `include`; live readback therefore hid this run's own newly attached image and
+  triggered a false conflict. Explicit image inclusion restores the authoritative
+  linkage. The real CLI regression models query-dependent projection; unknown,
+  ambiguous, duplicate and foreign resources still stop the action.
+- Standalone image review now reads all iOS version pages before opening a draft
+  and requires a completed app approval, including pending manual release. An
+  initial version waiting/in review or an `ACCEPTED` item with unresolved companion
+  items is insufficient. All selected new images must be ready before any draft
+  or attachment; processing images no longer produce a partial submission.
+- Screenshots and app previews retain real native capture requirements. Header
+  and search creative may use supporting photography/illustration and optional,
+  owner-authorized AI model lifestyle art, with factual UI references and no fake
+  endorsements; Apple hardware and branding restrictions still apply.
 
 ## Lessons incorporated into v2.11.0 (2026-11-02)
 
@@ -54,6 +71,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-11-02 Asset Library review](runs/2026-11-02-asset-review.md) ([JSON](runs/2026-11-02-asset-review.json)) | Shared maintenance; app-specific state remains in its own ledger | Explicit image include, approved-version and complete-image-set preflights; creative artwork guidance clarified; provider mutations excluded | Unknown / no new paid service |
 | [2026-11-01 Füd preview and promotion](runs/2026-11-01-fud-preview-promotion.md) | [Füd release records](https://github.com/wendigo124/FSRN_Subs/blob/main/store/ledger.json) | App preview rendered from simulator footage with `app-preview.swift`, uploaded through the Asset Library; promotion checklist, `nominate` and video `assets` added for every app | Unknown / no new paid service |
 | [2026-10-31 no mirroring dependency](runs/2026-10-31-no-mirroring.md) | Shared process maintenance; current app state remains in its own ledger | Mirroring is never required or initiated as a release dependency; preserve completed exact-build approval and ask only for genuinely missing evidence | Unknown / no new paid service |
 | [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |

@@ -415,3 +415,16 @@ current store requirements, and check existing method authorization before askin
 ## 2026-10-31 — Root-caused store rejections must improve the release skill
 
 The owner requires each diagnosed rejection to produce both an app correction and a verified reusable prevention check or evidence requirement. Logging a retry alone loses the lesson. Preserve the reviewer request, distinguish missing review evidence from a code bug, update the shared workflow at the right scope, and recheck that lesson before later submissions. A required physical demo remains a real dependency; neither simulator footage nor a written phone approval satisfies it.
+
+## Asset Library queries and creative categories (2026-11-02)
+
+- Exercise the real request and response projection in regressions. Sparse fields
+  alone may not expose Apple's resource linkage; explicitly include the supported
+  target and keep missing, unknown, duplicate and conflicting items fail-closed.
+- Read standalone-review eligibility and readiness before opening a draft. An app's
+  first version awaiting review is not approved, an `ACCEPTED` item may have rejected
+  companions, and a processing selected image must not silently produce a subset.
+- Scope native-capture rules to screenshots and app previews. Optional creative
+  photography/illustration and owner-authorized AI model scenes may support an app's
+  marketing without fabricating UI, customer evidence or endorsements. Keep generated
+  lifestyle scenes separate from real screenshots and visibly disclosed on the website.

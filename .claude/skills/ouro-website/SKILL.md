@@ -104,8 +104,9 @@ screenshots for the owner; content and asset updates go straight to `main` once 
   the jump dots and off the frame while Chromium looked perfect. The stage sizes screens with container query units.
 - Don't pin the stage on phones. The owner's iPhone recordings showed a pinned stage feels dead under the finger,
   shrinks the screenshots and jolts as the browser toolbars come and go; phones get natural scrolling.
-- iOS Safari paints its status-bar strip from a fixed element touching the top of the page and does not follow its
-  colour changes. Never give the fixed header a background or move the bar itself; only the chips inside it tuck away.
+- iOS Safari paints the strip behind the clock one solid colour when anything fixed touches the top edge, and keeps
+  that colour while the page changes. Never give the fixed header a background, move the bar, or slide chips off the
+  top; hidden chips fade out in place. Check by scrolling between apps in the iOS Simulator with the chips shown.
 - Satori ignores padding when sizing a fixed-height box: give a padded card `height: 630 - top - bottom`, or its last
   row falls off the preview image.
 - Link only to public pages. Moment to Meaning's own site was private (HTTP 401) on 2026-11-02, so the page has no

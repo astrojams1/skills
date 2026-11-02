@@ -17,10 +17,11 @@ feature and release claim. Keep the user's monetization model; one project's
 $1 one-time purchase or no-ads stance is not a default for every future app.
 Local prices belong in store configuration, not promotional screenshot text.
 
-Create a coherent visual system based on the app's real brand. Use native captures
-inside editable vector artboards or another appropriate design workflow. Preserve
-actual UI, readings and features; don't synthesize evidence. Artwork may frame and
-resize captures, but it must not advertise unavailable functionality. Design and
+Create a coherent visual system based on the app's real brand. For screenshots,
+use native captures inside editable artboards or another appropriate design workflow;
+for app previews, use real app footage. Creative assets follow the separate guidance
+below. Preserve actual UI, readings and features; don't synthesize evidence. Artwork
+may frame and resize captures, but it must not advertise unavailable functionality. Design and
 inspect a contact sheet and representative full-size images for clipping, contrast,
 readability and platform correctness. Use the active image tools/skills when
 raster generation/editing is warranted; simple vector brand compositions may be
@@ -128,8 +129,23 @@ make Duo screenshots required starting April 2027 for apps using the iOS27.1 SDK
 condition applies, they are optional unless requested for the app. Verify the current date, SDK and
 provider requirements instead of turning future or optional creative into an owner dependency.
 
-- **Make them from the real app**, like screenshots: no HUD, no onboarding controls, no mock-ups. Duo screenshots
-  are ordinary captures at the Duo sizes, with the HUD.
+- **Choose artwork for its category.** Duo and other `APP_SCREENSHOTS_AND_PREVIEWS`
+  screenshots depict the real app; app preview footage retains the native-capture
+  requirements below. Headers and search art in `CREATIVE_ASSETS` may instead use
+  supporting photography, illustration or brand art related to the app's actual
+  purpose. Apple's [asset best practices](https://developer.apple.com/app-store/asset-best-practices/)
+  explicitly distinguish creative assets from screenshots and previews. When the
+  owner's direction calls for AI model lifestyle art, use it within that scope;
+  it is optional artwork, not proof of a customer, native test or endorsement.
+  Keep original UI references/captures and generation/composition sources, and
+  preserve real UI if shown. Never invent screens, customer quotes, reviews or
+  claimed results. Do not add a lifestyle requirement or another approval gate.
+- **Respect Apple hardware and branding.** Follow the current
+  [marketing guidelines](https://developer.apple.com/app-store/marketing/guidelines/):
+  use authorized Apple product imagery unchanged or authentic photography;
+  don't generate, redraw or simulate an Apple device. Generic device illustrations
+  must omit Apple-specific details. Keep app screen content accurate, avoid a
+  standalone Apple logo, fabricated Apple recognition or implied Apple endorsement.
 - **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` under the established upload authorization
   and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
   and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file
@@ -146,6 +162,18 @@ provider requirements instead of turning future or optional creative into an own
   state. Preserve mixed/rejected drafts and uncertain writes for readback; use a
   supported combined-review route when that broader scope is intended.
   [Apple asset review](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-assets-from-asset-library).
+- Before opening a draft, image-only submission reads all iOS version pages and
+  requires an approved version. `PENDING_DEVELOPER_RELEASE` qualifies; initial
+  `WAITING_FOR_REVIEW`, `IN_REVIEW` and partly accepted submissions do not. With
+  no approved version, assets must accompany the first app version. Preserve an
+  active first-version submission; do not withdraw it merely to add optional art.
+  The helper also refuses a partial batch while any selected new image is missing,
+  processing, failed, rejected or unknown. Already approved/in-review images are
+  retained without resubmitting them. Read each asset's state before retrying.
+- Item readback explicitly includes `appAssetLibraryImage` as well as requesting
+  its sparse relationship field. A field alone did not return the live image
+  linkage (2026-11-02). Missing/ambiguous linkage remains a conflict; never decode
+  an item ID to infer ownership or bypass the guard.
 - The regular screenshot display types (`asc.mjs screenshots`) also appear in the Asset Library; `assets` is for
   placements that have no screenshot display type.
 
