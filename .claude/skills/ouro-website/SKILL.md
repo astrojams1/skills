@@ -2,7 +2,7 @@
 name: ouro-website
 description: Keep the Ouro apps website (https://ouro-apps.vercel.app, repository astrojams1/ouro-apps) true to the App Store without being asked. Audit every app on Ouro LLC's App Store Connect team (team AYCDG243RJ) against the site, add or exclude new apps, flip "Coming soon" to the App Store badge on release, refresh names, subtitles, copy, screenshots, icons and theme colours, and deploy. Use whenever an Ouro app record is created, uploaded, submitted, approved, released, renamed or its listing or screenshots change; when the "Ouro website needs an update" issue opens; when someone asks whether the site is current or to change its pages, copy or design; and at the end of any app-release run for an Ouro app.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   ledger: ledger/LEDGER.md
 ---
 

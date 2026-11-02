@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "app": "app-release Asset Library maintenance",
+  "repository": "https://github.com/astrojams1/skills",
+  "objective": "Fix Asset Library image linkage, first-approved-version and complete-image-set preflights; clarify creative artwork scope",
+  "platforms": [
+    "ios"
+  ],
+  "created_at": "2026-11-02T18:23:55+00:00",
+  "updated_at": "2026-11-02T18:27:32+00:00",
+  "steps": {
+    "issue.image-linkage": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Added explicit image include; full CLI synthetic transport now attaches both intended images, independently reads each/final exact set and verifies WAITING_FOR_REVIEW. Existing conflict and uncertain-write guards pass.",
+      "evidence": [
+        "tests/app-release/asset-submit-cli.test.mjs; tests/app-release/asset-submit.test.mjs;200 release tests pass"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    },
+    "issue.first-version": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Reads all iOS version pages before opening a draft; no-approved, waiting, in-review, unknown and partially ACCEPTED states stop with zero draft/item writes. Approved pending-release and legacy live states pass.",
+      "evidence": [
+        "tests/app-release/asset-submit.test.mjs; tests/app-release/asset-submit-cli.test.mjs; Apple status and asset-review help checked2026-11-02"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    },
+    "issue.partial-images": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Missing, processing, failed, rejected and unknown selected images stop the batch before draft creation; already reviewed/in-review images remain retained.",
+      "evidence": [
+        "tests/app-release/asc.test.mjs; CLI readiness regressions perform GET requests only"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    },
+    "issue.creative-scope": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Scoped native capture requirements to screenshots/previews; creative photography/illustration and optional authorized generated model artwork preserve factual UI and Apple device/branding limits. Ouro docs separate lifestyle field with visible disclosure/provenance.",
+      "evidence": [
+        "references/media.md; ouro-website/references/assets.md; current Apple primary docs; both skill validators pass"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    },
+    "issue.fixture-setup": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Corrected real placement enums and initialized CLI receipt; main now fails for the demonstrated image projection and missing preflights, then all200 release tests pass.",
+      "evidence": [
+        "regressions-before.log, regressions-after.log, release.log under /Volumes/ssd/projects/skills/artifacts/asset-review-readback"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    },
+    "issue.validation-environment": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "System and bundled Python lack PyYAML; reused existing project validator venv and validated both skills successfully without installing packages.",
+      "evidence": [
+        "/Volumes/ssd/projects/skills/rejection-prevention/validator-venv; quick_validate.py reports Skill is valid for app-release and ouro-website"
+      ],
+      "next_action": "",
+      "updated_at": "2026-11-02T18:27:32+00:00"
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-11-02T18:23:55+00:00",
+      "gate": "issue.image-linkage",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Live image readback omitted appAssetLibraryImage because include omitted it despite sparse fields requesting it; explicit-include probe recovered the owned linkage.",
+        "evidence": [
+          "Saved live apple-asset-review.json and image-link-probe.json; CLI query/projection regression reproduces conflict on main"
+        ],
+        "next_action": "Verify scoped correction and required repository suites",
+        "updated_at": "2026-11-02T18:23:55+00:00"
+      }
+    },
+    {
+      "sequence": 2,
+      "at": "2026-11-02T18:23:55+00:00",
+      "gate": "issue.first-version",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Image-only helper opened a draft although the first app version was still awaiting review; Apple requires assets with the first version until it is approved.",
+        "evidence": [
+          "Apple submit-assets-from-asset-library, checked 2026-11-02; no-approved-version regression fails on main"
+        ],
+        "next_action": "Verify scoped correction and required repository suites",
+        "updated_at": "2026-11-02T18:23:55+00:00"
+      }
+    },
+    {
+      "sequence": 3,
+      "at": "2026-11-02T18:23:55+00:00",
+      "gate": "issue.partial-images",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The command skipped a processing selected image and attached only the ready subset.",
+        "evidence": [
+          "CLI UPLOAD_COMPLETE regression fails on main; selected image readiness must be checked before draft creation"
+        ],
+        "next_action": "Verify scoped correction and required repository suites",
+        "updated_at": "2026-11-02T18:23:55+00:00"
+      }
+    },
+    {
+      "sequence": 4,
+      "at": "2026-11-02T18:23:55+00:00",
+      "gate": "issue.creative-scope",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Media guidance applied screenshot-only constraints to all creative assets, excluding supporting photography and illustration.",
+        "evidence": [
+          "Apple asset-best-practices and marketing/guidelines, checked 2026-11-02"
+        ],
+        "next_action": "Verify scoped correction and required repository suites",
+        "updated_at": "2026-11-02T18:23:55+00:00"
+      }
+    },
+    {
+      "sequence": 5,
+      "at": "2026-11-02T18:23:55+00:00",
+      "gate": "issue.fixture-setup",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Initial CLI regression used invalid placement enums and obscured stderr with missing receipt; corrected to real supported enums and initialized receipt.",
+        "evidence": [
+          "Corrected regressions-before.log now reproduces actual query conflict and missing preflight, not fixture setup"
+        ],
+        "next_action": "Verify scoped correction and required repository suites",
+        "updated_at": "2026-11-02T18:23:55+00:00"
+      }
+    },
+    {
+      "sequence": 6,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.fixture-setup",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Corrected real placement enums and initialized CLI receipt; main now fails for the demonstrated image projection and missing preflights, then all200 release tests pass.",
+        "evidence": [
+          "regressions-before.log, regressions-after.log, release.log under /Volumes/ssd/projects/skills/artifacts/asset-review-readback"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    },
+    {
+      "sequence": 7,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.validation-environment",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "System and bundled Python lack PyYAML; reused existing project validator venv and validated both skills successfully without installing packages.",
+        "evidence": [
+          "/Volumes/ssd/projects/skills/rejection-prevention/validator-venv; quick_validate.py reports Skill is valid for app-release and ouro-website"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    },
+    {
+      "sequence": 8,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.image-linkage",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Added explicit image include; full CLI synthetic transport now attaches both intended images, independently reads each/final exact set and verifies WAITING_FOR_REVIEW. Existing conflict and uncertain-write guards pass.",
+        "evidence": [
+          "tests/app-release/asset-submit-cli.test.mjs; tests/app-release/asset-submit.test.mjs;200 release tests pass"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    },
+    {
+      "sequence": 9,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.first-version",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Reads all iOS version pages before opening a draft; no-approved, waiting, in-review, unknown and partially ACCEPTED states stop with zero draft/item writes. Approved pending-release and legacy live states pass.",
+        "evidence": [
+          "tests/app-release/asset-submit.test.mjs; tests/app-release/asset-submit-cli.test.mjs; Apple status and asset-review help checked2026-11-02"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    },
+    {
+      "sequence": 10,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.partial-images",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Missing, processing, failed, rejected and unknown selected images stop the batch before draft creation; already reviewed/in-review images remain retained.",
+        "evidence": [
+          "tests/app-release/asc.test.mjs; CLI readiness regressions perform GET requests only"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    },
+    {
+      "sequence": 11,
+      "at": "2026-11-02T18:27:32+00:00",
+      "gate": "issue.creative-scope",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Scoped native capture requirements to screenshots/previews; creative photography/illustration and optional authorized generated model artwork preserve factual UI and Apple device/branding limits. Ouro docs separate lifestyle field with visible disclosure/provenance.",
+        "evidence": [
+          "references/media.md; ouro-website/references/assets.md; current Apple primary docs; both skill validators pass"
+        ],
+        "next_action": "",
+        "updated_at": "2026-11-02T18:27:32+00:00"
+      }
+    }
+  ],
+  "metrics": {
+    "tokens": null,
+    "cost_usd": null
+  }
+}
