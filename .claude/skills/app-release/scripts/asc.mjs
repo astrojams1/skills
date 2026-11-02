@@ -1731,7 +1731,7 @@ async function assets(mode) {
   }
   for (const slot of wanted.values()) {
     if (locked.includes(slot)) continue;
-    const query ='?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=' + ASSET_RESOURCES[slot.media].relation;
+    const query = '?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=' + ASSET_RESOURCES[slot.media].relation;
     const existing = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
     const plan = placementPlan(existing, slot.ids);
     if (plan.stale.length && !IOS.pruneScreenshots) {
