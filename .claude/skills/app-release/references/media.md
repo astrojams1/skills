@@ -152,7 +152,10 @@ provider requirements instead of turning future or optional creative into an own
   uploads as a new image. On a version Apple has already approved, a placement takes only approved images (409
   "The asset must be in the APPROVED state because the parent is already approved", 2026-10-23), so send them
   first with `asc.mjs assets submit --confirm` (their own review submission), then `place` once they read
-  `APPROVED`. `place` takes only processed images, puts screenshots in store-data order, and stops when
+  `APPROVED`. Screenshot and app preview placements (Duo profile included) are refused on an approved version
+  (409 "Creating a placement is not permitted in AppStoreVersion's current state", `PENDING_DEVELOPER_RELEASE`,
+  2026-11-02) and ride only on an editable version; header and search-results creative can still be placed on it,
+  so `place` skips the locked slots there and says so. `place` takes only processed images, puts screenshots in store-data order, and stops when
   a slot holds an image store data no longer lists (with `ios.pruneScreenshots` it removes that placement instead). Images go to App Review with the version they are placed on; the version page also lets
   the owner pick an approved header while the version waits for release.
 - Image-only submission checks every held item in an existing draft before any

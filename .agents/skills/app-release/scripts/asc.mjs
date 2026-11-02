@@ -1565,6 +1565,17 @@ export function assetsToSubmit(images, references) {
 const ASSET_APPROVED_VERSION_STATES = [...LIVE_STATES, 'PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE',
   'PROCESSING_FOR_DISTRIBUTION', 'PROCESSING_FOR_APP_STORE'];
 
+// VERSION_LOCKED_PLACEMENTS ride on the version itself: Apple refuses a new screenshot or app preview placement (Duo
+// profile included) on an approved version with 409 "Creating a placement is not permitted in AppStoreVersion's
+// current state" (observed 2026-11-02 in PENDING_DEVELOPER_RELEASE), while header and search creative still place.
+const VERSION_LOCKED_PLACEMENTS = ['APP_SCREENSHOT', 'APP_PREVIEW'];
+
+// versionLockedPlacement says whether a placement type cannot be written on a version in this state, so `assets place`
+// skips it on an approved or released version instead of stopping halfway through the slots.
+export function versionLockedPlacement(placementType, state) {
+  return VERSION_LOCKED_PLACEMENTS.includes(placementType) && ASSET_APPROVED_VERSION_STATES.includes(state);
+}
+
 // An image-only action must never inherit another item's submission authorization.
 // Inspect every resource linkage (including unsupported ones), preserving uncertain or conflicting drafts.
 function assetReviewItems(items, wanted) {
@@ -1669,7 +1680,8 @@ async function assets(mode) {
     return;
   }
   if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');
-  const localization = mode === 'place' ? await versionLocalization((await context()).version.id, false) : null;
+  const version = mode === 'place' ? (await context()).version : null;
+  const localization = version ? await versionLocalization(version.id, false) : null;
   // Each placement type and profile, with the asset ids store data wants there in order.
   const wanted = new Map();
   for (const entry of entries) {
@@ -1711,7 +1723,14 @@ async function assets(mode) {
     if (!wanted.has(key)) wanted.set(key, { type: entry.placementType, group: entry.placementGroup, media: media, ids: [] });
     wanted.get(key).ids.push(plan.id);
   }
+  const state = version ? versionState(version) : '';
+  const locked = [...wanted.values()].filter(slot => versionLockedPlacement(slot.type, state));
+  if (locked.length) {
+    console.log('not placed:', locked.map(slot => slot.type + ' ' + slot.group).join(', '), '(version ' + STORE.version + ' is ' + state +
+      '; screenshots and app previews need an editable version: a new version, or this one after it is rejected and resubmitted)');
+  }
   for (const slot of wanted.values()) {
+    if (locked.includes(slot)) continue;
     const query = '?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=' + ASSET_RESOURCES[slot.media].relation;
     const existing = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
     const plan = placementPlan(existing, slot.ids);

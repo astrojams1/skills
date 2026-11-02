@@ -1,8 +1,17 @@
 # App release skill ledger
 
-Skill version **2.12.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.12.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.12.1 (2026-11-02)
+
+- On a version in `PENDING_DEVELOPER_RELEASE`, `assets place` placed the approved header and
+  search-results creative, then Apple refused an approved iPhone Duo screenshot placement (409
+  "Creating a placement is not permitted in AppStoreVersion's current state") and the run stopped
+  halfway. Screenshot and app preview placements ride on an editable version; on an approved or
+  released one `place` now skips those slots with a printed line and still places the creative
+  (`versionLockedPlacement`, unit-tested). No App Store Connect call was made for this fix.
 
 ## Lessons incorporated into v2.12.0 (2026-11-02)
 
