@@ -1,8 +1,16 @@
 # App release skill ledger
 
-Skill version **2.10.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.11.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.11.0 (2026-11-02)
+
+- The owner launched the Ouro apps website (https://ouro-apps.vercel.app) as the marketing page for every Ouro LLC
+  app and asked never to have to say it is out of date. The release path now has an **Ouro website** gate: Ouro apps
+  run the `ouro-website` skill when the record and listing exist, after each submission, on release and whenever the
+  name, subtitle, copy or screenshots change, and their `listing.marketingUrl` is the app's page on that site. The
+  site flips "Coming soon" to the App Store badge by itself within six hours of a release; the skill covers the rest.
 
 ## Lessons incorporated into v2.10.0 (2026-11-01)
 
