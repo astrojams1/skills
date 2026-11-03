@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -62,6 +62,24 @@ owner rejected for exactly that). Recompose instead:
   frames (`fit-screenshot.py --preview`) before rendering the whole film; the
   zone boxes show what is hidden, not whether the picture works.
 
+## App videos from screen recordings
+
+For an app with native footage (an App Store preview take, say), render the Short with app-release's
+`app-preview.swift render` at `size: [1080, 1920]` rather than a new tool:
+
+- **Move the phone to each scene's subject** with a per-clip `shift`, eased like a camera. A home screen
+  sits low with its first rows and goals in the box; a form scrolls up so its chips and button clear
+  y 1440. One fixed position cannot show both at a readable size.
+- **Fade the background over the top and bottom** (`fade`), solid above the caption line and from
+  just under the safe box, so the phone slides under the caption and never shows its lower edge
+  under the title. Check the move frames too: a phone raised far enough shows its bottom edge unless
+  the bottom fade is solid by then.
+- **One caption line, about 60 px, centred on x 480** (`caption.centerX`), at most ~22 characters.
+  Split a call to action into its own caption instead of a note that lands on the phone's status bar.
+- **Open on the product already moving and end where it began**, so the loop is seamless.
+
+Füd's spec (`store/source/shorts/fud-short.json` in its repository) is a worked example.
+
 ## Workflow
 
 1. **Read the ledger:** the newest measurement and the open issues.
@@ -101,6 +119,9 @@ owner rejected for exactly that). Recompose instead:
 - **Ad figures are not organic figures.** Published Shorts "safe zones" are
   vertical-ad specs with a 672 px bottom margin for the ad's card. They are
   stricter than needed at the bottom and looser at the top.
+- **`safe-zone.mjs` needs ffmpeg and `fit-screenshot.py` needs numpy and Pillow;** a Mac may have
+  neither (`brew install ffmpeg`; a venv for the Python). App previews don't need them, so their
+  absence goes unnoticed until the check.
 - **Screenshots carry the owner's face, handle and stats.** Record numbers,
   not images, in a public repository.
 

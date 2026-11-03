@@ -24,6 +24,13 @@
 // }
 // Without "screen" the recording fills the frame (aspect fill). Text in [brackets] takes the accent colour. A caption's
 // optional note is a smaller line under it, for what Apple asks previews to disclose (sign-in, purchases).
+//
+// The same render makes a vertical Short (size [1080, 1920]; see the youtube-shorts skill for the safe zone):
+//   a clip's "shift" moves the device up (negative) or down in pixels, eased in from the previous clip's over "move"
+//   seconds (default 0.6), so each scene's subject sits in the safe box; "fade": { "top": [470, 420], "bottom":
+//   [1460, 1520] } blends the background over the picture from the first y to solid at the second, so the device
+//   passes under captions and YouTube's controls without showing an edge; caption "centerX" centres captions off the
+//   frame's middle (480 for the Shorts safe box).
 
 import AVFoundation
 import CoreGraphics
@@ -66,21 +73,22 @@ let maxBytes = 500 * 1024 * 1024
 
 // MARK: Spec
 
-struct Clip: Decodable { let file: String; let from: Double; let to: Double; let speed: Double? }
+struct Clip: Decodable { let file: String; let from: Double; let to: Double; let speed: Double?; let shift: Double? }
 struct Caption: Decodable { let from: Double; let to: Double; let lines: [String]; let note: String? }
 struct CaptionStyle: Decodable {
   let size: Double; let lineHeight: Double; let baseline: Double
   let color: String; let accent: String?; let tracking: Double?
-  let noteSize: Double?; let noteBaseline: Double?; let noteColor: String?
+  let noteSize: Double?; let noteBaseline: Double?; let noteColor: String?; let centerX: Double?
 }
 struct Screen: Decodable {
   let x: Double; let y: Double; let width: Double; let height: Double; let radius: Double
   let bezel: Double?; let bezelColor: String?; let shadow: Double?
 }
+struct Fade: Decodable { let top: [Double]?; let bottom: [Double]? }
 struct Spec: Decodable {
   let output: String; let size: [Int]; let fps: Int?; let bitrate: Int?
   let background: String?; let crossfade: Double?; let font: String?; let noteFont: String?
-  let caption: CaptionStyle?; let screen: Screen?
+  let caption: CaptionStyle?; let screen: Screen?; let move: Double?; let fade: Fade?
   let clips: [Clip]; let captions: [Caption]?
 }
 
@@ -107,7 +115,7 @@ func captionImage(_ caption: Caption, style: CaptionStyle, font: CTFont, noteFon
   func draw(_ text: NSAttributedString, baselineFromTop: Double) {
     let line = CTLineCreateWithAttributedString(text)
     let lineWidth = CTLineGetTypographicBounds(line, nil, nil, nil)
-    context.textPosition = CGPoint(x: (Double(width) - lineWidth) / 2, y: Double(height) - baselineFromTop)
+    context.textPosition = CGPoint(x: (style.centerX ?? Double(width) / 2) - lineWidth / 2, y: Double(height) - baselineFromTop)
     CTLineDraw(line, context)
   }
   for (index, line) in caption.lines.enumerated() {
@@ -225,23 +233,45 @@ func render(_ specPath: String) async throws {
 
   // Everything that never moves (background, frame shadow, bezel) is drawn once.
   let backdrop = canvas(width, height)
-  backdrop.setFillColor(color(spec.background ?? "#000000"))
-  backdrop.fill(CGRect(x: 0, y: 0, width: width, height: height))
-  var screenRect = CGRect(x: 0, y: 0, width: width, height: height)
-  var screenPath: CGPath?
-  if let screen = spec.screen {
+  // The device frame is drawn with every frame, since a clip's `shift` moves it.
+  func screenRect(shift: Double) -> CGRect {
+    guard let screen = spec.screen else { return CGRect(x: 0, y: 0, width: width, height: height) }
     // Spec coordinates run from the top; Core Graphics runs from the bottom.
-    screenRect = CGRect(x: screen.x, y: Double(height) - screen.y - screen.height, width: screen.width, height: screen.height)
-    let bezel = CGFloat(screen.bezel ?? 0)
-    let outer = screenRect.insetBy(dx: -bezel, dy: -bezel)
-    backdrop.saveGState()
-    backdrop.setShadow(offset: CGSize(width: 0, height: -22), blur: 60, color: CGColor(gray: 0, alpha: CGFloat(screen.shadow ?? 0.22)))
-    backdrop.setFillColor(color(screen.bezelColor ?? "#000000"))
-    backdrop.addPath(roundedRect(outer, CGFloat(screen.radius) + bezel))
-    backdrop.fillPath()
-    backdrop.restoreGState()
-    screenPath = roundedRect(screenRect, CGFloat(screen.radius))
+    return CGRect(x: screen.x, y: Double(height) - screen.y - shift - screen.height, width: screen.width, height: screen.height)
   }
+  func drawDevice(_ context: CGContext, _ rect: CGRect) {
+    guard let screen = spec.screen else { return }
+    let bezel = CGFloat(screen.bezel ?? 0)
+    context.saveGState()
+    context.setShadow(offset: CGSize(width: 0, height: -22), blur: 60, color: CGColor(gray: 0, alpha: CGFloat(screen.shadow ?? 0.22)))
+    context.setFillColor(color(screen.bezelColor ?? "#000000"))
+    context.addPath(roundedRect(rect.insetBy(dx: -bezel, dy: -bezel), CGFloat(screen.radius) + bezel))
+    context.fillPath()
+    context.restoreGState()
+    context.addPath(roundedRect(rect, CGFloat(screen.radius)))
+    context.clip()
+  }
+  // A clip's shift eases in from the previous clip's over `move` seconds, like a camera following the action.
+  let move = spec.move ?? 0.6
+  func shift(clip index: Int, local: Double) -> Double {
+    let target = spec.clips[index].shift ?? 0
+    guard index > 0 else { return target }
+    let previous = spec.clips[index - 1].shift ?? 0
+    let p = min(max(local / move, 0), 1)
+    return previous + (target - previous) * (p < 0.5 ? 4 * p * p * p : 1 - pow(-2 * p + 2, 3) / 2)
+  }
+  // Fades blend the background over the top and bottom of the picture, so a device can pass under the captions and
+  // YouTube's controls without showing an edge. Each is [y where the fade starts, y where it is solid], from the top.
+  let background = color(spec.background ?? "#000000")
+  let fade = CGGradient(colorsSpace: sRGB, colors: [background.copy(alpha: 0)!, background] as CFArray, locations: [0, 1])!
+  func drawFades(_ context: CGContext) {
+    for band in [spec.fade?.top, spec.fade?.bottom].compactMap({ $0 }) where band.count == 2 {
+      let start = CGPoint(x: 0, y: Double(height) - band[0]), end = CGPoint(x: 0, y: Double(height) - band[1])
+      context.drawLinearGradient(fade, start: start, end: end, options: [.drawsAfterEndLocation])
+    }
+  }
+  backdrop.setFillColor(background)
+  backdrop.fill(CGRect(x: 0, y: 0, width: width, height: height))
   let backdropImage = backdrop.makeImage()!
 
   let outputURL = resolve(spec.output)
@@ -337,16 +367,18 @@ func render(_ specPath: String) async throws {
                             bytesPerRow: CVPixelBufferGetBytesPerRow(buffer), space: sRGB, bitmapInfo: bitmapInfo)!
     context.interpolationQuality = .high
     context.draw(backdropImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+    let rect = screenRect(shift: shift(clip: clipIndex, local: local))
     context.saveGState()
-    if let path = screenPath { context.addPath(path); context.clip() }
-    context.draw(frame, in: aspectFill(frame, in: screenRect))
+    drawDevice(context, rect)
+    context.draw(frame, in: aspectFill(frame, in: rect))
     // A cut dissolves from the previous clip's last frame over the first `crossfade` seconds of the next.
     if let previous = outgoing, crossfade > 0, local < crossfade {
       context.setAlpha(CGFloat(1 - ease(local / crossfade)))
-      context.draw(previous, in: aspectFill(previous, in: screenRect))
+      context.draw(previous, in: aspectFill(previous, in: rect))
       context.setAlpha(1)
     }
     context.restoreGState()
+    drawFades(context)
     // Captions rise 12 px as they fade in (0.35 s) and fade out over the last 0.25 s.
     for (caption, image) in captions where t >= caption.from && t < caption.to {
       let appear = ease((t - caption.from) / 0.35)
