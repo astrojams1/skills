@@ -863,7 +863,7 @@ Review:182 release,65 management,145 specification,identity,8 image-fit and5 You
 - [x] Read conventions and actual Pipsqueak email threads; establish sending authority.
 - [x] Create reusable skill, app profile, private ledger contract and local activity helper.
 - [x] Independently review behavior and run required repository checks; image-fit rerun passed after isolated dependency setup.
-- [x] Create private cloud lead ledger, deploy and verify hosted schedule (first execution is separate evidence).
-- [ ] Publish the skill branch and reviewable pull request; install locally.
+- [x] Create private cloud lead ledger, deploy and verify hosted schedule and the first actual cloud execution.
+- [x] Publish the skill branch and reviewable [PR #123](https://github.com/astrojams1/skills/pull/123); install locally.
 
-Review: Read two existing lead threads and recorded the actionable state in a private cloud ledger. Existing team followups already cover the current next steps; no setup email is due. Live contacts and message IDs remain outside Git.
+Review: Read two existing lead threads and recorded the actionable state in a private cloud ledger. Existing team followups already cover the current next steps; no setup email is due. Live contacts and message IDs remain outside Git. First hosted execution verified the intended mailbox, reread both tracked threads, persisted complete activity events, and correctly sent no duplicate messages.
