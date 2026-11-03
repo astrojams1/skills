@@ -581,3 +581,8 @@ an older snapshot in a clearly dated note, not by silently rewriting its history
 Keep measured costs separate from unavailable metrics. Refresh discovery copies
 with the repository's `bin/manage.sh link` after changing the source skill, and run
 `node --test tests/app-release/*.test.mjs` after changing a script.
+
+
+### 2026-11-03 — Importron PDF / File Provider QA
+
+Version2.12.2 documents simulator-side bookmark diagnostics and a narrowly validated Debug-only document-open lane that preserves actual reader/parser, StoreKit, Health handoff and clinical queries. Files resolution errors and incomplete materialization must be distinguished from extraction errors. Failed selector/profile retries remain evidence; the alternate lane must not be presented as successful standard selection. Distribution excludes its entrypoint; manual release still waits for exact-build physical QA. Importron verifies its private report independently and uses only invented fixtures in Health and Git. No source medical records or account contacts are included in this lesson.
