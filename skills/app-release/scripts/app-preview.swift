@@ -30,7 +30,11 @@
 //   seconds (default 0.6), so each scene's subject sits in the safe box; "fade": { "top": [470, 420], "bottom":
 //   [1460, 1520] } blends the background over the picture from the first y to solid at the second, so the device
 //   passes under captions and YouTube's controls without showing an edge; caption "centerX" centres captions off the
-//   frame's middle (480 for the Shorts safe box).
+//   frame's middle (480 for the Shorts safe box). A clip's "zoom" scales the device about "focus" ([x, y] as fractions
+//   of the screen, default the centre) for a punch-in on a result; a clip's own "move" overrides the spec's (0.25 for
+//   a snappy punch). A caption may set its own "size", "lineHeight", "baseline" and "color", "box": "#FFFFFF" for a
+//   rounded box behind each line (legible over moving video), and "pop": true to spring in. Soundtrack:
+//   youtube-shorts' soundtrack.mjs.
 
 import AVFoundation
 import CoreGraphics
@@ -73,8 +77,14 @@ let maxBytes = 500 * 1024 * 1024
 
 // MARK: Spec
 
-struct Clip: Decodable { let file: String; let from: Double; let to: Double; let speed: Double?; let shift: Double? }
-struct Caption: Decodable { let from: Double; let to: Double; let lines: [String]; let note: String? }
+struct Clip: Decodable {
+  let file: String; let from: Double; let to: Double; let speed: Double?
+  let shift: Double?; let zoom: Double?; let focus: [Double]?; let move: Double?
+}
+struct Caption: Decodable {
+  let from: Double; let to: Double; let lines: [String]; let note: String?
+  let size: Double?; let lineHeight: Double?; let baseline: Double?; let color: String?; let box: String?; let pop: Bool?
+}
 struct CaptionStyle: Decodable {
   let size: Double; let lineHeight: Double; let baseline: Double
   let color: String; let accent: String?; let tracking: Double?
@@ -108,14 +118,25 @@ func canvas(_ width: Int, _ height: Int) -> CGContext {
 // MARK: Captions
 
 // captionImage draws a caption's lines, centred, into a transparent full-width strip. Brackets mark accent text.
+// A caption may override the style's size, line height, baseline and colour, and set `box` to draw each line on a
+// rounded box of that colour (the usual look for text over moving video).
 func captionImage(_ caption: Caption, style: CaptionStyle, font: CTFont, noteFont: CTFont?, width: Int) -> CGImage {
-  let noteBaseline = style.noteBaseline ?? (style.baseline + style.lineHeight * Double(caption.lines.count))
-  let height = Int(max(style.baseline + style.lineHeight * Double(caption.lines.count), noteBaseline) + style.size)
+  let size = caption.size ?? style.size, lineHeight = caption.lineHeight ?? style.lineHeight, baseline = caption.baseline ?? style.baseline
+  let font = size == style.size ? font : CTFontCreateCopyWithAttributes(font, CGFloat(size), nil, nil)
+  let noteBaseline = style.noteBaseline ?? (baseline + lineHeight * Double(caption.lines.count))
+  let height = Int(max(baseline + lineHeight * Double(caption.lines.count), noteBaseline) + size)
   let context = canvas(width, height)
-  func draw(_ text: NSAttributedString, baselineFromTop: Double) {
+  func draw(_ text: NSAttributedString, baselineFromTop: Double, box: String? = nil) {
     let line = CTLineCreateWithAttributedString(text)
     let lineWidth = CTLineGetTypographicBounds(line, nil, nil, nil)
-    context.textPosition = CGPoint(x: (style.centerX ?? Double(width) / 2) - lineWidth / 2, y: Double(height) - baselineFromTop)
+    let x = (style.centerX ?? Double(width) / 2) - lineWidth / 2, y = Double(height) - baselineFromTop
+    if let box {
+      let pad = size * 0.32
+      context.setFillColor(color(box))
+      context.addPath(roundedRect(CGRect(x: x - pad, y: y - size * 0.34, width: lineWidth + pad * 2, height: size * 1.3), CGFloat(size * 0.28)))
+      context.fillPath()
+    }
+    context.textPosition = CGPoint(x: x, y: y)
     CTLineDraw(line, context)
   }
   for (index, line) in caption.lines.enumerated() {
@@ -124,14 +145,14 @@ func captionImage(_ caption: Caption, style: CaptionStyle, font: CTFont, noteFon
     for (part, piece) in line.components(separatedBy: CharacterSet(charactersIn: "[]")).enumerated() {
       if part > 0 { accent.toggle() }
       if piece.isEmpty { continue }
-      let tint = accent ? (style.accent ?? style.color) : style.color
+      let tint = accent ? (style.accent ?? style.color) : (caption.color ?? style.color)
       text.append(NSAttributedString(string: piece, attributes: [
         kCTFontAttributeName as NSAttributedString.Key: font,
         kCTForegroundColorAttributeName as NSAttributedString.Key: color(tint),
         kCTKernAttributeName as NSAttributedString.Key: style.tracking ?? 0,
       ]))
     }
-    draw(text, baselineFromTop: style.baseline + style.lineHeight * Double(index))
+    draw(text, baselineFromTop: baseline + lineHeight * Double(index), box: caption.box)
   }
   if let note = caption.note {
     let face = CTFontCreateCopyWithAttributes(noteFont ?? font, CGFloat(style.noteSize ?? style.size * 0.45), nil, nil)
@@ -233,11 +254,19 @@ func render(_ specPath: String) async throws {
 
   // Everything that never moves (background, frame shadow, bezel) is drawn once.
   let backdrop = canvas(width, height)
-  // The device frame is drawn with every frame, since a clip's `shift` moves it.
-  func screenRect(shift: Double) -> CGRect {
+  // The device frame is drawn with every frame, since a clip's framing moves it: `shift` moves it up or down and
+  // `zoom` scales it about `focus`, a point of the screen given as fractions of its width and height that stays put.
+  struct Framing { var shift = 0.0, zoom = 1.0, fx = 0.5, fy = 0.5 }
+  func framing(_ clip: Clip) -> Framing {
+    Framing(shift: clip.shift ?? 0, zoom: clip.zoom ?? 1, fx: clip.focus?.first ?? 0.5, fy: clip.focus?.last ?? 0.5)
+  }
+  func screenRect(_ f: Framing) -> CGRect {
     guard let screen = spec.screen else { return CGRect(x: 0, y: 0, width: width, height: height) }
+    let w = screen.width * f.zoom, h = screen.height * f.zoom
+    let x = screen.x + f.fx * screen.width * (1 - f.zoom)
+    let top = screen.y + f.shift + f.fy * screen.height * (1 - f.zoom)
     // Spec coordinates run from the top; Core Graphics runs from the bottom.
-    return CGRect(x: screen.x, y: Double(height) - screen.y - shift - screen.height, width: screen.width, height: screen.height)
+    return CGRect(x: x, y: Double(height) - top - h, width: w, height: h)
   }
   func drawDevice(_ context: CGContext, _ rect: CGRect) {
     guard let screen = spec.screen else { return }
@@ -245,20 +274,24 @@ func render(_ specPath: String) async throws {
     context.saveGState()
     context.setShadow(offset: CGSize(width: 0, height: -22), blur: 60, color: CGColor(gray: 0, alpha: CGFloat(screen.shadow ?? 0.22)))
     context.setFillColor(color(screen.bezelColor ?? "#000000"))
-    context.addPath(roundedRect(rect.insetBy(dx: -bezel, dy: -bezel), CGFloat(screen.radius) + bezel))
+    let scale = rect.width / CGFloat(screen.width)
+    context.addPath(roundedRect(rect.insetBy(dx: -bezel * scale, dy: -bezel * scale), (CGFloat(screen.radius) + bezel) * scale))
     context.fillPath()
     context.restoreGState()
-    context.addPath(roundedRect(rect, CGFloat(screen.radius)))
+    context.addPath(roundedRect(rect, CGFloat(screen.radius) * scale))
     context.clip()
   }
-  // A clip's shift eases in from the previous clip's over `move` seconds, like a camera following the action.
-  let move = spec.move ?? 0.6
-  func shift(clip index: Int, local: Double) -> Double {
-    let target = spec.clips[index].shift ?? 0
+  // A clip's framing eases in from the previous clip's over its `move` seconds (default the spec's, 0.6), like a
+  // camera following the action; a short move is a punch-in.
+  func framing(clip index: Int, local: Double) -> Framing {
+    let target = framing(spec.clips[index])
     guard index > 0 else { return target }
-    let previous = spec.clips[index - 1].shift ?? 0
-    let p = min(max(local / move, 0), 1)
-    return previous + (target - previous) * (p < 0.5 ? 4 * p * p * p : 1 - pow(-2 * p + 2, 3) / 2)
+    let previous = framing(spec.clips[index - 1])
+    let p = min(max(local / (spec.clips[index].move ?? spec.move ?? 0.6), 0), 1)
+    let k = p < 0.5 ? 4 * p * p * p : 1 - pow(-2 * p + 2, 3) / 2
+    func mix(_ a: Double, _ b: Double) -> Double { a + (b - a) * k }
+    return Framing(shift: mix(previous.shift, target.shift), zoom: mix(previous.zoom, target.zoom),
+                   fx: mix(previous.fx, target.fx), fy: mix(previous.fy, target.fy))
   }
   // Fades blend the background over the top and bottom of the picture, so a device can pass under the captions and
   // YouTube's controls without showing an edge. Each is [y where the fade starts, y where it is solid], from the top.
@@ -367,7 +400,7 @@ func render(_ specPath: String) async throws {
                             bytesPerRow: CVPixelBufferGetBytesPerRow(buffer), space: sRGB, bitmapInfo: bitmapInfo)!
     context.interpolationQuality = .high
     context.draw(backdropImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-    let rect = screenRect(shift: shift(clip: clipIndex, local: local))
+    let rect = screenRect(framing(clip: clipIndex, local: local))
     context.saveGState()
     drawDevice(context, rect)
     context.draw(frame, in: aspectFill(frame, in: rect))
@@ -379,13 +412,24 @@ func render(_ specPath: String) async throws {
     }
     context.restoreGState()
     drawFades(context)
-    // Captions rise 12 px as they fade in (0.35 s) and fade out over the last 0.25 s.
+    // Captions rise 12 px as they fade in (0.35 s) and fade out over the last 0.25 s. A `pop` caption instead
+    // springs up from 60% size about its centre in 0.25 s, overshooting a little.
     for (caption, image) in captions where t >= caption.from && t < caption.to {
-      let appear = ease((t - caption.from) / 0.35)
       let leave = min(1, max(0, (caption.to - t) / 0.25))
-      context.setAlpha(CGFloat(appear * leave))
-      let rise = (1 - appear) * 12
-      context.draw(image, in: CGRect(x: 0, y: Double(height - image.height) - rise, width: Double(image.width), height: Double(image.height)))
+      var frame = CGRect(x: 0, y: Double(height - image.height), width: Double(image.width), height: Double(image.height))
+      if caption.pop == true {
+        let p = min(1, (t - caption.from) / 0.25), c = 1.70158
+        let scale = 0.6 + 0.4 * (1 + (c + 1) * pow(p - 1, 3) + c * pow(p - 1, 2))
+        let centre = CGPoint(x: (spec.caption?.centerX ?? Double(width) / 2), y: frame.midY)
+        frame = CGRect(x: centre.x - (centre.x - frame.minX) * scale, y: centre.y - frame.height / 2 * scale,
+                       width: frame.width * scale, height: frame.height * scale)
+        context.setAlpha(CGFloat(min(1, p * 3) * leave))
+      } else {
+        let appear = ease((t - caption.from) / 0.35)
+        context.setAlpha(CGFloat(appear * leave))
+        frame.origin.y -= (1 - appear) * 12
+      }
+      context.draw(image, in: frame)
       context.setAlpha(1)
     }
     CVPixelBufferUnlockBaseAddress(buffer, [])

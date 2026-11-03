@@ -13,7 +13,9 @@ Dates describe observations, not guarantees that provider state remains unchange
   each scene's subject), `fade` bands (background over the top and bottom, so the device passes
   under captions and controls without an edge) and caption `centerX`. A darwin render test reads
   pixels back from a test-pattern cut. The promotion checklist lists the Short; posting stays the
-  owner's.
+  owner's. The owner then judged that tour would get no engagement: a Short needs a hook, a payoff
+  and sound, and a series. `render` gained `zoom`/`focus` punch-ins, per-clip `move` and caption
+  `size`/`box`/`pop`; youtube-shorts gained `soundtrack.mjs` and the "Make it worth watching" rules.
 
 ## Lessons incorporated into v2.12.1 (2026-11-02)
 

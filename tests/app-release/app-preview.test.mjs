@@ -53,3 +53,37 @@ test('render moves the screen by clip shift and draws solid fades', {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// A clip's zoom scales the device about its focus point: zoomed 2x about the screen's top-left corner, the screen
+// covers twice the width to the right of where it started.
+test('render zooms the screen about its focus', {
+  skip: !swiftc || swiftc.status !== 0 || !ffmpeg || ffmpeg.status !== 0 ? 'needs macOS with Swift and ffmpeg' : false, timeout: 300000,
+}, async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'app-preview-'));
+  try {
+    const source = join(dir, 'source.mov');
+    spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=red:size=40x80:rate=30', '-t', '2', '-pix_fmt', 'yuv420p', source]);
+    const spec = {
+      output: join(dir, 'out.mov'), size: [108, 192], fps: 30, background: '#0000FF', crossfade: 0,
+      screen: { x: 10, y: 20, width: 40, height: 80, radius: 0 },
+      clips: [{ file: source, from: 0, to: 0.5 }, { file: source, from: 0.5, to: 1.5, zoom: 2, focus: [0, 0], move: 0.1 }],
+    };
+    writeFileSync(join(dir, 'spec.json'), JSON.stringify(spec));
+    const rendered = spawnSync('xcrun', ['swift', script, 'render', join(dir, 'spec.json')], { encoding: 'utf8' });
+    assert.equal(rendered.status, 0, rendered.stderr);
+    const pixel = (seconds, x, y) => {
+      const raw = spawnSync('ffmpeg', ['-v', 'error', '-ss', String(seconds), '-i', spec.output, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']);
+      const at = (y * 108 + x) * 3;
+      return [...raw.stdout.subarray(at, at + 3)];
+    };
+    const red = ([r, g, b]) => r > 200 && g < 60 && b < 60;
+    assert.ok(!red(pixel(0.25, 70, 30)), 'beyond the unzoomed screen is background');
+    assert.ok(red(pixel(1.2, 70, 30)), 'the zoomed screen reaches it');
+    assert.ok(red(pixel(1.2, 12, 22)), 'the focus corner stays put');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

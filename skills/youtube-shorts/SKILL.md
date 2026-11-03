@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -23,6 +23,7 @@ after posting means a new upload, and a new upload starts from zero views.
 |---|---|
 | `assets/zones.json` | The measured keep-out zones and the safe box, in 1080×1920 frame pixels, with where they were measured |
 | `scripts/safe-zone.mjs` | Draws the zones over a video (a contact sheet), one frame (`--at`) or a still. Node 22 and ffmpeg |
+| `scripts/soundtrack.mjs` | A synthesised music bed and cued effects (typing, tap, pop, whoosh, ding) mixed under a silent cut at about -15 LUFS. Node 22; ffmpeg for the mix |
 | `scripts/fit-screenshot.py` | Maps a phone screenshot of a playing Short onto the frame's pixels, to measure the zones again, and with `--preview` lays its YouTube controls over new frames. numpy and Pillow |
 | `references/safe-zone.md` | The measurement, layout rules, the published (ad) figures and how to re-measure |
 | `references/posting.md` | The upload package: file, title, description, hashtags, related video, cover, captions, settings, after upload |
@@ -62,6 +63,25 @@ owner rejected for exactly that). Recompose instead:
   frames (`fit-screenshot.py --preview`) before rendering the whole film; the
   zone boxes show what is hidden, not whether the picture works.
 
+## Make it worth watching
+
+A tour of features is an ad, and people swipe past ads; a Short has to be a moment. Füd's first Short (a 29 s,
+silent feature tour cut from its App Store preview) passed every safe-zone check and the owner rightly judged it
+would get no engagement. What replaced it:
+
+- **A hook in the first second, as text, mid-screen:** a question or a relatable line ("Do your kids' crusts
+  count?"), large and boxed, already moving. Not the app's name, not a feature.
+- **One surprising, true number as the payoff,** punched in on (a short zoom on the result row) with a pop caption
+  ("The crusts: 220 calories"). Show the real app returning it; never fake a result.
+- **10–15 seconds.** Speed up waiting (a spinner at 3x), slow down typing so it reads, cut everything else.
+- **Sound on.** Typing clicks, a tap, pops as results land, a ding on the punchline, a light bed under it
+  (`soundtrack.mjs`); the owner can swap the bed for a trending track in the YouTube app.
+- **A series, not a video.** One format, new inputs each time; end with a comment prompt ("Comment a meal to try
+  next") so the comments write the next episode. A new channel's single Short gets almost no reach.
+- **Rehearse the inputs first.** Run candidate inputs through the real feature (its API) before recording, and keep
+  the ones whose real output is funny or striking; results vary between runs, so record the take and caption what
+  it actually returned.
+
 ## App videos from screen recordings
 
 For an app with native footage (an App Store preview take, say), render the Short with app-release's
@@ -74,7 +94,10 @@ For an app with native footage (an App Store preview take, say), render the Shor
   just under the safe box, so the phone slides under the caption and never shows its lower edge
   under the title. Check the move frames too: a phone raised far enough shows its bottom edge unless
   the bottom fade is solid by then.
-- **One caption line, about 60 px, centred on x 480** (`caption.centerX`), at most ~22 characters.
+- **One caption line, about 60 px, centred on x 480** (`caption.centerX`), at most ~22 characters; a hook may
+  run two lines at 80 px in the empty middle of the screen. Boxed captions (`box`) stay legible over the device.
+- **Punch in with `zoom` and `focus`** on the row that carries the number, with a short `move`; keep zoomed
+  content inside x 96–864 (a zoom wider than ~1.2 pushes edge chips into the crop).
   Split a call to action into its own caption instead of a note that lands on the phone's status bar.
 - **Open on the product already moving and end where it began**, so the loop is seamless.
 
