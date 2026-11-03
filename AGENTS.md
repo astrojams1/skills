@@ -228,7 +228,7 @@ Newsworthy and Space Worms use it. A change requested from an app repository is 
 
 **Skill:** `skills/ouro-website/SKILL.md`
 
-Maintains https://ouro-apps.vercel.app (repository `astrojams1/ouro-apps`), the marketing site and App Store
+Maintains https://ouro-apps.vercel.app (`sites/ouro` in repository `astrojams1/app-sites`), the marketing site and App Store
 Marketing URL for every Ouro LLC app. `scripts/audit.mjs` compares every record on Ouro's App Store Connect team with
 the site's catalog and lists what to add, exclude, rename or refresh; the skill covers copy, images, verification at
 desktop and phone widths, and deployment. The site's own workflow flips "Coming soon" to the App Store badge after a
@@ -244,9 +244,9 @@ audit with `node skills/ouro-website/scripts/audit.mjs` (Node 22). After changin
 
 **Skill:** `skills/astrojams-website/SKILL.md`
 
-Maintains https://astrojams-apps.vercel.app (repository `astrojams1/astrojams-apps`), the marketing site for every app
+Maintains https://astrojams-apps.vercel.app (`sites/astrojams` in repository `astrojams1/app-sites`), the marketing site for every app
 on the owner's personal James Thompson team (`CWQ9AWJF8T`): Newsworthy, Space Worms, Importron, Data Center and
-Rhythm. It mirrors the Ouro website skill: `scripts/audit.mjs` compares the team with the site's catalog, the site's
+Rhythm. Both sites are built from one shared showcase in that repository, so a design or tooling change reaches both. It mirrors the Ouro website skill: `scripts/audit.mjs` compares the team with the site's catalog, the site's
 workflow flips "Coming soon" to the App Store badge after a release, and app-release runs this skill at each milestone
 of a personal-team app. Apps without a website of their own use their page there as the App Store Marketing URL.
 

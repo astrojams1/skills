@@ -1,6 +1,6 @@
 # Writing an app's entry
 
-Each app is one object in `src/data/apps.json`. The landing page, the home-page stage, the link-preview image and the
+Each app is one object in `sites/astrojams/src/data/apps.json` (in `/Volumes/ssd/code/app-sites`). The landing page, the home-page stage, the link-preview image and the
 structured data are all generated from it, so a good entry is the whole job.
 
 ## Fields
@@ -30,8 +30,11 @@ structured data are all generated from it, so a good entry is the whole job.
 | `lifestyle` | Optional `{ file, alt, caption }` | See [assets](assets.md) |
 
 `excluded` records `{ appStoreId, name, reason }` for App Store records the site deliberately leaves out. `site`
-(`name`, `url`, `tagline`, `description`, `company`), `developer` and `campaign` are site-wide; change them only when
-the owner asks or a fact changes. The home headline counts the apps itself ("Five small apps.").
+(`name`, `url`, `tagline`, `description`, `company`, `brand`, `copy`), `developer` and `campaign` are site-wide;
+change them only when the owner asks or a fact changes. `site.brand` is the wordmark, brand colour, mark (SVG shapes
+on a 32×32 grid in `currentColor`) and this skill's name; `site.copy` holds the dozen lines that give the site its
+own voice on pages it shares with the other site (home title and headline, closing lines, the Get button, footer
+line, section headings, 404 text, with `{name}` for an app's name). The check applies Apple's wording rules to them. The home headline counts the apps itself ("Five small apps.").
 `campaign.providerToken` is the `pt=` value from any App Store Connect campaign link for the personal team; with it
 set, every App Store link carries a `ct=` per placement.
 

@@ -60,6 +60,6 @@ test('pem restores armor and line breaks', () => {
 });
 
 test('arguments', () => {
-  assert.deepEqual(parseArgs(['--pull', '123', '--out', '/tmp/x', '--json']), { site: '/Volumes/ssd/code/astrojams-apps', code: '/Volumes/ssd/code', json: true, pull: '123', out: '/tmp/x' });
+  assert.deepEqual(parseArgs(['--pull', '123', '--out', '/tmp/x', '--json']), { site: '/Volumes/ssd/code/app-sites/sites/astrojams', code: '/Volumes/ssd/code', json: true, pull: '123', out: '/tmp/x' });
   assert.throws(() => parseArgs(['--nope']), /Unknown argument/);
 });

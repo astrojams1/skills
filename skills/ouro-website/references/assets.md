@@ -1,6 +1,6 @@
 # Icons, screenshots and optional lifestyle art
 
-Put images in `/Volumes/ssd/code/ouro-apps/src/assets/apps/<slug>/`. Astro resizes and converts them at build time,
+Put images in `/Volumes/ssd/code/app-sites/sites/ouro/src/assets/apps/<slug>/`. Astro resizes and converts them at build time,
 so keep sources modest and real. Stage downloads and captures under `/Volumes/ssd/projects/ouro-apps/` first.
 
 ## Icon: `icon.png`, 1024×1024 PNG
@@ -28,7 +28,7 @@ Use two to six, in the order that tells the story (first one is the hero and the
 Convert each to a 1000px-wide JPEG so the repository stays small:
 
 ```bash
-sips -s format jpeg -s formatOptions 88 --resampleWidth 1000 SOURCE.png --out src/assets/apps/<slug>/screen-1.jpg
+sips -s format jpeg -s formatOptions 88 --resampleWidth 1000 SOURCE.png --out sites/ouro/src/assets/apps/<slug>/screen-1.jpg
 ```
 
 Look at every screenshot before committing it and write alt text that says what the screen shows. Apple's guidelines
@@ -49,6 +49,6 @@ owner's existing scope. Inspect its crop and disclosure at desktop and phone wid
 
 ## Badge
 
-`public/badges/download-on-the-app-store.svg` is Apple's unmodified black badge from
+`sites/ouro/public/badges/download-on-the-app-store.svg` is Apple's unmodified black badge from
 `https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg`. Use it only for a live app, at
 40px tall or more, once per view, never recoloured or animated. Apple's credit line is in the footer.
