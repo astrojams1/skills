@@ -255,6 +255,20 @@ fi
 # agent-instruction warnings. (An upstream-drift WARN can appear when this
 # repo's HEAD is a feature branch ahead of main, so don't require zero WARNs.)
 echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
+# A newly excluded skill may still be copied while all included skills are
+# current. Exercise check's cleanup with macOS's stock Bash, not just link.
+echo "ouro-website" > "$TMP_INSTALL/.skillsexclude"
+excluded_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && excluded_status=0 || excluded_status=$?
+if [ "$excluded_status" -eq 0 ] \
+    && [ ! -d "$TMP_INSTALL/.agents/skills/ouro-website" ] \
+    && [ ! -d "$TMP_INSTALL/.claude/skills/ouro-website" ] \
+    && ! echo "$excluded_output" | grep -q "bad substitution"; then
+    pass "check removes newly excluded discovery copies on stock Bash"
+else
+    fail "check must clean excluded copies without Bash4-only syntax"
+fi
+rm "$TMP_INSTALL/.skillsexclude"
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null)
 agents_only_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && agents_only_status=0 || agents_only_status=$?
 if [ "$agents_only_status" -eq 0 ] \
     && echo "$agents_only_output" | grep -q "PASS: AGENTS.md is the only agent instructions file" \
