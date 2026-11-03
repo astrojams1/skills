@@ -1,8 +1,15 @@
 # App release skill ledger
 
-Skill version **2.12.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.13.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.13.0 (2026-11-03)
+
+- The owner launched the astrojams apps website (https://astrojams-apps.vercel.app) for every app on the personal
+  James Thompson team, kept current like the Ouro site. The release path now has an **astrojams website** gate:
+  personal-team apps run the `astrojams-website` skill at the Ouro gate's moments. An app with no website of its own
+  uses its page there as `listing.marketingUrl`; Newsworthy and Space Worms keep their own sites.
 
 ## Lessons incorporated into v2.12.1 (2026-11-02)
 
