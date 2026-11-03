@@ -33,6 +33,11 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/{content,assets}.md         # Catalog fields and copy rules; icon and screenshot sourcing
     scripts/audit.mjs                      # App Store Connect team audit against the site's catalog (Node 22, no deps)
     ledger/LEDGER.md                       # Versions and lessons
+  astrojams-website/
+    SKILL.md                               # Keep the astrojams apps website (personal team) true to the App Store
+    references/{content,assets}.md         # Catalog fields and copy rules; icon and screenshot sourcing
+    scripts/audit.mjs                      # App Store Connect team audit against the site's catalog (Node 22, no deps)
+    ledger/LEDGER.md                       # Versions and lessons
   research-paper/
     SKILL.md                               # Repo -> arXiv-ready paper, 20 staged artifacts
     references/{stages,literature,decisions,reviews}.md  # Stage playbook, lit search, decision menus, review rubrics
@@ -57,7 +62,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/ and tests/youtube-shorts/ cover those skills' scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/ and tests/youtube-shorts/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -235,6 +240,22 @@ Invoke with `/ouro-website`, or ask whether the Ouro site is up to date, or to a
 audit with `node skills/ouro-website/scripts/audit.mjs` (Node 22). After changing the script, run
 `node --test tests/ouro-website/*.test.mjs`.
 
+### astrojams Website — Keep the Personal App Showcase Current
+
+**Skill:** `skills/astrojams-website/SKILL.md`
+
+Maintains https://astrojams-apps.vercel.app (repository `astrojams1/astrojams-apps`), the marketing site for every app
+on the owner's personal James Thompson team (`CWQ9AWJF8T`): Newsworthy, Space Worms, Importron, Data Center and
+Rhythm. It mirrors the Ouro website skill: `scripts/audit.mjs` compares the team with the site's catalog, the site's
+workflow flips "Coming soon" to the App Store badge after a release, and app-release runs this skill at each milestone
+of a personal-team app. Apps without a website of their own use their page there as the App Store Marketing URL.
+
+#### How to use
+
+Invoke with `/astrojams-website`, or ask whether the astrojams site is up to date, or to add or change an app on it.
+Run the audit with `node skills/astrojams-website/scripts/audit.mjs` (Node 22). After changing the script, run
+`node --test tests/astrojams-website/*.test.mjs`.
+
 ### YouTube Shorts — Frame, Check and Post
 
 **Skill:** `skills/youtube-shorts/SKILL.md`
@@ -306,7 +327,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 
