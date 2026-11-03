@@ -929,7 +929,7 @@ print('missing')
             _is_excluded_skill "$name" "$root" && reason="excluded"
             for discovery_dir in "$root/.claude/skills" "$root/.agents/skills"; do
                 if [ -d "$discovery_dir/$name" ]; then
-                    yellow "WARN: ${reason^} skill '$name' found in consumer discovery dir"
+                    yellow "WARN: $reason skill '$name' found in consumer discovery dir"
                     rm -rf "$discovery_dir/$name"
                     green "  FIXED: Removed $discovery_dir/$name"
                     warnings=$((warnings + 1))
