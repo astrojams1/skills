@@ -10,11 +10,15 @@
 // A spec (paths relative to the spec file):
 // {
 //   "video": "short-silent.mp4", "output": "short.mp4", "duration": 12.4,
-//   "music": { "bpm": 112, "key": "F", "gain": 0.18, "from": 0 },     omit or false for effects only
+//   "music": { "seed": "fud-crusts", "gain": 0.18, "from": 0 },      omit or false for effects only
 //   "cues": [ { "at": 0.2, "sound": "type", "until": 2.6 }, { "at": 3.1, "sound": "tap" }, { "at": 3.4, "sound": "whoosh" },
 //             { "at": 5.0, "sound": "pop" }, { "at": 5.2, "sound": "pop" }, { "at": 6.0, "sound": "ding", "gain": 0.8 } ]
 // }
 // "duration" defaults to the video's. Sounds: type (clicks from at to until), tap, pop, whoosh, ding.
+// The bed varies with "seed" (default: the output file's name): tempo, key, chord progression, melody pattern and
+// drum feel all follow from it, so no two Shorts share a bed. YouTube's spam policy names "the exact same background
+// music … across many videos" as a mark of mass-produced content. "bpm", "key", "progression" (0–3), "pattern"
+// (0–2) and "feel" (0–1) override the seed; the CLI prints the resulting signature for the registry.
 // For a Short people may also swap the bed for a track from YouTube's audio library while uploading; keep the
 // effects, which carry the timing.
 
@@ -70,21 +74,54 @@ const sounds = {
 };
 
 const KEYS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-// I–V–vi–IV, one chord a bar, as semitones above the key's root.
-const PROGRESSION = [[0, 4, 7], [7, 11, 14], [9, 12, 16], [5, 9, 12]];
+// One chord a bar, as semitones above the key's root: I–V–vi–IV, vi–IV–I–V, I–vi–IV–V, I–IV–vi–V.
+const PROGRESSIONS = [
+  [[0, 4, 7], [7, 11, 14], [9, 12, 16], [5, 9, 12]],
+  [[9, 12, 16], [5, 9, 12], [0, 4, 7], [7, 11, 14]],
+  [[0, 4, 7], [9, 12, 16], [5, 9, 12], [7, 11, 14]],
+  [[0, 4, 7], [5, 9, 12], [9, 12, 16], [7, 11, 14]],
+];
+// Which chord tone each of a beat's two eighths plays: up the chord, down it, or root then top.
+const PATTERNS = [(b, n) => (b * 2 + n) % 3, (b, n) => 2 - ((b * 2 + n) % 3), (b, n) => (n ? 2 : 0)];
+const TEMPOS = [96, 102, 108, 112, 118, 124];
 const pitch = semitones => 440 * 2 ** ((semitones - 9) / 12);
 
-function music(mix, { bpm = 112, key = 'F', gain = 0.18, from = 0 }, duration) {
+function hash(text) {
+  let h = 2166136261;
+  for (const c of String(text)) h = Math.imul(h ^ c.codePointAt(0), 16777619);
+  return h >>> 0;
+}
+
+// The bed's settings: explicit values win, then the seed, then the original defaults (112 bpm, F, I–V–vi–IV).
+export function musicSettings(options = {}) {
+  const r = options.seed === undefined ? null : random(hash(options.seed));
+  const pick = (list, fallback) => (r ? list[Math.floor(r() * list.length)] : fallback);
+  return {
+    bpm: options.bpm ?? pick(TEMPOS, 112),
+    key: options.key ?? pick(Object.keys(KEYS), 'F'),
+    progression: options.progression ?? pick([0, 1, 2, 3], 0),
+    pattern: options.pattern ?? pick([0, 1, 2], 0),
+    feel: options.feel ?? pick([0, 1], 0),
+    gain: options.gain ?? 0.18,
+    from: options.from ?? 0,
+  };
+}
+
+export const musicSignature = m => `${m.bpm}-${m.key}-p${m.progression}-m${m.pattern}-f${m.feel}`;
+
+function music(mix, options, duration) {
+  const { bpm, key, progression, pattern, feel, gain, from } = musicSettings(options);
   const beat = 60 / bpm, root = (KEYS[key] ?? 5) - 12;
   const kick = sounds.kick(), clap = sounds.clap(), hat = sounds.hat();
   for (let b = 0; from + b * beat < duration; b += 1) {
-    const t = from + b * beat, bar = Math.floor(b / 4), chord = PROGRESSION[bar % 4];
-    place(mix, kick, t, gain * 0.6);
-    if (b % 2 === 1) place(mix, clap, t, gain * 0.35);
+    const t = from + b * beat, bar = Math.floor(b / 4), chord = PROGRESSIONS[progression][bar % 4];
+    // Feel 0 is four on the floor; feel 1 is half time (kick on 1 and 3 only, clap on 3).
+    if (feel === 0 || b % 2 === 0) place(mix, kick, t, gain * 0.6);
+    if (feel === 0 ? b % 2 === 1 : b % 4 === 2) place(mix, clap, t, gain * 0.35);
     place(mix, hat, t + beat / 2, gain * 0.25, 0.3);
     place(mix, sounds.bass(pitch(root - 12 + chord[0])), t + beat / 2, gain * 0.45);
     for (let n = 0; n < 2; n += 1) {
-      const note = chord[(b * 2 + n) % 3] + 12;
+      const note = chord[PATTERNS[pattern](b, n)] + 12;
       place(mix, sounds.pluck(pitch(root + note)), t + n * beat / 2, gain * 0.22, n ? 0.25 : -0.25);
     }
   }
@@ -142,6 +179,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const spec = JSON.parse(readFileSync(specPath, 'utf8'));
   const at = p => resolve(dirname(resolve(specPath)), p);
   const duration = spec.duration ?? videoDuration(at(spec.video));
+  if (spec.music) spec.music = { seed: String(spec.output ?? specPath).split('/').pop(), ...(spec.music === true ? {} : spec.music) };
   const audio = wav(soundtrack(spec, duration));
   if (flag === '--wav') { writeFileSync(wavOut, audio); console.log(`wrote ${wavOut}: ${duration.toFixed(2)} s`); process.exit(0); }
   const dir = mkdtempSync(join(tmpdir(), 'soundtrack-'));
@@ -159,7 +197,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const muxed = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', at(spec.video), '-i', join(dir, 'mix.wav'), '-map', '0:v', '-map', '1:a',
       '-c:v', 'copy', '-af', chain(gain), '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', at(spec.output)], { encoding: 'utf8' });
     if (muxed.status !== 0) throw new Error(muxed.stderr);
-    console.log(`wrote ${at(spec.output)}: ${duration.toFixed(2)} s with ${(spec.cues ?? []).length} cues${spec.music ? ' and music' : ''}`);
+    console.log(`wrote ${at(spec.output)}: ${duration.toFixed(2)} s with ${(spec.cues ?? []).length} cues${spec.music ? `; music ${musicSignature(musicSettings(spec.music))}` : ''}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

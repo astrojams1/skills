@@ -5,7 +5,7 @@
 // and catalog entries that are no longer on the team. With --pull it downloads an app's App Store Connect screenshots
 // (and its 120px build icon) for the site. Node 22, no dependencies; read-only against Apple.
 //
-//   node audit.mjs [--site /Volumes/ssd/code/ouro-apps] [--code /Volumes/ssd/code] [--json]
+//   node audit.mjs [--site /Volumes/ssd/code/app-sites/sites/ouro] [--code /Volumes/ssd/code] [--json]
 //   node audit.mjs --pull <appStoreId> --out <dir>
 //
 // Credentials: the App Store Connect key in the 1Password item named by any Ouro app's app-release.config.json
@@ -24,7 +24,7 @@ const TOKEN_FILE = '/Volumes/ssd/1password-token.md';
 const RELEASED = new Set(['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION']);
 
 export function parseArgs(argv) {
-  const args = { site: '/Volumes/ssd/code/ouro-apps', code: '/Volumes/ssd/code', json: false, pull: null, out: null };
+  const args = { site: '/Volumes/ssd/code/app-sites/sites/ouro', code: '/Volumes/ssd/code', json: false, pull: null, out: null };
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i].replace(/^--/, '');
     if (key === 'json') args.json = true;

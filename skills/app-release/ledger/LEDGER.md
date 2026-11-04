@@ -1,10 +1,10 @@
 # App release skill ledger
 
-Skill version **2.13.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.14.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
-## Lessons incorporated into v2.13.0 (2026-11-03)
+## Lessons incorporated into v2.14.0 (2026-11-04)
 
 - The owner asked for a YouTube Short after Füd 1.3.0 shipped. The App Store preview's fixed device
   frame could not serve it: on a phone YouTube's title stack covers the bottom fifth, so a device large
@@ -16,6 +16,17 @@ Dates describe observations, not guarantees that provider state remains unchange
   owner's. The owner then judged that tour would get no engagement: a Short needs a hook, a payoff
   and sound, and a series. `render` gained `zoom`/`focus` punch-ins, per-clip `move` and caption
   `size`/`box`/`pop`; youtube-shorts gained `soundtrack.mjs` and the "Make it worth watching" rules.
+- The owner then asked for the pipeline as a skill for every app and a follow-up skill for the channel's metrics:
+  **app-shorts** (registry from every `app-release.config.json`, calendar, recording, Studio/API posting) and
+  **youtube-growth** (analytics, decisions, comments, policy). The promotion checklist's Shorts row now runs both,
+  and a release with a visible feature queues an episode.
+
+## Lessons incorporated into v2.13.0 (2026-11-03)
+
+- The owner launched the astrojams apps website (https://astrojams-apps.vercel.app) for every app on the personal
+  James Thompson team, kept current like the Ouro site. The release path now has an **astrojams website** gate:
+  personal-team apps run the `astrojams-website` skill at the Ouro gate's moments. An app with no website of its own
+  uses its page there as `listing.marketingUrl`; Newsworthy and Space Worms keep their own sites.
 
 ## Lessons incorporated into v2.12.1 (2026-11-02)
 

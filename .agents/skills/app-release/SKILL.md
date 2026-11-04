@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.13.0"
+  version: "2.14.0"
 ---
 
 # App release
@@ -87,6 +87,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | Update recheck | Recheck existing media and listing copy against the build, supply required device families, and write release notes; optional placements follow the app's plan (Every update in [media](references/media.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 | Ouro website | Apps on Ouro LLC's team (`ios.teamId` `AYCDG243RJ`): run the `ouro-website` skill once the app record and listing exist, after each submission, on release and whenever the name, subtitle, copy or screenshots change; the store data's `listing.marketingUrl` is the app's page, `https://ouro-apps.vercel.app/<slug>/` |
+| astrojams website | Apps on the personal James Thompson team (`ios.teamId` `CWQ9AWJF8T`): run the `astrojams-website` skill at the same moments; an app with no website of its own uses its page, `https://astrojams-apps.vercel.app/<slug>/`, as the store data's `listing.marketingUrl`, and an app with one keeps it |
 
 **Every update of every app** after the first release: recheck the screenshots, preview, Play graphics and listing
 copy on both stores against the build being submitted (recapture anything the build no longer matches, and record
@@ -207,8 +208,9 @@ procedure, including checking every app that uses this skill, is in [maintaining
 ## Finish
 
 Complete the issue reconciliation and closure check above first. For an Ouro LLC app, run the `ouro-website`
-skill before reporting, so the website matches what this run changed (a new record, a submission, a release, new
-copy or screenshots), and say what it updated. Do not equate a valid ledger or a
+skill before reporting, and for an app on the personal team (`CWQ9AWJF8T`) the `astrojams-website` skill, so the
+website matches what this run changed (a new record, a submission, a release, new copy or screenshots), and say
+what it updated. Do not equate a valid ledger or a
 successful store upload with a clean run; say which encountered issues were fixed and how verified.
 Report what is saved, uploaded, processed, in review, approved and live — separately, per store — with links
 to the ledger and artifacts. Show available design previews inline, clearly distinguishing them from

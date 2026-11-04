@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -63,6 +63,11 @@ owner rejected for exactly that). Recompose instead:
   frames (`fit-screenshot.py --preview`) before rendering the whole film; the
   zone boxes show what is hidden, not whether the picture works.
 
+## For apps, use app-shorts and youtube-growth
+
+For an app the owner ships, `app-shorts` runs the whole pipeline (registry, formats, recording, posting, calendar)
+and `youtube-growth` follows each Short up. This skill stays the craft both lean on: framing, checks, sound.
+
 ## Make it worth watching
 
 A tour of features is an ad, and people swipe past ads; a Short has to be a moment. Füd's first Short (a 29 s,
@@ -75,7 +80,8 @@ would get no engagement. What replaced it:
   ("The crusts: 220 calories"). Show the real app returning it; never fake a result.
 - **10–15 seconds.** Speed up waiting (a spinner at 3x), slow down typing so it reads, cut everything else.
 - **Sound on.** Typing clicks, a tap, pops as results land, a ding on the punchline, a light bed under it
-  (`soundtrack.mjs`); the owner can swap the bed for a trending track in the YouTube app.
+  (`soundtrack.mjs`, seeded per Short so no two share a bed: identical background music across many videos is
+  a mark of mass-produced spam); the owner can swap the bed for a trending track in the YouTube app.
 - **A series, not a video.** One format, new inputs each time; end with a comment prompt ("Comment a meal to try
   next") so the comments write the next episode. A new channel's single Short gets almost no reach.
 - **Rehearse the inputs first.** Run candidate inputs through the real feature (its API) before recording, and keep

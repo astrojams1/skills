@@ -28,3 +28,14 @@ test('music fills the clip, fades out at the end and stays under full scale', ()
 test('an unknown sound is an error', () => {
   assert.throws(() => soundtrack({ cues: [{ at: 0, sound: 'airhorn' }] }, 1), /Unknown sound/);
 });
+
+test('the seed varies the bed and explicit settings override it', async () => {
+  const { musicSettings, musicSignature } = await import('../../skills/youtube-shorts/scripts/soundtrack.mjs');
+  assert.equal(musicSignature(musicSettings()), '112-F-p0-m0-f0', 'no seed keeps the original bed');
+  const signatures = new Set(['fud-crusts', 'fud-dinner', 'fud-leftovers', 'pipsqueak-s', 'giraffe-a', 'newsworthy-1'].map(seed => musicSignature(musicSettings({ seed }))));
+  assert.ok(signatures.size >= 5, `six seeds gave ${signatures.size} distinct beds`);
+  assert.equal(musicSignature(musicSettings({ seed: 'x' })), musicSignature(musicSettings({ seed: 'x' })), 'a seed is stable');
+  assert.equal(musicSettings({ seed: 'x', bpm: 90, key: 'C' }).bpm, 90);
+  const a = soundtrack({ music: { seed: 'a' } }, 3), b = soundtrack({ music: { seed: 'b' } }, 3);
+  assert.notDeepEqual(a[0].subarray(0, 48000 * 2), b[0].subarray(0, 48000 * 2), 'different seeds sound different');
+});
