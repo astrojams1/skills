@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.14.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.15.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.15.0 (2026-11-05)
+
+- Füd's universal "At the table" header went live in both slots with the App Store Connect crop preview unchecked, and
+  the run and the agent relaying it reported that as a caveat. Checked afterwards, the search card cut off the
+  headline on iPhone, iPad and iPhone Duo. Three things went wrong: the design assumed a centred crop of the full
+  canvas, when Apple keeps only the band y 415-1865 of 2950; "no sign-in" was concluded from one browser while the
+  owner's Chrome was signed in; and the old advice to check Preview before `place` could not be followed, because
+  Preview shows only what a slot holds and Browse Assets lists only approved images.
+- Added `assets crops DIR` (Apple's own render per slot, available straight after upload) and a `cropChecked` gate on
+  `assets submit` and `assets place`, tied to the file's hash. Unit and CLI tested; `assets crops` was also run against
+  Füd's live library. The fix for Füd is a dedicated 3:2 search file, in App Review on its own.
 
 ## Lessons incorporated into v2.14.0 (2026-11-04)
 
