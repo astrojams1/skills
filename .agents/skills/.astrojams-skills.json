@@ -2,7 +2,8 @@
   "version": 1,
   "source": "astrojams1/skills",
   "skills": {
-    "app-release": "01c65c92eb9bf31b0249c266c99aa25679f5156e14ebebb261749827ec0be6b7",
+    "app-release": "4d0d41fca6d55c54f573b029f24175ae6ec4e2f3e2d2e51933a6212a0221a2d0",
+    "app-shorts": "30bbac481975c1b7fc217faba083888579fc4efec41808c1288f923457799928",
     "astrojams-website": "3bee89720bc0d69924f88f45d5e215183419f9aeb648fca31a654934ef21fa4f",
     "careful": "9424d454923a60e012295824b7474a6176377afebf7a17e882cf4333adca282a",
     "design-system": "3fadf8fa4521b188ae8baadfcf3cb017661b4f75dfa3882aea05f98a8276897e",
@@ -16,6 +17,7 @@
     "skill-integration-prompt": "094182b4ffc00ac862cde597b5f7357a7010740fad054f20a20a09395119ce51",
     "skill-orchestrator": "2f3698ebe3092a46d764c78809d833015030a300a22c72206cba3952e9a1abc6",
     "workflow-orchestration": "793c64e3227ce3ecebd285fe0269b1f0351ccaded37ab6539d82f46e6e53d59b",
-    "youtube-shorts": "4df29dc8b7a1014b3995278043b12466edc3af2fb596bd2c317f460c0f5039f2"
+    "youtube-growth": "9c309370eea3ffbc537ec9499400112f01d1604b626965e5282ff08e27a94f54",
+    "youtube-shorts": "cb2cdde8ed7b6d5f188103ac9a638cde7c3b18b95c567f2538fdb2f51629076d"
   }
 }

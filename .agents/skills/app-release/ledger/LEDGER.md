@@ -1,8 +1,25 @@
 # App release skill ledger
 
-Skill version **2.13.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.14.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.14.0 (2026-11-04)
+
+- The owner asked for a YouTube Short after Füd 1.3.0 shipped. The App Store preview's fixed device
+  frame could not serve it: on a phone YouTube's title stack covers the bottom fifth, so a device large
+  enough to read hides "Who ate this?" and the Add button, and a device small enough to show them is a
+  thumbnail. `app-preview.swift render` now takes a per-clip `shift` (the device eases up or down to
+  each scene's subject), `fade` bands (background over the top and bottom, so the device passes
+  under captions and controls without an edge) and caption `centerX`. A darwin render test reads
+  pixels back from a test-pattern cut. The promotion checklist lists the Short; posting stays the
+  owner's. The owner then judged that tour would get no engagement: a Short needs a hook, a payoff
+  and sound, and a series. `render` gained `zoom`/`focus` punch-ins, per-clip `move` and caption
+  `size`/`box`/`pop`; youtube-shorts gained `soundtrack.mjs` and the "Make it worth watching" rules.
+- The owner then asked for the pipeline as a skill for every app and a follow-up skill for the channel's metrics:
+  **app-shorts** (registry from every `app-release.config.json`, calendar, recording, Studio/API posting) and
+  **youtube-growth** (analytics, decisions, comments, policy). The promotion checklist's Shorts row now runs both,
+  and a release with a visible feature queues an episode.
 
 ## Lessons incorporated into v2.13.0 (2026-11-03)
 

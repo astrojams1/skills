@@ -54,6 +54,17 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  app-shorts/
+    SKILL.md                               # Make, post and schedule YouTube Shorts series for every app the owner ships
+    references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
+    scripts/shorts.mjs                     # Registry: roster from app-release configs, calendar, due reads, attributed App Store links (Node 22, no deps)
+    ledger/LEDGER.md                       # Versions and lessons
+  youtube-growth/
+    SKILL.md                               # Read each Short's metrics on schedule and turn them into decisions that grow the channel
+    references/{api,metrics,policy}.md     # API setup and limits; what each metric means and the evidence; YouTube policy risks for a templated pipeline
+    scripts/{yt-api,evaluate}.mjs          # OAuth, analytics and comments; decisions from snapshots (Node 22, no deps)
+    assets/rules.json                      # Decision thresholds, each with its source
+    ledger/LEDGER.md                       # Versions, experiments and lessons
   youtube-shorts/
     SKILL.md                               # Frame, check and post Shorts inside YouTube's measured safe zone
     references/{safe-zone,posting}.md      # The measurement and layout rules; the upload package
@@ -62,7 +73,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/ and tests/youtube-shorts/ cover those skills' scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/ and tests/youtube-growth/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -273,6 +284,38 @@ from a screenshot when YouTube's interface moves. Its ledger records each measur
 Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a render with
 `node skills/youtube-shorts/scripts/safe-zone.mjs <video> --every 0.5` (needs ffmpeg). After changing a script or
 `zones.json`, run `node --test tests/youtube-shorts/*.test.mjs` and `python3 tests/test_youtube_shorts_fit.py`.
+
+### App Shorts — A Shorts Series for Every App
+
+**Skill:** `skills/app-shorts/SKILL.md`
+
+The repeatable pipeline that keeps every app the owner ships (both App Store teams) on YouTube: a registry built from
+each app's `app-release.config.json`, a series format per app, fresh recordings of the real app with rehearsed
+inputs, renders through app-release's `app-preview.swift` and youtube-shorts' safe zone and soundtrack, posting and
+scheduling through YouTube Studio (or the API once it is connected), and links back to the App Store (attributed
+campaign links) and the marketing websites. `scripts/shorts.mjs` keeps the registry, the posting calendar and the
+list of Shorts due a metrics read.
+
+#### How to use
+
+Invoke with `/app-shorts`, or ask to make, post or schedule Shorts for an app. Run
+`node skills/app-shorts/scripts/shorts.mjs status` to see where every app stands. After changing the script, run
+`node --test tests/app-shorts/*.test.mjs`.
+
+### YouTube Growth — Read the Numbers, Decide, Repeat
+
+**Skill:** `skills/youtube-growth/SKILL.md`
+
+The follow-up loop for the owner's channel: reads each Short's metrics at 2, 7 and 28 days (YouTube Analytics API
+when connected, Studio otherwise), turns them into decisions per Short and per series with thresholds kept as
+sourced data (`assets/rules.json`), mines comments for the next episodes, runs one experiment at a time and keeps
+the channel inside YouTube's policies for templated content.
+
+#### How to use
+
+Invoke with `/youtube-growth`, or ask how the Shorts are doing or how to grow the channel. Run
+`node skills/youtube-growth/scripts/evaluate.mjs` for decisions and `node skills/youtube-growth/scripts/yt-api.mjs check`
+for the API connection. After changing a script or the rules, run `node --test tests/youtube-growth/*.test.mjs`.
 
 ## Internal Skills
 
