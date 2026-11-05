@@ -1,8 +1,12 @@
 # App release skill ledger
 
-Skill version **2.16.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.16.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.16.2 (2026-11-05)
+
+- Every Plenty widget rendered as a blank block on a Tinted Home Screen, which no contact sheet or log showed. `references/verification.md` now requires checking Default, Dark, Clear and Tinted on a real Home Screen, and says how to draw a safe face.
 
 ## Lessons incorporated into v2.16.1 (2026-11-05)
 
