@@ -10,12 +10,22 @@ Signed in as the Google account that owns the channel:
 
 1. **Google Cloud Console → New project** (for example "app-shorts").
 2. **APIs & Services → Library:** enable **YouTube Data API v3** and **YouTube Analytics API**.
-3. **OAuth consent screen:** user type External; app name and support email; add the three scopes below; add your
-   own address as a test user. Then **Publish app** (status "In production"). In Testing mode Google expires the
-   refresh token after 7 days, which breaks unattended reads. Unverified "In production" apps show a warning
-   screen at consent and are limited to 100 users, which is fine for one owner.
-4. **Credentials → Create OAuth client ID → Desktop app.** Put its client ID and client secret in 1Password as a new
-   item **"YouTube API"** in vault **"API Tokens"**, with fields `client id` and `client secret`.
+3. **OAuth consent screen (Google Auth Platform):** user type External; app name and support email; add the four
+   scopes below under Data Access; add your own address as a test user. Then **Publish app** (status "In
+   production"). In Testing mode Google expires the refresh token after 7 days, which breaks unattended reads.
+   Unverified "In production" apps show a warning screen at consent and are limited to 100 users, which is fine
+   for one owner. **Publish app stays disabled until Branding has a home page, a privacy policy link and their
+   domain under Authorized domains** (seen 2026-11-04; a home page alone did not unlock it). The privacy link must
+   be a live page, never a dead link. For this owner-only client the owner chose Füd's policy
+   (`https://fud-web-lovat.vercel.app/privacy`), so `fud-web-lovat.vercel.app` is authorized too. Once published the
+   page says "Your app requires verification"; that is the sensitive scopes, and one owner can ignore it. The New
+   Project form insists on a billing account, but the project came out with none linked, and these APIs need none.
+4. **Clients → Create client → Desktop app.** Leave "Use this client for an AI-powered agent" unticked: Google says
+   it is for clients that use Google MCP tools, and this one calls the REST APIs. **The secret is shown only at
+   creation,** so use Download JSON in that dialog. An agent doing this should not screenshot the dialog (the secret
+   is on it); find the button by label and take the values from the file without printing them. Put the client ID
+   and secret in 1Password as a new item **"YouTube API"** in vault **"API Tokens"**, with fields `client id` and
+   `client secret`.
 5. Tell the agent. It runs `node yt-api.mjs auth`, which opens Google's consent page: sign in, allow, and the
    refresh token is written to the same item (through a private template file, never an argument). If the vault's
    service account is read-only, add the `refresh token` field yourself from the value the agent cannot see. In
