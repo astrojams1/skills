@@ -230,6 +230,18 @@ frame. A caption band above a framed recording, like the screenshot artboards, k
 **Make it** from a Release-configuration simulator build of the exact version going to review, against seeded
 synthetic data:
 
+If the Simulator GUI is absent or its UI controller is unavailable, use the original Xcode XCTest launcher
+and public XCUIAutomation APIs to record the same Release app. For a document app,
+`XCUIApplication.open(URL)` can exercise its real document-open handler without a Debug launch hook.
+Stage only invented documents, resolve the target's current container **after** XCTest installs/launches it
+(reinstallation can change the UUID), and preserve source/OS/configuration and the selected document's hash.
+Keep fixture-staging communication in the test runner; do not add a server, parsed-result injection or
+verification shortcut to the distributed app. A Debug-only setup may reset isolated synthetic allowance/history
+before installing the Release capture build; record that setup, retain existing Health records, and still
+exercise actual purchases, saves and readback. Persistent local StoreKit transaction IDs may otherwise collide
+with earlier tests. Wait for asynchronous system consent and choose enabled, hittable controls when a sheet
+exposes duplicate labels. A stalled/failed capture is rehearsal evidence, not a completed app preview.
+
 1. Rehearse the whole tour first, so one-time prompts (consent, permissions) and slow first loads are out of the
    way, and pick inputs whose results read well on screen. Reset the data, then record one continuous take with
    `xcrun simctl io <device> recordVideo --codec=h264` (status bar overridden to 9:41, full battery not charging).
@@ -263,6 +275,13 @@ Before any update of any app goes to review, on both stores:
    smoother, never how. Follow the app's wording-approval requirements; otherwise use existing authorization
    for routine listing edits. Keep the saved wording reviewable and never invent an exact-text approval.
 6. Record the recheck, what changed and the actual authorization basis before `submit --confirm` or a Play release.
+
+For the shared marketing plan, record each preview/creative's actual state: missing, prepared, uploaded,
+processed, placed, in review, approved or live. A focused bug fix or information-response run does not by itself
+waive the preview and promotion checklist. An owner-declined item or demonstrated capture dependency needs its
+own reason; do not dismiss the entire package as "optional/outside scope." If an initial version is already
+waiting for review, prepare/upload missing assets and retain a concrete placement follow-up while its media
+controls are locked. Preserve the accepted submission rather than withdrawing it merely for optional art.
 
 ## Uploading
 

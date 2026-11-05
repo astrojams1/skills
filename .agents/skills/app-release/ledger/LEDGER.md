@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.15.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.15.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.15.2 (2026-11-05)
+
+- Importron's focused corrections repeatedly labeled all launch marketing outside scope; an actual library audit
+  found four screenshots and zero videos. The existing shared preview requirement had not been followed.
+  Added explicit per-asset preparation/placement evidence and a rule against blanket scope exclusions while
+  preserving an already accepted first-version review. Uploaded assets do not establish placement or publication.
+- The installed Xcode had no Simulator GUI. Public XCTest open-URL automation exercised the unmodified Release
+  document handler instead. Initial captures exposed a changed post-install container, persistent synthetic
+  StoreKit state and asynchronous/duplicate-label consent controls. Corrected fixture staging and native UI
+  selection passed actual nine-result Health save/readback and protected reopen; the final26.5-second preview
+  passed format and visual checks. Added this supported capture route without weakening Release provenance.
 
 ## Lessons incorporated into v2.15.1 (2026-11-05)
 
