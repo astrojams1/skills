@@ -1,8 +1,19 @@
 # App release skill ledger
 
-Skill version **2.15.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.15.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.15.1 (2026-11-05)
+
+- Importron build10 received a Guideline2.1 information request asking why each PDF import is paid.
+  Price and free allowance were documented, but the usage-based business rationale was missing.
+  Added a conditional consumable review checklist: paid unit/value, rationale, free features,
+  duplicate/overlap and retry accounting, plus factual separation from Apple framework access.
+  Review-package changes can reuse the verified binary; reply and resubmission remain separate.
+- The Browser connector exposed only an empty MCP Apps inventory, but documented native Computer Use
+  could read the owner's signed-in Chrome. Added this supported fallback, correct-team verification,
+  and the distinction between queued navigation and a successful read before an owner handoff.
 
 ## Lessons incorporated into v2.15.0 (2026-11-05)
 

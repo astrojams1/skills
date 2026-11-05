@@ -14,6 +14,18 @@ the store data. Never copy another app's answers: derive each from the shipped a
 - Content rights, encryption export compliance, age rating, target audience, ads declaration.
 - A physical-device check of the exact store build before release, on each platform.
 
+## Per-use consumable purchases
+
+Before submitting a utility that charges per document, conversion or action, put its business-model
+rationale in Review Notes alongside the price: what one purchase provides, why usage-based pricing
+fits the workflow, the free allowance, and the exact purchase trigger. Verify what users can do for
+free and how duplicate-only inputs, partial overlaps, cancellation, failure and retries affect the
+allowance. Describe only behavior proved by the submitted build; do not invent recurring server
+costs or claim a local test proves production StoreKit approval. For integrations with Apple
+frameworks, distinguish the app's paid functionality from free system capabilities and review the
+current [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), including
+Monetizing Built-In Capabilities. This checklist does not establish that Apple accepts a pricing model.
+
 ## Games (`type: game`, e.g. Space Worms)
 
 | Topic | What to do |

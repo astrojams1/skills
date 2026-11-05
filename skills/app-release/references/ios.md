@@ -313,8 +313,14 @@ only when the intended review scope changes after provider readback, never to by
    `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read the submission's Messages in
    App Store Connect where the owner is signed in (App Review, then the submission;
    `https://appstoreconnect.apple.com/apps/<ascAppId>/distribution/reviewsubmissions`), Apple's email to the
-   owner's account through the Gmail connector (search App Store Connect / App Review), or ask the owner to
-   paste it.
+   owner's account through the Gmail connector (search App Store Connect / App Review). Notification emails
+   may contain only a link. If the Browser connector exposes no usable tabs, inspect available supported
+   Computer Use capabilities and the already-signed-in Chrome session before asking the owner to paste
+   anything or sign in again. Read that tool's installed instructions and use its documented UI API;
+   do not substitute AppleScript, private browser endpoints, or weakened browser security. An empty
+   connector inventory does not establish that Chrome is unavailable. Verify the selected developer
+   team and app before reading or acting; multiple teams can share the same login. A queued request
+   to open a page is not a successful page read.
 3. **Provide the answers and attachments.** Put the answers in the store data's `review.notes` and run
    `review-details`. For a local file, `asc.mjs review-attachment <path>` reserves, uploads and commits an
    App Review Information attachment, waits for `COMPLETE`, and only then removes earlier copies with the
@@ -328,6 +334,19 @@ only when the intended review scope changes after provider readback, never to by
    Keep a receipt in the repository (submission id, build, what changed) and record `apple.review`.
 5. **Prevent a repeat.** With the root cause established, follow [ledger](ledger.md), “Rejection recovery and
    prevention”: where `asc.mjs` can detect the cause, the prevention is a check that refuses before any write.
+
+For a **2.1 question about per-use charges**, explain the actual paid unit and the business rationale,
+not just the SKU and price. Verify the free allowance, the user action that triggers purchase,
+what remains free, duplicate/overlap behavior, canceled/failed attempts and recovery against the
+submitted build. Include the answer in Notes and post the requested correspondence reply. Keep
+existing answers to prior review questions when fitting Notes within Apple's length limit.
+Do not invent server costs for an on-device utility or imply that Apple charges for the operation.
+Where Apple frameworks are involved, state exactly which app functionality is paid and which system
+access remains free; check current guidelines on monetizing built-in capabilities rather than
+assuming this explanation establishes compliance. Preserve the owner's chosen model unless an
+actual requirement or authorized correction changes it. An information request alone does not
+require a replacement binary: use the existing verified build when only the review package changes,
+then verify resubmission separately from the posted reply.
 
 **Kids Category apps** (an `ageRating.kidsAgeBand`) receive an automated 2.1 information request on their
 first submission asking how they meet Guideline 1.3: third-party analytics, third-party advertising, data
