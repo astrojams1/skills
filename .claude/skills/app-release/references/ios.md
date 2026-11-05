@@ -375,6 +375,8 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 
 ## Gotchas
 
+- **A new app group must be registered by hand first.** The public API has no App Group resource (`GET /v1/appGroups` is 404), and Xcode's API-key signing cannot create one. Until the group exists and is assigned to every bundle ID, `archive` fails with a misleading "Authentication failed: Make sure a bearer token was provided" plus "No profiles for …", while the same key still reads and creates profiles through the API. In the Developer portal: check the selected team first (the owner has two, and an identifier on the wrong team is stranded), register the group under Identifiers → App Groups, and type the identifier **without** its `group.` prefix, which the field adds itself (typing it registers `group.group.…`). Then open each bundle ID, App Groups → Configure, select the group, Save, Confirm. `archiveSigning: "export"` is no workaround: an unsigned archive loses the entitlements, and the archive check refuses it with "app group … is missing" (Plenty, 2026-11-05).
+- **Keep the repository untouched while `archive` runs.** Writing or adding files during an archive makes the finished build dirty, and `upload` then refuses it. Put captures and other generated files outside the repository until it finishes.
 - **App Store Connect rejects pictographic symbols in copy.** A description containing a check mark (U+2713)
   failed with `ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_CHARACTERS` after the App Info had already saved; `listing`
   now refuses dingbats and emoji before writing anything. Spell symbols out ("check-mark button").

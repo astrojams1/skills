@@ -1,7 +1,7 @@
 # The Mac pass
 
-The instructions for a session on the owner's Mac, which does the `mac` items. Use this text as the prompt, as a one-off
-session or as a daily scheduled task at about 05:30 Pacific once the owner has allowed one.
+The instructions for the `mac` items. The owner approved this as a daily scheduled task on 2026-11-05 (`app-marketing-mac`,
+about 05:34 Pacific), Shorts posting included. The task's stored prompt carries this text; change both together.
 
 > Run the app-marketing skill's Mac pass, unattended. The owner is not watching and nothing may wait for them: if
 > something is blocked, log it as deferred with a reason and a retry_after, skip it, and finish the rest. Never end by
