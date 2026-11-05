@@ -563,6 +563,9 @@ async function status() {
     const shots = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
     console.log('  screenshots', set.attributes.screenshotDisplayType, shots.map(shot => shot.attributes.assetDeliveryState.state).join(','));
   }
+  for (const item of await versionPromotion(ctx.version.id)) {
+    console.log('  promotion', item.id, item.state + (item.detail ? ': ' + item.detail : item.reason ? ': ' + item.reason : ''));
+  }
   const reviewDetail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   if (reviewDetail.data) {
     for (const file of await listAll('/v1/appStoreReviewDetails/' + reviewDetail.data.id + '/appStoreReviewAttachments')) {
@@ -1421,6 +1424,11 @@ export async function submit(flag) {
     console.log('Version', STORE.version, 'is already', pending.attributes.state, 'in submission', pending.id);
     return;
   }
+  // Read before anything is opened: a preview cannot be added once the version is approved.
+  const promotion = await versionPromotion(ctx.version.id);
+  const unfinished = promotionRefusal(promotion);
+  if (unfinished) throw new Error(unfinished);
+  for (const item of promotion.filter(entry => entry.state === 'waived')) console.log('Waived', item.title + ':', item.reason);
   // Leaderboard readiness is checked before any submission is opened or created, so a refusal changes nothing.
   let leaderboards = await editableLeaderboardVersions();
   // A cancellation an earlier run left in flight is resumed: wait for it instead of opening a second submission.
@@ -1820,6 +1828,66 @@ async function assets(mode) {
   }
   console.log('Run `assets` until every image and video has finished processing.');
   if (mode === 'place' && creative.length) console.log('Then check the Preview in App Store Connect on iPhone, iPad and iPhone Duo, for the product page and search results.');
+}
+
+// PROMOTION_ITEMS is the "Every release" list in references/promotion.md as data, so a release cannot pass it by
+// oversight. Each needs a result or a recorded reason (store data's `promotion.waived.<id>`).
+export const PROMOTION_ITEMS = [
+  { id: 'preview', title: 'app preview video', placementType: 'APP_PREVIEW' },
+  { id: 'header', title: 'product page header', placementType: 'PRODUCT_PAGE_HEADER_ASSET' },
+  { id: 'search', title: 'search-results creative', placementType: 'APP_STORE_SEARCH_RESULTS_ASSET' },
+  { id: 'nomination', title: 'featuring nomination' },
+];
+// A reason short enough to be "later" or "optional" records nothing a later run could weigh.
+const MIN_WAIVER_REASON = 20;
+
+// deviceFamily reads a screenshot display type or placement group's device, so previews are matched per family.
+export function deviceFamily(name) {
+  const found = /IPHONE|IPAD|DESKTOP|MAC|APPLE_TV|TV|VISION/.exec(String(name));
+  if (!found) return null;
+  return { DESKTOP: 'MAC', APPLE_TV: 'TV' }[found[0]] || found[0];
+}
+
+// promotionReport says where each item stands: `done`, `waived` with its reason, or `missing` with what is absent.
+// Previews are needed per device family the screenshots cover; `placements` are the version's live placements.
+export function promotionReport(store, placements) {
+  const waived = (store.promotion && store.promotion.waived) || {};
+  return PROMOTION_ITEMS.map(item => {
+    const base = { id: item.id, title: item.title };
+    let absent = null;
+    if (item.id === 'nomination') {
+      if (!(store.nominations || []).length) absent = 'none in the store data\'s `nominations`';
+    } else {
+      const placed = placements.filter(entry => entry.attributes.placementType === item.placementType);
+      if (item.id === 'preview') {
+        const covered = new Set(placed.map(entry => deviceFamily(entry.attributes.placementGroup)));
+        const families = [...new Set((store.screenshots || []).map(group => deviceFamily(group.displayType)).filter(Boolean))];
+        const uncovered = (families.length ? families : ['IPHONE']).filter(family => !covered.has(family));
+        if (uncovered.length) absent = 'none placed for ' + uncovered.join(', ');
+      } else if (!placed.length) {
+        absent = 'none placed';
+      }
+    }
+    if (!absent) return { ...base, state: 'done' };
+    const reason = typeof waived[item.id] === 'string' ? waived[item.id].trim() : '';
+    if (reason.length >= MIN_WAIVER_REASON) return { ...base, state: 'waived', reason: reason };
+    return { ...base, state: 'missing', detail: absent };
+  });
+}
+
+// promotionRefusal is the sentence `submit` refuses with, or null when every item has a result or a reason.
+export function promotionRefusal(report) {
+  const missing = report.filter(item => item.state === 'missing');
+  if (!missing.length) return null;
+  return 'The "Every release" promotion list is not finished: ' + missing.map(item => item.title + ' (' + item.detail + ')').join('; ')
+    + '. App previews cannot be placed once a version is approved, so make them now (references/media.md), or record why not in the store data\'s '
+    + '`promotion.waived.<id>`: the owner\'s decision or a demonstrated capture dependency, never that it is optional. Nothing was submitted.';
+}
+
+// versionPromotion reads the version's placements and reports the list.
+async function versionPromotion(versionId) {
+  const localization = await versionLocalization(versionId, false);
+  return promotionReport(STORE, await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements'));
 }
 
 // NOMINATION_TYPES are the featuring nomination types Apple takes.

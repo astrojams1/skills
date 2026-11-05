@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.16.2"
+  version: "2.17.0"
 ---
 
 # App release
@@ -83,13 +83,13 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | App standards | `standards.mjs audit` passes: Send Feedback and the in-app privacy and support links; `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
-| Listing and media | Store data copy, real captures, required sizes, an app preview video ([media](references/media.md)) |
-| Presentation and promotion | Every release: preview, promotional text, header and search creative, featuring nomination; when they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
+| Listing and media | Store data copy, real captures, required sizes, an app preview video made from the build going to review, before `submit` ([media](references/media.md)) |
+| Presentation and promotion | Every release, shown by `asc.mjs status` and refused by `submit --confirm` until each has a result or a reason in `promotion.waived`: preview, header and search creative, featuring nomination; also promotional text; when they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
 | iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
-| Update recheck | Recheck existing media and listing copy against the build, supply required device families, and write release notes; optional placements follow the app's plan (Every update in [media](references/media.md)) |
+| Update recheck | Recheck existing media and listing copy against the build, supply every device family, and write release notes (Every update in [media](references/media.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
 | Ouro website | Apps on Ouro LLC's team (`ios.teamId` `AYCDG243RJ`): run the `ouro-website` skill once the app record and listing exist, after each submission, on release and whenever the name, subtitle, copy or screenshots change; the store data's `listing.marketingUrl` is the app's page, `https://ouro-apps.vercel.app/<slug>/` |
 | astrojams website | Apps on the personal James Thompson team (`ios.teamId` `CWQ9AWJF8T`): run the `astrojams-website` skill at the same moments; an app with no website of its own uses its page, `https://astrojams-apps.vercel.app/<slug>/`, as the store data's `listing.marketingUrl`, and an app with one keeps it |

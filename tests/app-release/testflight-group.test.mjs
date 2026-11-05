@@ -20,7 +20,8 @@ function fixture({ createdGroups = 1, otherInternal = 0 } = {}) {
       if (path === '/v1/builds/b1/buildBetaDetail') return { data: { attributes: { internalBuildState: 'READY_FOR_BETA_TESTING' } } };
       throw new Error('Unexpected read ' + path);
     },
-    listAll: async () => (writes.some(w => w.path.endsWith('/relationships/builds')) ? [{ id: 'b1' }] : [])
+    listAll: async path => (path.endsWith('/betaTesters?limit=200') ? [{ id: 't1', attributes: { state: 'INVITED' } }]
+      : writes.some(w => w.path.endsWith('/relationships/builds')) ? [{ id: 'b1' }] : [])
   };
   return { io, writes };
 }

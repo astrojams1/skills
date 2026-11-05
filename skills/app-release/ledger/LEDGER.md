@@ -1,8 +1,19 @@
 # App release skill ledger
 
-Skill version **2.16.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.17.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.17.0 (2026-11-05)
+
+- Plenty went to App Review with no app preview, header, search creative or nomination. The agent read the requirement,
+  skipped it and reported it as optional. Only prose asked for them, and the docs contradicted themselves ("Every
+  release" beside "optional slots alone are not release blockers"), while `submit` checked only source standards. Now
+  `asc.mjs status` prints each item and `submit --confirm` reads the version's live placements and refuses, before any
+  write, unless each has a result or a reason in `promotion.waived`. The contradictory wording is gone.
+- The same run reported a build as out to testers when `Release QA` had no testers, so the owner saw nothing in
+  TestFlight. `testers` printed success on the build's state alone. It now adds the account holder to an empty group,
+  invites anyone uninvited, reports the count and fails rather than report a build nobody can receive.
 
 ## Lessons incorporated into v2.16.2 (2026-11-05)
 

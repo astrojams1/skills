@@ -349,3 +349,42 @@ test('status reports a build\'s TestFlight state and which groups hold it', asyn
     { name: 'Friends', internal: false, hasBuild: false },
   ]);
 });
+
+test('the promotion list needs a result or a recorded reason for every item', () => {
+  const placed = (placementType, placementGroup) => ({ attributes: { placementType, placementGroup } });
+  const store = { screenshots: [{ displayType: 'APP_IPHONE_67' }, { displayType: 'APP_IPAD_PRO_3GEN_129' }] };
+  const states = (data, placements) => Object.fromEntries(asc.promotionReport(data, placements).map(item => [item.id, item.state]));
+
+  // Nothing done: every item is missing, and the refusal names them and what to do.
+  const empty = asc.promotionReport(store, []);
+  assert.deepEqual(empty.map(item => item.state), ['missing', 'missing', 'missing', 'missing']);
+  assert.match(asc.promotionRefusal(empty), /app preview video \(none placed for IPHONE, IPAD\)/);
+  assert.match(asc.promotionRefusal(empty), /promotion\.waived/);
+
+  // A preview counts per device family the screenshots cover.
+  const iphone = placed('APP_PREVIEW', 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE');
+  assert.equal(states(store, [iphone]).preview, 'missing');
+  assert.equal(states(store, [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE')]).preview, 'done');
+  assert.equal(states({}, [iphone]).preview, 'done');
+
+  // A word like "optional" is not a reason; a real one is reported, not hidden.
+  assert.equal(states({ ...store, promotion: { waived: { preview: 'optional' } } }, []).preview, 'missing');
+  const waived = asc.promotionReport({ ...store, promotion: { waived: { preview: 'Owner declined a preview on 2026-11-05' } } }, []);
+  assert.equal(waived[0].state, 'waived');
+  assert.equal(waived[0].reason, 'Owner declined a preview on 2026-11-05');
+
+  // Everything done passes.
+  const full = [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE'), placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE'), placed('APP_STORE_SEARCH_RESULTS_ASSET', 'DEFAULT_PROFILE')];
+  assert.equal(asc.promotionRefusal(asc.promotionReport({ ...store, nominations: [{ name: 'Launch' }] }, full)), null);
+});
+
+test('device families are read from display types and placement groups alike', () => {
+  assert.equal(asc.deviceFamily('APP_IPHONE_67'), 'IPHONE');
+  assert.equal(asc.deviceFamily('IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE'), 'IPHONE');
+  assert.equal(asc.deviceFamily('APP_IPAD_PRO_3GEN_129'), 'IPAD');
+  assert.equal(asc.deviceFamily('APP_DESKTOP'), 'MAC');
+  assert.equal(asc.deviceFamily('MAC_PROFILE'), 'MAC');
+  assert.equal(asc.deviceFamily('APP_APPLE_TV'), 'TV');
+  assert.equal(asc.deviceFamily('TV_PROFILE'), 'TV');
+  assert.equal(asc.deviceFamily('nonsense'), null);
+});
