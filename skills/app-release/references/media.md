@@ -116,13 +116,21 @@ not make it a submission requirement. Recheck existing placements against every 
 |---|---|---|---|
 | Product page header | 3840x1646 PNG (21:9) | 3840x1646 MP4, 10-30 s, 30 or 60 fps | 1 |
 | Search-results creative | 3:2 JPEG or PNG, 1920x1280 to 3840x2560 | 3:2 MP4, 5-30 s | 1 |
-| Universal (either of the above) | 5244x2950 PNG (16:9) | - | - |
+| Universal (either of the above, shown cropped: see below) | 5244x2950 PNG (16:9) | - | - |
 | iPhone Duo screenshots | 1398x2034 (outer) or 2007x2853 (inner), JPEG or PNG | - | 10 for the Duo profile, both displays together |
 
 Read the live limits from `GET /v1/appAssetLibraryRefData` (image and video specs, profile groups, per-placement
 counts) before making assets; the numbers above are 2026-10-20 readings. Without a search-results creative, the
 store falls back to In-App Events, previews and screenshots. Apple's guidance: one clear idea, designed for a
 first-time visitor, key art inside the template safe area, a short phrase at most, no text that restates the UI.
+
+**A universal image is never shown whole.** Apple serves it through a crop that keeps one band of the canvas at
+every aspect ratio: y 415-1865 of 2950, centred across (measured 2026-11-05 from Füd's live header; App Store
+Connect's Preview agrees). That leaves about 3380x1450 px at 21:9 and only **2175x1450 px on a 3:2 search card**, so a
+centred crop of the full canvas is the wrong calculation. Art laid out for the header loses its edges in search: Füd's
+headline lost its first and last letters on iPhone, iPad and iPhone Duo. Make search its own 3:2 file, which Apple
+serves whole (plain `sr` crop), unless all key art fits that band. "Use header asset in search results" on the version
+page shares the header with search, crop included.
 
 As checked on 2026-10-24, Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
 make Duo screenshots required starting April 2027 for apps using the iOS27.1 SDK or later. Before that
@@ -146,6 +154,16 @@ provider requirements instead of turning future or optional creative into an own
   don't generate, redraw or simulate an Apple device. Generic device illustrations
   must omit Apple-specific details. Keep app screen content accurate, avoid a
   standalone Apple logo, fabricated Apple recognition or implied Apple endorsement.
+- **Look at Apple's crops before review.** After `assets upload`, `asc.mjs assets crops DIR` saves Apple's own render
+  of each creative for each slot it can fill. Look at every image, then set `cropChecked` on its store data entry to
+  the file's 12-character hash (after the `@` in its reference name). `assets submit` and `assets place` refuse a
+  creative without it, and a changed file needs a fresh look. App Store Connect's Preview (version page, "Header and
+  Search Results", Preview; the App Store menu switches to Search Results Page and the device button to iPad and iPhone
+  Duo) only shows what a slot holds, and Browse Assets lists only approved images, so on an approved version it can
+  run only after `place`: run it then on all three devices, both pages, and record what it showed. Try every browser
+  before calling it blocked: the owner's Chrome holds an App Store Connect sign-in the built-in browser lacks (it
+  stays on the team it is signed in to, so another team's app errors there). An unchecked crop is unfinished work,
+  never a caveat to report.
 - **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` under the established upload authorization
   and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
   and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file

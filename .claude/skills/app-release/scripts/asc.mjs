@@ -8,8 +8,8 @@
 // never depends on clicking through the web console. Run from the app repository.
 
 import { createHash, sign } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
@@ -1474,6 +1474,36 @@ export function assetReference(fileName, bytes) {
   return fileName + '@' + createHash('sha256').update(bytes).digest('hex').slice(0, 12);
 }
 
+// CREATIVE_SLOTS are the sizes `assets crops` asks Apple for, one per slot a creative can fill.
+const CREATIVE_SLOTS = {
+  PRODUCT_PAGE_HEADER_ASSET: { name: 'header-21x9', width: 1260, height: 540 },
+  APP_STORE_SEARCH_RESULTS_ASSET: { name: 'search-3x2', width: 1200, height: 800 },
+};
+
+// creativeCrops lists Apple's own renders of one uploaded creative. Apple serves a universal image (5244x2950) through
+// the crop code UAS.ApGCL01, which keeps only a band of the canvas at every aspect ratio: y 415-1865 of 2950, centred
+// across (measured 2026-11-05 from a live header; App Store Connect's Device Preview agrees). So a 3:2 search card
+// shows about 2175x1450 px of it, and it can fill either slot, so both are listed. A dedicated file is served whole
+// with the plain code `sr`, in the slots store data lists it for.
+export function creativeCrops(image, placementTypes) {
+  const { templateUrl, width, height } = image.attributes.imageAsset || {};
+  if (!templateUrl) return [];
+  const universal = width === 5244 && height === 2950;
+  return Object.entries(CREATIVE_SLOTS).filter(([type]) => universal || placementTypes.includes(type)).map(([, slot]) => ({
+    name: slot.name,
+    url: templateUrl.replace('{w}', slot.width).replace('{h}', slot.height).replace('bb.{f}', (universal ? 'UAS.ApGCL01' : 'sr') + '.jpg'),
+  }));
+}
+
+// cropCheckProblem stops a creative going to App Review or onto the store until someone has looked at Apple's crops of
+// these exact bytes: `cropChecked` holds the file's hash, so a changed file needs a fresh look.
+export function cropCheckProblem(entry, reference) {
+  if (entry.category !== 'CREATIVE_ASSETS') return null;
+  const hash = reference.split('@').pop();
+  if (entry.cropChecked === hash) return null;
+  return reference + ': run `assets crops DIR`, look at every crop, then set cropChecked to "' + hash + '" on its store data entry';
+}
+
 // ASSET_PLACEMENTS are the placement types `assets` places on a version's localization, each with the profile groups
 // Apple's reference data gives it (GET /v1/appAssetLibraryRefData, read 2026-11-01); anything else in store data stops
 // the run before it uploads.
@@ -1636,15 +1666,21 @@ export async function submitAssetImages(imageIds, { appId = IOS?.ascAppId, openS
 // ASSET_RESOURCES names each Asset Library media type's resource and its relationship on a placement.
 const ASSET_RESOURCES = { image: { type: 'appAssetLibraryImages', relation: 'image' }, video: { type: 'appAssetLibraryVideos', relation: 'video' } };
 
-// assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images and videos: the product
-// page header, the search-results creative, app previews, and screenshots for profiles without a screenshot display
-// type, such as iPhone Duo. Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from
-// App Store Connect.
+// assets lists, uploads (`upload`), shows Apple's crops of (`crops`) or places (`place`) the store data's Asset Library
+// images and videos: the product page header, the search-results creative, app previews, and screenshots for profiles
+// without a screenshot display type, such as iPhone Duo. Uploads stay unsubmitted drafts until placed and sent to App
+// Review with a version or from App Store Connect.
 async function assets(mode) {
   const entries = STORE.assetLibrary || [];
   for (const entry of entries) {
     const problem = assetEntryProblem(entry);
     if (problem) throw new Error('store data assetLibrary: ' + problem);
+  }
+  const fileReference = entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file)));
+  const creative = entries.filter(entry => entry.category === 'CREATIVE_ASSETS');
+  if (mode === 'submit' || mode === 'place') {
+    const unchecked = creative.map(entry => cropCheckProblem(entry, fileReference(entry))).filter(Boolean);
+    if (unchecked.length) throw new Error('Crops not checked: ' + unchecked.join('; ') + '.');
   }
   const library = (await api('/v1/apps/' + IOS.ascAppId + '/assetLibrary')).data;
   const held = {
@@ -1668,8 +1704,7 @@ async function assets(mode) {
     if (process.argv[4] !== '--confirm') throw new Error('Sending images to App Review is outward-facing; rerun as `asc.mjs assets submit --confirm` with the owner\'s approval.');
     // Videos go to App Review with the version they are placed on; sending one on its own is not built.
     for (const entry of entries.filter(item => assetMedia(item.file) === 'video')) console.log('not sent:', basename(entry.file), '(video; it goes with its version)');
-    const references = entries.filter(entry => assetMedia(entry.file) === 'image')
-      .map(entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file))));
+    const references = entries.filter(entry => assetMedia(entry.file) === 'image').map(fileReference);
     const plan = assetsToSubmit(held.image, references);
     for (const line of plan.skipped) console.log('not sent:', line);
     if (!plan.send.length) {
@@ -1679,7 +1714,26 @@ async function assets(mode) {
     await submitAssetImages(plan.send);
     return;
   }
-  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');
+  if (mode === 'crops') {
+    const dir = process.argv[4];
+    if (!dir) throw new Error('Usage: asc.mjs assets crops DIR');
+    mkdirSync(dir, { recursive: true });
+    for (const reference of new Set(creative.map(fileReference))) {
+      const image = held.image.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
+      const crops = image ? creativeCrops(image, creative.filter(entry => fileReference(entry) === reference).map(entry => entry.placementType)) : [];
+      if (!crops.length) throw new Error(reference + ' has no processed image yet; run `assets upload`, then `assets` until it has finished processing.');
+      for (const crop of crops) {
+        const response = await fetch(crop.url);
+        if (!response.ok) throw new Error(crop.name + ' of ' + reference + ' returned ' + response.status);
+        const file = join(dir, reference.replace('@', '-') + '-' + crop.name + '.jpg');
+        writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+        console.log(file);
+      }
+      console.log('Look at each crop, then set cropChecked to "' + reference.split('@').pop() + '" on its store data entry.');
+    }
+    return;
+  }
+  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|crops DIR|place|submit --confirm]');
   const version = mode === 'place' ? (await context()).version : null;
   const localization = version ? await versionLocalization(version.id, false) : null;
   // Each placement type and profile, with the asset ids store data wants there in order.
@@ -1761,6 +1815,7 @@ async function assets(mode) {
     }
   }
   console.log('Run `assets` until every image and video has finished processing.');
+  if (mode === 'place' && creative.length) console.log('Then check the Preview in App Store Connect on iPhone, iPad and iPhone Duo, for the product page and search results.');
 }
 
 // NOMINATION_TYPES are the featuring nomination types Apple takes.

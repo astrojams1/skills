@@ -205,6 +205,24 @@ test('Asset Library entries name their placement and profile, and unknown ones s
   assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'OTHER', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /category/);
 });
 
+test('a universal creative shows Apple\'s crop for both slots; a dedicated file is served whole for its own slot', () => {
+  const image = (width, height) => ({ attributes: { imageAsset: { templateUrl: 'https://cdn.example/abc/{w}x{h}bb.{f}', width, height } } });
+  assert.deepEqual(asc.creativeCrops(image(5244, 2950), ['PRODUCT_PAGE_HEADER_ASSET']), [
+    { name: 'header-21x9', url: 'https://cdn.example/abc/1260x540UAS.ApGCL01.jpg' },
+    { name: 'search-3x2', url: 'https://cdn.example/abc/1200x800UAS.ApGCL01.jpg' },
+  ]);
+  assert.deepEqual(asc.creativeCrops(image(3840, 2560), ['APP_STORE_SEARCH_RESULTS_ASSET']), [{ name: 'search-3x2', url: 'https://cdn.example/abc/1200x800sr.jpg' }]);
+  assert.deepEqual(asc.creativeCrops({ attributes: {} }, ['PRODUCT_PAGE_HEADER_ASSET']), []);
+});
+
+test('a creative needs a crop check of its exact bytes; screenshots and previews do not', () => {
+  const creative = { file: 'h.png', category: 'CREATIVE_ASSETS', cropChecked: '94511dad2157' };
+  assert.equal(asc.cropCheckProblem(creative, 'h.png@94511dad2157'), null);
+  assert.match(asc.cropCheckProblem(creative, 'h.png@543e843e84b1'), /set cropChecked to "543e843e84b1"/);
+  assert.match(asc.cropCheckProblem({ ...creative, cropChecked: undefined }, 'h.png@94511dad2157'), /assets crops/);
+  assert.equal(asc.cropCheckProblem({ file: 'p.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS' }, 'p.mov@abc'), null);
+});
+
 test('Asset Library uploads keep finished copies, replace unfinished ones and treat a changed file as new', () => {
   const ref = asc.assetReference('header.png', Buffer.from('a'));
   assert.match(ref, /^header\.png@[0-9a-f]{12}$/);
