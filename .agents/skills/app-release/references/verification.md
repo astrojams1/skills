@@ -344,3 +344,7 @@ react-native-screens to UIKit.
 Inspect the installed version's actual forwarding path before choosing a fix.
 Source/mutation checks can protect that path, but verify the replacement build
 on the affected physical OS before claiming the appearance is corrected.
+
+## Widgets in every Home Screen appearance
+
+Check each widget in **Default, Dark, Clear and Tinted** on a real Home Screen (touch and hold, the button at top left, Customize), and on the Lock Screen. Tinted and Clear flatten a widget to one colour, so opaque custom art becomes a blank white block, with nothing in the logs and nothing in a simulator contact sheet or `ImageRenderer` output to warn you (Plenty, 2026-11-05: every style went blank). Read `@Environment(\\.widgetRenderingMode)` and, when it isn't `.fullColor`, draw a face made only of type and shapes on no background. Lock Screen accessory widgets have the same limit: nothing but shape can carry state, so don't rely on colour. Restore the simulator's appearance afterwards.
