@@ -8,6 +8,7 @@
   "buildRoot": "/Volumes/ssd/builds",
   "buildShaEnv": "EXPO_PUBLIC_BUILD_SHA",
   "ledger": { "gates": "store/ledger.json", "view": "store/ledger.md", "runs": "store/runs.md" },
+  "feedback": { "email": "astrojams1@gmail.com" },
   "activityLog": "~/Library/Application Support/AgentActivityLedger/events.jsonl",
   "ios": {
     "ascAppId": "0000000000",

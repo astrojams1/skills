@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
@@ -1402,6 +1403,9 @@ export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
   if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
+  // Every app ships the shared standards; the source is audited, so a build without them never reaches App Review.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal) throw new Error(refusal + ' Then build, attach the new build and submit again; nothing was submitted.');
   // A Kids Category app is held for Guideline 1.3 answers; the saved notes are what App Review reads, so they are checked.
   if (STORE.ageRating && STORE.ageRating.kidsAgeBand) {
     const detail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');

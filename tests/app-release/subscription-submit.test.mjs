@@ -1,18 +1,20 @@
 // Exercise the real submit orchestration against an in-memory Apple API. No live credentials or provider writes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setup, submit } from '../../skills/app-release/scripts/asc.mjs';
+import { standards } from './standards-fixture.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'subscription-submit-'));
 const keyFile = join(root, 'test.p8');
 writeFileSync(keyFile, generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
 const savedEnv = { ...process.env }; const savedFetch = globalThis.fetch;
 process.env.ASC_KEY_ID = 'synthetic-key'; process.env.ASC_ISSUER_ID = 'synthetic-issuer'; process.env.ASC_PRIVATE_KEY_PATH = keyFile;
-writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', ledger: { gates: 'ledger.json', view: 'ledger.md' }, storeData: 'store.json',
+writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', ledger: { gates: 'ledger.json', view: 'ledger.md' }, storeData: 'store.json', standards,
   ios: { ascAppId: 'app', bundleId: 'com.example.app', teamId: 'synthetic-team', scheme: 'Example', buildNumberEnv: 'BUILD' } }));
 test.after(() => { globalThis.fetch = savedFetch; process.env = savedEnv; rmSync(root, { recursive: true, force: true }); });
 const config = { appStoreId: 'product', groupId: 'group', productId: 'com.example.yearly', subscriptionVersionId: 'sv1', subscriptionGroupVersionId: 'gv1' };
@@ -247,6 +249,22 @@ test('IAP ownership follows paginated app collections instead of refusing a prod
   await submit('--confirm');
   assert.equal(state.reads.filter(x => x === '/v1/apps/app/inAppPurchasesV2').length, 4);
   assert.equal(state.submitted, true);
+});
+
+test('an app missing a shared standard is refused before any write, naming what is missing', async () => {
+  const state = fixture({ noSubscription: true });
+  const { config } = setup(root);
+  const saved = config.standards;
+  delete config.standards;
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  try {
+    await assert.rejects(submit('--confirm'), /Example is missing required app standards: feedback \([\s\S]*feedback\.email[\s\S]*privacy-link[\s\S]*support-link[\s\S]*nothing was submitted/);
+    assert.equal(state.writes.length, 0);
+    assert.equal(state.reads.includes('/v1/apps/app/reviewSubmissions'), false, 'refused before any submission is opened');
+  } finally {
+    config.standards = saved;
+    rmSync(join(root, '.git'), { recursive: true, force: true });
+  }
 });
 
 test('a Kids Category app whose saved notes skip the Guideline 1.3 questions is refused before any write', async () => {

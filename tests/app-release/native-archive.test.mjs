@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { standards } from './standards-fixture.mjs';
 const script=process.env.APP_RELEASE_IOS_SCRIPT || fileURLToPath(new URL('../../skills/app-release/scripts/ios-release.mjs',import.meta.url));
 const ios=await import(pathToFileURL(script));
 const signing={style:'manual',certificate:'a'.repeat(40),profile:'QA & "Distribution"'};
@@ -86,7 +87,7 @@ function fixture(t,{placeholder='$(CURRENT_PROJECT_VERSION)',extraEnv={},configP
  if(ignoreNative)writeFileSync(join(repo,'.gitignore'),'ios/\n');
  writeFileSync(join(repo,'ios','Native.txt'),'reviewed');
  const config={app:'QA',slug:'qa',projectDir:'.',storeData:'store.json',buildRoot:join(root,'builds'),ledger:{gates:'ledger.json',view:'ledger.md'},ios:{ascAppId:'123',bundleId:'com.example.qa',teamId:'TEAM123',scheme:'App',buildNumberEnv:'QA_BUILD_NUMBER',prebuild:false,infoPlist:'App/Info.plist',signing,...configPatch}};
- writeFileSync(join(repo,'app-release.config.json'),JSON.stringify(config));writeFileSync(join(repo,'store.json'),JSON.stringify({version:'1.1.0'}));
+ writeFileSync(join(repo,'app-release.config.json'),JSON.stringify({...config,standards}));writeFileSync(join(repo,'store.json'),JSON.stringify({version:'1.1.0'}));
  const git=(...args)=>execFileSync('git',['-c','core.hooksPath=/dev/null',...args],{cwd:repo,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
  git('init');git('config','user.email','qa@example.test');git('config','user.name','QA');git('add','.');git('commit','-m','Reviewed fixture');
  const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('ASC_')&&!k.startsWith('OP_')&&k!=='APP_RELEASE_CONFIG'));

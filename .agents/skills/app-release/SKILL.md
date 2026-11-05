@@ -1,8 +1,8 @@
 ---
 name: app-release
-description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
+description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.15.2"
+  version: "2.16.0"
 ---
 
 # App release
@@ -24,6 +24,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
 | `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `assets` (Asset Library images and app preview videos; `assets crops` saves Apple's crops of creative for checking), `nominate --confirm` (featuring nominations), `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
 | `app-preview.swift` | macOS AVFoundation, no ffmpeg: `render` an App Store preview from simulator recordings, `check` a file against Apple's preview spec, `sheet` and `frame` to review the cut; the same spec, with per-clip `shift` and `fade`, renders a 1080x1920 YouTube Short (`swift $S/app-preview.swift …`) |
+| `standards.mjs` | `audit` this app against the shared [app standards](references/standards.md) (`--json`; `--all` sweeps every app, read-only) |
 | `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
@@ -58,13 +59,16 @@ onboarding and revise the guidance if Apple changes the capability.
    ([maintaining](references/maintaining.md)).
 3. Read provider state, not memory: `node $S/asc.mjs status`, `node $S/android-release.mjs tracks`,
    `node $S/play.mjs status`. Record anything that changed since the ledger's last event.
-4. Establish the requested platforms and target state (testing, review, live), monetization, territories
+4. Audit the app against the shared standards: `node $S/standards.mjs audit`. Every app has them, so this is how an
+   existing app repairs itself: record each missing standard as an `issue.standard.<id>` gate and fix it in this run's
+   build, never deferring it silently ([standards](references/standards.md)). Builds and `submit` refuse without them.
+5. Establish the requested platforms and target state (testing, review, live), monetization, territories
    and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
    choice that is genuinely missing. Never import another app's price, claims, IDs or design.
-5. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
+6. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
    previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume. Check
    prior store-rejection lessons and rerun their applicable prevention checks before the next submission.
-6. Write the intended gates into the ledger, then advance independent work while account verification,
+7. Write the intended gates into the ledger, then advance independent work while account verification,
    provider processing or review is pending.
 
 For an app that has none of this yet, follow Onboarding a new app in [config](references/config.md).
@@ -76,6 +80,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | App record | Create or reuse through an authorized signed-in browser or Xcode, verify identity and save `ios.ascAppId` ([ios](references/ios.md)) |
 | Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments — shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
+| App standards | `standards.mjs audit` passes: Send Feedback and the in-app privacy and support links; `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
 | Listing and media | Store data copy, real captures, required sizes, an app preview video ([media](references/media.md)) |
