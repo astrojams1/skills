@@ -109,8 +109,9 @@ current image requirements in a validator rather than relying on memory.
 ## Product page header, search results and iPhone Duo
 
 App Store Connect's "New Ways to Market Apps" (2026) adds creative assets beyond screenshots.
-Check current requirements and the app's marketing plan before adding them; availability of a slot does
-not make it a submission requirement. Recheck existing placements against every updated build.
+Apple does not require them, but this release process does: each is on the "Every release" list in
+[promotion](promotion.md), so it needs a result or a recorded reason before `submit --confirm`. Recheck existing
+placements against every updated build.
 
 | Asset | Image | Video | Limit |
 |---|---|---|---|
@@ -187,7 +188,7 @@ provider requirements instead of turning future or optional creative into an own
   requires an approved version. `PENDING_DEVELOPER_RELEASE` qualifies; initial
   `WAITING_FOR_REVIEW`, `IN_REVIEW` and partly accepted submissions do not. With
   no approved version, assets must accompany the first app version. Preserve an
-  active first-version submission; do not withdraw it merely to add optional art.
+  active first-version submission; withdrawing it to add art is the owner's decision.
   The helper also refuses a partial batch while any selected new image is missing,
   processing, failed, rejected or unknown. Already approved/in-review images are
   retained without resubmitting them. Read each asset's state before retrying.
@@ -267,8 +268,8 @@ Before any update of any app goes to review, on both stores:
 2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
    show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
 3. Recheck existing app previews, product page headers, search-results creative and Duo images. A preview that
-   shows a changed screen is re-recorded, not trimmed around. Supply missing assets when currently required or
-   included in the app's agreed plan; optional slots alone are not release blockers.
+   shows a changed screen is re-recorded, not trimmed around. Supply missing assets: `submit --confirm` refuses while any "Every release" item in [promotion](promotion.md) has neither a result
+   nor a recorded reason.
 4. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
    against the build; correct anything it no longer does and add what it newly does.
 5. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
@@ -278,10 +279,14 @@ Before any update of any app goes to review, on both stores:
 
 For the shared marketing plan, record each preview/creative's actual state: missing, prepared, uploaded,
 processed, placed, in review, approved or live. A focused bug fix or information-response run does not by itself
-waive the preview and promotion checklist. An owner-declined item or demonstrated capture dependency needs its
-own reason; do not dismiss the entire package as "optional/outside scope." If an initial version is already
-waiting for review, prepare/upload missing assets and retain a concrete placement follow-up while its media
-controls are locked. Preserve the accepted submission rather than withdrawing it merely for optional art.
+waive the preview and promotion checklist. An owner-declined item or demonstrated capture dependency goes in the
+store data's `promotion.waived.<id>` with its reason; do not dismiss the package as "optional" or "outside scope",
+in the store data or in a report. Report each item's state by name.
+
+If a version is already waiting for review without its preview, prepare and upload the preview, then try `assets place`.
+A preview cannot be placed once the version is approved, so the way to ship it with this version closes at approval:
+tell the owner the choice now (withdraw, place and resubmit, or ship without it and place it on the next version).
+Withdrawing gives up the place in the queue, so it is the owner's decision, never a default.
 
 ## Uploading
 

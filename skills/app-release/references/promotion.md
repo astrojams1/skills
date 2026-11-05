@@ -2,7 +2,10 @@
 
 Apple gives every app more ways to be seen than screenshots and a description. Work through this list on every
 release of every app: do what applies, note in the release brief or ledger what does not apply and why, and leave
-what needs the owner (money, legal declarations, a real event) to them with the exact step. Rechecked against
+what needs the owner (money, legal declarations, a real event) to them with the exact step. `asc.mjs status` prints
+where each "Every release" item stands, and `submit --confirm` refuses while one has neither a result nor a reason in
+the store data's `promotion.waived.<id>`: the owner's decision or a demonstrated capture dependency, never that it is
+optional. Make them before submitting: a preview cannot be placed once the version is approved. Rechecked against
 Apple's pages on 2026-11-01; read the linked page again before relying on a limit.
 
 ## Every release
