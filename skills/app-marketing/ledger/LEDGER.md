@@ -13,3 +13,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 
 - 2026-11-05: Cloud sessions reach App Store Connect, Google and 1Password over the network, and have Chromium and ffmpeg, but hold no `op` and no service-account token. The vault is the only gap. Probe a cloud environment instead of assuming: the first plan assumed less than was true.
 - 2026-11-05: A routine created without `mcp_connections` receives every connected account, PayPal and Gmail included. Clear them.
+- 2026-11-05: Creating the daily Mac pass as a scheduled task was refused by the auto-mode permission classifier, with no reason given. Do not rebuild it as a LaunchAgent, cron job or hand-written task file: that decision is the owner's.

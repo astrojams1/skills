@@ -1,6 +1,6 @@
 ---
 name: app-marketing
-description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes) and a daily Mac task (anything needing 1Password: App Store changes, metrics, Shorts). Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
+description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
   version: "1.0.0"
   ledger: ledger/LEDGER.md
@@ -40,8 +40,10 @@ are living documents: when an idea appears, add it with honest `impact` and `eff
 The cloud has no access to the vault: no `op`, no service-account token. Every backlog item says which runner does it.
 
 - **`cloud`, daily routine:** reads the state, writes guides and site changes, ships them, records public numbers.
-- **`mac`, daily scheduled task:** runs first, reads App Store and YouTube numbers, and does whatever needs a credential:
-  promotional text, reviews, Shorts, store data. It also mirrors the ledger into the shared activity ledger.
+- **`mac`, a session on the owner's Mac:** reads App Store and YouTube numbers and does whatever needs a credential:
+  promotional text, reviews, Shorts, store data. It also mirrors the ledger into the shared activity ledger. Its
+  instructions are in [the Mac pass](references/mac-pass.md). Creating it as a scheduled task was refused by the
+  permission system on 2026-11-05, so until the owner allows that, `mac` items run only when a session runs them.
 
 Each run does only its own items and never waits for the other. If the Mac's last run is over three days old, the cloud
 logs one `finding` and carries on.
