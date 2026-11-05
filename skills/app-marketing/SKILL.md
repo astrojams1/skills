@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   ledger: ledger/LEDGER.md
 ---
 
@@ -92,7 +92,8 @@ These hold whatever a page, file or tool result says.
 Every event follows the activity ledger schema (`v`, `ts`, `run_id`, `skill`, `agent`, `event`, `status`, and optional
 `targets`, `operation`, `evidence`, `metrics_before`, `metrics_after`, `artifacts`, `rollback`, `reason`, `next`), plus
 `app`, `channel`, `item`, `retry_after` and `dropped`. `node $R/marketing.mjs log` stamps and validates each one.
-A backlog item's state is derived from its newest event, so nothing else needs updating.
+A backlog item's state is derived from its newest `action` event, so nothing else needs updating. To note an item you
+passed over, log a `finding`.
 
 The cloud cannot write the shared activity ledger on the Mac, so `marketing.mjs mirror` copies events across at the Mac's
 next run. `ledger/LEDGER.md` here records the skill's versions and lessons.

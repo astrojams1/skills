@@ -85,11 +85,12 @@ export function profileProblems(profile, name = profile.id) {
   return problems;
 }
 
-// itemState derives a backlog item's state from the ledger. The newest event naming the item decides: `ok` finishes it
+// itemState derives a backlog item's state from the ledger. Only an `action` can change it: a `finding` that mentions
+// an item ("passed over it today") is commentary. The newest action decides: `ok` finishes it
 // (until repeat_days pass for recurring work), `deferred` or `failed` parks it until retry_after (default three days),
 // `skipped` with `dropped: true` retires it, and anything else leaves it open.
 export function itemState(item, events, app, now = Date.now()) {
-  const mine = events.filter(e => e.app === app && e.item === item.id && e.status !== 'running');
+  const mine = events.filter(e => e.event === 'action' && e.app === app && e.item === item.id && e.status !== 'running');
   const last = mine[mine.length - 1];
   if (!last) return { state: 'open', last: null };
   const at = Date.parse(last.ts);
@@ -110,7 +111,7 @@ export function itemState(item, events, app, now = Date.now()) {
 export function rank(profiles, events, { runner, now = Date.now() } = {}) {
   const items = [];
   for (const profile of profiles) {
-    const appEvents = events.filter(e => e.app === profile.id && e.item && e.status === 'ok');
+    const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
     const lastWorked = appEvents.length ? Date.parse(appEvents[appEvents.length - 1].ts) : 0;
     const idleDays = lastWorked ? Math.min((now - lastWorked) / DAY, 7) : 7;
     for (const item of profile.backlog) {

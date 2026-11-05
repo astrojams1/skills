@@ -38,6 +38,12 @@ test('item state comes from the newest event', () => {
   assert.equal(itemState(i, [event({ app: 'x', item: 'a', status: 'skipped', dropped: true })], 'x', NOW).state, 'dropped');
 });
 
+test('a finding that mentions an item does not finish it', () => {
+  const passedOver = event({ event: 'finding', app: 'x', item: 'a', operation: 'Passed over: budget spent' });
+  assert.equal(itemState(item(), [passedOver], 'x', NOW).state, 'open');
+  assert.equal(itemState(item(), [event({ app: 'x', item: 'a', ts: ago(1) }), passedOver], 'x', NOW).state, 'done');
+});
+
 test('a blocked item parks and then comes back by itself, so nothing waits on a person', () => {
   const blocked = event({ app: 'x', item: 'a', status: 'deferred', ts: ago(1) });
   assert.equal(itemState(item(), [blocked], 'x', NOW).state, 'parked');
