@@ -8,6 +8,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | version | date | change | why |
 |---|---|---|---|
 | 1.0.0 | 2026-11-05 | Initial skill: per-app profiles, derived item state, append-only ledger and metrics, cloud and Mac runners | The owner asked for continuous marketing across apps that never depends on them |
+| 1.0.1 | 2026-11-05 | Only `action` events change an item's state | The first cloud run logged "passed over press-page" as a `finding` with status `ok`, which counted as finishing it |
 
 ## Lessons
 
