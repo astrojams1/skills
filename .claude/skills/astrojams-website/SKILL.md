@@ -2,7 +2,7 @@
 name: astrojams-website
 description: Keep the astrojams apps website (https://astrojams-apps.vercel.app, sites/astrojams in repository astrojams1/app-sites, which it shares with the Ouro site) true to the App Store without being asked. Audit every app on the owner's personal James Thompson App Store Connect team (team CWQ9AWJF8T), add or exclude new apps, flip "Coming soon" to the App Store badge on release, refresh names, subtitles, copy, screenshots, icons and theme colours, and deploy. Use whenever an app record on the personal team is created, uploaded, submitted, approved, released, renamed or its listing or screenshots change; when the "astrojams website needs an update" issue opens; when someone asks whether the site is current or to change its pages, copy or design; and at the end of any app-release run for a personal-team app.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   ledger: ledger/LEDGER.md
 ---
 
@@ -46,7 +46,9 @@ helper `/Users/astro/.codex/skills/mac-memory-maintenance/scripts/ledger.py`.
    the owner's `AGENTS.md`; never print or log a value. It prints every record on the team with its latest version
    state, whether the site shows, excludes or misses it, the app's repository (a main checkout over its worktrees),
    and **Actions**: new records, renamed apps or subtitles, released apps not yet synced, catalog apps that left the
-   team. **Follow-ups** list app repositories whose store data has no `listing.marketingUrl`.
+   team. **Follow-ups** list missing marketing URLs and existing ones that also target support/privacy pages.
+   The audit also compares Apple's actual Marketing URL with saved store data. An existing URL is not proof of a dedicated product website. Git-linked main checkouts outside the scanned
+   code root are resolved before reading store data, so a stale worktree cannot mask a correction.
 4. **Decide each new record.** Add every real app the owner is shipping on this team, games and tools alike; it
    appears as soon as it has an App Store Connect record and a listing or README to draw from, and does not wait for
    review. A duplicate, placeholder or test record goes in `excluded` with a one-line reason so no later audit asks
@@ -60,8 +62,12 @@ helper `/Users/astro/.codex/skills/mac-memory-maintenance/scripts/ledger.py`.
 8. **Close the loop.** Close the GitHub issue with a comment saying what changed. For each follow-up, set the app's
    `listing.marketingUrl` in its repository through that repository's normal branch or pull-request flow, or record
    it as the next action in its release ledger when the repository has unrelated work in progress; app-release sends
-   it with that app's next `asc.mjs listing`. Never replace a marketing URL the app already has, and never push
-   listing changes to App Store Connect from this skill.
+   it with that app's next `asc.mjs listing`. Preserve a genuine dedicated product website; do not blindly
+   preserve an old support/privacy or technical issuer URL as marketing. Review flagged targets against the
+   owner's direction and actual destination. If the owner explicitly chooses a dedicated dual-purpose home,
+   record it in the catalog's `links.website` so later audits preserve it. This skill saves the recommendation
+   or repository correction; app-release applies and reads back Apple's actual field, without claiming a
+   local edit changed App Store Connect.
 
 A design or structure change (new section, new layout, new dependency) goes on a branch with a pull request and
 screenshots for the owner; content and asset updates go straight to `main` once verification passes. Anything in
@@ -91,16 +97,16 @@ not in a branch of the shared code.
 
 - Space Worms' bundle identifier is `com.spaceworms.app`, not `com.astrojams.*`, but it is on the personal team and
   belongs on the site. Team membership decides, not the bundle prefix.
-- Several app folders under `/Volumes/ssd/code` are worktrees of one app (Space Worms, Importron, Newsworthy). The
-  audit reports the main checkout when it is there; Importron's main checkout lives in `/Users/astro/code/importron`,
-  so the audit names its SSD worktree instead.
+- Several app folders under `/Volumes/ssd/code` are worktrees of one app. The audit follows Git's common-directory
+  metadata to find a linked main checkout outside that root, including Importron's `/Users/astro/code/importron`.
 - Rhythm and Data Center are Capacitor web apps with no store screenshots yet. Their screenshots came from Data
   Center's `docs/images` and a headless capture of Rhythm's built `dist/` at iPhone size; replace both with the real
   store screenshots once they exist.
 - Three of the five themes are dark. Screenshots carry a faint ring in the page's ink so a dark screen keeps its edge
   on a dark page; keep it when restyling.
-- Apps with their own websites (Newsworthy, Space Worms) keep them as their Marketing URL; the audit only flags an
-  app with none. Change that only if the owner asks.
+- Apps with genuine dedicated websites (Newsworthy, Space Worms) keep them as their Marketing URL. An old support
+  page or SMART Health Card issuer is not automatically such a site. Importron's old GitHub support URL escaped
+  the former missing-only audit; its official marketing page is the astrojams page.
 - The public lookup can trail Apple's release by hours. A released app still "coming soon" right after release needs
   only `sync:store` later, not a manual status edit.
 - Link-preview cards are drawn by satori from `.woff` Latin fonts: keep their text to Latin characters, no emoji or ★.
