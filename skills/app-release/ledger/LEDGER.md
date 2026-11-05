@@ -1,8 +1,21 @@
 # App release skill ledger
 
-Skill version **2.15.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.16.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.16.0 (2026-11-05)
+
+- The owner asked that every app have a user feedback mechanism, done the same way, and that existing apps find what
+  they lack and fix themselves. Added the app standards: `references/standards.md`, `assets/standards.json` and
+  `standards.mjs audit` (`--json`, `--all`). The first entries are Send Feedback (a pre-filled email to `feedback.email`,
+  so no backend, SDK or privacy-answer change; references in `assets/feedback/`) and the in-app privacy and support links
+  `app-types.md` already required. Each run audits at its start, a missing standard becomes an `issue.standard.<id>`
+  gate fixed in that run's build, and `archive`, `bundle`, `release` and `submit --confirm` refuse without it, `submit`
+  before any write. A new standard is a catalog entry; an opt-out needs a recorded reason in the config.
+- The first sweep passed Pipsqueak's privacy link on a heading called "Privacy" with no link behind it, so a bare quoted
+  word no longer counts: a URL, a route or a name such as `privacyURL` does. Dot folders and vendored skills never count:
+  the skill's own reference copies reach every app through the submodule and the tracked `.claude/` and `.agents/` copies.
 
 ## Lessons incorporated into v2.15.2 (2026-11-05)
 

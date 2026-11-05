@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { standards as standardsOptOut } from './standards-fixture.mjs';
 const script=process.env.APP_RELEASE_IOS_SCRIPT || fileURLToPath(new URL('../../skills/app-release/scripts/ios-release.mjs',import.meta.url));
 const ios=await import(pathToFileURL(script));
 const key={path:'/private/AuthKey.p8',keyId:'KEY',issuerId:'ISSUER'};
@@ -64,7 +65,7 @@ if(cmd==='npx'||cmd==='pod'||cmd==='op'){
 }else throw new Error('Unexpected command '+cmd);
 `;
 
-function fixture(t,{trackScheme=true,configPatch={}}={}){
+function fixture(t,{trackScheme=true,configPatch={},standards=standardsOptOut,args=[]}={}){
  const root=mkdtempSync(join(tmpdir(),'bare-archive-')),repo=join(root,'repo'),bin=join(root,'bin'),trace=join(root,'trace.jsonl');
  mkdirSync(bin);mkdirSync(join(repo,'Config'),{recursive:true});
  const stub=join(root,'command.mjs');writeFileSync(stub,'#!'+process.execPath+'\n'+STUB,{mode:0o755});
@@ -77,17 +78,27 @@ function fixture(t,{trackScheme=true,configPatch={}}={}){
  const config={app:'Bare',slug:'bare',projectDir:'.',storeData:'store.json',buildRoot:join(root,'builds'),ledger:{gates:'ledger.json',view:'ledger.md'},
   ios:{ascAppId:null,bundleId:'com.example.bare',teamId:'TEAM123',scheme:'App',buildNumberEnv:'BARE_BUILD',prebuild:false,project:'App.xcodeproj',
    infoPlist:'Config/Info.plist',archiveSigning:'export',...configPatch}};
- writeFileSync(join(repo,'app-release.config.json'),JSON.stringify(config));writeFileSync(join(repo,'store.json'),JSON.stringify({version:'2.0.0'}));
+ writeFileSync(join(repo,'app-release.config.json'),JSON.stringify({...config,standards}));writeFileSync(join(repo,'store.json'),JSON.stringify({version:'2.0.0'}));
  const git=(...args)=>execFileSync('git',['-c','core.hooksPath=/dev/null',...args],{cwd:repo,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
  git('init');git('config','user.email','qa@example.test');git('config','user.name','QA');git('add','.');git('commit','-m','Bare fixture');
  const keyFile=join(root,'AuthKey.p8');writeFileSync(keyFile,'-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----\n');
  const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('ASC_')&&!k.startsWith('OP_')&&k!=='APP_RELEASE_CONFIG'));
  Object.assign(env,{PATH:bin+':'+env.PATH,FIXTURE_TRACE:trace,ASC_KEY_ID:'KEY',ASC_ISSUER_ID:'ISSUER',ASC_PRIVATE_KEY_PATH:keyFile});
- const result=spawnSync(process.execPath,[script,'archive','--build-number','4'],{cwd:repo,env,encoding:'utf8'});
+ const result=spawnSync(process.execPath,[script,'archive','--build-number','4',...args],{cwd:repo,env,encoding:'utf8'});
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const commands=()=>{try{return readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse);}catch{return[];}};
  return{repo,result,commands,summary:join(root,'builds','xcode','bare','release','4','summary.json')};
 }
+
+test('an app missing a shared standard is refused before anything is built; a local test build only warns',t=>{
+ const refused=fixture(t,{standards:null});
+ assert.equal(refused.result.status,1);
+ assert.match(refused.result.stderr,/Bare is missing required app standards: feedback[\s\S]*Nothing was archived/);
+ assert.ok(!refused.commands().some(x=>x.cmd==='xcodebuild'));
+ const test=fixture(t,{standards:null,args:['--allow-dirty']});
+ assert.equal(test.result.status,0,test.result.stdout+test.result.stderr);
+ assert.match(test.result.stderr,/Warning: Bare is missing required app standards/);
+});
 
 test('a bare Xcode project archives before its app record exists, from the project directory, with no Expo or CocoaPods',t=>{
  const f=fixture(t);assert.equal(f.result.status,0,f.result.stdout+f.result.stderr);

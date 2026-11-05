@@ -15,6 +15,7 @@ import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
 import { freshBuildTmp } from './lib/build-tmp.mjs';
 import { requireSection } from './lib/config.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
@@ -369,6 +370,10 @@ async function archive(flags) {
   }
   const before = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (before.status && !flags.allowDirty) throw new Error('The checkout has uncommitted changes; archive from a clean commit or pass --allow-dirty for a test build.');
+  // A build that lacks a shared standard could never be submitted, so it stops here; a local test build only warns.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal && !flags.allowDirty) throw new Error(refusal + ' Nothing was archived.');
+  if (refusal) console.warn('Warning: ' + refusal);
   let build = flags.build;
   if (build === null) {
     const numbers = await readBuildNumbers();

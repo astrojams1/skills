@@ -24,6 +24,8 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `buildShaEnv` | The variable that carries the short commit into the app (`EXPO_PUBLIC_BUILD_SHA` by default) |
 | `ledger.gates`, `ledger.view` | The JSON release ledger and its generated Markdown view |
 | `ledger.runs` | The hand-written run log (one dated entry per run, bug-fix table, costs, lessons) |
+| `feedback.email` | Where the in-app Send Feedback control sends mail; the address the support page shows too ([standards](standards.md)) |
+| `standards.optOut` | Optional `{ "<standard id>": "<reason>" }`: a standard this app cannot have, and why ([standards](standards.md#opting-out)) |
 | `activityLog` | The owner's shared agent activity ledger (`~/Library/Application Support/AgentActivityLedger/events.jsonl`, the only file its helper writes); each `ledger.mjs record` is appended there too. Omit to skip |
 
 `ios`:
@@ -98,10 +100,14 @@ Keep store copy in one place: other docs and pages link to the store data rather
    `versionCodeEnv` and `buildShaEnv`.
 3. `node skills/skills/app-release/scripts/ledger.mjs init --objective "…"`, then record `scope` with the
    platforms, monetization, territories and release behavior the owner chose.
-4. Write a thin repository skill (see [the template](../assets/repo-skill.template.md)) that points here
+4. Build in the [app standards](standards.md) from the start: copy the Send Feedback reference for the app's platform,
+   set `feedback.email`, link the privacy and support pages in the app, and run `node
+   skills/skills/app-release/scripts/standards.mjs audit` until it passes. The first `archive` or `bundle` refuses
+   otherwise.
+5. Write a thin repository skill (see [the template](../assets/repo-skill.template.md)) that points here
    and adds only this app's facts and gates.
-5. Read [accounts](accounts.md) for what the shared developer accounts already have, and [app types](app-types.md).
-6. For a first iOS release, create or reuse the App Store Connect record with the authorized browser or
+6. Read [accounts](accounts.md) for what the shared developer accounts already have, and [app types](app-types.md).
+7. For a first iOS release, create or reuse the App Store Connect record with the authorized browser or
    Xcode workflow in [iOS onboarding](ios.md). Verify team, bundle ID, name, SKU, primary locale and
    platform; persist its verified Apple ID as `ios.ascAppId`, then run `asc.mjs status`. Leave the ID empty
    while unverified; never copy another app's ID or treat the public API's missing create operation as
