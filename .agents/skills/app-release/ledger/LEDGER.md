@@ -1,8 +1,15 @@
 # App release skill ledger
 
-Skill version **2.17.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.17.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.17.1 (2026-11-05)
+
+- An approved build with recorded physical-device verification stayed at Pending Developer Release
+  after a status check. An active authorized launch now proceeds to release in the same invocation
+  once all conditions are met. Explicit holds, read-only requests and scheduled timing still apply.
+  Provider approval, release request acceptance and storefront availability have separate evidence.
 
 ## Lessons incorporated into v2.17.0 (2026-11-05)
 

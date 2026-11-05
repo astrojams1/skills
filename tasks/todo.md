@@ -4,6 +4,27 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.17.1 — Finish authorized App Store releases
+
+Plan: document the release default in the shared source. Confirm the attached
+build and all release conditions before a public release.
+
+- [x] Read the shared skill, iOS procedure, repository instructions and owner correction.
+- [x] Update the release default and verify it against explicit holds, read-only checks and incomplete evidence.
+- [x] Check consumer compatibility, refresh discovery copies and run repository checks.
+- [ ] Open and merge the shared pull request and hand off consumer adoption.
+
+Review: verified the policy for an approved, physically checked launch, a
+different attached build, an explicit hold, a scheduled release, a read-only
+status request and a testing-only scope. Inspected 12 local consumer configs.
+Their release types and existing command interfaces require no migration.
+The 232 release tests, 55 other Node tests, 205 specification checks,
+76 management checks, identity check, eight image-fit checks and skill
+validator pass. A relative section anchor failed the specification link check
+and was replaced with the file link. Ran the skill validator with the existing
+SSD PyYAML environment and the image-fit checks with the bundled runtime.
+
+
 ## app-release 2.12.0 — Asset Library review preflight and readback
 
 Plan: fix the reusable helper and creative guidance in an isolated checkout from main.

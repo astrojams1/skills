@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.17.0"
+  version: "2.17.1"
 ---
 
 # App release
@@ -69,7 +69,8 @@ onboarding and revise the guidance if Apple changes the capability.
    previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume. Check
    prior store-rejection lessons and rerun their applicable prevention checks before the next submission.
 7. Write the intended gates into the ledger, then advance independent work while account verification,
-   provider processing or review is pending.
+   provider processing or review is pending. Apply the release default below when a status readback
+   shows that the intended App Store build is ready to publish.
 
 For an app that has none of this yet, follow Onboarding a new app in [config](references/config.md).
 
@@ -155,6 +156,13 @@ commit a key, token, password, review phone or bank detail; check access without
   `submit --confirm`, `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
   does not authorize public release.
+- **Finish authorized App Store releases by default.** Treat an unqualified status check on an active,
+  authorized launch or update as a continuation of that release. When App Store Connect shows
+  `PENDING_DEVELOPER_RELEASE`, verify the intended attached build has the required physical-device
+  check and that any app-specific release conditions are met. Use the existing launch authorization
+  to run `asc.mjs release --confirm` in the same invocation, then verify provider state and public
+  availability. Honor explicit read-only requests, holds, release schedules and testing-only scopes.
+  See [iOS release](references/ios.md) for the provider timing and readback.
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,
   tax and banking facts or certifications; identity and device verification; the physical-device check;
   tester recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
