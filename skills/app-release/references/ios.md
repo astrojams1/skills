@@ -81,9 +81,9 @@ A failed UI route cannot block CLI builds or listing preparation that still work
   answers are separate observations; the public API key does not authenticate the Fastlane action.
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
-- **Submission and release:** honor existing explicit authorization for `submit --confirm`. For `MANUAL`
-  release, complete the owner's physical-device check and obtain authorization for `release --confirm`
-  if public release is outside the scope already granted.
+- **Submission and release:** honor existing explicit authorization for `submit --confirm`. Use existing
+  public launch authorization for `release --confirm` once the exact build and release conditions are
+  verified. A testing or review scope ends at its stated stage.
 
 ## Release loop
 
@@ -188,10 +188,15 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    the one submission in review with this version, waits for the cancel to settle and reads the version
    back, usually `DEVELOPER_REJECTED`), `attach-build <N>`, and `submit --confirm`, which opens a new
    submission. Recheck the listing and screenshots against the new build first.
-8. **Release.** With `releaseType: MANUAL` an approved version waits as `PENDING_DEVELOPER_RELEASE`; after the
-   owner's physical-device check of the TestFlight build, `asc.mjs release --confirm`. With
-   `AFTER_APPROVAL` it goes live on approval, so the device check must happen before submitting. Never
-   release on simulator evidence alone.
+8. **Release.** Use `releaseType: MANUAL` when the physical-device check or another release condition
+   may follow submission. On an authorized launch, including a status check for that launch, read back
+   the approved version's `PENDING_DEVELOPER_RELEASE` state and the attached build ID and number. Match
+   that build to the recorded physical-device check and verify any app-specific conditions. Run
+   `asc.mjs release --confirm` when eligible. Respect explicit holds, schedules and read-only requests.
+   Keep the `status` command read-only. Record release request acceptance, provider distribution
+   state and actual public App Store availability separately. With `AFTER_APPROVAL`, complete the
+   physical-device check and other release conditions before submission because Apple can publish
+   on approval.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
 ## First-subscription review

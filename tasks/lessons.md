@@ -1,5 +1,13 @@
 # Lessons Learned
 
+## Complete the authorized App Store release
+
+An active launch status check continues to public release once Apple has approved
+the intended build and its physical-device check and other release conditions
+are verified. Carry forward the existing authorization. Apply explicit holds,
+scheduled timing, testing-only scopes and read-only requests. Confirm the result
+in App Store Connect and verify the public storefront independently.
+
 ## Physical evidence does not require mirrored access
 
 **Source:** Owner correction during Nametag review recovery (2026-10-31).
