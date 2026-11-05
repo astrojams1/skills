@@ -1,8 +1,15 @@
 # App release skill ledger
 
-Skill version **2.16.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.16.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.16.1 (2026-11-05)
+
+- Plenty's first widget app on a new group failed `archive` with a misleading "Authentication failed", though the key
+  worked. The cause was an app group that did not exist: there is no public API for it and API-key signing cannot create
+  one. `references/ios.md` now gives the portal route, the `group.` prefix trap and the team check, and warns against
+  touching the repository during an archive.
 
 ## Lessons incorporated into v2.16.0 (2026-11-05)
 
