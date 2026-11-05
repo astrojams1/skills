@@ -2,7 +2,7 @@
 # Skills Management CLI
 # Manage astrojams1/skills as a git submodule in any project.
 #
-# Usage (from a target project that has skills/ submodule):
+# Usage (from a target project that has the skills submodule, at skills/ or vendor/skills/):
 #   ./skills/bin/manage.sh status
 #   ./skills/bin/manage.sh check
 #   ./skills/bin/manage.sh sync
@@ -15,14 +15,30 @@
 #                  and materialize .claude/skills/ markdown files for Claude Code discovery
 #   check          Verify skills are initialized, unmodified, up-to-date, and linked
 #                  Auto-fixes missing skill files and stale hooks in place
-#   sync           Pull latest skills from upstream main and refresh skill files
+#   sync           Pull latest skills from upstream main and refresh skill files, where the
+#                  repository uses them (without them, only the submodule pointer moves)
 #   link           Recreate .claude/skills/ skill files (no network, no staging)
 #   status         Show current skills state (commit, branch, available skills)
 
 set -euo pipefail
 
 SKILLS_REMOTE="${SKILLS_REMOTE:-https://github.com/astrojams1/skills.git}"
-SUBMODULE_PATH="skills"
+
+# Where the parent repository mounts this checkout: skills/, or vendor/skills/ where its own skills/
+# folder is taken. A standalone checkout has no parent, and install puts new submodules at skills/.
+detect_submodule_path() {
+    local checkout parent
+    checkout="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+    parent="$(git -C "$checkout" rev-parse --show-superproject-working-tree 2>/dev/null || true)"
+    if [ -n "$parent" ]; then
+        parent="$(cd "$parent" && pwd -P)"
+        echo "${checkout#"$parent"/}"
+    else
+        echo "skills"
+    fi
+}
+
+SUBMODULE_PATH="$(detect_submodule_path)"
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -40,9 +56,10 @@ find_project_root() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    # Script is at <project>/skills/bin/manage.sh
+    # Script is at <project>/<submodule path>/bin/manage.sh
     local candidate
-    candidate="$(dirname "$(dirname "$script_dir")")"
+    candidate="$(dirname "$script_dir")"
+    candidate="${candidate%/"$SUBMODULE_PATH"}"
 
     if [ -f "$candidate/.gitmodules" ] && grep -q "$SUBMODULE_PATH" "$candidate/.gitmodules" 2>/dev/null; then
         echo "$candidate"
@@ -74,6 +91,20 @@ submodule_initialized() {
 skills_dir() {
     local root="$1"
     echo "$root/$SUBMODULE_PATH/skills"
+}
+
+# A repository opts in to discovery copies by running install, which leaves copies, a manifest and the
+# SessionStart hook. Others pin the submodule and read it in place, so sync and check add nothing to them.
+uses_discovery_copies() {
+    local root="$1" target skill
+    grep -qs 'bin/manage.sh' "$root/.claude/settings.json" && return 0
+    for target in "$root/.claude/skills" "$root/.agents/skills"; do
+        [ -f "$target/.astrojams-skills.json" ] && return 0
+        for skill in "$(skills_dir "$root")"/*/; do
+            [ -d "$target/$(basename "$skill")" ] && return 0
+        done
+    done
+    return 1
 }
 
 # Check if a skill is marked as internal (not for consumer repos).
@@ -312,6 +343,11 @@ check_skill_links() {
     return "$issues"
 }
 
+# The SessionStart command for this repository's submodule path.
+session_hook_cmd() {
+    echo "ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && { git -C \"\$ROOT/$SUBMODULE_PATH\" fetch origin main --quiet 2>/dev/null && git -C \"\$ROOT\" submodule update --remote --merge $SUBMODULE_PATH 2>/dev/null || true; } && \"\$ROOT\"/$SUBMODULE_PATH/bin/manage.sh link"
+}
+
 # Ensure .claude/settings.json has a SessionStart hook that initializes
 # the skills submodule. Without this, .claude/skills can break on fresh clones
 # until the submodule is manually initialized.
@@ -324,7 +360,8 @@ check_skill_links() {
 ensure_session_hook() {
     local root="$1"
     local settings="$root/.claude/settings.json"
-    local hook_cmd="ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && { git -C \"\$ROOT/skills\" fetch origin main --quiet 2>/dev/null && git -C \"\$ROOT\" submodule update --remote --merge skills 2>/dev/null || true; } && \"\$ROOT\"/skills/bin/manage.sh link"
+    local hook_cmd
+    hook_cmd="$(session_hook_cmd)"
 
     mkdir -p "$root/.claude"
 
@@ -699,6 +736,96 @@ cmd_reinstall() {
     SKILLS_REMOTE="$remote_url" cmd_install "$root"
 }
 
+# Steps 8 and 9 of check. Updates the caller's failures and warnings.
+check_discovery() {
+    local root="$1"
+
+    # 8. SessionStart hook (must be in nested matcher/hooks format with compound command)
+    local settings_file="$root/.claude/settings.json"
+    local expected_hook_cmd
+    expected_hook_cmd="$(session_hook_cmd)"
+    local hook_status=""
+    if [ -f "$settings_file" ]; then
+        hook_status="$(python3 -c "
+import json, sys
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+new_cmd = sys.argv[2]
+old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
+old_cmd = 'git submodule update --init --recursive'
+old_root_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link'
+for group in data.get('hooks', {}).get('SessionStart', []):
+    if isinstance(group, dict) and 'hooks' in group:
+        for h in group.get('hooks', []):
+            if h.get('command') == new_cmd:
+                print('ok')
+                sys.exit(0)
+            if h.get('command') == old_root_cmd:
+                print('old_link_only')
+                sys.exit(0)
+            if h.get('command') in (old_cmd, old_compound_cmd):
+                print('old_nested')
+                sys.exit(0)
+    # Detect old flat format (type+command without nesting)
+    if isinstance(group, dict) and 'hooks' not in group:
+        if group.get('command') in (new_cmd, old_cmd, old_compound_cmd, old_root_cmd):
+            print('flat')
+            sys.exit(0)
+print('missing')
+" "$settings_file" "$expected_hook_cmd" 2>/dev/null)"
+    fi
+    case "$hook_status" in
+        ok)
+            green "PASS: SessionStart hook initializes submodule and refreshes skill files"
+            ;;
+        old_link_only)
+            yellow "WARN: SessionStart hook does not auto-sync skills to latest upstream"
+            bold "  Auto-fixing: updating hook to include upstream sync..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook updated"
+            warnings=$((warnings + 1))
+            ;;
+        old_nested)
+            yellow "WARN: SessionStart hook does not refresh skill files (old command)"
+            bold "  Auto-fixing: updating hook to include skill file refresh..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook updated"
+            warnings=$((warnings + 1))
+            ;;
+        flat)
+            yellow "WARN: SessionStart hook uses old flat format (Claude Code ignores it)"
+            bold "  Auto-fixing: migrating hook to correct nested format..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook migrated"
+            warnings=$((warnings + 1))
+            ;;
+        *)
+            yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
+            bold "  Auto-fixing: adding SessionStart hook..."
+            ensure_session_hook "$root"
+            green "  FIXED: SessionStart hook added"
+            warnings=$((warnings + 1))
+            ;;
+    esac
+
+    # 9. Skill discovery directories (auto-fix if missing or stale)
+    if check_skill_links "$root"; then
+        green "PASS: .claude/skills/ and .agents/skills/ are current"
+    else
+        yellow "WARN: Skill discovery directories are missing or stale — auto-fixing..."
+        link_skills "$root"
+        # Re-check after fix
+        if check_skill_links "$root" 2>/dev/null; then
+            green "  FIXED: skill directories refreshed"
+            warnings=$((warnings + 1))
+        else
+            red "FAIL: Skill discovery directories could not be auto-fixed"
+            echo "  Run: $(basename "$0") sync  (refreshes skill directories)"
+            failures=$((failures + 1))
+        fi
+    fi
+}
+
 cmd_check() {
     local root
     root="$(find_project_root)"
@@ -830,89 +957,11 @@ cmd_check() {
         warnings=$((warnings + 1))
     fi
 
-    # 8. SessionStart hook (must be in nested matcher/hooks format with compound command)
-    local settings_file="$root/.claude/settings.json"
-    local expected_hook_cmd='ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C "${ROOT}" submodule update --init --recursive && { git -C "${ROOT}/skills" fetch origin main --quiet 2>/dev/null && git -C "${ROOT}" submodule update --remote --merge skills 2>/dev/null || true; } && "${ROOT}"/skills/bin/manage.sh link'
-    expected_hook_cmd=${expected_hook_cmd//\$\{ROOT\}/\$ROOT}
-    local hook_status=""
-    if [ -f "$settings_file" ]; then
-        hook_status="$(python3 -c "
-import json, sys
-with open(sys.argv[1]) as f:
-    data = json.load(f)
-new_cmd = sys.argv[2]
-old_compound_cmd = 'git submodule update --init --recursive && ./skills/bin/manage.sh link'
-old_cmd = 'git submodule update --init --recursive'
-old_root_cmd = 'ROOT=\$(git rev-parse --show-toplevel 2>/dev/null || pwd); git -C \"\$ROOT\" submodule update --init --recursive && \"\$ROOT\"/skills/bin/manage.sh link'
-for group in data.get('hooks', {}).get('SessionStart', []):
-    if isinstance(group, dict) and 'hooks' in group:
-        for h in group.get('hooks', []):
-            if h.get('command') == new_cmd:
-                print('ok')
-                sys.exit(0)
-            if h.get('command') == old_root_cmd:
-                print('old_link_only')
-                sys.exit(0)
-            if h.get('command') in (old_cmd, old_compound_cmd):
-                print('old_nested')
-                sys.exit(0)
-    # Detect old flat format (type+command without nesting)
-    if isinstance(group, dict) and 'hooks' not in group:
-        if group.get('command') in (new_cmd, old_cmd, old_compound_cmd, old_root_cmd):
-            print('flat')
-            sys.exit(0)
-print('missing')
-" "$settings_file" "$expected_hook_cmd" 2>/dev/null)"
-    fi
-    case "$hook_status" in
-        ok)
-            green "PASS: SessionStart hook initializes submodule and refreshes skill files"
-            ;;
-        old_link_only)
-            yellow "WARN: SessionStart hook does not auto-sync skills to latest upstream"
-            bold "  Auto-fixing: updating hook to include upstream sync..."
-            ensure_session_hook "$root"
-            green "  FIXED: SessionStart hook updated"
-            warnings=$((warnings + 1))
-            ;;
-        old_nested)
-            yellow "WARN: SessionStart hook does not refresh skill files (old command)"
-            bold "  Auto-fixing: updating hook to include skill file refresh..."
-            ensure_session_hook "$root"
-            green "  FIXED: SessionStart hook updated"
-            warnings=$((warnings + 1))
-            ;;
-        flat)
-            yellow "WARN: SessionStart hook uses old flat format (Claude Code ignores it)"
-            bold "  Auto-fixing: migrating hook to correct nested format..."
-            ensure_session_hook "$root"
-            green "  FIXED: SessionStart hook migrated"
-            warnings=$((warnings + 1))
-            ;;
-        *)
-            yellow "WARN: No SessionStart hook found — skills may not load on fresh clones"
-            bold "  Auto-fixing: adding SessionStart hook..."
-            ensure_session_hook "$root"
-            green "  FIXED: SessionStart hook added"
-            warnings=$((warnings + 1))
-            ;;
-    esac
-
-    # 9. Skill discovery directories (auto-fix if missing or stale)
-    if check_skill_links "$root"; then
-        green "PASS: .claude/skills/ and .agents/skills/ are current"
+    # 8-9. SessionStart hook and discovery copies, where the repository uses them
+    if uses_discovery_copies "$root"; then
+        check_discovery "$root"
     else
-        yellow "WARN: Skill discovery directories are missing or stale — auto-fixing..."
-        link_skills "$root"
-        # Re-check after fix
-        if check_skill_links "$root" 2>/dev/null; then
-            green "  FIXED: skill directories refreshed"
-            warnings=$((warnings + 1))
-        else
-            red "FAIL: Skill discovery directories could not be auto-fixed"
-            echo "  Run: $(basename "$0") sync  (refreshes skill directories)"
-            failures=$((failures + 1))
-        fi
+        green "PASS: Submodule pinned without discovery copies"
     fi
 
     # 10. Internal/excluded skills leaked into consumer discovery dirs
@@ -1030,6 +1079,11 @@ cmd_sync() {
         echo ""
         bold "Staged. To commit:"
         echo "  git commit -m \"chore: sync skills submodule to latest main\""
+    fi
+
+    if ! uses_discovery_copies "$root"; then
+        green "Pointer only: this repository has no discovery copies (run link to add them)"
+        return
     fi
 
     # Refresh skill directories (picks up new/removed skills)
@@ -1198,7 +1252,8 @@ Commands:
   reinstall [dir]   Wipe existing integration and rebuild from scratch
   check             Verify skills are initialized, unmodified, and up-to-date
                     Auto-fixes missing skill files and stale hooks in place
-  sync              Pull latest skills from upstream main and stage the update
+  sync              Pull latest skills from upstream main and stage the update (refreshes
+                    skill files only where the repository already uses them)
   link              Recreate .claude/skills/ skill files (no network, no staging)
   status            Show current skills state, commit info, and available skills
   help              Show this help message
