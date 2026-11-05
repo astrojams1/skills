@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compare, parseArgs, pem, primaryConfigs, serviceToken } from '../../skills/astrojams-website/scripts/audit.mjs';
+import { compare, parseArgs, pem, primaryConfigs, serviceToken, teamConfigs } from '../../skills/astrojams-website/scripts/audit.mjs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const catalog = {
   site: { url: 'https://astrojams-apps.vercel.app' },
@@ -46,6 +50,59 @@ test('a main checkout wins over its worktrees, so each app is reported once', ()
   assert.equal(primaryConfigs(configs).get('2').dir, '/code/rhythm');
   assert.equal(compare([], catalog, { apps: {} }, configs).followUps.length, 1);
   assert.equal(primaryConfigs([config('/code/only-worktree', '2', '', true)]).get('2').dir, '/code/only-worktree');
+});
+
+test('a nonempty support/privacy URL is reviewed instead of silently treated as a dedicated marketing site', () => {
+  for (const field of ['supportUrl', 'privacyPolicyUrl']) {
+    const entry = config('/code/rhythm', '2', 'https://support.example/');
+    entry.listing[field] = 'https://support.example';
+    const result = compare([], catalog, { apps: {} }, [entry]);
+    assert.equal(result.followUps.length, 1, field);
+    assert.match(result.followUps[0], /support|privacy/i);
+    assert.match(result.followUps[0], /https:\/\/astrojams-apps\.vercel\.app\/rhythm\//);
+  }
+  const withLinks = structuredClone(catalog);
+  withLinks.apps[1].links = { support: 'https://support.example/' };
+  assert.equal(compare([], withLinks, { apps: {} }, [config('/code/rhythm', '2', 'https://support.example/')]).followUps.length, 1);
+  const official = config('/code/rhythm', '2', 'https://astrojams-apps.vercel.app/rhythm/');
+  official.listing.supportUrl = 'https://support.example/';
+  assert.equal(compare([], catalog, { apps: {} }, [official]).followUps.length, 0);
+  const dedicated = config('/code/rhythm', '2', 'https://rhythm.example/');
+  dedicated.listing.supportUrl = 'https://rhythm.example/#support';
+  assert.equal(compare([], catalog, { apps: {} }, [dedicated]).followUps.length, 0, 'Preserve a genuine product home; a support section is a different target');
+  const confirmed = structuredClone(catalog);
+  confirmed.apps[1].links = { website: 'https://rhythm.example/', support: 'https://rhythm.example/' };
+  assert.equal(compare([], confirmed, { apps: {} }, [dedicated]).followUps.length, 0, 'Explicitly confirmed dual-purpose websites remain valid');
+});
+
+test('saved local marketing metadata does not hide a different URL actually held by Apple', () => {
+  const entry = config('/code/rhythm', '2', 'https://astrojams-apps.vercel.app/rhythm/');
+  const actual = { ...row('2', 'Rhythm: Endless Beats', ''), marketingUrl: 'https://old-support.example/' };
+  const before = compare([actual], catalog, { apps: {} }, [entry]);
+  assert.equal(before.followUps.length, 1);
+  assert.match(before.followUps[0], /Apple.*https:\/\/old-support\.example\//);
+  actual.marketingUrl = entry.listing.marketingUrl;
+  assert.equal(compare([actual], catalog, { apps: {} }, [entry]).followUps.length, 0);
+});
+
+test('discover a linked main checkout outside the scanned code root rather than trust stale worktree metadata', () => {
+  const root = mkdtempSync(join(tmpdir(), 'marketing-audit-'));
+  try {
+    const main = join(root, 'elsewhere', 'main');
+    const code = join(root, 'code');
+    mkdirSync(main, { recursive: true }); mkdirSync(code);
+    const git = (...args) => execFileSync('git', ['-C', main, ...args], { stdio: 'pipe' });
+    git('init');
+    writeFileSync(join(main, 'app-release.config.json'), JSON.stringify({ ios: { ascAppId: '2', teamId: 'TEAM' }, storeData: 'store.json' }));
+    writeFileSync(join(main, 'store.json'), JSON.stringify({ listing: { marketingUrl: 'https://astrojams-apps.vercel.app/rhythm/' } }));
+    git('add', '.'); git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-m', 'fixture');
+    const worktree = join(code, 'feature');
+    git('worktree', 'add', '-b', 'fixture-feature', worktree);
+    writeFileSync(join(worktree, 'store.json'), JSON.stringify({ listing: { marketingUrl: 'https://stale.example/' } }));
+    const actual = primaryConfigs(teamConfigs(code, 'TEAM')).get('2');
+    assert.equal(actual.dir, realpathSync(main));
+    assert.equal(actual.listing.marketingUrl, 'https://astrojams-apps.vercel.app/rhythm/');
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test('the service-account token comes from the environment or the token file, prefix stripped', () => {

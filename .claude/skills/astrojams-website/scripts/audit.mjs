@@ -17,7 +17,7 @@
 import { spawnSync } from 'node:child_process';
 import { sign } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const API = 'https://api.appstoreconnect.apple.com';
@@ -63,17 +63,24 @@ export function pem(body) {
 // folders can hold the same app (a main checkout and its worktrees); `worktree` marks the ones whose .git is a file.
 export function teamConfigs(codeRoot, teamId) {
   const found = [];
-  for (const name of existsSync(codeRoot) ? readdirSync(codeRoot) : []) {
-    const file = join(codeRoot, name, 'app-release.config.json');
+  const directories = new Set((existsSync(codeRoot) ? readdirSync(codeRoot) : []).map(name => join(codeRoot, name)));
+  for (const dir of directories) {
+    const file = join(dir, 'app-release.config.json');
     if (!existsSync(file)) continue;
     try {
       const config = JSON.parse(readFileSync(file, 'utf8'));
       if (!config.ios || config.ios.teamId !== teamId) continue;
       let listing = null;
-      try { listing = JSON.parse(readFileSync(join(codeRoot, name, config.storeData || 'store/store.json'), 'utf8')).listing || null; } catch { /* no store data yet */ }
+      try { listing = JSON.parse(readFileSync(join(dir, config.storeData || 'store/store.json'), 'utf8')).listing || null; } catch { /* no store data yet */ }
       let worktree = false;
-      try { worktree = statSync(join(codeRoot, name, '.git')).isFile(); } catch { /* not a git checkout */ }
-      found.push({ dir: join(codeRoot, name), config, listing, worktree });
+      try { worktree = statSync(join(dir, '.git')).isFile(); } catch { /* not a git checkout */ }
+      found.push({ dir, config, listing, worktree });
+      if (worktree) {
+        // A main checkout can live outside codeRoot. Read Git's public metadata
+        // rather than treating a linked worktree's old store data as authoritative.
+        const common = spawnSync('git', ['-C', dir, 'rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8' });
+        if (!common.error && common.status === 0 && common.stdout.trim()) directories.add(dirname(common.stdout.trim()));
+      }
     } catch { /* an unreadable config is not ours to judge here */ }
   }
   return found;
@@ -102,12 +109,17 @@ async function readTeam(api) {
     const versions = await api(`/v1/apps/${app.id}/appStoreVersions?limit=5&fields[appStoreVersions]=versionString,appVersionState,appStoreState,platform`);
     const infos = await api(`/v1/apps/${app.id}/appInfos?include=appInfoLocalizations&limit=5`);
     const localization = (infos.included || []).find(x => x.type === 'appInfoLocalizations' && /^en/.test(x.attributes.locale)) || (infos.included || [])[0];
+    const ios = versions.data.find(v => v.attributes.platform === 'IOS') || versions.data[0];
+    const copies = ios ? await api(`/v1/appStoreVersions/${ios.id}/appStoreVersionLocalizations?fields[appStoreVersionLocalizations]=locale,marketingUrl,supportUrl&limit=50`) : { data: [] };
+    const copy = copies.data.find(v => v.attributes.locale === 'en-US') || copies.data.find(v => /^en/.test(v.attributes.locale)) || copies.data[0];
     const states = versions.data.map(v => ({ version: v.attributes.versionString, state: v.attributes.appVersionState || v.attributes.appStoreState }));
     rows.push({
       appStoreId: app.id,
       bundleId: app.attributes.bundleId,
       name: localization ? localization.attributes.name : app.attributes.name,
       subtitle: localization ? localization.attributes.subtitle || '' : '',
+      marketingUrl: copy ? copy.attributes.marketingUrl || null : null,
+      supportUrl: copy ? copy.attributes.supportUrl || null : null,
       latest: states[0] || null,
       released: states.some(s => RELEASED.has(s.state))
     });
@@ -138,16 +150,40 @@ export function compare(team, catalog, store, configs) {
     if (!onTeam.has(app.appStoreId)) actions.push(`${app.name} (${app.appStoreId}) is in the catalog but not on the App Store Connect team.`);
   }
   // An app with a website of its own keeps it as its App Store "Marketing URL"; an app without one uses its page on
-  // this site. The app's store data holds the URL and app-release's next `asc.mjs listing` sends it, so an empty one is
-  // a follow-up in that app's repository (its main checkout when worktrees share the app).
+  // this site. A nonempty URL alone does not establish a dedicated marketing site:
+  // flag known support/privacy targets for review, without overwriting custom sites.
   const followUps = [];
+  const apple = new Map(team.map(row => [row.appStoreId, row]));
   for (const [appStoreId, { dir, config, listing }] of repos) {
     const app = listed.get(appStoreId);
-    if (!app || !listing || listing.marketingUrl) continue;
+    if (!app || !listing) continue;
     const expected = new URL(`/${app.slug}/`, catalog.site.url).toString();
-    followUps.push(`${app.name}: set listing.marketingUrl to ${expected} in ${join(dir, config.storeData || 'store/store.json')} (it has none); app-release sends it with the next listing.`);
+    const observed = apple.get(appStoreId);
+    if (listing.marketingUrl && observed && Object.hasOwn(observed, 'marketingUrl') && urlTarget(observed.marketingUrl) !== urlTarget(listing.marketingUrl)) {
+      followUps.push(`${app.name}: Apple currently holds Marketing URL "${observed.marketingUrl || ''}"; ${join(dir, config.storeData || 'store/store.json')} saves ${listing.marketingUrl}. Apply the intended URL through app-release and read it back; a local correction is not an Apple update.`);
+    }
+    if (!listing.marketingUrl) {
+      followUps.push(`${app.name}: set listing.marketingUrl to ${expected} in ${join(dir, config.storeData || 'store/store.json')} (it has none); app-release sends it with the next listing.`);
+      continue;
+    }
+    const current = urlTarget(listing.marketingUrl);
+    if (current === urlTarget(expected)) continue;
+    // An explicitly catalogued dedicated website may also provide support.
+    if (app.links?.website && current === urlTarget(app.links.website)) continue;
+    const supportTargets = [listing.supportUrl, listing.privacyPolicyUrl, app.links?.support, app.links?.privacy].filter(Boolean).map(urlTarget);
+    if (current && supportTargets.includes(current)) {
+      followUps.push(`${app.name}: review listing.marketingUrl in ${join(dir, config.storeData || 'store/store.json')}: ${listing.marketingUrl} is also a support/privacy target, not evidence of a dedicated marketing site. Use the official page ${expected} unless a dedicated dual-purpose website is explicitly confirmed; app-release applies the correction.`);
+    }
   }
   return { rows, actions, followUps };
+}
+
+function urlTarget(value) {
+  try {
+    const url = new URL(value);
+    url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return url.toString();
+  } catch { return null; }
 }
 
 // primaryConfigs keeps one repository per App Store app: a main checkout over its worktrees, otherwise the first found.
