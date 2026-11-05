@@ -6,7 +6,10 @@
 // Desktop app, and `refresh token`, which `auth` writes. Values never reach output, arguments or logs. Node 22.
 //
 //   node yt-api.mjs check                       which credential fields exist (no values) and whether they work
-//   node yt-api.mjs auth                        one-time consent in the browser; stores the refresh token
+//   node yt-api.mjs auth [--print-url] [--token-file PATH]   one-time consent in the browser; stores the refresh token.
+//                                               --print-url prints the consent URL instead of opening it, for an agent's own
+//                                               browser tab. --token-file writes the token to a private file for the owner
+//                                               to add to 1Password, for a read-only service account
 //   node yt-api.mjs pull [--registry PATH]      analytics for every Short the registry says is due a read (or --videos a,b)
 //   node yt-api.mjs comments --video ID         newest comment threads on one video, as JSON
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt)
@@ -127,7 +130,7 @@ async function upload(token, episode) {
   return { videoId: video.id, privacyStatus: video.status?.privacyStatus, publishAt: video.status?.publishAt ?? null };
 }
 
-async function authFlow() {
+async function authFlow({ printUrl, tokenFile }) {
   const item = readItem();
   const [id, secret] = ['client id', 'client secret'].map(l => field(item, l));
   if (!id || !secret) throw new Error(`Add "client id" and "client secret" to the 1Password item "${ITEM}" (vault "${VAULT}") first`);
@@ -147,6 +150,7 @@ async function authFlow() {
       const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({ client_id: id, redirect_uri: redirect,
         response_type: 'code', scope: SCOPES.join(' '), access_type: 'offline', prompt: 'consent', state,
         code_challenge: challenge, code_challenge_method: 'S256' });
+      if (printUrl) { console.log(url); return; }
       console.log('Opening the consent page. Sign in as the channel owner and allow access.');
       spawnSync('open', [url]);
     });
@@ -156,7 +160,9 @@ async function authFlow() {
     client_id: id, client_secret: secret, code, code_verifier: verifier, grant_type: 'authorization_code', redirect_uri: redirect }) });
   const body = await res.json();
   if (!res.ok || !body.refresh_token) throw new Error(`Token exchange failed: ${body.error ?? res.status}`);
-  storeRefreshToken(body.refresh_token);
+  if (tokenFile) writeFileSync(tokenFile, [`For 1Password: add a password field named "refresh token" to the item "${ITEM}" in vault "${VAULT}".`,
+    '', `refresh token: ${body.refresh_token}`, '', 'Delete this file once it is in 1Password.', ''].join('\n'), { mode: 0o600 });
+  else storeRefreshToken(body.refresh_token);
   const me = await api(body.access_token, 'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true');
   console.log(JSON.stringify({ connected: true, channel: me.items?.[0]?.snippet?.title ?? null, channelId: me.items?.[0]?.id ?? null }));
 }
@@ -165,7 +171,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const option = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1] : fallback; };
   const registryPath = option('--registry', '/Volumes/ssd/projects/app-shorts/registry.json');
-  const videos = option('--videos', null), video = option('--video', null);
+  const videos = option('--videos', null), video = option('--video', null), tokenFile = option('--token-file', null);
   const [command] = args;
   try {
     if (command === 'check') {
@@ -175,7 +181,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (Object.values(present).every(Boolean)) { await accessToken(); works = true; }
       console.log(JSON.stringify({ item: Boolean(item), ...present, works }));
     } else if (command === 'auth') {
-      await authFlow();
+      await authFlow({ printUrl: args.includes('--print-url'), tokenFile });
     } else if (command === 'pull') {
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const ids = videos ? videos.split(',') : [...new Set(due(registry).reads.map(r => r.videoId).filter(Boolean))];

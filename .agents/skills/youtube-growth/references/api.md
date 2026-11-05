@@ -27,9 +27,13 @@ Signed in as the Google account that owns the channel:
    and secret in 1Password as a new item **"YouTube API"** in vault **"API Tokens"**, with fields `client id` and
    `client secret`.
 5. Tell the agent. It runs `node yt-api.mjs auth`, which opens Google's consent page: sign in, allow, and the
-   refresh token is written to the same item (through a private template file, never an argument). If the vault's
-   service account is read-only, add the `refresh token` field yourself from the value the agent cannot see. In
-   that case the agent says so and stops.
+   refresh token is written to the same item (through a private template file, never an argument). **The owner's
+   service account is read-only** (2026-11-04: `op item edit` fails with "Couldn't update the item", even for a
+   same-title edit), and a failed save loses the token. So run `auth --token-file PATH`, which writes it to a
+   mode-600 file for the owner to add to the item as a field named `refresh token`; then compare the two without
+   printing them and move the file to the Trash. With the owner's yes in chat, an agent can give the consent itself
+   in the owner's signed-in Chrome: `--print-url` prints the URL for its own tab instead of opening the default
+   browser. A second consent only re-confirms the access already granted.
 
 Scopes (all four are requested at consent): `youtube.readonly` (videos, comments; the Analytics API also requires
 it), `yt-analytics.readonly` (analytics), `youtube.force-ssl` (comments, metadata) and `youtube.upload` (uploads and
