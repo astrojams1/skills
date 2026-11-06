@@ -54,6 +54,11 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  call-triage/
+    SKILL.md                               # Turn a recorded call about any product into finished follow-through; audio and transcripts stay on the SSD
+    references/{intake,routing,deliverables}.md   # Getting and transcribing a recording; where each item goes; the page and the email draft
+    scripts/call_triage.py, scripts/transcribe.swift   # Item register and privacy guard (Python, no deps); on-device transcription (SpeechAnalyzer)
+    ledger/LEDGER.md                       # Versions and lessons
   app-shorts/
     SKILL.md                               # Make, post and schedule YouTube Shorts series for every app the owner ships
     references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
@@ -73,7 +78,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/ and tests/youtube-growth/ cover those skills' scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/, tests/youtube-growth/ and tests/call-triage/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -320,6 +325,12 @@ for the API connection. After changing a script or the rules, run `node --test t
 ## Internal Skills
 
 These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
+
+### Call Triage — From a Recorded Call to Finished Follow-Through
+
+**Skill:** `skills/call-triage/SKILL.md`
+
+Takes a recorded call about any app, service or venture and carries it through: finds the recording, transcribes it on the Mac, sorts what was said into action items, ideas, marketing insights and the rest, tracks every item until it closes with evidence, and prepares a page and an email draft for the person on the call. Audio and transcripts stay in `/Volumes/ssd/projects/calls/` and never reach GitHub; `scripts/call_triage.py guard` checks repositories and pages for audio, transcripts and quoted runs of the transcript. It drafts email and never sends it.
 
 ### Design System Migration Prompt
 
