@@ -92,5 +92,7 @@ An item that can only be done by the owner still gets tracked, with the exact st
   before it reaches an issue or a page, and treat speaker turns as inferred: there are no speaker labels.
 - **A call describes the plan, not the state.** "I'm setting up the tester link" may never have happened. Check the
   actual system, not the email about it.
+- **A guard you didn't see pass didn't run.** Read its `guard: ok` line before pushing. Under zsh, a command held in a
+  variable doesn't split into words and fails beside the commit, not before it.
 - **Separate what was said from what you concluded.** Mark your own inference, so a suggestion made by the agent is
   never credited to the person on the call.
