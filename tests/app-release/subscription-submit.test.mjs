@@ -67,7 +67,7 @@ function fixture(options = {}) {
     else if (path === '/v1/apps/app/appInfos') data = [];
     else if (path === '/v1/appStoreVersions/v1/appStoreVersionLocalizations') data = [{ id: 'loc', attributes: { locale: 'en-US' } }];
     else if (path === '/v1/appStoreVersionLocalizations/loc/placements') data = [];
-    else if (path === '/v1/apps/app/appStoreVersions') data = [{ id: 'v1', attributes: { versionString: '1.0' } }];
+    else if (path === '/v1/apps/app/appStoreVersions') data = [{ id: 'v1', attributes: { versionString: '1.0', releaseType: 'AFTER_APPROVAL' } }];
     else if (path === '/v1/apps/app/inAppPurchasesV2') data = options.wrongIapApp || (options.iapOwnershipChanges && state.reads.filter(x => x === path).length > 1) ? [] : [{ id: 'iap', attributes: { productId: options.wrongIapProduct ? 'com.other.import' : 'com.example.import' } }];
     else if (path === '/v2/inAppPurchases/iap/versions') data = [{ id: options.wrongIapVersion ? 'foreign' : 'iv1' }];
     else if (path === '/v1/apps/app/subscriptionGroups') data = options.wrongApp || (options.ownershipChanges && state.reads.filter(x => x === path).length > 1) ? [] : [{ id: 'group' }];
