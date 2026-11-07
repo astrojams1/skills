@@ -69,6 +69,12 @@ skills/                                    # Skill definitions (Agent Skills spe
     scripts/discover.mjs                   # Open PRs sorted into triage buckets, plus saved decisions (Node 22, no deps)
     assets/scope.json                      # Owners, trusted authors, time windows, per-run cap and hold markers
     ledger/LEDGER.md                       # Versions and lessons
+  uncommitted-work/
+    SKILL.md                               # Weekly audit of uncommitted work and stashes in every checkout: ship through a PR, or back up and clear
+    references/triage.md                   # Decision, ship and stash rules
+    scripts/scan.py                        # Repo-wide scan, buckets, backups and the guarded close (Python, no deps)
+    assets/scope.json                      # Roots, owners, time windows, per-run cap and junk names
+    ledger/LEDGER.md                       # Versions and lessons
   call-triage/
     SKILL.md                               # Turn a recorded call about any product into finished follow-through; audio and transcripts stay on the SSD
     references/{intake,routing,deliverables}.md   # Getting and transcribing a recording; where each item goes; the page and the email draft
@@ -369,6 +375,12 @@ Takes a recorded call about any app, service or venture and carries it through: 
 **Skill:** `skills/abandoned-prs/SKILL.md`
 
 Finds PRs that have gone quiet in the owner's repositories and merges, closes or leaves each one, as a standing weekly job. `scripts/discover.mjs` sorts open PRs into buckets and remembers decisions, so a PR waiting on the owner is reported each week without being reworked. Forks and strangers' PRs are never checked out. It keeps every branch, and never submits, releases or deploys.
+
+### Uncommitted Work — Weekly Local Cleanup
+
+**Skill:** `skills/uncommitted-work/SKILL.md`
+
+Finds uncommitted changes and stashes in every local checkout and worktree, and either ships them through a PR or backs them up and clears them, as a standing weekly job. `scripts/scan.py close` refuses unless a current backup exists, so nothing unsaved can be lost. It leaves live checkouts, repositories owned by other accounts and repositories with no remote for the owner.
 
 ### Design System Migration Prompt
 
