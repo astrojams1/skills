@@ -199,6 +199,24 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    on approval.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
+## Unattended review submissions
+
+A scheduled run takes eligible updates to `WAITING_FOR_REVIEW` and no further. `review-sweep.mjs sweep` reads both
+teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
+one, or any submission not `COMPLETE`, including a `READY_FOR_REVIEW` draft and `UNRESOLVED_ISSUES`), `deferred`,
+`no_product_change` or `candidate`. A candidate is only a list of files: read the diff and decide whether the shipped
+app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse.
+
+Provenance is the build's `summary.json` from `ios-release.mjs archive`. A build without one (a cloud build) needs
+`<state>/provenance/<ascAppId>-<version>-<build>.json` with `commit` (full hash), `appleBuildId`, `evidence` and
+`cleanTree` if proven; write it only from provider records, such as EAS `gitCommitHash` and Apple's build id.
+
+Take `claim --app ID --key VERSION-COMMIT --run RUN` before any write and `finish … --result submitted|deferred`
+afterwards. Run every release script through `review-sweep.mjs run -- node $S/asc.mjs …`, which sets
+`APP_RELEASE_UNATTENDED=1`: `listing` then writes `MANUAL` whatever the store data says, `submit --confirm` rereads
+Apple before opening a submission and again before sending it and refuses anything not `MANUAL` or already occupied,
+and `release`, `withdraw`, `pricing` and replacing a rejected submission are refused.
+
 ## First-subscription review
 
 A first subscription can need review with the app version. Apple's review-item schema supports both

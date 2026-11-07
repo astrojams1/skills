@@ -25,7 +25,7 @@ skills/                                    # Skill definitions (Agent Skills spe
   app-release/
     SKILL.md                               # App Store + Google Play release process for every app
     references/{config,accounts,ios,android,privacy,media,verification,app-types,standards,ledger,maintaining}.md
-    scripts/{ledger,ios-release,asc,android-release,play,standards}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
+    scripts/{ledger,ios-release,asc,android-release,play,standards,review-sweep}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
     assets/                                # Config, store data and repository-skill templates; the app standards catalog and Send Feedback references
     ledger/LEDGER.md, ledger/runs/         # Cross-app run index and lessons
   ouro-website/

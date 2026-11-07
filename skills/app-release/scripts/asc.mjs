@@ -15,6 +15,7 @@ import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './l
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
+import { unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
@@ -643,7 +644,8 @@ async function listing() {
     const savedApp = await api('/v1/apps/' + IOS.ascAppId, 'PATCH', { data: { type: 'apps', id: IOS.ascAppId, attributes: appAttributes } });
     assertSaved('App', appAttributes, savedApp.data.attributes);
   }
-  const versionAttributes = { copyright: copy.copyright, releaseType: copy.releaseType || 'MANUAL' };
+  // An unattended run holds the version whatever the store data prefers, so approval can never publish it.
+  const versionAttributes = { copyright: copy.copyright, releaseType: unattended() ? 'MANUAL' : copy.releaseType || 'MANUAL' };
   const savedVersion = await api('/v1/appStoreVersions/' + ctx.version.id, 'PATCH', { data: { type: 'appStoreVersions', id: ctx.version.id, attributes: versionAttributes } });
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
@@ -1321,6 +1323,7 @@ async function waitForCancel(id) {
 // replaceRejectedSubmission cancels a rejected submission that cannot take new items, waits until Apple reports it
 // COMPLETE (or gone), and returns the new draft; `fillSubmission` then adds the version and leaderboards.
 async function replaceRejectedSubmission(submission) {
+  if (unattended()) throw new Error('An unattended run does not replace a submission; nothing was canceled.');
   await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { canceled: true } } });
   console.log('Canceled rejected submission', submission.id, 'so the required items can go to review with the version');
   await waitForCancel(submission.id);
@@ -1402,6 +1405,17 @@ async function testflight(buildNumber) {
 }
 
 // submit sends the prepared version to App Review; it needs --confirm because it is the one irreversible step.
+// requireUnattendedSubmit rereads Apple's state and stops an unattended run that could publish or collide; a person's
+// run is unaffected. It runs before anything is opened and again immediately before the submission is sent.
+async function requireUnattendedSubmit(versionId) {
+  if (!unattended()) return;
+  const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
+  const submissions = await listAll('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS');
+  const version = versions.find(item => item.id === versionId);
+  const refusal = version ? unattendedSubmitRefusal(version, versions, submissions) : 'The version is gone from App Store Connect.';
+  if (refusal) throw new Error(refusal + ' Nothing was submitted.');
+}
+
 export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
@@ -1417,6 +1431,7 @@ export async function submit(flag) {
       + 'its notes answer how it meets Guideline 1.3. The saved review notes do not answer: ' + unanswered.join('; ')
       + '. Answer each from the shipped code in the store data\'s review.notes, run `asc.mjs review-details`, then submit again; nothing was submitted.');
   }
+  await requireUnattendedSubmit(ctx.version.id);
   let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
   const pending = await submissionInReview(ctx.version.id, reviewTargets);
@@ -1461,6 +1476,7 @@ export async function submit(flag) {
       missingSubmissionItems(finalItems, ctx.version.id, leaderboards).leaderboards.length) {
     throw new Error('Review targets changed before submission; nothing was submitted.');
   }
+  await requireUnattendedSubmit(ctx.version.id);
   await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
   const saved = (await api('/v1/reviewSubmissions/' + submission.id)).data;
   const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
@@ -1994,6 +2010,7 @@ async function main() {
     console.log('Usage: node skills/skills/app-release/scripts/asc.mjs ' + COMMANDS.join('|') + ' [argument]');
     process.exit(command ? 1 : 0);
   }
+  if (unattended() && ['release', 'withdraw', 'pricing'].includes(command)) throw new Error('`' + command + '` is refused in an unattended run; nothing was changed.');
   setup();
   if (command === 'status') await status();
   if (command === 'listing') await listing();
