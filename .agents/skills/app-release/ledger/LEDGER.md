@@ -1,8 +1,18 @@
 # App release skill ledger
 
-Skill version **2.20.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.21.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.21.0 (2026-11-07)
+
+- App Review rejected Plenty 1.0 twice over in one message. **2.3.4:** its preview showed the recording in a device frame
+  on a background band, which the skill's own example spec and media guide suggested. `references/media.md` now says
+  full screen only, with boxed captions placed per scene, and `app-preview.swift check` refuses a render whose border is
+  one flat colour in every frame. A caption's note now takes the caption's box and follows its lines. **5 (China):** the
+  listing named ChatGPT and OpenAI while China mainland was a storefront, and `pricing` turned every territory on, so a
+  rerun would have restored it. `pricing.excludeTerritories` now keeps storefronts off, and `submit` refuses, before any
+  write, a listing that names an unlicensed AI service while China mainland is on sale.
 
 ## Lessons incorporated into v2.20.0 (2026-11-07)
 

@@ -87,3 +87,31 @@ test('render zooms the screen about its focus', {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// App Review rejects a preview in a device frame (Guideline 2.3.4): `check` must flag a framed render and pass a
+// full-screen one.
+test('check flags a device frame and passes a full-screen capture', {
+  skip: !swiftc || swiftc.status !== 0 || !ffmpeg || ffmpeg.status !== 0 ? 'needs macOS with Swift and ffmpeg' : false, timeout: 300000,
+}, async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'app-preview-frame-'));
+  try {
+    const source = join(dir, 'source.mov');
+    const made = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=90x194:rate=30', '-t', '4', '-pix_fmt', 'yuv420p', source]);
+    assert.equal(made.status, 0, String(made.stderr));
+    const run = (name, extra) => {
+      const spec = { output: join(dir, name + '.mov'), size: [216, 468], fps: 30, background: '#F4EEE1', crossfade: 0,
+        clips: [{ file: source, from: 0, to: 3.5 }], ...extra };
+      writeFileSync(join(dir, name + '.json'), JSON.stringify(spec));
+      const rendered = spawnSync('xcrun', ['swift', script, 'render', join(dir, name + '.json')], { encoding: 'utf8' });
+      assert.equal(rendered.status, 0, rendered.stderr);
+      return spawnSync('xcrun', ['swift', script, 'check', spec.output], { encoding: 'utf8' }).stdout;
+    };
+    assert.match(run('framed', { screen: { x: 30, y: 60, width: 156, height: 336, radius: 16, bezel: 4 } }), /device frame/);
+    assert.doesNotMatch(run('full', {}), /device frame/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

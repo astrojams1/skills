@@ -388,3 +388,22 @@ test('device families are read from display types and placement groups alike', (
   assert.equal(asc.deviceFamily('TV_PROFILE'), 'TV');
   assert.equal(asc.deviceFamily('nonsense'), null);
 });
+
+test('availability excludes the store data\'s territories and turns the rest on', () => {
+  assert.deepEqual([...asc.excludedTerritories({ excludeTerritories: ['CHN'] })], ['CHN']);
+  assert.deepEqual([...asc.excludedTerritories(undefined)], []);
+  assert.throws(() => asc.excludedTerritories({ excludeTerritories: ['China'] }), /territory ids/);
+  const item = (id, territory, available) => ({ id, attributes: { available }, relationships: { territory: { data: { id: territory } } } });
+  const changes = asc.availabilityChanges([item('a', 'USA', true), item('b', 'CHN', true), item('c', 'FRA', false), item('d', 'RUS', false)], new Set(['CHN', 'RUS']));
+  assert.deepEqual(changes.enable.map(entry => entry.id), ['c']);
+  assert.deepEqual(changes.disable.map(entry => entry.id), ['b']);
+});
+
+test('a listing that names AI services is refused while China mainland is a storefront', () => {
+  const listing = { name: 'Plenty: AI Limit Widgets', description: 'Your Claude and Codex limits. ChatGPT and OpenAI are trademarks of OpenAI.' };
+  assert.match(asc.chinaAiProblem(listing, true), /ChatGPT, OpenAI, Codex, Claude.*excludeTerritories/);
+  assert.equal(asc.chinaAiProblem(listing, false), null);
+  assert.equal(asc.chinaAiProblem({ description: 'A calm breathing timer.' }, true), null);
+  // Whole words only: "Claudette" or "gptools" are not the services.
+  assert.equal(asc.chinaAiProblem({ description: 'Claudette loves gptools.' }, true), null);
+});
