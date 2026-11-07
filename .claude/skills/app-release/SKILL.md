@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.17.1"
+  version: "2.17.2"
 ---
 
 # App release
@@ -25,7 +25,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 | `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `assets` (Asset Library images and app preview videos; `assets crops` saves Apple's crops of creative for checking), `nominate --confirm` (featuring nominations), `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
 | `app-preview.swift` | macOS AVFoundation, no ffmpeg: `render` an App Store preview from simulator recordings, `check` a file against Apple's preview spec, `sheet` and `frame` to review the cut; the same spec, with per-clip `shift` and `fade`, renders a 1080x1920 YouTube Short (`swift $S/app-preview.swift …`) |
 | `standards.mjs` | `audit` this app against the shared [app standards](references/standards.md) (`--json`; `--all` sweeps every app, read-only) |
-| `native-qa.mjs` | Read-only `preflight` of the Apple-signed XCTest launcher before diagnosing native QA failures |
+| `native-qa.mjs` | Read-only launcher `preflight`; `xcodebuild --device-set PATH -- …` routes the original Apple launcher to an existing QA set |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
 
@@ -112,9 +112,12 @@ registered devices (`ios.archiveSigning: "export"`) and installed distribution i
 tracked-native and manual-signing paths in [iOS](references/ios.md), “Reviewed native projects and existing signing.”
 Automatic signing and Expo prebuild remain the defaults.
 
-For simulator/XCTest failures or purchase QA, read “Diagnose XCTest launcher identity” in
-[verification](references/verification.md) before handing checks to the owner. An altered launcher can fail Apple's service authorization even when
-its signature verifies. Preserve completed physical-device checks and use authorized native test routes.
+For simulator/XCTest failures or purchase QA, read “Route XCTest to the designated device set” and
+“Diagnose XCTest launcher identity” in [verification](references/verification.md) before handing checks
+to the owner. Reuse a small shared device pool by OS/device coverage and reserve a device while testing.
+The per-command Xcode preference selects the set without code injection or persistent configuration;
+an altered launcher can fail Apple's service authorization even when its signature verifies. Preserve
+completed physical-device checks and use authorized native test routes.
 
 ## Credentials
 

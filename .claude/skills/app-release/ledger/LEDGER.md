@@ -1,8 +1,18 @@
 # App release skill ledger
 
-Skill version **2.17.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.17.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.17.2 (2026-11-07)
+
+- `simctl --set` and Xcode runner routing are separate. The helper verifies Apple's original launcher
+  then passes one `-DVTSimulatorSetLocation=<path>` argument for that process only; split syntax is not
+  equivalent. Destination discovery plus a real passing UI test established recovery on observed Xcode.
+- Share a small pool by OS/device coverage, reserve the exact UUID and restore changed settings/boot
+  state. App-specific devices need a contention/isolation reason. Preserve existing data during adoption.
+- A built-in preference is distinct from code injection or an ad-hoc-signed launcher. Retain the
+  signature/identity/entitlement guard and reject ambiguous duplicate forwarded routing options.
 
 ## Lessons incorporated into v2.17.1 (2026-11-05)
 
@@ -187,6 +197,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 | [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
 | [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
 | [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
+| [2026-10-26 SSD XCTest routing](runs/2026-10-26-ssd-xctest-routing.md) | [Canonical skill issue log](runs/2026-10-26-ssd-xctest-routing.json); live app evidence remains in Nametag | Original Apple runner reaches the existing SSD set with one process-local equals-form preference; real UI smoke passes on iOS 18.4 and latest 27.1, 1 test/0 failures each; 25 independent CLI cases and shared pool guidance added | Unknown / no new paid service |
 | [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |
 | [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
 | [2026-10-25 issue logging and closure](runs/2026-10-25-issue-closure.md) | [Canonical skill issue log](runs/2026-10-25-issue-closure.json) | Both encountered issues fixed and verified; read-only completion check passes;166 release tests pass | Unknown / no new paid service |
