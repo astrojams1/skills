@@ -13,6 +13,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.1.0 | 2026-11-06 | Every released app on both teams runs a full campaign unasked; runs write any missing profile. Closed channels stay closed | The owner said every released app runs full campaigns, Shorts included, and they do not approve each |
 | 1.2.0 | 2026-11-06 | Replies on the owner's own YouTube channel and channel settings are open | The owner removed these last approvals |
 | 1.3.0 | 2026-11-06 | The Mac pass answers up to five YouTube comments a run | The owner wants comment replies running unattended |
+| 1.4.0 | 2026-11-07 | Store listing text and data are this skill's call and merge without asking; a repository rule holding them is changed in the same PR | The Mac pass held Space Worms keywords in a draft for the owner, who said these are decisions to make without them |
 
 ## Lessons
 
