@@ -81,9 +81,9 @@ A failed UI route cannot block CLI builds or listing preparation that still work
   answers are separate observations; the public API key does not authenticate the Fastlane action.
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
-- **Submission and release:** honor existing explicit authorization for `submit --confirm`. For `MANUAL`
-  release, complete the owner's physical-device check and obtain authorization for `release --confirm`
-  if public release is outside the scope already granted.
+- **Submission and release:** honor existing explicit authorization for `submit --confirm`. Use existing
+  public launch authorization for `release --confirm` once the exact build and release conditions are
+  verified. A testing or review scope ends at its stated stage.
 
 ## Release loop
 
@@ -117,10 +117,11 @@ team's distribution certificate and an App Store profile, which need no devices.
 
 **A brand-new app's TestFlight group.** A new record has no beta groups. When the app has no internal group at all,
 `testers` creates `ios.testflightGroup` through the API, reads it back and adds the build; an app that already has
-internal groups but none with that name still stops, so a mistyped name never adds a group. The new group starts
-empty: add each internal tester (an App Store Connect user of that team) with `POST /v1/betaTesters` carrying the
-user's username as `email`, their names and a `betaGroups` relationship, then read the group's `betaTesters` back
-(state `INVITED` until they accept).
+internal groups but none with that name still stops, so a mistyped name never adds a group. A build in an empty group
+shows in nobody's TestFlight, so `testers` adds the team's account holder to an empty group, invites any tester still
+`NOT_INVITED`, reads the group back and reports the tester count. It fails rather than report a build nobody can
+receive. Add other internal testers (App Store Connect users of that team) with `POST /v1/betaTesters` carrying the
+user's username as `email`, their names and a `betaGroups` relationship (state `INVITED` until they accept).
 
 **Archive before the app record exists.** `archive --build-number N` reads nothing from App Store Connect, so it
 runs without `ios.ascAppId`; prepare and verify the `.ipa` while the record is being created. `validate` and
@@ -187,10 +188,15 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    the one submission in review with this version, waits for the cancel to settle and reads the version
    back, usually `DEVELOPER_REJECTED`), `attach-build <N>`, and `submit --confirm`, which opens a new
    submission. Recheck the listing and screenshots against the new build first.
-8. **Release.** With `releaseType: MANUAL` an approved version waits as `PENDING_DEVELOPER_RELEASE`; after the
-   owner's physical-device check of the TestFlight build, `asc.mjs release --confirm`. With
-   `AFTER_APPROVAL` it goes live on approval, so the device check must happen before submitting. Never
-   release on simulator evidence alone.
+8. **Release.** Use `releaseType: MANUAL` when the physical-device check or another release condition
+   may follow submission. On an authorized launch, including a status check for that launch, read back
+   the approved version's `PENDING_DEVELOPER_RELEASE` state and the attached build ID and number. Match
+   that build to the recorded physical-device check and verify any app-specific conditions. Run
+   `asc.mjs release --confirm` when eligible. Respect explicit holds, schedules and read-only requests.
+   Keep the `status` command read-only. Record release request acceptance, provider distribution
+   state and actual public App Store availability separately. With `AFTER_APPROVAL`, complete the
+   physical-device check and other release conditions before submission because Apple can publish
+   on approval.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
 ## First-subscription review
@@ -313,8 +319,14 @@ only when the intended review scope changes after provider readback, never to by
    `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read the submission's Messages in
    App Store Connect where the owner is signed in (App Review, then the submission;
    `https://appstoreconnect.apple.com/apps/<ascAppId>/distribution/reviewsubmissions`), Apple's email to the
-   owner's account through the Gmail connector (search App Store Connect / App Review), or ask the owner to
-   paste it.
+   owner's account through the Gmail connector (search App Store Connect / App Review). Notification emails
+   may contain only a link. If the Browser connector exposes no usable tabs, inspect available supported
+   Computer Use capabilities and the already-signed-in Chrome session before asking the owner to paste
+   anything or sign in again. Read that tool's installed instructions and use its documented UI API;
+   do not substitute AppleScript, private browser endpoints, or weakened browser security. An empty
+   connector inventory does not establish that Chrome is unavailable. Verify the selected developer
+   team and app before reading or acting; multiple teams can share the same login. A queued request
+   to open a page is not a successful page read.
 3. **Provide the answers and attachments.** Put the answers in the store data's `review.notes` and run
    `review-details`. For a local file, `asc.mjs review-attachment <path>` reserves, uploads and commits an
    App Review Information attachment, waits for `COMPLETE`, and only then removes earlier copies with the
@@ -328,6 +340,19 @@ only when the intended review scope changes after provider readback, never to by
    Keep a receipt in the repository (submission id, build, what changed) and record `apple.review`.
 5. **Prevent a repeat.** With the root cause established, follow [ledger](ledger.md), “Rejection recovery and
    prevention”: where `asc.mjs` can detect the cause, the prevention is a check that refuses before any write.
+
+For a **2.1 question about per-use charges**, explain the actual paid unit and the business rationale,
+not just the SKU and price. Verify the free allowance, the user action that triggers purchase,
+what remains free, duplicate/overlap behavior, canceled/failed attempts and recovery against the
+submitted build. Include the answer in Notes and post the requested correspondence reply. Keep
+existing answers to prior review questions when fitting Notes within Apple's length limit.
+Do not invent server costs for an on-device utility or imply that Apple charges for the operation.
+Where Apple frameworks are involved, state exactly which app functionality is paid and which system
+access remains free; check current guidelines on monetizing built-in capabilities rather than
+assuming this explanation establishes compliance. Preserve the owner's chosen model unless an
+actual requirement or authorized correction changes it. An information request alone does not
+require a replacement binary: use the existing verified build when only the review package changes,
+then verify resubmission separately from the posted reply.
 
 **Kids Category apps** (an `ageRating.kidsAgeBand`) receive an automated 2.1 information request on their
 first submission asking how they meet Guideline 1.3: third-party analytics, third-party advertising, data
@@ -356,6 +381,8 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 
 ## Gotchas
 
+- **A new app group must be registered by hand first.** The public API has no App Group resource (`GET /v1/appGroups` is 404), and Xcode's API-key signing cannot create one. Until the group exists and is assigned to every bundle ID, `archive` fails with a misleading "Authentication failed: Make sure a bearer token was provided" plus "No profiles for …", while the same key still reads and creates profiles through the API. In the Developer portal: check the selected team first (the owner has two, and an identifier on the wrong team is stranded), register the group under Identifiers → App Groups, and type the identifier **without** its `group.` prefix, which the field adds itself (typing it registers `group.group.…`). Then open each bundle ID, App Groups → Configure, select the group, Save, Confirm. `archiveSigning: "export"` is no workaround: an unsigned archive loses the entitlements, and the archive check refuses it with "app group … is missing" (Plenty, 2026-11-05).
+- **Keep the repository untouched while `archive` runs.** Writing or adding files during an archive makes the finished build dirty, and `upload` then refuses it. Put captures and other generated files outside the repository until it finishes.
 - **App Store Connect rejects pictographic symbols in copy.** A description containing a check mark (U+2713)
   failed with `ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_CHARACTERS` after the App Info had already saved; `listing`
   now refuses dingbats and emoji before writing anything. Spell symbols out ("check-mark button").

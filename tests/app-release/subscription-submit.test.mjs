@@ -1,18 +1,21 @@
 // Exercise the real submit orchestration against an in-memory Apple API. No live credentials or provider writes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setup, submit } from '../../skills/app-release/scripts/asc.mjs';
+import { standards } from './standards-fixture.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'subscription-submit-'));
 const keyFile = join(root, 'test.p8');
 writeFileSync(keyFile, generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
+const WAIVED = Object.fromEntries(['preview', 'header', 'search', 'nomination'].map(id => [id, 'Not part of what this test covers']));
 const savedEnv = { ...process.env }; const savedFetch = globalThis.fetch;
 process.env.ASC_KEY_ID = 'synthetic-key'; process.env.ASC_ISSUER_ID = 'synthetic-issuer'; process.env.ASC_PRIVATE_KEY_PATH = keyFile;
-writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', ledger: { gates: 'ledger.json', view: 'ledger.md' }, storeData: 'store.json',
+writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', ledger: { gates: 'ledger.json', view: 'ledger.md' }, storeData: 'store.json', standards,
   ios: { ascAppId: 'app', bundleId: 'com.example.app', teamId: 'synthetic-team', scheme: 'Example', buildNumberEnv: 'BUILD' } }));
 test.after(() => { globalThis.fetch = savedFetch; process.env = savedEnv; rmSync(root, { recursive: true, force: true }); });
 const config = { appStoreId: 'product', groupId: 'group', productId: 'com.example.yearly', subscriptionVersionId: 'sv1', subscriptionGroupVersionId: 'gv1' };
@@ -25,7 +28,7 @@ const group = resource('subscriptionGroupVersion', 'subscriptionGroupVersions', 
 const item = target => ({ id: target.id + '-item', attributes: { state: 'READY_FOR_REVIEW' }, relationships: { [target.relation]: { data: { type: target.type, id: target.id } } } });
 
 function fixture(options = {}) {
-  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US' }, ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}), ...(Object.hasOwn(options, 'kidsNotes') ? { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } } : {}) }));
+  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US' }, ...(options.noWaivers ? {} : { promotion: { waived: WAIVED } }), ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}), ...(Object.hasOwn(options, 'kidsNotes') ? { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } } : {}) }));
   setup(root);
   const state = { items: structuredClone(options.items || [item(app)]), writes: [], reads: [], submitted: false, activeId: 'draft' };
   globalThis.fetch = async (url, request) => {
@@ -62,6 +65,8 @@ function fixture(options = {}) {
     let data;
     if (path === '/v1/apps/app') data = { id: 'app', attributes: { bundleId: options.wrongBundle ? 'com.foreign.app' : 'com.example.app' } };
     else if (path === '/v1/apps/app/appInfos') data = [];
+    else if (path === '/v1/appStoreVersions/v1/appStoreVersionLocalizations') data = [{ id: 'loc', attributes: { locale: 'en-US' } }];
+    else if (path === '/v1/appStoreVersionLocalizations/loc/placements') data = [];
     else if (path === '/v1/apps/app/appStoreVersions') data = [{ id: 'v1', attributes: { versionString: '1.0' } }];
     else if (path === '/v1/apps/app/inAppPurchasesV2') data = options.wrongIapApp || (options.iapOwnershipChanges && state.reads.filter(x => x === path).length > 1) ? [] : [{ id: 'iap', attributes: { productId: options.wrongIapProduct ? 'com.other.import' : 'com.example.import' } }];
     else if (path === '/v2/inAppPurchases/iap/versions') data = [{ id: options.wrongIapVersion ? 'foreign' : 'iv1' }];
@@ -249,6 +254,22 @@ test('IAP ownership follows paginated app collections instead of refusing a prod
   assert.equal(state.submitted, true);
 });
 
+test('an app missing a shared standard is refused before any write, naming what is missing', async () => {
+  const state = fixture({ noSubscription: true });
+  const { config } = setup(root);
+  const saved = config.standards;
+  delete config.standards;
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  try {
+    await assert.rejects(submit('--confirm'), /Example is missing required app standards: feedback \([\s\S]*feedback\.email[\s\S]*privacy-link[\s\S]*support-link[\s\S]*nothing was submitted/);
+    assert.equal(state.writes.length, 0);
+    assert.equal(state.reads.includes('/v1/apps/app/reviewSubmissions'), false, 'refused before any submission is opened');
+  } finally {
+    config.standards = saved;
+    rmSync(join(root, '.git'), { recursive: true, force: true });
+  }
+});
+
 test('a Kids Category app whose saved notes skip the Guideline 1.3 questions is refused before any write', async () => {
   for (const kidsNotes of [null, 'The app collects no data and shows no ads.']) {
     const state = fixture({ noSubscription: true, kidsNotes });
@@ -270,4 +291,11 @@ test('apps outside the Kids Category never read the review notes at submit', asy
   const state = fixture({ noSubscription: true });
   await submit('--confirm');
   assert.equal(state.reads.includes('/v1/appStoreVersions/v1/appStoreReviewDetail'), false);
+});
+
+test('submit refuses before any write while the promotion list is unfinished', async () => {
+  const state = fixture({ noWaivers: true });
+  await assert.rejects(submit('--confirm'), /app preview video \(none placed for IPHONE\).*Nothing was submitted/);
+  assert.equal(state.writes.length, 0);
+  assert.equal(state.submitted, false);
 });

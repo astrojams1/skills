@@ -109,20 +109,29 @@ current image requirements in a validator rather than relying on memory.
 ## Product page header, search results and iPhone Duo
 
 App Store Connect's "New Ways to Market Apps" (2026) adds creative assets beyond screenshots.
-Check current requirements and the app's marketing plan before adding them; availability of a slot does
-not make it a submission requirement. Recheck existing placements against every updated build.
+Apple does not require them, but this release process does: each is on the "Every release" list in
+[promotion](promotion.md), so it needs a result or a recorded reason before `submit --confirm`. Recheck existing
+placements against every updated build.
 
 | Asset | Image | Video | Limit |
 |---|---|---|---|
 | Product page header | 3840x1646 PNG (21:9) | 3840x1646 MP4, 10-30 s, 30 or 60 fps | 1 |
 | Search-results creative | 3:2 JPEG or PNG, 1920x1280 to 3840x2560 | 3:2 MP4, 5-30 s | 1 |
-| Universal (either of the above) | 5244x2950 PNG (16:9) | - | - |
+| Universal (either of the above, shown cropped: see below) | 5244x2950 PNG (16:9) | - | - |
 | iPhone Duo screenshots | 1398x2034 (outer) or 2007x2853 (inner), JPEG or PNG | - | 10 for the Duo profile, both displays together |
 
 Read the live limits from `GET /v1/appAssetLibraryRefData` (image and video specs, profile groups, per-placement
 counts) before making assets; the numbers above are 2026-10-20 readings. Without a search-results creative, the
 store falls back to In-App Events, previews and screenshots. Apple's guidance: one clear idea, designed for a
 first-time visitor, key art inside the template safe area, a short phrase at most, no text that restates the UI.
+
+**A universal image is never shown whole.** Apple serves it through a crop that keeps one band of the canvas at
+every aspect ratio: y 415-1865 of 2950, centred across (measured 2026-11-05 from Füd's live header; App Store
+Connect's Preview agrees). That leaves about 3380x1450 px at 21:9 and only **2175x1450 px on a 3:2 search card**, so a
+centred crop of the full canvas is the wrong calculation. Art laid out for the header loses its edges in search: Füd's
+headline lost its first and last letters on iPhone, iPad and iPhone Duo. Make search its own 3:2 file, which Apple
+serves whole (plain `sr` crop), unless all key art fits that band. "Use header asset in search results" on the version
+page shares the header with search, crop included.
 
 As checked on 2026-10-24, Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
 make Duo screenshots required starting April 2027 for apps using the iOS27.1 SDK or later. Before that
@@ -146,6 +155,16 @@ provider requirements instead of turning future or optional creative into an own
   don't generate, redraw or simulate an Apple device. Generic device illustrations
   must omit Apple-specific details. Keep app screen content accurate, avoid a
   standalone Apple logo, fabricated Apple recognition or implied Apple endorsement.
+- **Look at Apple's crops before review.** After `assets upload`, `asc.mjs assets crops DIR` saves Apple's own render
+  of each creative for each slot it can fill. Look at every image, then set `cropChecked` on its store data entry to
+  the file's 12-character hash (after the `@` in its reference name). `assets submit` and `assets place` refuse a
+  creative without it, and a changed file needs a fresh look. App Store Connect's Preview (version page, "Header and
+  Search Results", Preview; the App Store menu switches to Search Results Page and the device button to iPad and iPhone
+  Duo) only shows what a slot holds, and Browse Assets lists only approved images, so on an approved version it can
+  run only after `place`: run it then on all three devices, both pages, and record what it showed. Try every browser
+  before calling it blocked: the owner's Chrome holds an App Store Connect sign-in the built-in browser lacks (it
+  stays on the team it is signed in to, so another team's app errors there). An unchecked crop is unfinished work,
+  never a caveat to report.
 - **List them** in the store data's `assetLibrary`, then `asc.mjs assets upload` under the established upload authorization
   and `asc.mjs assets place` on the version's localization. `asc.mjs assets` lists every library image, its state
   and placements. Each upload is named `<file>@<sha256 prefix>`, so reruns keep Apple's copy and a changed file
@@ -169,7 +188,7 @@ provider requirements instead of turning future or optional creative into an own
   requires an approved version. `PENDING_DEVELOPER_RELEASE` qualifies; initial
   `WAITING_FOR_REVIEW`, `IN_REVIEW` and partly accepted submissions do not. With
   no approved version, assets must accompany the first app version. Preserve an
-  active first-version submission; do not withdraw it merely to add optional art.
+  active first-version submission; withdrawing it to add art is the owner's decision.
   The helper also refuses a partial batch while any selected new image is missing,
   processing, failed, rejected or unknown. Already approved/in-review images are
   retained without resubmitting them. Read each asset's state before retrying.
@@ -212,6 +231,18 @@ frame. A caption band above a framed recording, like the screenshot artboards, k
 **Make it** from a Release-configuration simulator build of the exact version going to review, against seeded
 synthetic data:
 
+If the Simulator GUI is absent or its UI controller is unavailable, use the original Xcode XCTest launcher
+and public XCUIAutomation APIs to record the same Release app. For a document app,
+`XCUIApplication.open(URL)` can exercise its real document-open handler without a Debug launch hook.
+Stage only invented documents, resolve the target's current container **after** XCTest installs/launches it
+(reinstallation can change the UUID), and preserve source/OS/configuration and the selected document's hash.
+Keep fixture-staging communication in the test runner; do not add a server, parsed-result injection or
+verification shortcut to the distributed app. A Debug-only setup may reset isolated synthetic allowance/history
+before installing the Release capture build; record that setup, retain existing Health records, and still
+exercise actual purchases, saves and readback. Persistent local StoreKit transaction IDs may otherwise collide
+with earlier tests. Wait for asynchronous system consent and choose enabled, hittable controls when a sheet
+exposes duplicate labels. A stalled/failed capture is rehearsal evidence, not a completed app preview.
+
 1. Rehearse the whole tour first, so one-time prompts (consent, permissions) and slow first loads are out of the
    way, and pick inputs whose results read well on screen. Reset the data, then record one continuous take with
    `xcrun simctl io <device> recordVideo --codec=h264` (status bar overridden to 9:41, full battery not charging).
@@ -237,14 +268,25 @@ Before any update of any app goes to review, on both stores:
 2. Open each screenshot, the preview and Play's graphics beside the build being submitted. Recapture any that
    show a screen, control, text or feature the build no longer has, or miss one a player would expect to see.
 3. Recheck existing app previews, product page headers, search-results creative and Duo images. A preview that
-   shows a changed screen is re-recorded, not trimmed around. Supply missing assets when currently required or
-   included in the app's agreed plan; optional slots alone are not release blockers.
+   shows a changed screen is re-recorded, not trimmed around. Supply missing assets: `submit --confirm` refuses while any "Every release" item in [promotion](promotion.md) has neither a result
+   nor a recorded reason.
 4. Reread the name, subtitle, promotional text, description, keywords and Play's short and full descriptions
    against the build; correct anything it no longer does and add what it newly does.
 5. Write the release notes (`listing.whatsNew`) for the app's audience: new features and what feels faster or
    smoother, never how. Follow the app's wording-approval requirements; otherwise use existing authorization
    for routine listing edits. Keep the saved wording reviewable and never invent an exact-text approval.
 6. Record the recheck, what changed and the actual authorization basis before `submit --confirm` or a Play release.
+
+For the shared marketing plan, record each preview/creative's actual state: missing, prepared, uploaded,
+processed, placed, in review, approved or live. A focused bug fix or information-response run does not by itself
+waive the preview and promotion checklist. An owner-declined item or demonstrated capture dependency goes in the
+store data's `promotion.waived.<id>` with its reason; do not dismiss the package as "optional" or "outside scope",
+in the store data or in a report. Report each item's state by name.
+
+If a version is already waiting for review without its preview, prepare and upload the preview, then try `assets place`.
+A preview cannot be placed once the version is approved, so the way to ship it with this version closes at approval:
+tell the owner the choice now (withdraw, place and resubmit, or ship without it and place it on the next version).
+Withdrawing gives up the place in the queue, so it is the owner's decision, never a default.
 
 ## Uploading
 

@@ -15,6 +15,7 @@ import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
 import { freshBuildTmp } from './lib/build-tmp.mjs';
 import { requireSection } from './lib/config.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
@@ -369,6 +370,10 @@ async function archive(flags) {
   }
   const before = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (before.status && !flags.allowDirty) throw new Error('The checkout has uncommitted changes; archive from a clean commit or pass --allow-dirty for a test build.');
+  // A build that lacks a shared standard could never be submitted, so it stops here; a local test build only warns.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal && !flags.allowDirty) throw new Error(refusal + ' Nothing was archived.');
+  if (refusal) console.warn('Warning: ' + refusal);
   let build = flags.build;
   if (build === null) {
     const numbers = await readBuildNumbers();
@@ -463,6 +468,29 @@ export async function waitForUpload(build, io) {
   throw new Error('Build ' + build + ' is still processing after 30 minutes; check `asc.mjs status` before testers or attach-build.');
 }
 
+// ensureTesters makes the group reach someone. A new group is empty and a build in an empty group shows in nobody's
+// TestFlight, so the team's account holder (who does the device check) is added, and anyone uninvited is invited.
+async function ensureTesters(group, config, read, all, log) {
+  const list = () => all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200');
+  let people = await list();
+  if (!people.length) {
+    const holder = (await all('/v1/users?limit=200')).find(user => (user.attributes.roles || []).includes('ACCOUNT_HOLDER'));
+    if (!holder) throw new Error(config.testflightGroup + ' has no testers and the team has no readable account holder; add a tester, or the build reaches nobody.');
+    const { username, firstName, lastName } = holder.attributes;
+    await read('/v1/betaTesters', 'POST', { data: { type: 'betaTesters', attributes: { email: username, firstName, lastName },
+      relationships: { betaGroups: { data: [{ type: 'betaGroups', id: group.id }] } } } });
+    people = await list();
+    if (!people.length) throw new Error('Adding the account holder to ' + config.testflightGroup + ' did not read back; the build reaches nobody.');
+    log(config.testflightGroup + ' had no testers, so the account holder was added.');
+  }
+  for (const person of people.filter(item => item.attributes.state === 'NOT_INVITED')) {
+    await read('/v1/betaTesterInvitations', 'POST', { data: { type: 'betaTesterInvitations', relationships: {
+      app: { data: { type: 'apps', id: config.ascAppId } }, betaTester: { data: { type: 'betaTesters', id: person.id } } } } });
+    log('Invited tester ' + person.id + '.');
+  }
+  return people.length;
+}
+
 // VALID and automatic group access do not establish testability: export compliance can still block a build.
 // Verify exact group membership and the build's internal beta state on both group paths.
 export async function testers(build, io) {
@@ -521,8 +549,9 @@ export async function testers(build, io) {
     }
     buildPresent = (await all('/v1/betaGroups/' + group.id + '/builds?limit=200')).some(item => item.id === found.id);
     if (testable && buildPresent) {
-      log('Build ' + build + ' (' + found.id + ') is in ' + config.testflightGroup + '; internal state ' + internalBuildState + '.');
-      return { build: String(build), buildId: found.id, groupId: group.id, internalBuildState, buildPresent };
+      const testerCount = await ensureTesters(group, config, read, all, log);
+      log('Build ' + build + ' (' + found.id + ') is in ' + config.testflightGroup + '; internal state ' + internalBuildState + '; ' + testerCount + ' tester(s).');
+      return { build: String(build), buildId: found.id, groupId: group.id, internalBuildState, buildPresent, testers: testerCount };
     }
     log('Waiting for build ' + build + ' internal TestFlight readiness: ' + internalBuildState + ', group membership ' + buildPresent + '.');
     await pause();

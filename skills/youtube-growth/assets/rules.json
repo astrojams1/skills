@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "reviewed": "2026-11-04",
+  "minAgeDays": 3,
+  "comparison": {
+    "minSample": 8,
+    "why": "YouTube publishes no benchmark for viewed-vs-swiped or retention; compare a Short with the channel's own Shorts once there are enough of them.",
+    "source": "https://support.google.com/youtube/answer/12942217 (read 2026-11-04)"
+  },
+  "hook": {
+    "metric": "viewedRate",
+    "weakQuantile": 0.25,
+    "strongQuantile": 0.75,
+    "fallbackWeak": 60,
+    "fallbackStrong": 80,
+    "fallbackSource": "Vendor rules of thumb (70–90% viewed), no published method: low confidence, used only below minSample. https://www.creatorlanehq.com/blog/youtube-shorts-viewed-vs-swiped-away (2026-10-05)"
+  },
+  "retention": {
+    "metric": "averageViewPercentage",
+    "weakQuantile": 0.25,
+    "fallbackWeak": 70,
+    "loops": 100,
+    "why": "Above 100% means people rewatch; widely reported by creators, not confirmed by YouTube."
+  },
+  "reach": {
+    "metric": "engagedViews, else views",
+    "outperform": 2.0,
+    "underperform": 0.5,
+    "why": "Each Short is first shown to a small seed audience and spreads only on its response, so reach against the channel median says whether it left the seed.",
+    "source": "Todd Sherman (YouTube Shorts) on Creator Insider, reported by onlinemarketing.de 2026-08-31"
+  },
+  "subscribersPer1k": { "strong": 5 },
+  "format": {
+    "readAgeDays": 7,
+    "minEpisodes": 5,
+    "retireAfter": 8,
+    "doubleDown": 1.5,
+    "why": "No published decision rules exist; judging a format on 5–8 Shorts against the channel's own median avoids killing it on one unlucky post.",
+    "source": "Research summary 2026-11-04 (proposal, not sourced practice)"
+  },
+  "idleAppDays": 21
+}

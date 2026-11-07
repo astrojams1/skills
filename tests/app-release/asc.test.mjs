@@ -205,6 +205,24 @@ test('Asset Library entries name their placement and profile, and unknown ones s
   assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'OTHER', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /category/);
 });
 
+test('a universal creative shows Apple\'s crop for both slots; a dedicated file is served whole for its own slot', () => {
+  const image = (width, height) => ({ attributes: { imageAsset: { templateUrl: 'https://cdn.example/abc/{w}x{h}bb.{f}', width, height } } });
+  assert.deepEqual(asc.creativeCrops(image(5244, 2950), ['PRODUCT_PAGE_HEADER_ASSET']), [
+    { name: 'header-21x9', url: 'https://cdn.example/abc/1260x540UAS.ApGCL01.jpg' },
+    { name: 'search-3x2', url: 'https://cdn.example/abc/1200x800UAS.ApGCL01.jpg' },
+  ]);
+  assert.deepEqual(asc.creativeCrops(image(3840, 2560), ['APP_STORE_SEARCH_RESULTS_ASSET']), [{ name: 'search-3x2', url: 'https://cdn.example/abc/1200x800sr.jpg' }]);
+  assert.deepEqual(asc.creativeCrops({ attributes: {} }, ['PRODUCT_PAGE_HEADER_ASSET']), []);
+});
+
+test('a creative needs a crop check of its exact bytes; screenshots and previews do not', () => {
+  const creative = { file: 'h.png', category: 'CREATIVE_ASSETS', cropChecked: '94511dad2157' };
+  assert.equal(asc.cropCheckProblem(creative, 'h.png@94511dad2157'), null);
+  assert.match(asc.cropCheckProblem(creative, 'h.png@543e843e84b1'), /set cropChecked to "543e843e84b1"/);
+  assert.match(asc.cropCheckProblem({ ...creative, cropChecked: undefined }, 'h.png@94511dad2157'), /assets crops/);
+  assert.equal(asc.cropCheckProblem({ file: 'p.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS' }, 'p.mov@abc'), null);
+});
+
 test('Asset Library uploads keep finished copies, replace unfinished ones and treat a changed file as new', () => {
   const ref = asc.assetReference('header.png', Buffer.from('a'));
   assert.match(ref, /^header\.png@[0-9a-f]{12}$/);
@@ -330,4 +348,43 @@ test('status reports a build\'s TestFlight state and which groups hold it', asyn
     { name: 'Team', internal: true, hasBuild: true },
     { name: 'Friends', internal: false, hasBuild: false },
   ]);
+});
+
+test('the promotion list needs a result or a recorded reason for every item', () => {
+  const placed = (placementType, placementGroup) => ({ attributes: { placementType, placementGroup } });
+  const store = { screenshots: [{ displayType: 'APP_IPHONE_67' }, { displayType: 'APP_IPAD_PRO_3GEN_129' }] };
+  const states = (data, placements) => Object.fromEntries(asc.promotionReport(data, placements).map(item => [item.id, item.state]));
+
+  // Nothing done: every item is missing, and the refusal names them and what to do.
+  const empty = asc.promotionReport(store, []);
+  assert.deepEqual(empty.map(item => item.state), ['missing', 'missing', 'missing', 'missing']);
+  assert.match(asc.promotionRefusal(empty), /app preview video \(none placed for IPHONE, IPAD\)/);
+  assert.match(asc.promotionRefusal(empty), /promotion\.waived/);
+
+  // A preview counts per device family the screenshots cover.
+  const iphone = placed('APP_PREVIEW', 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE');
+  assert.equal(states(store, [iphone]).preview, 'missing');
+  assert.equal(states(store, [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE')]).preview, 'done');
+  assert.equal(states({}, [iphone]).preview, 'done');
+
+  // A word like "optional" is not a reason; a real one is reported, not hidden.
+  assert.equal(states({ ...store, promotion: { waived: { preview: 'optional' } } }, []).preview, 'missing');
+  const waived = asc.promotionReport({ ...store, promotion: { waived: { preview: 'Owner declined a preview on 2026-11-05' } } }, []);
+  assert.equal(waived[0].state, 'waived');
+  assert.equal(waived[0].reason, 'Owner declined a preview on 2026-11-05');
+
+  // Everything done passes.
+  const full = [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE'), placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE'), placed('APP_STORE_SEARCH_RESULTS_ASSET', 'DEFAULT_PROFILE')];
+  assert.equal(asc.promotionRefusal(asc.promotionReport({ ...store, nominations: [{ name: 'Launch' }] }, full)), null);
+});
+
+test('device families are read from display types and placement groups alike', () => {
+  assert.equal(asc.deviceFamily('APP_IPHONE_67'), 'IPHONE');
+  assert.equal(asc.deviceFamily('IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE'), 'IPHONE');
+  assert.equal(asc.deviceFamily('APP_IPAD_PRO_3GEN_129'), 'IPAD');
+  assert.equal(asc.deviceFamily('APP_DESKTOP'), 'MAC');
+  assert.equal(asc.deviceFamily('MAC_PROFILE'), 'MAC');
+  assert.equal(asc.deviceFamily('APP_APPLE_TV'), 'TV');
+  assert.equal(asc.deviceFamily('TV_PROFILE'), 'TV');
+  assert.equal(asc.deviceFamily('nonsense'), null);
 });

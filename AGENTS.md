@@ -24,12 +24,17 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Process health check reports and fix issues
   app-release/
     SKILL.md                               # App Store + Google Play release process for every app
-    references/{config,accounts,ios,android,privacy,media,verification,app-types,ledger,maintaining}.md
-    scripts/{ledger,ios-release,asc,android-release,play}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
-    assets/                                # Config, store data and repository-skill templates
+    references/{config,accounts,ios,android,privacy,media,verification,app-types,standards,ledger,maintaining}.md
+    scripts/{ledger,ios-release,asc,android-release,play,standards}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
+    assets/                                # Config, store data and repository-skill templates; the app standards catalog and Send Feedback references
     ledger/LEDGER.md, ledger/runs/         # Cross-app run index and lessons
   ouro-website/
     SKILL.md                               # Keep the Ouro apps website true to App Store Connect and the App Store
+    references/{content,assets}.md         # Catalog fields and copy rules; icon and screenshot sourcing
+    scripts/audit.mjs                      # App Store Connect team audit against the site's catalog (Node 22, no deps)
+    ledger/LEDGER.md                       # Versions and lessons
+  astrojams-website/
+    SKILL.md                               # Keep the astrojams apps website (personal team) true to the App Store
     references/{content,assets}.md         # Catalog fields and copy rules; icon and screenshot sourcing
     scripts/audit.mjs                      # App Store Connect team audit against the site's catalog (Node 22, no deps)
     ledger/LEDGER.md                       # Versions and lessons
@@ -54,6 +59,22 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  call-triage/
+    SKILL.md                               # Turn a recorded call about any product into finished follow-through; audio and transcripts stay on the SSD
+    references/{intake,routing,deliverables}.md   # Getting and transcribing a recording; where each item goes; the page and the email draft
+    scripts/call_triage.py, scripts/transcribe.swift   # Item register and privacy guard (Python, no deps); on-device transcription (SpeechAnalyzer)
+    ledger/LEDGER.md                       # Versions and lessons
+  app-shorts/
+    SKILL.md                               # Make, post and schedule YouTube Shorts series for every app the owner ships
+    references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
+    scripts/shorts.mjs                     # Registry: roster from app-release configs, calendar, due reads, attributed App Store links (Node 22, no deps)
+    ledger/LEDGER.md                       # Versions and lessons
+  youtube-growth/
+    SKILL.md                               # Read each Short's metrics on schedule and turn them into decisions that grow the channel
+    references/{api,metrics,policy}.md     # API setup and limits; what each metric means and the evidence; YouTube policy risks for a templated pipeline
+    scripts/{yt-api,evaluate}.mjs          # OAuth, analytics and comments; decisions from snapshots (Node 22, no deps)
+    assets/rules.json                      # Decision thresholds, each with its source
+    ledger/LEDGER.md                       # Versions, experiments and lessons
   youtube-shorts/
     SKILL.md                               # Frame, check and post Shorts inside YouTube's measured safe zone
     references/{safe-zone,posting}.md      # The measurement and layout rules; the upload package
@@ -62,7 +83,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/ and tests/youtube-shorts/ cover those skills' scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/, tests/youtube-growth/ and tests/call-triage/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -228,7 +249,7 @@ Newsworthy and Space Worms use it. A change requested from an app repository is 
 
 **Skill:** `skills/ouro-website/SKILL.md`
 
-Maintains https://ouro-apps.vercel.app (repository `astrojams1/ouro-apps`), the marketing site and App Store
+Maintains https://ouro-apps.vercel.app (`sites/ouro` in repository `astrojams1/app-sites`), the marketing site and App Store
 Marketing URL for every Ouro LLC app. `scripts/audit.mjs` compares every record on Ouro's App Store Connect team with
 the site's catalog and lists what to add, exclude, rename or refresh; the skill covers copy, images, verification at
 desktop and phone widths, and deployment. The site's own workflow flips "Coming soon" to the App Store badge after a
@@ -239,6 +260,22 @@ release; app-release runs this skill at each milestone of an Ouro app.
 Invoke with `/ouro-website`, or ask whether the Ouro site is up to date, or to add or change an app on it. Run the
 audit with `node skills/ouro-website/scripts/audit.mjs` (Node 22). After changing the script, run
 `node --test tests/ouro-website/*.test.mjs`.
+
+### astrojams Website — Keep the Personal App Showcase Current
+
+**Skill:** `skills/astrojams-website/SKILL.md`
+
+Maintains https://astrojams-apps.vercel.app (`sites/astrojams` in repository `astrojams1/app-sites`), the marketing site for every app
+on the owner's personal James Thompson team (`CWQ9AWJF8T`): Newsworthy, Space Worms, Importron, Data Center and
+Rhythm. Both sites are built from one shared showcase in that repository, so a design or tooling change reaches both. It mirrors the Ouro website skill: `scripts/audit.mjs` compares the team with the site's catalog, the site's
+workflow flips "Coming soon" to the App Store badge after a release, and app-release runs this skill at each milestone
+of a personal-team app. Apps without a website of their own use their page there as the App Store Marketing URL.
+
+#### How to use
+
+Invoke with `/astrojams-website`, or ask whether the astrojams site is up to date, or to add or change an app on it.
+Run the audit with `node skills/astrojams-website/scripts/audit.mjs` (Node 22). After changing the script, run
+`node --test tests/astrojams-website/*.test.mjs`.
 
 ### YouTube Shorts — Frame, Check and Post
 
@@ -258,9 +295,47 @@ Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a re
 `node skills/youtube-shorts/scripts/safe-zone.mjs <video> --every 0.5` (needs ffmpeg). After changing a script or
 `zones.json`, run `node --test tests/youtube-shorts/*.test.mjs` and `python3 tests/test_youtube_shorts_fit.py`.
 
+### App Shorts — A Shorts Series for Every App
+
+**Skill:** `skills/app-shorts/SKILL.md`
+
+The repeatable pipeline that keeps every app the owner ships (both App Store teams) on YouTube: a registry built from
+each app's `app-release.config.json`, a series format per app, fresh recordings of the real app with rehearsed
+inputs, renders through app-release's `app-preview.swift` and youtube-shorts' safe zone and soundtrack, posting and
+scheduling through YouTube Studio (or the API once it is connected), and links back to the App Store (attributed
+campaign links) and the marketing websites. `scripts/shorts.mjs` keeps the registry, the posting calendar and the
+list of Shorts due a metrics read.
+
+#### How to use
+
+Invoke with `/app-shorts`, or ask to make, post or schedule Shorts for an app. Run
+`node skills/app-shorts/scripts/shorts.mjs status` to see where every app stands. After changing the script, run
+`node --test tests/app-shorts/*.test.mjs`.
+
+### YouTube Growth — Read the Numbers, Decide, Repeat
+
+**Skill:** `skills/youtube-growth/SKILL.md`
+
+The follow-up loop for the owner's channel: reads each Short's metrics at 2, 7 and 28 days (YouTube Analytics API
+when connected, Studio otherwise), turns them into decisions per Short and per series with thresholds kept as
+sourced data (`assets/rules.json`), mines comments for the next episodes, runs one experiment at a time and keeps
+the channel inside YouTube's policies for templated content.
+
+#### How to use
+
+Invoke with `/youtube-growth`, or ask how the Shorts are doing or how to grow the channel. Run
+`node skills/youtube-growth/scripts/evaluate.mjs` for decisions and `node skills/youtube-growth/scripts/yt-api.mjs check`
+for the API connection. After changing a script or the rules, run `node --test tests/youtube-growth/*.test.mjs`.
+
 ## Internal Skills
 
 These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
+
+### Call Triage — From a Recorded Call to Finished Follow-Through
+
+**Skill:** `skills/call-triage/SKILL.md`
+
+Takes a recorded call about any app, service or venture and carries it through: finds the recording, transcribes it on the Mac, sorts what was said into action items, ideas, marketing insights and the rest, tracks every item until it closes with evidence, and prepares a page and an email draft for the person on the call. Audio and transcripts stay in `/Volumes/ssd/projects/calls/` and never reach GitHub; `scripts/call_triage.py guard` checks repositories and pages for audio, transcripts and quoted runs of the transcript. It drafts email and never sends it.
 
 ### Design System Migration Prompt
 
@@ -311,7 +386,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 

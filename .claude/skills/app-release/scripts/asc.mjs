@@ -8,12 +8,13 @@
 // never depends on clicking through the web console. Run from the app repository.
 
 import { createHash, sign } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
@@ -561,6 +562,9 @@ async function status() {
   for (const set of sets) {
     const shots = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
     console.log('  screenshots', set.attributes.screenshotDisplayType, shots.map(shot => shot.attributes.assetDeliveryState.state).join(','));
+  }
+  for (const item of await versionPromotion(ctx.version.id)) {
+    console.log('  promotion', item.id, item.state + (item.detail ? ': ' + item.detail : item.reason ? ': ' + item.reason : ''));
   }
   const reviewDetail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   if (reviewDetail.data) {
@@ -1402,6 +1406,9 @@ export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
   if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
+  // Every app ships the shared standards; the source is audited, so a build without them never reaches App Review.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal) throw new Error(refusal + ' Then build, attach the new build and submit again; nothing was submitted.');
   // A Kids Category app is held for Guideline 1.3 answers; the saved notes are what App Review reads, so they are checked.
   if (STORE.ageRating && STORE.ageRating.kidsAgeBand) {
     const detail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
@@ -1417,6 +1424,11 @@ export async function submit(flag) {
     console.log('Version', STORE.version, 'is already', pending.attributes.state, 'in submission', pending.id);
     return;
   }
+  // Read before anything is opened: a preview cannot be added once the version is approved.
+  const promotion = await versionPromotion(ctx.version.id);
+  const unfinished = promotionRefusal(promotion);
+  if (unfinished) throw new Error(unfinished);
+  for (const item of promotion.filter(entry => entry.state === 'waived')) console.log('Waived', item.title + ':', item.reason);
   // Leaderboard readiness is checked before any submission is opened or created, so a refusal changes nothing.
   let leaderboards = await editableLeaderboardVersions();
   // A cancellation an earlier run left in flight is resumed: wait for it instead of opening a second submission.
@@ -1472,6 +1484,36 @@ async function release(flag) {
 // holds and a changed file uploads as a new image instead of being mistaken for the old one.
 export function assetReference(fileName, bytes) {
   return fileName + '@' + createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+}
+
+// CREATIVE_SLOTS are the sizes `assets crops` asks Apple for, one per slot a creative can fill.
+const CREATIVE_SLOTS = {
+  PRODUCT_PAGE_HEADER_ASSET: { name: 'header-21x9', width: 1260, height: 540 },
+  APP_STORE_SEARCH_RESULTS_ASSET: { name: 'search-3x2', width: 1200, height: 800 },
+};
+
+// creativeCrops lists Apple's own renders of one uploaded creative. Apple serves a universal image (5244x2950) through
+// the crop code UAS.ApGCL01, which keeps only a band of the canvas at every aspect ratio: y 415-1865 of 2950, centred
+// across (measured 2026-11-05 from a live header; App Store Connect's Device Preview agrees). So a 3:2 search card
+// shows about 2175x1450 px of it, and it can fill either slot, so both are listed. A dedicated file is served whole
+// with the plain code `sr`, in the slots store data lists it for.
+export function creativeCrops(image, placementTypes) {
+  const { templateUrl, width, height } = image.attributes.imageAsset || {};
+  if (!templateUrl) return [];
+  const universal = width === 5244 && height === 2950;
+  return Object.entries(CREATIVE_SLOTS).filter(([type]) => universal || placementTypes.includes(type)).map(([, slot]) => ({
+    name: slot.name,
+    url: templateUrl.replace('{w}', slot.width).replace('{h}', slot.height).replace('bb.{f}', (universal ? 'UAS.ApGCL01' : 'sr') + '.jpg'),
+  }));
+}
+
+// cropCheckProblem stops a creative going to App Review or onto the store until someone has looked at Apple's crops of
+// these exact bytes: `cropChecked` holds the file's hash, so a changed file needs a fresh look.
+export function cropCheckProblem(entry, reference) {
+  if (entry.category !== 'CREATIVE_ASSETS') return null;
+  const hash = reference.split('@').pop();
+  if (entry.cropChecked === hash) return null;
+  return reference + ': run `assets crops DIR`, look at every crop, then set cropChecked to "' + hash + '" on its store data entry';
 }
 
 // ASSET_PLACEMENTS are the placement types `assets` places on a version's localization, each with the profile groups
@@ -1636,15 +1678,21 @@ export async function submitAssetImages(imageIds, { appId = IOS?.ascAppId, openS
 // ASSET_RESOURCES names each Asset Library media type's resource and its relationship on a placement.
 const ASSET_RESOURCES = { image: { type: 'appAssetLibraryImages', relation: 'image' }, video: { type: 'appAssetLibraryVideos', relation: 'video' } };
 
-// assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images and videos: the product
-// page header, the search-results creative, app previews, and screenshots for profiles without a screenshot display
-// type, such as iPhone Duo. Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from
-// App Store Connect.
+// assets lists, uploads (`upload`), shows Apple's crops of (`crops`) or places (`place`) the store data's Asset Library
+// images and videos: the product page header, the search-results creative, app previews, and screenshots for profiles
+// without a screenshot display type, such as iPhone Duo. Uploads stay unsubmitted drafts until placed and sent to App
+// Review with a version or from App Store Connect.
 async function assets(mode) {
   const entries = STORE.assetLibrary || [];
   for (const entry of entries) {
     const problem = assetEntryProblem(entry);
     if (problem) throw new Error('store data assetLibrary: ' + problem);
+  }
+  const fileReference = entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file)));
+  const creative = entries.filter(entry => entry.category === 'CREATIVE_ASSETS');
+  if (mode === 'submit' || mode === 'place') {
+    const unchecked = creative.map(entry => cropCheckProblem(entry, fileReference(entry))).filter(Boolean);
+    if (unchecked.length) throw new Error('Crops not checked: ' + unchecked.join('; ') + '.');
   }
   const library = (await api('/v1/apps/' + IOS.ascAppId + '/assetLibrary')).data;
   const held = {
@@ -1668,8 +1716,7 @@ async function assets(mode) {
     if (process.argv[4] !== '--confirm') throw new Error('Sending images to App Review is outward-facing; rerun as `asc.mjs assets submit --confirm` with the owner\'s approval.');
     // Videos go to App Review with the version they are placed on; sending one on its own is not built.
     for (const entry of entries.filter(item => assetMedia(item.file) === 'video')) console.log('not sent:', basename(entry.file), '(video; it goes with its version)');
-    const references = entries.filter(entry => assetMedia(entry.file) === 'image')
-      .map(entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file))));
+    const references = entries.filter(entry => assetMedia(entry.file) === 'image').map(fileReference);
     const plan = assetsToSubmit(held.image, references);
     for (const line of plan.skipped) console.log('not sent:', line);
     if (!plan.send.length) {
@@ -1679,7 +1726,26 @@ async function assets(mode) {
     await submitAssetImages(plan.send);
     return;
   }
-  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');
+  if (mode === 'crops') {
+    const dir = process.argv[4];
+    if (!dir) throw new Error('Usage: asc.mjs assets crops DIR');
+    mkdirSync(dir, { recursive: true });
+    for (const reference of new Set(creative.map(fileReference))) {
+      const image = held.image.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
+      const crops = image ? creativeCrops(image, creative.filter(entry => fileReference(entry) === reference).map(entry => entry.placementType)) : [];
+      if (!crops.length) throw new Error(reference + ' has no processed image yet; run `assets upload`, then `assets` until it has finished processing.');
+      for (const crop of crops) {
+        const response = await fetch(crop.url);
+        if (!response.ok) throw new Error(crop.name + ' of ' + reference + ' returned ' + response.status);
+        const file = join(dir, reference.replace('@', '-') + '-' + crop.name + '.jpg');
+        writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+        console.log(file);
+      }
+      console.log('Look at each crop, then set cropChecked to "' + reference.split('@').pop() + '" on its store data entry.');
+    }
+    return;
+  }
+  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|crops DIR|place|submit --confirm]');
   const version = mode === 'place' ? (await context()).version : null;
   const localization = version ? await versionLocalization(version.id, false) : null;
   // Each placement type and profile, with the asset ids store data wants there in order.
@@ -1761,6 +1827,67 @@ async function assets(mode) {
     }
   }
   console.log('Run `assets` until every image and video has finished processing.');
+  if (mode === 'place' && creative.length) console.log('Then check the Preview in App Store Connect on iPhone, iPad and iPhone Duo, for the product page and search results.');
+}
+
+// PROMOTION_ITEMS is the "Every release" list in references/promotion.md as data, so a release cannot pass it by
+// oversight. Each needs a result or a recorded reason (store data's `promotion.waived.<id>`).
+export const PROMOTION_ITEMS = [
+  { id: 'preview', title: 'app preview video', placementType: 'APP_PREVIEW' },
+  { id: 'header', title: 'product page header', placementType: 'PRODUCT_PAGE_HEADER_ASSET' },
+  { id: 'search', title: 'search-results creative', placementType: 'APP_STORE_SEARCH_RESULTS_ASSET' },
+  { id: 'nomination', title: 'featuring nomination' },
+];
+// A reason short enough to be "later" or "optional" records nothing a later run could weigh.
+const MIN_WAIVER_REASON = 20;
+
+// deviceFamily reads a screenshot display type or placement group's device, so previews are matched per family.
+export function deviceFamily(name) {
+  const found = /IPHONE|IPAD|DESKTOP|MAC|APPLE_TV|TV|VISION/.exec(String(name));
+  if (!found) return null;
+  return { DESKTOP: 'MAC', APPLE_TV: 'TV' }[found[0]] || found[0];
+}
+
+// promotionReport says where each item stands: `done`, `waived` with its reason, or `missing` with what is absent.
+// Previews are needed per device family the screenshots cover; `placements` are the version's live placements.
+export function promotionReport(store, placements) {
+  const waived = (store.promotion && store.promotion.waived) || {};
+  return PROMOTION_ITEMS.map(item => {
+    const base = { id: item.id, title: item.title };
+    let absent = null;
+    if (item.id === 'nomination') {
+      if (!(store.nominations || []).length) absent = 'none in the store data\'s `nominations`';
+    } else {
+      const placed = placements.filter(entry => entry.attributes.placementType === item.placementType);
+      if (item.id === 'preview') {
+        const covered = new Set(placed.map(entry => deviceFamily(entry.attributes.placementGroup)));
+        const families = [...new Set((store.screenshots || []).map(group => deviceFamily(group.displayType)).filter(Boolean))];
+        const uncovered = (families.length ? families : ['IPHONE']).filter(family => !covered.has(family));
+        if (uncovered.length) absent = 'none placed for ' + uncovered.join(', ');
+      } else if (!placed.length) {
+        absent = 'none placed';
+      }
+    }
+    if (!absent) return { ...base, state: 'done' };
+    const reason = typeof waived[item.id] === 'string' ? waived[item.id].trim() : '';
+    if (reason.length >= MIN_WAIVER_REASON) return { ...base, state: 'waived', reason: reason };
+    return { ...base, state: 'missing', detail: absent };
+  });
+}
+
+// promotionRefusal is the sentence `submit` refuses with, or null when every item has a result or a reason.
+export function promotionRefusal(report) {
+  const missing = report.filter(item => item.state === 'missing');
+  if (!missing.length) return null;
+  return 'The "Every release" promotion list is not finished: ' + missing.map(item => item.title + ' (' + item.detail + ')').join('; ')
+    + '. App previews cannot be placed once a version is approved, so make them now (references/media.md), or record why not in the store data\'s '
+    + '`promotion.waived.<id>`: the owner\'s decision or a demonstrated capture dependency, never that it is optional. Nothing was submitted.';
+}
+
+// versionPromotion reads the version's placements and reports the list.
+async function versionPromotion(versionId) {
+  const localization = await versionLocalization(versionId, false);
+  return promotionReport(STORE, await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements'));
 }
 
 // NOMINATION_TYPES are the featuring nomination types Apple takes.

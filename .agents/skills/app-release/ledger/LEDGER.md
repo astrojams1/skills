@@ -1,8 +1,109 @@
 # App release skill ledger
 
-Skill version **2.12.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.17.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.17.1 (2026-11-05)
+
+- An approved build with recorded physical-device verification stayed at Pending Developer Release
+  after a status check. An active authorized launch now proceeds to release in the same invocation
+  once all conditions are met. Explicit holds, read-only requests and scheduled timing still apply.
+  Provider approval, release request acceptance and storefront availability have separate evidence.
+
+## Lessons incorporated into v2.17.0 (2026-11-05)
+
+- Plenty went to App Review with no app preview, header, search creative or nomination. The agent read the requirement,
+  skipped it and reported it as optional. Only prose asked for them, and the docs contradicted themselves ("Every
+  release" beside "optional slots alone are not release blockers"), while `submit` checked only source standards. Now
+  `asc.mjs status` prints each item and `submit --confirm` reads the version's live placements and refuses, before any
+  write, unless each has a result or a reason in `promotion.waived`. The contradictory wording is gone.
+- The same run reported a build as out to testers when `Release QA` had no testers, so the owner saw nothing in
+  TestFlight. `testers` printed success on the build's state alone. It now adds the account holder to an empty group,
+  invites anyone uninvited, reports the count and fails rather than report a build nobody can receive.
+
+## Lessons incorporated into v2.16.2 (2026-11-05)
+
+- Every Plenty widget rendered as a blank block on a Tinted Home Screen, which no contact sheet or log showed. `references/verification.md` now requires checking Default, Dark, Clear and Tinted on a real Home Screen, and says how to draw a safe face.
+
+## Lessons incorporated into v2.16.1 (2026-11-05)
+
+- Plenty's first widget app on a new group failed `archive` with a misleading "Authentication failed", though the key
+  worked. The cause was an app group that did not exist: there is no public API for it and API-key signing cannot create
+  one. `references/ios.md` now gives the portal route, the `group.` prefix trap and the team check, and warns against
+  touching the repository during an archive.
+
+## Lessons incorporated into v2.16.0 (2026-11-05)
+
+- The owner asked that every app have a user feedback mechanism, done the same way, and that existing apps find what
+  they lack and fix themselves. Added the app standards: `references/standards.md`, `assets/standards.json` and
+  `standards.mjs audit` (`--json`, `--all`). The first entries are Send Feedback (a pre-filled email to `feedback.email`,
+  so no backend, SDK or privacy-answer change; references in `assets/feedback/`) and the in-app privacy and support links
+  `app-types.md` already required. Each run audits at its start, a missing standard becomes an `issue.standard.<id>`
+  gate fixed in that run's build, and `archive`, `bundle`, `release` and `submit --confirm` refuse without it, `submit`
+  before any write. A new standard is a catalog entry; an opt-out needs a recorded reason in the config.
+- The first sweep passed Pipsqueak's privacy link on a heading called "Privacy" with no link behind it, so a bare quoted
+  word no longer counts: a URL, a route or a name such as `privacyURL` does. Dot folders and vendored skills never count:
+  the skill's own reference copies reach every app through the submodule and the tracked `.claude/` and `.agents/` copies.
+
+## Lessons incorporated into v2.15.2 (2026-11-05)
+
+- Importron's focused corrections repeatedly labeled all launch marketing outside scope; an actual library audit
+  found four screenshots and zero videos. The existing shared preview requirement had not been followed.
+  Added explicit per-asset preparation/placement evidence and a rule against blanket scope exclusions while
+  preserving an already accepted first-version review. Uploaded assets do not establish placement or publication.
+- The installed Xcode had no Simulator GUI. Public XCTest open-URL automation exercised the unmodified Release
+  document handler instead. Initial captures exposed a changed post-install container, persistent synthetic
+  StoreKit state and asynchronous/duplicate-label consent controls. Corrected fixture staging and native UI
+  selection passed actual nine-result Health save/readback and protected reopen; the final26.5-second preview
+  passed format and visual checks. Added this supported capture route without weakening Release provenance.
+
+## Lessons incorporated into v2.15.1 (2026-11-05)
+
+- Importron build10 received a Guideline2.1 information request asking why each PDF import is paid.
+  Price and free allowance were documented, but the usage-based business rationale was missing.
+  Added a conditional consumable review checklist: paid unit/value, rationale, free features,
+  duplicate/overlap and retry accounting, plus factual separation from Apple framework access.
+  Review-package changes can reuse the verified binary; reply and resubmission remain separate.
+- The Browser connector exposed only an empty MCP Apps inventory, but documented native Computer Use
+  could read the owner's signed-in Chrome. Added this supported fallback, correct-team verification,
+  and the distinction between queued navigation and a successful read before an owner handoff.
+
+## Lessons incorporated into v2.15.0 (2026-11-05)
+
+- Füd's universal "At the table" header went live in both slots with the App Store Connect crop preview unchecked, and
+  the run and the agent relaying it reported that as a caveat. Checked afterwards, the search card cut off the
+  headline on iPhone, iPad and iPhone Duo. Three things went wrong: the design assumed a centred crop of the full
+  canvas, when Apple keeps only the band y 415-1865 of 2950; "no sign-in" was concluded from one browser while the
+  owner's Chrome was signed in; and the old advice to check Preview before `place` could not be followed, because
+  Preview shows only what a slot holds and Browse Assets lists only approved images.
+- Added `assets crops DIR` (Apple's own render per slot, available straight after upload) and a `cropChecked` gate on
+  `assets submit` and `assets place`, tied to the file's hash. Unit and CLI tested; `assets crops` was also run against
+  Füd's live library. The fix for Füd is a dedicated 3:2 search file, in App Review on its own.
+
+## Lessons incorporated into v2.14.0 (2026-11-04)
+
+- The owner asked for a YouTube Short after Füd 1.3.0 shipped. The App Store preview's fixed device
+  frame could not serve it: on a phone YouTube's title stack covers the bottom fifth, so a device large
+  enough to read hides "Who ate this?" and the Add button, and a device small enough to show them is a
+  thumbnail. `app-preview.swift render` now takes a per-clip `shift` (the device eases up or down to
+  each scene's subject), `fade` bands (background over the top and bottom, so the device passes
+  under captions and controls without an edge) and caption `centerX`. A darwin render test reads
+  pixels back from a test-pattern cut. The promotion checklist lists the Short; posting stays the
+  owner's. The owner then judged that tour would get no engagement: a Short needs a hook, a payoff
+  and sound, and a series. `render` gained `zoom`/`focus` punch-ins, per-clip `move` and caption
+  `size`/`box`/`pop`; youtube-shorts gained `soundtrack.mjs` and the "Make it worth watching" rules.
+- The owner then asked for the pipeline as a skill for every app and a follow-up skill for the channel's metrics:
+  **app-shorts** (registry from every `app-release.config.json`, calendar, recording, Studio/API posting) and
+  **youtube-growth** (analytics, decisions, comments, policy). The promotion checklist's Shorts row now runs both,
+  and a release with a visible feature queues an episode.
+
+## Lessons incorporated into v2.13.0 (2026-11-03)
+
+- The owner launched the astrojams apps website (https://astrojams-apps.vercel.app) for every app on the personal
+  James Thompson team, kept current like the Ouro site. The release path now has an **astrojams website** gate:
+  personal-team apps run the `astrojams-website` skill at the Ouro gate's moments. An app with no website of its own
+  uses its page there as `listing.marketingUrl`; Newsworthy and Space Worms keep their own sites.
 
 ## Lessons incorporated into v2.12.1 (2026-11-02)
 
@@ -581,3 +682,8 @@ an older snapshot in a clearly dated note, not by silently rewriting its history
 Keep measured costs separate from unavailable metrics. Refresh discovery copies
 with the repository's `bin/manage.sh link` after changing the source skill, and run
 `node --test tests/app-release/*.test.mjs` after changing a script.
+
+
+### 2026-11-03 — Importron PDF / File Provider QA
+
+Version2.12.2 documents simulator-side bookmark diagnostics and a narrowly validated Debug-only document-open lane that preserves actual reader/parser, StoreKit, Health handoff and clinical queries. Files resolution errors and incomplete materialization must be distinguished from extraction errors. Failed selector/profile retries remain evidence; the alternate lane must not be presented as successful standard selection. Distribution excludes its entrypoint; manual release still waits for exact-build physical QA. Importron verifies its private report independently and uses only invented fixtures in Health and Git. No source medical records or account contacts are included in this lesson.
