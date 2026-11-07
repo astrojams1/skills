@@ -30,6 +30,21 @@ account task waits. Preserve existing authorization rather than inventing a new
 approval gate for each routine field. If the active tool requires confirmation,
 identify that exact restriction and prepare the concrete action first.
 
+**Several developer teams.** The owner has more than one team (the personal James Thompson team
+`CWQ9AWJF8T` and Ouro LLC `AYCDG243RJ`), and each has its own App Store Connect key item in the vault: `App Store
+Connect` (personal) and `App Store Connect — Ouro`, whose em dash means `ios.vault` must use the vault and item IDs.
+Establish the intended team from the owner's words before registering anything: bundle identifiers are unique
+across all teams, so one registered on the wrong team is stranded there. List every team's apps first; a similarly
+named app on another team may belong to a different project and must never receive this app's builds.
+
+**Creating the record from a Claude Code session.** Claude's desktop control treats browsers, and installed Chrome
+web apps such as the App Store Connect PWA, as view-only, so it cannot fill in New App there; it can act only in the
+Chrome profile Claude in Chrome is connected to. If that profile is signed out, signing in through 1Password autofill
+first needs the owner to connect 1Password to Claude once (the tool reports `not_connected`). The fastest route when
+the owner is away from the Mac is to give them the exact New App fields (team, platform, name, language, registered
+bundle ID, SKU, access) to enter on any device, and to watch `GET /v1/apps?filter[bundleId]=…` with the team's key so
+the release continues the moment the record exists (Giraffe Stretch, 2026-10-30).
+
 If a signed-in installed web app/PWA shows the account but its organization menu stays inert, inspect
 its built-in **Open in browser/Open in Chrome** action. When available, this can preserve the existing
 profile/session while restoring the controls. Verify the browser profile, account and selected legal

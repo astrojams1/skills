@@ -26,6 +26,7 @@ the ledger, a gotcha) goes to the shared skill in the skills repository, never h
 | Google Play app | `<name>`, package `<id>` |
 | Vault items | `op://API Tokens/App Store Connect`, `op://API Tokens/<App> Android` |
 | Privacy and support pages | `<urls>` |
+| Send Feedback | `<file carrying the app-standard: feedback marker>`, on `<screen>`; address in `feedback.email` |
 
 ## Gates and gotchas only this app has
 

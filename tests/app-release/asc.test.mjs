@@ -109,6 +109,20 @@ test('submission retries recognise a version already in review and resolve rejec
   assert.deepEqual(asc.itemsToResolve([item('v1', 'REJECTED'), item('v1', 'ACCEPTED'), item('v0', 'REJECTED')], 'v1').map(entry => entry.id), ['v1-REJECTED']);
 });
 
+test('withdraw cancels only the one submission in review with this version', () => {
+  const item = version => ({ attributes: { state: 'READY_FOR_REVIEW' }, relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version } } } });
+  const submission = (id, state) => ({ id, attributes: { state } });
+  const waiting = submission('s1', 'WAITING_FOR_REVIEW');
+  const reviewing = submission('s2', 'IN_REVIEW');
+  assert.deepEqual(asc.withdrawPlan([waiting], { s1: [item('v1')] }, 'v1'), { action: 'cancel', id: 's1' });
+  assert.deepEqual(asc.withdrawPlan([reviewing], { s2: [item('v1')] }, 'v1'), { action: 'cancel', id: 's2' });
+  // Another version's submission, or one whose items were not read, is never canceled.
+  assert.deepEqual(asc.withdrawPlan([waiting], { s1: [item('v0')] }, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([waiting], {}, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([], {}, 'v1'), { action: 'none' });
+  assert.deepEqual(asc.withdrawPlan([waiting, reviewing], { s1: [item('v1')], s2: [item('v1')] }, 'v1'), { action: 'conflict', ids: ['s1', 's2'] });
+});
+
 test('Game Center setup turns the capability on only once and matches leaderboards by vendor identifier', () => {
   const capability = type => ({ attributes: { capabilityType: type } });
   assert.equal(asc.hasCapability([capability('IN_APP_PURCHASE')], 'GAME_CENTER'), false);
@@ -191,6 +205,24 @@ test('Asset Library entries name their placement and profile, and unknown ones s
   assert.match(asc.assetEntryProblem({ file: 'x.png', category: 'OTHER', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /category/);
 });
 
+test('a universal creative shows Apple\'s crop for both slots; a dedicated file is served whole for its own slot', () => {
+  const image = (width, height) => ({ attributes: { imageAsset: { templateUrl: 'https://cdn.example/abc/{w}x{h}bb.{f}', width, height } } });
+  assert.deepEqual(asc.creativeCrops(image(5244, 2950), ['PRODUCT_PAGE_HEADER_ASSET']), [
+    { name: 'header-21x9', url: 'https://cdn.example/abc/1260x540UAS.ApGCL01.jpg' },
+    { name: 'search-3x2', url: 'https://cdn.example/abc/1200x800UAS.ApGCL01.jpg' },
+  ]);
+  assert.deepEqual(asc.creativeCrops(image(3840, 2560), ['APP_STORE_SEARCH_RESULTS_ASSET']), [{ name: 'search-3x2', url: 'https://cdn.example/abc/1200x800sr.jpg' }]);
+  assert.deepEqual(asc.creativeCrops({ attributes: {} }, ['PRODUCT_PAGE_HEADER_ASSET']), []);
+});
+
+test('a creative needs a crop check of its exact bytes; screenshots and previews do not', () => {
+  const creative = { file: 'h.png', category: 'CREATIVE_ASSETS', cropChecked: '94511dad2157' };
+  assert.equal(asc.cropCheckProblem(creative, 'h.png@94511dad2157'), null);
+  assert.match(asc.cropCheckProblem(creative, 'h.png@543e843e84b1'), /set cropChecked to "543e843e84b1"/);
+  assert.match(asc.cropCheckProblem({ ...creative, cropChecked: undefined }, 'h.png@94511dad2157'), /assets crops/);
+  assert.equal(asc.cropCheckProblem({ file: 'p.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS' }, 'p.mov@abc'), null);
+});
+
 test('Asset Library uploads keep finished copies, replace unfinished ones and treat a changed file as new', () => {
   const ref = asc.assetReference('header.png', Buffer.from('a'));
   assert.match(ref, /^header\.png@[0-9a-f]{12}$/);
@@ -218,12 +250,141 @@ test('only processed images can be placed, and screenshots only on profiles with
   assert.match(asc.assetEntryProblem({ file: 's.jpg', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE' }), /does not take/);
 });
 
+test('an approved version refuses screenshot and preview placements but still takes header and search creative', () => {
+  for (const state of ['PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE', 'READY_FOR_SALE', 'READY_FOR_DISTRIBUTION', 'PROCESSING_FOR_DISTRIBUTION']) {
+    assert.equal(asc.versionLockedPlacement('APP_SCREENSHOT', state), true, state);
+    assert.equal(asc.versionLockedPlacement('APP_PREVIEW', state), true, state);
+    assert.equal(asc.versionLockedPlacement('PRODUCT_PAGE_HEADER_ASSET', state), false, state);
+    assert.equal(asc.versionLockedPlacement('APP_STORE_SEARCH_RESULTS_ASSET', state), false, state);
+  }
+  for (const state of ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', '']) {
+    assert.equal(asc.versionLockedPlacement('APP_SCREENSHOT', state), false, state);
+    assert.equal(asc.versionLockedPlacement('APP_PREVIEW', state), false, state);
+  }
+});
+
+test('app previews are videos placed per device profile, with an optional poster frame time code', () => {
+  const preview = { file: 'store/previews/tour.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_PREVIEW', placementGroup: 'IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE' };
+  assert.equal(asc.assetMedia('tour.MOV'), 'video');
+  assert.equal(asc.assetMedia('tour.m4v'), 'video');
+  assert.equal(asc.assetMedia('header.png'), 'image');
+  assert.equal(asc.assetEntryProblem(preview), null);
+  assert.equal(asc.assetEntryProblem({ ...preview, previewFrame: '00:00:14:15' }), null);
+  assert.equal(asc.assetEntryProblem({ ...preview, file: 'ipad.mp4', placementGroup: 'IPAD_13_PROFILE' }), null);
+  assert.match(asc.assetEntryProblem({ ...preview, previewFrame: '14.5' }), /time code/);
+  assert.match(asc.assetEntryProblem({ ...preview, file: 'still.png' }), /video/);
+  assert.match(asc.assetEntryProblem({ ...preview, placementGroup: 'DEFAULT_PROFILE' }), /does not take/);
+  assert.match(asc.assetEntryProblem({ file: 'clip.mov', category: 'APP_SCREENSHOTS_AND_PREVIEWS', placementType: 'APP_SCREENSHOT', placementGroup: 'IPHONE_DUO_PROFILE' }), /image/);
+  assert.match(asc.assetEntryProblem({ file: 'h.png', category: 'CREATIVE_ASSETS', placementType: 'PRODUCT_PAGE_HEADER_ASSET', placementGroup: 'DEFAULT_PROFILE', previewFrame: '00:00:01:00' }), /only a video/);
+});
+
+test('placements of videos are matched like images', () => {
+  const placed = (id, name, asset) => ({ id: id, relationships: { [name]: { data: { id: asset } } } });
+  assert.equal(asc.placedAsset(placed('p1', 'video', 'v1')), 'v1');
+  assert.equal(asc.placedAsset({ id: 'p0', relationships: { image: { data: null }, video: { data: { id: 'v2' } } } }), 'v2');
+  assert.equal(asc.placedAsset({ id: 'p0' }), null);
+  assert.deepEqual(asc.placementPlan([placed('p1', 'video', 'old'), placed('p2', 'video', 'v1')], ['v1', 'v2']), { missing: ['v2'], stale: ['p1'] });
+});
+
+test('featuring nominations are checked and never sent twice', () => {
+  const nomination = { name: 'Describe a meal', type: 'APP_ENHANCEMENTS', description: 'Type a meal in your own words.', publishStartDate: '2026-11-10T08:00:00Z' };
+  assert.equal(asc.nominationProblem(nomination), null);
+  assert.equal(asc.nominationProblem({ ...nomination, deviceFamilies: ['IPHONE', 'IPAD'], locales: ['en-US'], publishEndDate: '2026-12-10T08:00:00Z' }), null);
+  assert.match(asc.nominationProblem({ ...nomination, type: 'FEATURE' }), /type is one of/);
+  assert.match(asc.nominationProblem({ ...nomination, description: ' ' }), /description/);
+  assert.match(asc.nominationProblem({ ...nomination, publishStartDate: 'soon' }), /not a date/);
+  assert.match(asc.nominationProblem({ ...nomination, publishEndDate: '2026-11-01T00:00:00Z' }), /must follow/);
+  assert.match(asc.nominationProblem({ ...nomination, submitted: true }), /unknown field submitted/);
+  const held = (id, name, state) => ({ id: id, attributes: { name: name, state: state } });
+  const plan = asc.nominationPlan([nomination, { ...nomination, name: 'Draft one' }, { ...nomination, name: 'Sent' }],
+    [held('d', 'Draft one', 'DRAFT'), held('s', 'Sent', 'SUBMITTED')]);
+  assert.deepEqual(plan.map(step => [step.action, step.id]), [['create', undefined], ['submit', 'd'], ['keep', 's']]);
+});
+
 test('only processed, unsubmitted images listed in store data go to App Review', () => {
   const image = (id, ref, state) => ({ id: id, attributes: { referenceName: ref, state: state } });
   const images = [image('1', 'a@x', 'PREPARE_FOR_SUBMISSION'), image('2', 'b@x', 'WAITING_FOR_REVIEW'), image('3', 'c@x', 'APPROVED'),
     image('4', 'd@x', 'COMPLETE'), image('5', 'e@x', 'ARCHIVED'), image('6', 'f@x', 'UPLOAD_COMPLETE'), image('7', 'g@x', 'REJECTED')];
-  const plan = asc.assetsToSubmit(images, ['a@x', 'b@x', 'c@x', 'd@x', 'e@x', 'f@x', 'g@x', 'h@x']);
+  const plan = asc.assetsToSubmit(images, ['a@x', 'b@x', 'c@x', 'd@x']);
   assert.deepEqual(plan.send, ['1', '4']);
-  assert.deepEqual(plan.skipped, ['b@x (WAITING_FOR_REVIEW)', 'c@x (APPROVED)', 'e@x (not uploaded)', 'f@x (UPLOAD_COMPLETE)', 'g@x (REJECTED)', 'h@x (not uploaded)']);
+  assert.deepEqual(plan.skipped, ['b@x (WAITING_FOR_REVIEW)', 'c@x (APPROVED)']);
+  for (const blocked of ['e@x', 'f@x', 'g@x', 'h@x']) {
+    assert.throws(() => asc.assetsToSubmit(images, ['a@x', blocked]), /Selected images are not ready/);
+  }
 });
 
+
+test('a newly prepared version waits for its editable App Info instead of refusing the listing', async () => {
+  const info = (id, state) => ({ id: id, attributes: { state: state } });
+  const live = [info('live', 'READY_FOR_DISTRIBUTION')];
+  const reads = [live, live, [...live, info('next', 'PREPARE_FOR_SUBMISSION')]];
+  const waits = [];
+  const found = await asc.awaitEditableInfo(async () => reads.shift(), { wait: async ms => { waits.push(ms); } });
+  assert.equal(found.id, 'next');
+  assert.deepEqual(waits, [2000, 2000]);
+  let calls = 0;
+  const none = await asc.awaitEditableInfo(async () => { calls++; return live; }, { attempts: 3, wait: async () => {} });
+  assert.equal(none, null);
+  assert.equal(calls, 3);
+});
+
+test('status reports a build\'s TestFlight state and which groups hold it', async () => {
+  const build = (expired, detail) => ({ attributes: { expired: expired }, relationships: { buildBetaDetail: { data: detail ? { type: 'buildBetaDetails', id: detail } : null } } });
+  const included = [{ type: 'buildBetaDetails', id: 'd1', attributes: { internalBuildState: 'IN_BETA_TESTING', externalBuildState: 'READY_FOR_BETA_SUBMISSION' } }];
+  assert.equal(asc.testflightState(build(false, 'd1'), included), 'TestFlight internal IN_BETA_TESTING, external READY_FOR_BETA_SUBMISSION');
+  assert.equal(asc.testflightState(build(true, 'd1'), included), 'TestFlight internal IN_BETA_TESTING, external READY_FOR_BETA_SUBMISSION, expired');
+  assert.equal(asc.testflightState(build(false, null), undefined), 'TestFlight state unknown');
+  const expired = [{ type: 'buildBetaDetails', id: 'd2', attributes: { internalBuildState: 'EXPIRED', externalBuildState: 'EXPIRED' } }];
+  assert.equal(asc.testflightState(build(true, 'd2'), expired), 'TestFlight internal EXPIRED, external EXPIRED');
+
+  const group = (id, name, internal) => ({ id: id, attributes: { name: name, isInternalGroup: internal } });
+  const collections = {
+    '/v1/apps/app1/betaGroups': [group('g1', 'Team', true), group('g2', 'Friends', false)],
+    '/v1/betaGroups/g1/builds': [{ id: 'b0' }, { id: 'b1' }],
+    '/v1/betaGroups/g2/builds': [{ id: 'b0' }],
+  };
+  const read = async path => collections[path.split('?')[0]];
+  assert.deepEqual(await asc.testflightGroups('app1', 'b1', read), [
+    { name: 'Team', internal: true, hasBuild: true },
+    { name: 'Friends', internal: false, hasBuild: false },
+  ]);
+});
+
+test('the promotion list needs a result or a recorded reason for every item', () => {
+  const placed = (placementType, placementGroup) => ({ attributes: { placementType, placementGroup } });
+  const store = { screenshots: [{ displayType: 'APP_IPHONE_67' }, { displayType: 'APP_IPAD_PRO_3GEN_129' }] };
+  const states = (data, placements) => Object.fromEntries(asc.promotionReport(data, placements).map(item => [item.id, item.state]));
+
+  // Nothing done: every item is missing, and the refusal names them and what to do.
+  const empty = asc.promotionReport(store, []);
+  assert.deepEqual(empty.map(item => item.state), ['missing', 'missing', 'missing', 'missing']);
+  assert.match(asc.promotionRefusal(empty), /app preview video \(none placed for IPHONE, IPAD\)/);
+  assert.match(asc.promotionRefusal(empty), /promotion\.waived/);
+
+  // A preview counts per device family the screenshots cover.
+  const iphone = placed('APP_PREVIEW', 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE');
+  assert.equal(states(store, [iphone]).preview, 'missing');
+  assert.equal(states(store, [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE')]).preview, 'done');
+  assert.equal(states({}, [iphone]).preview, 'done');
+
+  // A word like "optional" is not a reason; a real one is reported, not hidden.
+  assert.equal(states({ ...store, promotion: { waived: { preview: 'optional' } } }, []).preview, 'missing');
+  const waived = asc.promotionReport({ ...store, promotion: { waived: { preview: 'Owner declined a preview on 2026-11-05' } } }, []);
+  assert.equal(waived[0].state, 'waived');
+  assert.equal(waived[0].reason, 'Owner declined a preview on 2026-11-05');
+
+  // Everything done passes.
+  const full = [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE'), placed('PRODUCT_PAGE_HEADER_ASSET', 'DEFAULT_PROFILE'), placed('APP_STORE_SEARCH_RESULTS_ASSET', 'DEFAULT_PROFILE')];
+  assert.equal(asc.promotionRefusal(asc.promotionReport({ ...store, nominations: [{ name: 'Launch' }] }, full)), null);
+});
+
+test('device families are read from display types and placement groups alike', () => {
+  assert.equal(asc.deviceFamily('APP_IPHONE_67'), 'IPHONE');
+  assert.equal(asc.deviceFamily('IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE'), 'IPHONE');
+  assert.equal(asc.deviceFamily('APP_IPAD_PRO_3GEN_129'), 'IPAD');
+  assert.equal(asc.deviceFamily('APP_DESKTOP'), 'MAC');
+  assert.equal(asc.deviceFamily('MAC_PROFILE'), 'MAC');
+  assert.equal(asc.deviceFamily('APP_APPLE_TV'), 'TV');
+  assert.equal(asc.deviceFamily('TV_PROFILE'), 'TV');
+  assert.equal(asc.deviceFamily('nonsense'), null);
+});

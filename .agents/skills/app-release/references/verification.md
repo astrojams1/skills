@@ -163,6 +163,29 @@ to repair a launcher identity failure. Xcode's per-command preference above does
 not modify or inject code into the launcher. Preserve the designated SSD set and
 other tasks' devices.
 
+### Document selection and simulator File Provider failures
+
+A visible file and a successful tap do not prove the app received a document URL.
+If the picker stays open, inspect logs **inside the selected simulator**, through
+its explicit device set, before changing selectors or the parser. In an observed
+Xcode27.1 run, File Provider reported FP-1005 / resolver-1012 and an empty
+`didPickDocumentURLs` array even though PDFKit could read the same staged files.
+Fresh filenames, supported app reinstallation with backed-up/restored app data
+and a clean SSD device did not recover the OS bookmark materialization. Do not
+label this an extraction failure or assume its underlying entitlement/storage
+cause from the error code alone. Preserve the failed cases and app/Health data;
+do not cycle new devices or reset private databases and shared services.
+
+An explicitly identified, simulator-only document-open entrypoint can isolate
+that layer: validate a narrow set of invented fixture names, invoke the unchanged
+coordinated document reader and parser, then exercise real purchases, system
+Health handoffs and clinical queries. Never inject parsed reports, entitlements
+or saved Health state. Exclude the entrypoint from device Release builds and
+verify its absence in the signed distribution artifact. Record this alternate
+selection mode and any standard-picker coverage separately; passing its clinical
+checks does not prove that the blocked picker worked. Keep the exact store-build
+physical document-selection check before manual public release.
+
 ### Isolated local StoreKit checks
 
 When XCTest destination discovery cannot reach the designated QA set, purchase
@@ -231,6 +254,11 @@ Use supported native UI tools to interact with simulators/devices and capture
 screens. If those tools prohibit shell-driven UI, do not substitute `adb input`,
 screencap or AppleScript. CLI build/install/log inspection remains distinct from
 UI control and must follow the active tool policy.
+
+Apply the entrypoint's “Never require mirroring” rule to native QA too. A failed
+UI route does not reopen completed exact-build owner approval. Reuse that feedback
+and supported native test evidence; track any specifically missing physical
+recording or reviewer coverage separately, without requiring remote control.
 
 A locked-screen response establishes that this UI route is unavailable at that moment, not that the
 whole Mac, build toolchain or release is inaccessible. Check other supported authorized routes and
@@ -359,3 +387,7 @@ react-native-screens to UIKit.
 Inspect the installed version's actual forwarding path before choosing a fix.
 Source/mutation checks can protect that path, but verify the replacement build
 on the affected physical OS before claiming the appearance is corrected.
+
+## Widgets in every Home Screen appearance
+
+Check each widget in **Default, Dark, Clear and Tinted** on a real Home Screen (touch and hold, the button at top left, Customize), and on the Lock Screen. Tinted and Clear flatten a widget to one colour, so opaque custom art becomes a blank white block, with nothing in the logs and nothing in a simulator contact sheet or `ImageRenderer` output to warn you (Plenty, 2026-11-05: every style went blank). Read `@Environment(\\.widgetRenderingMode)` and, when it isn't `.fullColor`, draw a face made only of type and shapes on no background. Lock Screen accessory widgets have the same limit: nothing but shape can carry state, so don't rely on colour. Restore the simulator's appearance afterwards.

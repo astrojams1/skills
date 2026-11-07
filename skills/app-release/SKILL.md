@@ -1,8 +1,8 @@
 ---
 name: app-release
-description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, or when asked to change how app releases or this skill work.
+description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.8.0"
+  version: "2.17.2"
 ---
 
 # App release
@@ -22,10 +22,32 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 |---|---|
 | `ledger.mjs` | Gate and issue ledger: `init`, `record`, `status`, `render`, `check`, `validate`, `issues` (verified issue closure) |
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
-| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `release --confirm` |
+| `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `assets` (Asset Library images and app preview videos; `assets crops` saves Apple's crops of creative for checking), `nominate --confirm` (featuring nominations), `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
+| `app-preview.swift` | macOS AVFoundation, no ffmpeg: `render` an App Store preview from simulator recordings, `check` a file against Apple's preview spec, `sheet` and `frame` to review the cut; the same spec, with per-clip `shift` and `fade`, renders a 1080x1920 YouTube Short (`swift $S/app-preview.swift …`) |
+| `standards.mjs` | `audit` this app against the shared [app standards](references/standards.md) (`--json`; `--all` sweeps every app, read-only) |
 | `native-qa.mjs` | Read-only launcher `preflight`; `xcodebuild --device-set PATH -- …` routes the original Apple launcher to an existing QA set |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
 | `play.mjs` | Play store presence: `status`, `listing`, `images` |
+
+## Apple onboarding: explain the API boundary up front
+
+For a new iOS app, know this before choosing a release route: the public App Store
+Connect API manages existing **app records** but cannot create the initial one.
+Registering a **bundle ID** through the provisioning API is a separate operation;
+it does not create the App Store Connect record required for upload. Apple's
+[Apps API documentation](https://developer.apple.com/documentation/appstoreconnectapi/apps)
+states this limitation. Do not probe unsupported create endpoints or request new
+credentials to work around it.
+
+When the record is absent, explain this in the first relevant progress update,
+before the owner has to ask “why not use the API?” State the verified credential
+status, the authorized browser/Xcode route being used, and any observed tool failure
+separately. Continue independent preparation and use the
+[iOS app-record workflow](references/ios.md), “Create or reuse the app record”; a UI
+failure does not make credential access or all release work unavailable. Once the
+record exists, continue automated upload and TestFlight work with the existing key.
+Apply this known boundary immediately; recheck current Apple documentation during
+onboarding and revise the guidance if Apple changes the capability.
 
 ## Start or resume
 
@@ -37,13 +59,18 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
    ([maintaining](references/maintaining.md)).
 3. Read provider state, not memory: `node $S/asc.mjs status`, `node $S/android-release.mjs tracks`,
    `node $S/play.mjs status`. Record anything that changed since the ledger's last event.
-4. Establish the requested platforms and target state (testing, review, live), monetization, territories
+4. Audit the app against the shared standards: `node $S/standards.mjs audit`. Every app has them, so this is how an
+   existing app repairs itself: record each missing standard as an `issue.standard.<id>` gate and fix it in this run's
+   build, never deferring it silently ([standards](references/standards.md)). Builds and `submit` refuse without them.
+5. Establish the requested platforms and target state (testing, review, live), monetization, territories
    and release behavior from the owner's words and the ledger's `scope`. Ask only about a consequential
    choice that is genuinely missing. Never import another app's price, claims, IDs or design.
-5. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
-   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume.
-6. Write the intended gates into the ledger, then advance independent work while account verification,
-   provider processing or review is pending.
+6. Assign a unique `APP_RELEASE_RUN_ID` for this invocation. Review unresolved `issue.*` gates and the
+   previous run's issue/fix table; carry their recovery forward rather than forgetting it on resume. Check
+   prior store-rejection lessons and rerun their applicable prevention checks before the next submission.
+7. Write the intended gates into the ledger, then advance independent work while account verification,
+   provider processing or review is pending. Apply the release default below when a status readback
+   shows that the intended App Store build is ready to publish.
 
 For an app that has none of this yet, follow Onboarding a new app in [config](references/config.md).
 
@@ -54,15 +81,19 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | App record | Create or reuse through an authorized signed-in browser or Xcode, verify identity and save `ios.ascAppId` ([ios](references/ios.md)) |
 | Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments — shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
+| App standards | `standards.mjs audit` passes: Send Feedback and the in-app privacy and support links; `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
-| Listing and media | Store data copy, real captures, required sizes ([media](references/media.md)) |
+| Listing and media | Store data copy, real captures, required sizes, an app preview video made from the build going to review, before `submit` ([media](references/media.md)) |
+| Presentation and promotion | Every release, shown by `asc.mjs status` and refused by `submit --confirm` until each has a result or a reason in `promotion.waived`: preview, header and search creative, featuring nomination; also promotional text; when they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
 | iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
-| Update recheck | Recheck existing media and listing copy against the build, supply required device families, and write release notes; optional placements follow the app's plan (Every update in [media](references/media.md)) |
+| Update recheck | Recheck existing media and listing copy against the build, supply every device family, and write release notes (Every update in [media](references/media.md)) |
 | Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
+| Ouro website | Apps on Ouro LLC's team (`ios.teamId` `AYCDG243RJ`): run the `ouro-website` skill once the app record and listing exist, after each submission, on release and whenever the name, subtitle, copy or screenshots change; the store data's `listing.marketingUrl` is the app's page, `https://ouro-apps.vercel.app/<slug>/` |
+| astrojams website | Apps on the personal James Thompson team (`ios.teamId` `CWQ9AWJF8T`): run the `astrojams-website` skill at the same moments; an app with no website of its own uses its page, `https://astrojams-apps.vercel.app/<slug>/`, as the store data's `listing.marketingUrl`, and an app with one keeps it |
 
 **Every update of every app** after the first release: recheck the screenshots, preview, Play graphics and listing
 copy on both stores against the build being submitted (recapture anything the build no longer matches, and record
@@ -76,8 +107,9 @@ gate or claim the owner approved exact wording they have not reviewed.
 Check current official documentation and the actual account for changing rules; dates in references are
 observations, not permanent requirements.
 
-Existing reviewed native projects and installed distribution identities can opt into the tracked-native
-and manual-signing paths in [iOS](references/ios.md), “Reviewed native projects and existing signing.”
+Existing reviewed native projects, bare Xcode apps without Expo or CocoaPods (`ios.project`), teams without
+registered devices (`ios.archiveSigning: "export"`) and installed distribution identities can opt into the
+tracked-native and manual-signing paths in [iOS](references/ios.md), “Reviewed native projects and existing signing.”
 Automatic signing and Expo prebuild remain the defaults.
 
 For simulator/XCTest failures or purchase QA, read “Route XCTest to the designated device set” and
@@ -101,6 +133,8 @@ commit a key, token, password, review phone or bank detail; check access without
 - Continue authorized, reversible work — builds, checks, store data, listing drafts, repository changes —
   without asking. This includes creating app records in an authorized signed-in browser or Xcode session
   ([iOS onboarding](references/ios.md)). A public API limitation does not make the task owner-only.
+- Never ask the owner for the App Review contact or phone: `asc.mjs review-details` reuses the one the team's
+  other apps already hold ([iOS](references/ios.md), “Review contact and API semantics”).
 - Exhaust useful authorized work and supported alternatives before handing work back. A failure blocks
   only the operation it actually prevents: discover available connectors, CLI/API credentials, existing
   sessions and saved artifacts, then keep independent work moving. Do not invent a human dependency
@@ -111,10 +145,27 @@ commit a key, token, password, review phone or bank detail; check access without
   separately from the owner's device state. Resume the known working app/profile/tab and preserve
   session observations across turns ([accounts](references/accounts.md), “Preserve session continuity”);
   do not turn an unchanged connector failure into another owner sign-in request.
+- For an owner-provided review file, reconcile saved artifacts and inspect the supported attachment
+  chooser before building an exporter or handing file transfer back to the owner. Honor an explicit
+  **Attach File** request; see [iOS](references/ios.md), “Attach the owner's recording”.
+- **Never require mirroring.** Mac screen mirroring and iPhone Mirroring are never prerequisites for
+  QA, physical-device checks, recording transfer, submission or release. Never initiate Mirroring setup
+  or ask the owner to enable, unlock or authenticate it as a release dependency; use it only if the
+  owner explicitly chooses it. Preserve completed exact-build owner approval. Use existing owner
+  feedback, owner-provided physical recordings, supported native QA and direct attachment/API routes.
+  If required evidence is genuinely missing, ask narrowly for that evidence; neither Mirroring nor
+  another remote-control tool may become its prerequisite or a missing-evidence gate.
 - Establish authorization for outward-facing steps: uploads, track promotions, listing commits,
-  `submit --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
+  `submit --confirm`, `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
   does not authorize public release.
+- **Finish authorized App Store releases by default.** Treat an unqualified status check on an active,
+  authorized launch or update as a continuation of that release. When App Store Connect shows
+  `PENDING_DEVELOPER_RELEASE`, verify the intended attached build has the required physical-device
+  check and that any app-specific release conditions are met. Use the existing launch authorization
+  to run `asc.mjs release --confirm` in the same invocation, then verify provider state and public
+  availability. Honor explicit read-only requests, holds, release schedules and testing-only scopes.
+  See [iOS release](references/ios.md) for the provider timing and readback.
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,
   tax and banking facts or certifications; identity and device verification; the physical-device check;
   tester recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
@@ -146,6 +197,15 @@ verification. A patch, retry, PR or recorded TODO alone does not close an issue.
 verification evidence, and publish reusable workflow/tool fixes here so later apps inherit them. Follow
 repository PR/review rules and existing authorization; the detailed protocol is in [ledger](references/ledger.md).
 
+For every store rejection or information request, preserve the reviewer's actual reason and establish
+the root cause before changing the app or resubmitting. Once established, correct this app **and update
+this shared skill to prevent the same cause recurring**: add the appropriate preflight check (as `submit`
+refuses a Kids Category app whose saved notes skip the Guideline 1.3 questions), regression test, scoped
+checklist or evidence requirement, then verify it. Keep app-specific facts in the app's
+records; publish reusable guidance/tooling here, record the lesson and its adoption status, and apply it
+to later submissions. Follow the rejection recovery loop in [ledger](references/ledger.md). A skill
+change and a successful resubmission are separate results; neither proves Apple approval.
+
 Before declaring the run complete, reconcile the command/test/provider results with the issue log and
 run `node $S/ledger.mjs issues`. It must pass alongside ledger validation and view checks. Fixable issues
 cannot be left as follow-up work just to finish the run. A demonstrated external dependency stays open
@@ -155,14 +215,18 @@ with attempts, owner, exact dependency and next action; report the run as partia
 
 When the owner asks to change how releases work — in any app repository, even when they name only that
 app's skill — or a run teaches something worth keeping, first decide where the change belongs and say so:
-true of every app goes **here** (the skills repository's `skills/app-release/`, on a branch with tests,
+reusable across apps or conditional on an app type goes **here** (the skills repository's
+`skills/app-release/`, on a branch with tests,
 then each app's submodule is bumped); a fact or choice of one app goes in that app's config, store data or
 repository skill; a mix is split. Never edit a discovery copy or the submodule checkout in place. The
 procedure, including checking every app that uses this skill, is in [maintaining](references/maintaining.md).
 
 ## Finish
 
-Complete the issue reconciliation and closure check above first. Do not equate a valid ledger or a
+Complete the issue reconciliation and closure check above first. For an Ouro LLC app, run the `ouro-website`
+skill before reporting, and for an app on the personal team (`CWQ9AWJF8T`) the `astrojams-website` skill, so the
+website matches what this run changed (a new record, a submission, a release, new copy or screenshots), and say
+what it updated. Do not equate a valid ledger or a
 successful store upload with a clean run; say which encountered issues were fixed and how verified.
 Report what is saved, uploaded, processed, in review, approved and live — separately, per store — with links
 to the ledger and artifacts. Show available design previews inline, clearly distinguishing them from
