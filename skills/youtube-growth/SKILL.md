@@ -2,7 +2,7 @@
 name: youtube-growth
 description: Follow up on every Short the owner posts and grow the channel — read each Short's metrics at 3, 7 and 28 days (YouTube Analytics API once connected, YouTube Studio otherwise), judge hook, retention and reach against the channel's own numbers, decide per series format whether to double down, iterate or retire, turn comments into the next episodes, pin comment prompts once Shorts go live, keep one experiment running at a time, and keep the channel clear of YouTube's spam and inauthentic-content policies. Use when the owner asks how the Shorts or the channel are doing, how to get more views or subscribers, or about YouTube analytics; when app-shorts' `due` lists reads or go-lives; weekly for the channel review; and to connect the YouTube APIs.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   ledger: ledger/LEDGER.md
 ---
 
@@ -65,8 +65,9 @@ list of dated snapshots. Decisions come from `scripts/evaluate.mjs` with thresho
 - **Never chase numbers with volume or sameness.** The spam policy removes channels that mass-produce similar
   videos; the inauthentic-content policy demonetises templated ones (`references/policy.md`). More distinct ideas,
   not more copies.
-- **The owner's channel acts as the owner.** Reading is free; pinning, replying, editing metadata, uploading and
-  channel settings follow the owner's go-ahead (a standing request to "post the series" covers its pins).
+- **The owner's channel acts as the owner.** Reading is free. Uploading, pinning and editing metadata on a released
+  app's Shorts are covered by the standing instruction in `app-shorts`; replying and channel settings follow the
+  owner's go-ahead.
 
 ## Gotchas
 

@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.0.2"
+  version: "1.1.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -31,6 +31,12 @@ Apps are not marketed alike. Each profile says who the audience is, why the app 
 attention into downloads, its `rules` and the owner's `decisions`. **Read the profile before touching an app, and let
 its rules beat anything here.** A game sells by being watched, a paid utility by a founder story and a daily artifact, a
 child's app by a parent's trust. An idea that fits one app is usually wrong for another.
+
+**Every released app runs a full campaign, unasked.** The owner's standing instruction (2026-11-06): every app live on
+the App Store on either team (Ouro and the personal James Thompson team) gets a profile and works every open channel,
+YouTube Shorts included, and the owner does not approve each one. Each run compares the live apps in both sites'
+`store.json` with `marketing/apps/`, and writes the missing profile as that run's first item. Closed channels stay
+closed.
 
 To add an app, write `marketing/apps/<id>.json`: `check` validates it and `next` starts offering its items. Backlogs
 are living documents: when an idea appears, add it with honest `impact` and `effort` (1 to 5).
