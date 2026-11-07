@@ -123,7 +123,7 @@ need no migration. Independent scenarios confirm direct UI, saved-artifact and
 API routes without weakening evidence, authority or resubmission checks. Actual
 provider release and consumer adoption are not claimed by this source snapshot.
 
-## app-release 2.18.2: explain Apple app creation at onboarding
+## app-release 2.7.3: explain Apple app creation at onboarding
 
 - [x] Put the known public API boundary and first-update explanation in the entrypoint.
 - [x] Keep detailed iOS routing sourced and separate bundle IDs, app records, credentials and UI availability.
