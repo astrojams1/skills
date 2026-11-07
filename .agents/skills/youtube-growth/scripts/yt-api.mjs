@@ -12,6 +12,8 @@
 //                                               to add to 1Password, for a read-only service account
 //   node yt-api.mjs pull [--registry PATH]      analytics for every Short the registry says is due a read (or --videos a,b)
 //   node yt-api.mjs comments --video ID         newest comment threads on one video, as JSON
+//   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
+//   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt)
 //
 // Scopes: youtube.readonly and yt-analytics.readonly (analytics needs both), youtube.force-ssl (comments) and
@@ -112,6 +114,35 @@ export function uploadRequest(episode, now = new Date()) {
   };
 }
 
+// The comments a run should consider answering: top-level, not the channel's own, with no reply from the channel.
+export function unansweredThreads(threads, ownerChannelId) {
+  const byOwner = c => c.snippet.authorChannelId?.value === ownerChannelId;
+  return threads.filter(t => !byOwner(t.snippet.topLevelComment) && !(t.replies?.comments ?? []).some(byOwner))
+    .map(t => ({ id: t.id, at: t.snippet.topLevelComment.snippet.publishedAt, author: t.snippet.topLevelComment.snippet.authorDisplayName,
+      text: t.snippet.topLevelComment.snippet.textOriginal, likes: t.snippet.topLevelComment.snippet.likeCount }));
+}
+
+// A reply is short plain text: links read as spam on YouTube and get held or removed.
+export function replyRequest(parentId, text) {
+  const body = (text ?? '').trim();
+  if (!parentId) throw new Error('--parent ID is required');
+  if (!body) throw new Error('--text is required');
+  if (body.length > 300) throw new Error(`A reply is at most 300 characters; this is ${body.length}`);
+  if (/https?:\/\/|www\./i.test(body)) throw new Error('A reply carries no links');
+  return { snippet: { parentId, textOriginal: body } };
+}
+
+const ownChannelId = async token => (await api(token, 'https://www.googleapis.com/youtube/v3/channels?part=id&mine=true')).items?.[0]?.id;
+const threadsUrl = query => `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&${query}`;
+
+async function postReply(token, request) {
+  const res = await fetch('https://www.googleapis.com/youtube/v3/comments?part=snippet', { method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(request) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Reply failed: ${body.error?.message ?? res.status}`);
+  return { id: body.id, parentId: request.snippet.parentId };
+}
+
 async function upload(token, episode) {
   const body = uploadRequest(episode);
   const bytes = readFileSync(episode.file);
@@ -177,9 +208,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (command === 'check') {
       const item = readItem();
       const present = Object.fromEntries(['client id', 'client secret', 'refresh token'].map(l => [l, Boolean(field(item, l))]));
-      let works = false;
-      if (Object.values(present).every(Boolean)) { await accessToken(); works = true; }
-      console.log(JSON.stringify({ item: Boolean(item), ...present, works }));
+      let works = false, canReply = false;
+      if (Object.values(present).every(Boolean)) {
+        const token = await accessToken();
+        works = true;
+        const info = await (await fetch('https://oauth2.googleapis.com/tokeninfo', { method: 'POST', body: new URLSearchParams({ access_token: token }) })).json();
+        canReply = (info.scope ?? '').split(' ').includes('https://www.googleapis.com/auth/youtube.force-ssl');
+      }
+      console.log(JSON.stringify({ item: Boolean(item), ...present, works, canReply }));
     } else if (command === 'auth') {
       await authFlow({ printUrl: args.includes('--print-url'), tokenFile });
     } else if (command === 'pull') {
@@ -207,6 +243,25 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ...(result.publishAt ? {} : { postedAt: new Date().toISOString() }) });
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'unanswered') {
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const token = await accessToken(), owner = await ownChannelId(token), found = [], skipped = [];
+      for (const e of registry.episodes.filter(x => x.status === 'live' && x.videoId)) {
+        try {
+          const body = await api(token, threadsUrl(`order=time&maxResults=50&videoId=${encodeURIComponent(e.videoId)}`));
+          for (const c of unansweredThreads(body.items, owner)) found.push({ episode: e.id, app: e.app, videoId: e.videoId, ...c });
+        } catch (error) { skipped.push({ videoId: e.videoId, reason: error.message }); } // comments off on one video stops nothing
+      }
+      console.log(JSON.stringify({ unanswered: found, skipped }, null, 2));
+    } else if (command === 'reply') {
+      const parent = option('--parent', null), text = option('--text', null), confirm = args.includes('--confirm');
+      const request = replyRequest(parent, text);
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
+      const token = await accessToken();
+      const thread = await api(token, threadsUrl(`id=${encodeURIComponent(parent)}`));
+      if (!thread.items?.length) throw new Error(`No comment thread "${parent}"`);
+      if (!unansweredThreads(thread.items, await ownChannelId(token)).length) throw new Error(`${parent} is already answered`);
+      console.log(JSON.stringify(await postReply(token, request)));
     } else if (command === 'comments') {
       if (!video) throw new Error('--video ID is required');
       const token = await accessToken();
@@ -215,7 +270,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|upload --episode ID [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {
