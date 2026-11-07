@@ -1,0 +1,9 @@
+{
+  "roots": ["/Volumes/ssd/code", "/Volumes/ssd/projects", "/Users/astro/code", "/Users/astro/projects"],
+  "maxDepth": 4,
+  "owners": ["astrojams1"],
+  "quietDays": 3,
+  "recheckDays": 28,
+  "maxWorkedPerRun": 10,
+  "junk": ["node_modules", ".DS_Store"]
+}
