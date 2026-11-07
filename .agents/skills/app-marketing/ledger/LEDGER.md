@@ -15,6 +15,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.3.0 | 2026-11-06 | The Mac pass answers up to five YouTube comments a run | The owner wants comment replies running unattended |
 | 1.4.0 | 2026-11-07 | Store listing text and data are this skill's call and merge without asking; a repository rule holding them is changed in the same PR | The Mac pass held Space Worms keywords in a draft for the owner, who said these are decisions to make without them |
 | 1.4.1 | 2026-11-07 | `pull` tracks report instances by processing date (`processedThrough`), so a pull counts each instance once | It compared processing dates with the last data day, so every pull re-added the newest instance: a second pull on 2026-11-07 took Newsworthy from 3 to 5 with no new data |
+| 1.5.0 | 2026-11-07 | Developer tools get a Show HN. `marketing.mjs hn` checks earlier submissions and enforces one post a month across all apps, at most one repost and none after real attention. The Mac pass posts only a link and title from the owner's signed-in account, never comments or votes, and leaves the thread to the owner | The owner asked for developer tools to go to Hacker News. Told that Hacker News asks for no automated posting, they chose to have the skill post itself |
 
 ## Lessons
 

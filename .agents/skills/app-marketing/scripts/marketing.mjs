@@ -12,6 +12,7 @@
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs pull [--write]               Mac only: App Store downloads and page views through Apple's API
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
+//   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md from the ledger
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
@@ -82,8 +83,75 @@ export function profileProblems(profile, name = profile.id) {
     if (item.requires && !STAGES.includes(item.requires)) problems.push(`${label}: requires must be a stage`);
     if (item.repeat_days !== undefined && !(item.repeat_days > 0)) problems.push(`${label}: repeat_days must be positive`);
   }
+  if (profile.hackerNews !== undefined) {
+    const hn = profile.hackerNews;
+    if (!/^https:\/\//.test(hn.url || '')) problems.push(`${name}: hackerNews.url must be an https URL`);
+    if (!hn.tryIt) problems.push(`${name}: hackerNews.tryIt must say how someone tries it without signing up`);
+    problems.push(...hnTitleProblems(hn.title).map(p => `${name}: hackerNews.title ${p}`));
+  }
   return problems;
 }
+
+// ---- Hacker News ----
+// Show HN rules (news.ycombinator.com/showhn.html and /newsguidelines.html): the maker posts it and is around to
+// discuss it, people can try it without signing up, the title is plain, nobody is asked to vote or comment, reposts
+// are fine only when the earlier one got no real attention in the last year, and posting is not automated. The owner
+// chose on 2026-11-07 to have the Mac pass post anyway, so this keeps each post to what HN asks of a person: it decides
+// whether a submission is due and builds HN's own pre-filled form, and the run submits only a link and a title.
+
+const HN_TITLE_MAX = 80;
+const HN_ATTENTION = { points: 10, comments: 5 };
+const HN_GAP_DAYS = 30;      // one post across all apps per month: own work "part of the time"
+const HN_REPOST_DAYS = 14;   // a repost waits at least two weeks after the last submission
+const HN_PER_YEAR = 2;       // the first post and at most one repost per app in any 365 days
+
+// hnTitleProblems returns what is wrong with a Show HN title.
+export function hnTitleProblems(title) {
+  if (!title) return ['is missing'];
+  const problems = [];
+  if (!title.startsWith('Show HN: ')) problems.push('must start with "Show HN: "');
+  if (title.length > HN_TITLE_MAX) problems.push(`is over ${HN_TITLE_MAX} characters`);
+  if (/!/.test(title)) problems.push('has an exclamation mark');
+  if (title.replace(/^Show HN: /, '').split(/\s+/).some(w => /^[A-Z]{5,}$/.test(w))) problems.push('shouts a word in capitals');
+  if (/\b(best|ultimate|revolutionary|amazing|game[- ]chang\w*|#1|blazing)\b/i.test(title)) problems.push('has hype words');
+  return problems;
+}
+
+// hnStories keeps the stories that are this app's: its URL, or a Show HN naming it.
+export function hnStories(profile, hits) {
+  const strip = u => String(u || '').toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/[/?#]+$/, '');
+  const url = strip(profile.hackerNews?.url);
+  const name = profile.name.toLowerCase();
+  const seen = new Set();
+  return hits.filter(h => {
+    if (seen.has(h.objectID)) return false;
+    seen.add(h.objectID);
+    const title = String(h.title || '').toLowerCase();
+    return (url && strip(h.url) === url) || (title.startsWith('show hn') && title.includes(name));
+  }).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+}
+
+// hnVerdict says whether this app's Show HN is due now, from its profile, its stories on HN and the ledger.
+export function hnVerdict(profile, stories, events, now = Date.now()) {
+  const no = reason => ({ due: false, reason });
+  if (!profile.hackerNews) return no('not marked as a developer tool for Hacker News (no hackerNews in the profile)');
+  if (profile.stage !== 'live') return no('not live yet: Show HN is for things people can try now');
+  const posts = events.filter(e => e.event === 'action' && e.channel === 'hacker-news' && e.status === 'ok');
+  const lastPost = posts[posts.length - 1];
+  if (lastPost && now - Date.parse(lastPost.ts) < HN_GAP_DAYS * DAY) {
+    return no(`a Hacker News post (${lastPost.app}) was ${Math.floor((now - Date.parse(lastPost.ts)) / DAY)} days ago; one a month across all apps`);
+  }
+  const recent = stories.filter(s => now - Date.parse(s.created_at) < 365 * DAY);
+  const noticed = recent.find(s => s.points >= HN_ATTENTION.points || s.num_comments >= HN_ATTENTION.comments);
+  if (noticed) return no(`already discussed: news.ycombinator.com/item?id=${noticed.objectID} (${noticed.points} points, ${noticed.num_comments} comments)`);
+  if (recent.length >= HN_PER_YEAR) return no(`submitted ${recent.length} times in the last year; no more reposts`);
+  const newest = recent[recent.length - 1];
+  if (newest && now - Date.parse(newest.created_at) < HN_REPOST_DAYS * DAY) return no(`submitted ${Math.floor((now - Date.parse(newest.created_at)) / DAY)} days ago; a repost waits ${HN_REPOST_DAYS} days`);
+  return { due: true, repost: recent.length > 0, reason: recent.length ? 'the earlier submission got no real attention, so one repost is allowed' : 'never submitted' };
+}
+
+// hnSubmitLink is Hacker News's own pre-filled submit form, opened in the owner's signed-in browser.
+export const hnSubmitLink = (url, title) => `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}&t=${encodeURIComponent(title)}`;
 
 // itemState derives a backlog item's state from the ledger. Only an `action` can change it: a `finding` that mentions
 // an item ("passed over it today") is commentary. The newest action decides: `ok` finishes it
@@ -396,6 +464,32 @@ export function renderBoard(profiles, events, metrics) {
   return lines.join('\n') + '\n';
 }
 
+async function cmdHn(root, args) {
+  const profile = loadProfiles(root).find(p => p.id === args.app);
+  if (!profile) throw new Error('Pass --app with an app id from marketing/apps/');
+  let stories = [];
+  if (profile.hackerNews) {
+    const search = async params => {
+      const response = await fetch(`https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=50&${params}`);
+      if (!response.ok) throw new Error(`Hacker News search answered ${response.status}; try again later`);
+      return (await response.json()).hits;
+    };
+    const url = profile.hackerNews.url.replace(/^https?:\/\/(www\.)?/, '');
+    const hits = [
+      ...await search(`query=${encodeURIComponent(url)}&restrictSearchableAttributes=url`),
+      ...await search(`query=${encodeURIComponent(profile.name)}`)
+    ];
+    stories = hnStories(profile, hits);
+  }
+  const verdict = hnVerdict(profile, stories, loadEvents(root));
+  const out = { app: profile.id, ...verdict, stories: stories.map(s => ({ id: s.objectID, at: s.created_at, title: s.title, points: s.points, comments: s.num_comments })) };
+  if (verdict.due) Object.assign(out, { title: profile.hackerNews.title, url: profile.hackerNews.url, tryIt: profile.hackerNews.tryIt, submit: hnSubmitLink(profile.hackerNews.url, profile.hackerNews.title) });
+  if (args.json) return console.log(JSON.stringify(out, null, 2));
+  console.log(`${profile.name}: ${verdict.due ? 'due' : 'not due'}: ${verdict.reason}`);
+  for (const s of out.stories) console.log(`  ${s.at.slice(0, 10)}  ${s.points} points, ${s.comments} comments  https://news.ycombinator.com/item?id=${s.id}  ${s.title}`);
+  if (verdict.due) console.log(`  ${out.title}\n  ${out.url}\n  submit: ${out.submit}`);
+}
+
 function cmdBoard(root) {
   writeFileSync(join(dirOf(root), 'LEDGER.md'), renderBoard(loadProfiles(root), loadEvents(root), loadMetrics(root)));
   console.log('wrote marketing/LEDGER.md');
@@ -437,7 +531,7 @@ async function main() {
   const root = rootOf(args);
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root), next: () => cmdNext(root, args), log: () => cmdLog(root, file),
-    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args),
+    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args),
     board: () => cmdBoard(root), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
