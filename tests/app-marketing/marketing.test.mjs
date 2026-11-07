@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { processedThrough, downloadRows, eventProblems, itemState, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, eventProblems, itemState, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const DAY = 86400000;
 const NOW = Date.parse('2026-11-05T12:00:00Z');
@@ -113,4 +113,44 @@ test('processedThrough tracks report instances, not the days inside them', () =>
   assert.equal(processedThrough(metrics, 'a'), '2026-11-07');
   assert.equal(processedThrough(metrics, 'b'), '2026-11-02');
   assert.equal(processedThrough(metrics, 'c'), undefined);
+});
+
+const hn = { url: 'https://example.com/tool', title: 'Show HN: Tool – a log viewer for the terminal', tryIt: 'Free download' };
+const story = (days, extra) => ({ objectID: String(days), created_at: ago(days), title: 'Show HN: Tool', url: 'https://example.com/tool', points: 2, num_comments: 0, ...extra });
+
+test('a hackerNews profile needs a plain Show HN title, an https URL and a way to try it', () => {
+  assert.deepEqual(profileProblems(profile({ hackerNews: hn })), []);
+  assert.deepEqual(profileProblems(profile()), []);
+  const problems = profileProblems(profile({ hackerNews: { url: 'http://x', title: 'The best FASTER tool ever!' } }));
+  for (const bit of ['https', 'tryIt', 'Show HN', 'exclamation', 'capitals', 'hype']) assert.ok(problems.some(p => p.includes(bit)), bit);
+  assert.ok(hnTitleProblems('Show HN: ' + 'x'.repeat(80)).some(p => p.includes('80')));
+});
+
+test('only Show HN stories naming the app, or its URL, count as its stories', () => {
+  const hits = [
+    story(3), story(3),
+    { objectID: 'b', created_at: ago(1), title: 'Tool time in the garden', url: 'https://other.org', points: 50, num_comments: 9 },
+    { objectID: 'c', created_at: ago(2), title: 'Something', url: 'http://www.example.com/tool/', points: 1, num_comments: 0 }
+  ];
+  assert.deepEqual(hnStories(profile({ name: 'Tool', hackerNews: hn }), hits).map(s => s.objectID), ['3', 'c']);
+});
+
+test('Show HN is due once for a live developer tool, and never spammed', () => {
+  const app = profile({ hackerNews: hn });
+  assert.equal(hnVerdict(profile(), [], [], NOW).due, false);
+  assert.equal(hnVerdict(profile({ hackerNews: hn, stage: 'prelaunch' }), [], [], NOW).due, false);
+  assert.deepEqual(hnVerdict(app, [], [], NOW), { due: true, repost: false, reason: 'never submitted' });
+  // one post a month across every app
+  assert.match(hnVerdict(app, [], [event({ app: 'other', channel: 'hacker-news', ts: ago(10) })], NOW).reason, /one a month/);
+  assert.equal(hnVerdict(app, [], [event({ app: 'other', channel: 'hacker-news', ts: ago(31) })], NOW).due, true);
+  // a story with real attention ends it for a year; a quiet one allows one repost after two weeks
+  assert.match(hnVerdict(app, [story(100, { points: 40 })], [], NOW).reason, /already discussed/);
+  assert.equal(hnVerdict(app, [story(400, { points: 40 })], [], NOW).due, true);
+  assert.match(hnVerdict(app, [story(5)], [], NOW).reason, /waits 14 days/);
+  assert.deepEqual(hnVerdict(app, [story(20)], [], NOW).repost, true);
+  assert.match(hnVerdict(app, [story(200), story(20)], [], NOW).reason, /no more reposts/);
+});
+
+test('the submit link is Hacker News\'s own pre-filled form', () => {
+  assert.equal(hnSubmitLink('https://a.b/c?d=1', 'Show HN: A & B'), 'https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fa.b%2Fc%3Fd%3D1&t=Show%20HN%3A%20A%20%26%20B');
 });

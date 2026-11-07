@@ -16,6 +16,7 @@ released app works the open channels without asking; a new app needs no go-ahead
 | Search guides | cloud | Compounding traffic from people already looking. Slow: judge at 8 weeks, not 8 days |
 | llms.txt and structured data | cloud | What assistants read when someone asks what to play or install. Generated, so it stays true |
 | Press page | cloud | Inbound only: makes it easy for anyone who finds the app to write about it |
+| Show HN (developer tools only) | mac | Hacker News readers write software. The run checks earlier submissions and limits with `marketing.mjs hn`, then posts a link and title from the owner's signed-in account; the owner answers the thread. Opened by the owner on 2026-11-07: "for any apps that were marketing which are developer tools that might be interesting to a hacker news audience, we should post a link to hacker news", and "Skill posts it itself" once told Hacker News asks for no automated posting. See [Hacker News](hacker-news.md) |
 
 ## Closed until the owner opens them
 
@@ -25,7 +26,7 @@ wait for them. To open one, the owner says so in chat, naming the channel; recor
 | Channel | What it would need |
 |---|---|
 | Press and creator pitches by email | Permission to email chosen recipients from the owner's address |
-| Reddit, Hacker News, Product Hunt, TikTok, Instagram, X, Discord | An account the owner already has, and permission to post as them. Never create one |
+| Reddit, Hacker News (except the Show HN above), Product Hunt, TikTok, Instagram, X, Discord | An account the owner already has, and permission to post as them. Never create one |
 | Game directories and web portals | Permission to submit forms, and an existing account where one is required |
 | Apple Ads | A monthly cap |
 | Free weekend (Newsworthy) | The owner's decision on the price |
