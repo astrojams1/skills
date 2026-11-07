@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series — one registry for both App Store teams (Ouro and the personal James Thompson team), a series format per app, fresh recordings of the real app with rehearsed inputs, a 10–20 s edit with a hook, a real payoff and sound, posting and scheduling on the owner's channel through YouTube Studio (or the API once connected), and links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode. Pair with youtube-growth for the follow-up.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -61,8 +61,8 @@ that connects them for every app.
 - **Every released app gets a series, without asking.** The owner's standing instruction (2026-11-06): every app live
   on the App Store on either team runs Shorts, and the owner does not approve each one. Starting a new app or series,
   posting and scheduling need no go-ahead; an app not yet live waits for its release. Do not park an episode for
-  approval. Only channel settings (links, handle, branding) need the owner's go-ahead. Never create accounts or
-  channels.
+  approval. Channel settings (links, description, handle, branding) need no go-ahead either: log the old value so a
+  change can be undone. Never create accounts or channels.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
 - **Parents are the audience, not children.** Mark Shorts "not made for kids" unless the video really is for
   children; never film children.

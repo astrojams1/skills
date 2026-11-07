@@ -7,8 +7,8 @@ instruction in `SKILL.md`), so post without asking, and record every post in the
 
 One channel for every app: the owner's (James Thompson, `UC53mA8GZ4A4103xsTvuPn5w`), which already carries
 Newsworthy, Giraffe Stretch, Pipsqueak and Füd Shorts. Check the signed-in channel on the Studio dashboard before
-the first upload of a run. Never create channels or change channel settings (links, handle, branding) without the
-owner's go-ahead.
+the first upload of a run. Channel settings (links, handle, branding) may change without asking; log the old value first
+so a change can be undone. Never create channels.
 
 ## Through YouTube Studio in Chrome (works today)
 

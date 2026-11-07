@@ -12,6 +12,7 @@ released app works the open channels without asking; a new app needs no go-ahead
 | Featuring nominations | mac | Free, and indie apps are eligible. Three weeks' notice, for real updates only |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |
 | Review replies | mac | Factual and brief. They show on the product page |
+| YouTube comment replies and channel settings | mac | The owner's own channel, by `youtube-growth` and `app-shorts`. Replies are factual and brief; a settings change logs the old value |
 | Search guides | cloud | Compounding traffic from people already looking. Slow: judge at 8 weeks, not 8 days |
 | llms.txt and structured data | cloud | What assistants read when someone asks what to play or install. Generated, so it stays true |
 | Press page | cloud | Inbound only: makes it easy for anyone who finds the app to write about it |
