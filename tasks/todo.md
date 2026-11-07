@@ -878,3 +878,13 @@ Plan: add a verified rejection-to-prevention loop in the shared skill while keep
 - [x] Prepare the verified source for publication; track actual PR/delivery/adoption state in the app and activity ledgers.
 
 Review:182 release,65 management,145 specification,identity,8 image-fit and5 YouTube checks pass; one existing ffmpeg-dependent check skips. Independent scenarios found two wording ambiguities, both corrected and rechecked. Missing validator PyYAML was recovered in an isolated SSD environment; the original validator passes. All ten consumer configurations need no migration.
+
+## Warm lead followup skill and cloud runner 2026-11-03
+
+- [x] Read conventions and actual Pipsqueak email threads; establish sending authority.
+- [x] Create reusable skill, app profile, private ledger contract and local activity helper.
+- [x] Independently review behavior and run required repository checks; image-fit rerun passed after isolated dependency setup.
+- [x] Create private cloud lead ledger, deploy and verify hosted schedule and the first actual cloud execution.
+- [x] Publish the skill branch and reviewable [PR #123](https://github.com/astrojams1/skills/pull/123); install locally.
+
+Review: Read two existing lead threads and recorded the actionable state in a private cloud ledger. Existing team followups already cover the current next steps; no setup email is due. Live contacts and message IDs remain outside Git. First hosted execution verified the intended mailbox, reread both tracked threads, persisted complete activity events, and correctly sent no duplicate messages.

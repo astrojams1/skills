@@ -38,6 +38,11 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/{content,assets}.md         # Catalog fields and copy rules; icon and screenshot sourcing
     scripts/audit.mjs                      # App Store Connect team audit against the site's catalog (Node 22, no deps)
     ledger/LEDGER.md                       # Versions and lessons
+  warm-lead-followup/
+    SKILL.md                               # Email-led warm app lead and expert coordination
+    references/{apps,ledger,cloud}.md       # App profiles, durable state and hosted scheduling
+    assets/pipsqueak.json                  # Inactive app profile; live deployment stays private
+    scripts/activity_ledger.py             # Shared locked activity JSONL writer
   research-paper/
     SKILL.md                               # Repo -> arXiv-ready paper, 20 staged artifacts
     references/{stages,literature,decisions,reviews}.md  # Stage playbook, lit search, decision menus, review rubrics
