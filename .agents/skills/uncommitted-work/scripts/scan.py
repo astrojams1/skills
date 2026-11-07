@@ -48,10 +48,11 @@ def find_checkouts(roots, depth):
     return sorted(found)
 
 
-def status_entries(path):
+def status_entries(path, every_file=False):
     """(code, file) pairs from git status. Submodule pointers show as plain modified files."""
     entries = []
-    raw = git(path, "status", "--porcelain", "-z").split("\0")
+    args = ["--untracked-files=all"] if every_file else []
+    raw = git(path, "status", "--porcelain", "-z", *args).split("\0")
     index = 0
     while index < len(raw):
         item = raw[index]
@@ -174,14 +175,15 @@ def close(path, home, junk):
     meta = latest_archive(path, home)
     if not meta or meta["fingerprint"] != fingerprint(path, junk):
         raise SystemExit("refused: no current backup of " + str(path) + "; run archive first")
-    names = untracked(path, junk)
-    git(path, "reset", "-q", "--hard", "HEAD", check=True)
-    for name in names:
+    # Untracked files go first: one can share a name with a file a staged delete took out of the index,
+    # and removing it after the reset would delete the file the reset just restored.
+    for name in untracked(path, junk):
         target = Path(path, name)
         if target.is_file() or target.is_symlink():
             target.unlink()
+    git(path, "reset", "-q", "--hard", "HEAD", check=True)
     git(path, "submodule", "update", "--init", "--quiet")
-    left = [e for e in status_entries(path) if not is_junk(e[1], junk)]
+    left = [e for e in status_entries(path, every_file=True) if not is_junk(e[1], junk)]
     if left:
         raise SystemExit("still dirty after close: " + json.dumps(left))
 

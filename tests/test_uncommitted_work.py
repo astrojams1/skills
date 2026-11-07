@@ -79,6 +79,21 @@ class Repo(unittest.TestCase):
         self.assertTrue((self.repo / "secret.env").exists())
         self.assertTrue((self.repo / ".DS_Store").exists())
 
+    def test_close_restores_a_file_whose_delete_was_staged(self):
+        sh(self.repo, "rm", "-q", "--cached", "a.txt")  # now untracked on disk, but still in HEAD
+        scan.archive(self.repo, self.home, JUNK)
+        scan.close(self.repo, self.home, JUNK)
+        self.assertEqual((self.repo / "a.txt").read_text(), "one\n")
+        self.assertEqual(scan.status_entries(self.repo), [])
+
+    def test_close_accepts_junk_left_in_a_scratch_folder(self):
+        (self.repo / "scratch").mkdir()
+        (self.repo / "scratch" / "out.json").write_text("x\n")
+        (self.repo / "scratch" / ".DS_Store").write_text("x\n")
+        scan.archive(self.repo, self.home, JUNK)
+        scan.close(self.repo, self.home, JUNK)
+        self.assertFalse((self.repo / "scratch" / "out.json").exists())
+
     def test_stash_backup_keeps_each_stash(self):
         self.dirty()
         sh(self.repo, "stash", "push", "-q", "-u", "-m", "park")

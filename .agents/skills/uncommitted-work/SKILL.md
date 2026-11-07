@@ -2,7 +2,7 @@
 name: uncommitted-work
 description: Find uncommitted changes and stashes left in every local Git checkout and worktree, decide whether each should ship or close, then merge it through a PR or back it up and clear it. Use for the weekly local cleanup, or when asked to audit, triage or clean up uncommitted, dirty, stashed or forgotten local work across repositories.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Uncommitted work
@@ -19,7 +19,9 @@ repositories, create and merge PRs for work worth keeping, and clear the rest
 without asking first. It covers this cleanup only:
 
 - No store submissions, public releases, manual deploys or unrelated changes.
-- No new GitHub repositories. No changes to repositories the owner doesn't own.
+- No new GitHub repositories. No changes to repositories outside `owners` in
+  `assets/scope.json`. `wendigo124` is listed because the owner authors and merges
+  the Füd work in `wendigo124/FSRN_Subs`.
 - Repository rules and approval holds outrank this skill.
 
 An unattended run never waits for the owner. Anything that needs them stays as
