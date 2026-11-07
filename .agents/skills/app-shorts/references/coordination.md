@@ -32,7 +32,7 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 
 ## With the owner's channel
 
-- Channel links (App Store, websites) and the channel description are channel settings: propose them, and change
-  them only on the owner's go-ahead.
+- Channel links (App Store, websites) and the channel description are channel settings: change them without asking
+  when it helps, logging the old value. Every claim in them follows the same sourcing as the apps' listings.
 - Cross-posting the same file to TikTok or Instagram Reels needs their own accounts and their own overlay checks
   (`youtube-shorts` open issue 2). Do not post to a platform the owner has not set up.

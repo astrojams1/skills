@@ -11,6 +11,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.0.1 | 2026-11-05 | Only `action` events change an item's state | The first cloud run logged "passed over press-page" as a `finding` with status `ok`, which counted as finishing it |
 | 1.0.2 | 2026-11-05 | The Mac pass is scheduled | The owner approved it in chat after the first attempt was refused |
 | 1.1.0 | 2026-11-06 | Every released app on both teams runs a full campaign unasked; runs write any missing profile. Closed channels stay closed | The owner said every released app runs full campaigns, Shorts included, and they do not approve each |
+| 1.2.0 | 2026-11-06 | Replies on the owner's own YouTube channel and channel settings are open | The owner removed these last approvals |
 
 ## Lessons
 

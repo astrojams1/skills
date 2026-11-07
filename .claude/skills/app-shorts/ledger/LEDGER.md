@@ -10,6 +10,7 @@ app's repository; each run in the owner's activity ledger.
 |---|---|---|---|
 | 1.0.0 | 2026-11-04 | Initial skill: registry and calendar (`shorts.mjs`), formats, recording rig, Studio posting procedure, coordination with app-release, the App Store and the websites. | The owner asked for the Füd Shorts work to become a skill for every app on both teams, with a follow-up skill (`youtube-growth`) to grow the channel. |
 | 1.1.0 | 2026-11-06 | Standing go-ahead: every released app on either team gets Shorts with no approval per app, series or episode; an independent reviewer checks the final cut. Channel settings stay with the owner. | The Mac pass parked Nametag's Shorts waiting for a go-ahead. The owner said every released app runs full campaigns, Shorts included, and they do not approve each. |
+| 1.2.0 | 2026-11-06 | Channel settings (links, description, handle, branding) need no go-ahead; the old value is logged. | The owner removed this last approval. |
 
 ## Runs
 

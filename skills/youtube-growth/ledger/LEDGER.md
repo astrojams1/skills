@@ -9,6 +9,7 @@ app-shorts registry; each run goes in the owner's activity ledger.
 |---|---|---|---|
 | 1.0.0 | 2026-11-04 | Initial skill: reads at 3, 7 and 28 days; `evaluate.mjs` with sourced `rules.json` (channel quantiles, low-confidence fallbacks); `yt-api.mjs` (OAuth into 1Password, analytics, comments, upload and scheduling); API, metrics and policy references from research dated 2026-11-04. | The owner asked for a skill that follows up on every Short and works to maximise the channel's metrics across all apps. |
 | 1.0.1 | 2026-11-06 | Uploads, pins and metadata edits on a released app's Shorts follow the standing instruction in `app-shorts`. | The owner does not approve each app's Shorts. |
+| 1.1.0 | 2026-11-06 | Comment replies and channel settings need no go-ahead. | The owner removed these last approvals. |
 
 ## Experiments
 
