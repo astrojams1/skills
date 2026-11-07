@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { archiveProvenance, claim, finish, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
-import { liveVersion, occupancy, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
+import { liveVersion, occupancy, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
 const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
 const submission = (id, state) => ({ id, attributes: { state } });
@@ -40,6 +40,11 @@ test('unattended submit refuses anything approval would not release', () => {
     const draft = version('b', '1.1', 'PREPARE_FOR_SUBMISSION', '2026-02-01', type);
     assert.match(unattendedSubmitRefusal(draft, [live, draft], []), /AFTER_APPROVAL/);
   }
+});
+
+test('no run submits a version approval would not release', () => {
+  assert.equal(releaseTypeRefusal(version('d', '1.1', 'PREPARE_FOR_SUBMISSION', '2026-02-01')), null);
+  assert.match(releaseTypeRefusal(version('d', '1.1', 'PREPARE_FOR_SUBMISSION', '2026-02-01', 'MANUAL')), /AFTER_APPROVAL/);
 });
 
 test('unattended submit may fill its own draft submission but not an unresolved one', () => {

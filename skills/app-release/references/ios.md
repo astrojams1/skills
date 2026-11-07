@@ -81,9 +81,8 @@ A failed UI route cannot block CLI builds or listing preparation that still work
   answers are separate observations; the public API key does not authenticate the Fastlane action.
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
-- **Submission and release:** honor existing explicit authorization for `submit --confirm`. Use existing
-  public launch authorization for `release --confirm` once the exact build and release conditions are
-  verified. A testing or review scope ends at its stated stage.
+- **Submission and release:** honor existing explicit authorization for `submit --confirm`; approval then
+  releases the app. A testing or review scope ends at its stated stage.
 
 ## Release loop
 
@@ -188,25 +187,20 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    the one submission in review with this version, waits for the cancel to settle and reads the version
    back, usually `DEVELOPER_REJECTED`), `attach-build <N>`, and `submit --confirm`, which opens a new
    submission. Recheck the listing and screenshots against the new build first.
-8. **Release.** Use `releaseType: MANUAL` when the physical-device check or another release condition
-   may follow submission. On an authorized launch, including a status check for that launch, read back
-   the approved version's `PENDING_DEVELOPER_RELEASE` state and the attached build ID and number. Match
-   that build to the recorded physical-device check and verify any app-specific conditions. Run
-   `asc.mjs release --confirm` when eligible. Respect explicit holds, schedules and read-only requests.
-   Keep the `status` command read-only. Record release request acceptance, provider distribution
-   state and actual public App Store availability separately. With `AFTER_APPROVAL`, complete the
-   physical-device check and other release conditions before submission because Apple can publish
-   on approval.
+8. **Release.** No app is manual: every version is `AFTER_APPROVAL`, and Apple publishes it on approval, so
+   anything the release needs is done before submitting. There is no physical-device check. An older version
+   at `PENDING_DEVELOPER_RELEASE` goes out with `asc.mjs release --confirm`. Keep the `status` command read-only.
+   Record provider distribution state and actual public App Store availability separately.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
 ## Unattended review submissions
 
-A scheduled run takes eligible updates to `WAITING_FOR_REVIEW` with `AFTER_APPROVAL`, the owner's standing choice for
-every app, so Apple publishes on approval with nothing further from the run. It closes the gaps a release has (standards,
-version, notes, listing, media, privacy) and then submits; an app's own hold or device gate is met first or defers the
-app, because nothing stands between approval and the public. `review-sweep.mjs sweep` reads both
+A scheduled run works every eligible app, not just the first, and takes each update to `WAITING_FOR_REVIEW` with
+`AFTER_APPROVAL`, so Apple publishes on approval with nothing further from the run. It closes the gaps a release has
+(standards, version, notes, listing, media, privacy) and then submits; an app's own hold is met first or defers the app. `review-sweep.mjs sweep` reads both
 teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
-one, or any submission not `COMPLETE`, including a `READY_FOR_REVIEW` draft and `UNRESOLVED_ISSUES`), `deferred`,
+one, or a submission sent or with `UNRESOLVED_ISSUES`; an unsent `READY_FOR_REVIEW` draft is not, because `submit` reuses
+it), `deferred`,
 `no_product_change` or `candidate`. A candidate is only a list of files: read the diff and decide whether the shipped
 app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse.
 
@@ -216,10 +210,9 @@ Provenance is the build's `summary.json` from `ios-release.mjs archive`. A build
 
 Take `claim --app ID --key VERSION-COMMIT --run RUN` before any write and `finish … --result submitted|deferred`
 afterwards. Run every release script through `review-sweep.mjs run -- node $S/asc.mjs …`, which sets
-`APP_RELEASE_UNATTENDED=1`: `listing` then writes `AFTER_APPROVAL` whatever the store data says, `submit --confirm`
-rereads Apple before opening a submission and again before sending it and refuses anything not `AFTER_APPROVAL` or
-already occupied, and `release`, `withdraw`, `pricing` and replacing a rejected submission are refused. A version someone
-held at `PENDING_DEVELOPER_RELEASE` stays occupied until a person releases it.
+`APP_RELEASE_UNATTENDED=1`: `submit --confirm` then rereads Apple before opening a submission and again before sending it and refuses anything not `AFTER_APPROVAL` or
+already occupied, and `release`, `withdraw`, `pricing` and replacing a rejected submission are refused. An older version at
+`PENDING_DEVELOPER_RELEASE` stays occupied until a person releases it.
 
 ## First-subscription review
 
