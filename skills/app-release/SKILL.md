@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.17.2"
+  version: "2.18.0"
 ---
 
 # App release
@@ -24,6 +24,7 @@ or `vendor/skills/` where the repository's own `skills/` folder is taken, as in 
 | `ios-release.mjs` | Local Xcode `archive`, `validate`, `upload`, `testers`, `release`, `next-build-number` |
 | `asc.mjs` | App Store Connect: `status`, `listing`, `age-rating`, `pricing`, `screenshots`, `assets` (Asset Library images and app preview videos; `assets crops` saves Apple's crops of creative for checking), `nominate --confirm` (featuring nominations), `iap-review-screenshots`, `review-details`, `review-attachment`, `game-center`, `attach-build`, `testflight`, `submit --confirm`, `withdraw --confirm`, `release --confirm` |
 | `app-preview.swift` | macOS AVFoundation, no ffmpeg: `render` an App Store preview from simulator recordings, `check` a file against Apple's preview spec, `sheet` and `frame` to review the cut; the same spec, with per-clip `shift` and `fade`, renders a 1080x1920 YouTube Short (`swift $S/app-preview.swift …`) |
+| `review-sweep.mjs` | Unattended review submissions: read-only `sweep` of every team's apps (live version, occupancy, repository, build commit, changed files), `claim`/`finish` per-app locks and dedupe, `run` to call the other scripts with the unattended guard ([iOS](references/ios.md), “Unattended review submissions”) |
 | `standards.mjs` | `audit` this app against the shared [app standards](references/standards.md) (`--json`; `--all` sweeps every app, read-only) |
 | `native-qa.mjs` | Read-only launcher `preflight`; `xcodebuild --device-set PATH -- …` routes the original Apple launcher to an existing QA set |
 | `android-release.mjs` | Local Gradle `bundle`, `verify`, `apk`, `release`, `upload`, `promote`, `tracks`, `next-version-code` |
@@ -166,6 +167,8 @@ commit a key, token, password, review phone or bank detail; check access without
   to run `asc.mjs release --confirm` in the same invocation, then verify provider state and public
   availability. Honor explicit read-only requests, holds, release schedules and testing-only scopes.
   See [iOS release](references/ios.md) for the provider timing and readback.
+- **An unattended run stops at submitted for review.** The default above does not apply to it: a scheduled run never
+  publishes, whatever the app's own release preference says ([iOS](references/ios.md), “Unattended review submissions”).
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,
   tax and banking facts or certifications; identity and device verification; the physical-device check;
   tester recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
