@@ -18,6 +18,7 @@
 //   "caption": { "size": 70, "lineHeight": 84, "baseline": 138, "color": "#291834", "accent": "#6A32C9", "tracking": -1,
 //                "noteSize": 30, "noteBaseline": 262, "noteColor": "#62576A" },
 //   "screen": { "x": 88, "y": 300, "width": 710, "height": 1544, "radius": 80, "bezel": 16, "bezelColor": "#291834", "shadow": 0.22 },
+//   (YouTube Shorts only: App Review rejects an App Store preview in a device frame, Guideline 2.3.4. `check` says so.)
 //   "clips": [ { "file": "take1.mov", "from": 1.2, "to": 4.6, "speed": 1 } ],
 //   "captions": [ { "from": 0, "to": 4.2, "lines": ["Food tracking for", "the [whole family.]"] },
 //                 { "from": 26, "to": 29, "lines": ["…"], "note": "Sign in with Apple or Google to start." } ]
@@ -84,6 +85,7 @@ struct Clip: Decodable {
 struct Caption: Decodable {
   let from: Double; let to: Double; let lines: [String]; let note: String?
   let size: Double?; let lineHeight: Double?; let baseline: Double?; let color: String?; let box: String?; let pop: Bool?
+  let noteBaseline: Double?
 }
 struct CaptionStyle: Decodable {
   let size: Double; let lineHeight: Double; let baseline: Double
@@ -123,7 +125,9 @@ func canvas(_ width: Int, _ height: Int) -> CGContext {
 func captionImage(_ caption: Caption, style: CaptionStyle, font: CTFont, noteFont: CTFont?, width: Int) -> CGImage {
   let size = caption.size ?? style.size, lineHeight = caption.lineHeight ?? style.lineHeight, baseline = caption.baseline ?? style.baseline
   let font = size == style.size ? font : CTFontCreateCopyWithAttributes(font, CGFloat(size), nil, nil)
-  let noteBaseline = style.noteBaseline ?? (baseline + lineHeight * Double(caption.lines.count))
+  // A caption placed on its own keeps its note under it; otherwise the style's note line applies.
+  let noteBaseline = caption.noteBaseline ?? (caption.baseline != nil ? baseline + lineHeight * Double(caption.lines.count) : nil)
+    ?? style.noteBaseline ?? (baseline + lineHeight * Double(caption.lines.count))
   let height = Int(max(baseline + lineHeight * Double(caption.lines.count), noteBaseline) + size)
   let context = canvas(width, height)
   func draw(_ text: NSAttributedString, baselineFromTop: Double, box: String? = nil) {
@@ -159,7 +163,7 @@ func captionImage(_ caption: Caption, style: CaptionStyle, font: CTFont, noteFon
     draw(NSAttributedString(string: note, attributes: [
       kCTFontAttributeName as NSAttributedString.Key: face,
       kCTForegroundColorAttributeName as NSAttributedString.Key: color(style.noteColor ?? style.color),
-    ]), baselineFromTop: noteBaseline)
+    ]), baselineFromTop: noteBaseline, box: caption.box)
   }
   return context.makeImage()!
 }
@@ -500,10 +504,40 @@ func check(_ path: String, type: String?) async throws {
   } else {
     problems.append("no audio track; add a stereo AAC track (silent is fine)")
   }
+  if try await framed(asset) {
+    problems.append("the border is one flat colour in every frame: a device frame or background band. App Review rejects App Store previews that are not full-screen captures of the app (Guideline 2.3.4); render without \"screen\"")
+  }
   facts["problems"] = problems
   let json = try JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys])
   print(String(data: json, encoding: .utf8)!)
   if !problems.isEmpty { exit(2) }
+}
+
+// framed says whether every sampled frame has the same flat colour all round its edge, which a full-screen capture
+// never does (its status bar and content reach the edges) and a device frame on a background always does.
+func framed(_ asset: AVURLAsset) async throws -> Bool {
+  let duration = try await asset.load(.duration).seconds
+  let generator = AVAssetImageGenerator(asset: asset)
+  generator.maximumSize = CGSize(width: 120, height: 260)
+  var reference: [UInt8]? = nil
+  for index in 0..<6 {
+    let image = try await generator.image(at: CMTime(seconds: duration * (Double(index) + 0.5) / 6, preferredTimescale: 600)).image
+    let width = image.width, height = image.height
+    var pixels = [UInt8](repeating: 0, count: width * height * 4)
+    let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4, space: sRGB,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    var ring: [(Int, Int)] = []
+    for x in 0..<width { ring.append((x, 1)); ring.append((x, height - 2)) }
+    for y in 0..<height { ring.append((1, y)); ring.append((width - 2, y)) }
+    for (x, y) in ring {
+      let at = (y * width + x) * 4
+      let pixel = Array(pixels[at..<at + 3])
+      guard let base = reference else { reference = pixel; continue }
+      if zip(pixel, base).contains(where: { abs(Int($0) - Int($1)) > 12 }) { return false }
+    }
+  }
+  return true
 }
 
 // MARK: Contact sheet

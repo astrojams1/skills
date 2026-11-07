@@ -422,6 +422,11 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 - **`whatsNew` is refused on an app's first version**; `listing` sends it only once a version is live, and refuses an update whose `whatsNew` is empty.
 - **Pick categories from the API** (`GET /v1/appCategories/GAMES/subcategories`); Apple retires some.
 - **Never name another app or trademark** in keywords or copy (guideline 2.3.7).
+- **AI services and China mainland (Guideline 5).** Generative AI services such as ChatGPT need a licence to operate
+  in China mainland. Apple rejected Plenty on 2026-11-07 because its listing named ChatGPT and OpenAI while China
+  mainland was a storefront. Leave China out with `pricing.excludeTerritories: ["CHN"]` and `pricing`, or remove the
+  names and the functionality from the China version and say so in the review notes. `submit` reads the live
+  availability and refuses before any write when the listing names one of `AI_SERVICE_NAMES` and China is on sale.
 - **Guideline 5.1.1(i)** needs the privacy policy linked inside the app as well as in the listing; App
   Review also expects contact details in the app.
 - **User-generated content** (visible nicknames, chat) means `userGeneratedContent: true` in the age rating

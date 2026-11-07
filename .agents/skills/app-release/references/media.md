@@ -226,7 +226,10 @@ playing first.
 from the app itself at its native resolution (no zooming in), no people or hands, plain dissolves and fades that do
 not imply features the app lacks, short legible captions because it plays muted, no prices and nothing seasonal,
 fictional data, and a disclosure of any sign-in, purchase or subscription the app needs, in the footage or the end
-frame. A caption band above a framed recording, like the screenshot artboards, keeps captions off the UI.
+frame. **Full screen only:** the recording fills the frame, with no device frame, bezel or background band (App Review
+rejected Plenty's framed preview under Guideline 2.3.4 on 2026-11-07, and `check` now refuses one). Put captions on the
+footage with a `box` behind each line, over the least important part of each scene (`baseline` per caption; a
+caption's `note` takes the same box and follows its lines).
 
 **Make it** from a Release-configuration simulator build of the exact version going to review, against seeded
 synthetic data:
