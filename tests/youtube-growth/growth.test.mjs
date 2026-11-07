@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -75,4 +75,22 @@ test('upload requests schedule future episodes privately and always state kids a
   assert.equal(scheduled.status.containsSyntheticMedia, false);
   assert.equal(uploadRequest(base, now).status.privacyStatus, 'public');
   assert.throws(() => uploadRequest({ id: 'x' }), /no title/);
+});
+
+test('unansweredThreads keeps only viewers\' comments the channel has not answered', () => {
+  const comment = (author, text = 'hi') => ({ snippet: { authorChannelId: { value: author }, authorDisplayName: author, textOriginal: text, publishedAt: 't', likeCount: 0 } });
+  const threads = [
+    { id: 'open', snippet: { topLevelComment: comment('viewer', 'Does it work offline?') }, replies: { comments: [comment('other')] } },
+    { id: 'answered', snippet: { topLevelComment: comment('viewer') }, replies: { comments: [comment('owner')] } },
+    { id: 'own', snippet: { topLevelComment: comment('owner') } },
+  ];
+  assert.deepEqual(unansweredThreads(threads, 'owner').map(t => t.id), ['open']);
+});
+
+test('replyRequest builds plain short replies and refuses links, blanks and long text', () => {
+  assert.deepEqual(replyRequest('p1', '  Yes, it works offline. '), { snippet: { parentId: 'p1', textOriginal: 'Yes, it works offline.' } });
+  assert.throws(() => replyRequest('p1', 'See https://example.com'), /no links/);
+  assert.throws(() => replyRequest('p1', ' '), /--text/);
+  assert.throws(() => replyRequest('p1', 'x'.repeat(301)), /300/);
+  assert.throws(() => replyRequest(null, 'hello'), /--parent/);
 });

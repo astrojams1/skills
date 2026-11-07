@@ -42,7 +42,7 @@ thumbnails).
 ## Limits to know
 
 - **Quota** (Data API revision history, read 2026-11-04): the default pool is 10,000 units a day. Reads cost about
-  1 unit; `videos.update`, `thumbnails.set` and `commentThreads.insert` 50; `captions.insert` 400. Since
+  1 unit; `videos.update`, `thumbnails.set`, `comments.insert` and `commentThreads.insert` 50; `captions.insert` 400. Since
   2025-12-04 an upload costs about 100 units, and since 2026-06-01 `videos.insert` has its own bucket (about 100
   uploads a day). Analytics queries have a separate, larger allowance.
 - **Public uploads need no audit any more.** Since **2026-11-02** videos uploaded by unaudited API projects are no
