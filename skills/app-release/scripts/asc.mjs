@@ -15,7 +15,7 @@ import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './l
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
-import { unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
+import { UNATTENDED_RELEASE_TYPE, unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
@@ -644,8 +644,8 @@ async function listing() {
     const savedApp = await api('/v1/apps/' + IOS.ascAppId, 'PATCH', { data: { type: 'apps', id: IOS.ascAppId, attributes: appAttributes } });
     assertSaved('App', appAttributes, savedApp.data.attributes);
   }
-  // An unattended run holds the version whatever the store data prefers, so approval can never publish it.
-  const versionAttributes = { copyright: copy.copyright, releaseType: unattended() ? 'MANUAL' : copy.releaseType || 'MANUAL' };
+  // An unattended run releases on approval whatever the store data prefers; a version nobody releases would sit forever.
+  const versionAttributes = { copyright: copy.copyright, releaseType: unattended() ? UNATTENDED_RELEASE_TYPE : copy.releaseType || 'MANUAL' };
   const savedVersion = await api('/v1/appStoreVersions/' + ctx.version.id, 'PATCH', { data: { type: 'appStoreVersions', id: ctx.version.id, attributes: versionAttributes } });
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
@@ -1405,7 +1405,7 @@ async function testflight(buildNumber) {
 }
 
 // submit sends the prepared version to App Review; it needs --confirm because it is the one irreversible step.
-// requireUnattendedSubmit rereads Apple's state and stops an unattended run that could publish or collide; a person's
+// requireUnattendedSubmit rereads Apple's state and stops an unattended run that would stall or collide; a person's
 // run is unaffected. It runs before anything is opened and again immediately before the submission is sent.
 async function requireUnattendedSubmit(versionId) {
   if (!unattended()) return;

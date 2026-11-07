@@ -1,8 +1,14 @@
 # App release skill ledger
 
-Skill version **2.18.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.19.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.19.0 (2026-11-07)
+
+- The owner chose release on approval for every app, so the unattended guard now requires `AFTER_APPROVAL` instead of
+  `MANUAL`. A held version would have kept each app occupied until someone released it, stopping the daily run.
+- Preview videos need no owner approval, so a preview is never a reason to wait; the run makes, checks and places it.
 
 ## Lessons incorporated into v2.18.2 (2026-11-07)
 

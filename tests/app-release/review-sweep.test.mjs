@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { archiveProvenance, claim, finish, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
 import { liveVersion, occupancy, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
-const version = (id, versionString, state, createdDate, releaseType = 'MANUAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
+const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
 const submission = (id, state) => ({ id, attributes: { state } });
 const live = version('a', '1.0', 'READY_FOR_DISTRIBUTION', '2026-01-01');
 
@@ -35,10 +35,10 @@ for (const state of ['READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'UNR
   });
 }
 
-test('unattended submit refuses anything that approval could publish', () => {
-  for (const type of ['AFTER_APPROVAL', 'SCHEDULED']) {
+test('unattended submit refuses anything approval would not release', () => {
+  for (const type of ['MANUAL', 'SCHEDULED']) {
     const draft = version('b', '1.1', 'PREPARE_FOR_SUBMISSION', '2026-02-01', type);
-    assert.match(unattendedSubmitRefusal(draft, [live, draft], []), /MANUAL/);
+    assert.match(unattendedSubmitRefusal(draft, [live, draft], []), /AFTER_APPROVAL/);
   }
 });
 
