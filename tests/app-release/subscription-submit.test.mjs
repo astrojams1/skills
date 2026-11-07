@@ -28,7 +28,7 @@ const group = resource('subscriptionGroupVersion', 'subscriptionGroupVersions', 
 const item = target => ({ id: target.id + '-item', attributes: { state: 'READY_FOR_REVIEW' }, relationships: { [target.relation]: { data: { type: target.type, id: target.id } } } });
 
 function fixture(options = {}) {
-  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US' }, ...(options.noWaivers ? {} : { promotion: { waived: WAIVED } }), ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}), ...(Object.hasOwn(options, 'kidsNotes') ? { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } } : {}) }));
+  writeFileSync(join(root, 'store.json'), JSON.stringify({ version: '1.0', listing: { locale: 'en-US', description: options.china ? 'Your ChatGPT limits.' : '' }, ...(options.noWaivers ? {} : { promotion: { waived: WAIVED } }), ...(options.noSubscription ? {} : { subscription: config }), ...(options.iap ? { inAppPurchases: options.purchaseConfig || [purchase] } : {}), ...(Object.hasOwn(options, 'kidsNotes') ? { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } } : {}) }));
   setup(root);
   const state = { items: structuredClone(options.items || [item(app)]), writes: [], reads: [], submitted: false, activeId: 'draft' };
   globalThis.fetch = async (url, request) => {
@@ -65,6 +65,8 @@ function fixture(options = {}) {
     let data;
     if (path === '/v1/apps/app') data = { id: 'app', attributes: { bundleId: options.wrongBundle ? 'com.foreign.app' : 'com.example.app' } };
     else if (path === '/v1/apps/app/appInfos') data = [];
+    else if (path === '/v1/apps/app/appAvailabilityV2') data = { id: 'av' };
+    else if (path === '/v2/appAvailabilities/av/territoryAvailabilities') data = [{ id: 'ta', attributes: { available: Boolean(options.china) }, relationships: { territory: { data: { id: 'CHN' } } } }];
     else if (path === '/v1/appStoreVersions/v1/appStoreVersionLocalizations') data = [{ id: 'loc', attributes: { locale: 'en-US' } }];
     else if (path === '/v1/appStoreVersionLocalizations/loc/placements') data = [];
     else if (path === '/v1/apps/app/appStoreVersions') data = [{ id: 'v1', attributes: { versionString: '1.0', releaseType: 'AFTER_APPROVAL' } }];
@@ -298,4 +300,10 @@ test('submit refuses before any write while the promotion list is unfinished', a
   await assert.rejects(submit('--confirm'), /app preview video \(none placed for IPHONE\).*Nothing was submitted/);
   assert.equal(state.writes.length, 0);
   assert.equal(state.submitted, false);
+});
+
+test('submit refuses before any write while a listing naming AI services is sold in China mainland', async () => {
+  const state = fixture({ china: true });
+  await assert.rejects(submit('--confirm'), /names ChatGPT.*China mainland.*Nothing was submitted/);
+  assert.equal(state.writes.length, 0);
 });

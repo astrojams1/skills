@@ -692,8 +692,49 @@ export function scheduleMatches(points, price) {
   return prices.includes(price) && !prices.includes(0);
 }
 
+// excludedTerritories reads the store data's `pricing.excludeTerritories`: storefronts the app must not be sold in.
+export function excludedTerritories(pricing) {
+  const list = (pricing && pricing.excludeTerritories) || [];
+  if (!Array.isArray(list) || list.some(id => !/^[A-Z]{3}$/.test(id))) throw new Error('pricing.excludeTerritories is a list of territory ids such as "CHN"');
+  return new Set(list);
+}
+
+// availabilityChanges compares Apple's territory availabilities with the exclusions: turn on what should be sold,
+// turn off what is excluded. Each item carries its territory in relationships (read with include=territory).
+export function availabilityChanges(items, excluded) {
+  const territoryOf = item => item.relationships && item.relationships.territory && item.relationships.territory.data && item.relationships.territory.data.id;
+  return {
+    enable: items.filter(item => !item.attributes.available && !excluded.has(territoryOf(item))),
+    disable: items.filter(item => item.attributes.available && excluded.has(territoryOf(item))),
+  };
+}
+
+// AI_SERVICE_NAMES are generative AI services without the licence China mainland requires (Guideline 5; Apple named
+// ChatGPT, OpenAI and GPT when it rejected Plenty, 2026-11-07). Naming one in the listing while China mainland is a
+// storefront gets the app rejected.
+export const AI_SERVICE_NAMES = ['ChatGPT', 'OpenAI', 'GPT', 'Codex', 'Claude', 'Anthropic', 'Gemini'];
+
+// chinaAiProblem names the AI services the listing mentions when the app is sold in China mainland, or returns null.
+export function chinaAiProblem(listing, chinaAvailable) {
+  if (!chinaAvailable) return null;
+  const text = ['name', 'subtitle', 'promotionalText', 'description', 'keywords'].map(key => (listing && listing[key]) || '').join(' ');
+  const named = AI_SERVICE_NAMES.filter(name => new RegExp('\\b' + name + '\\b', 'i').test(text));
+  if (!named.length) return null;
+  return 'The listing names ' + named.join(', ') + ' and the app is available in China mainland, where those services lack the required licence '
+    + '(Guideline 5). Add "CHN" to the store data\'s pricing.excludeTerritories and run `pricing`, or remove the names and the functionality '
+    + 'from the China version. Nothing was submitted.';
+}
+
+// availabilityItems reads the app's territory availabilities with their territories, or [] before any exist.
+async function availabilityItems() {
+  const availability = (await related('/v1/apps/' + IOS.ascAppId + '/appAvailabilityV2')).data;
+  if (!availability) return [];
+  return listAll('/v2/appAvailabilities/' + availability.id + '/territoryAvailabilities?include=territory&limit=200');
+}
+
 // pricing sets the base-territory price from the store data (Apple equalizes the other storefronts) and makes the app
-// available in every territory, including future ones. A paid price also needs an active Paid Apps Agreement.
+// available in every territory except `pricing.excludeTerritories`, including future ones. A paid price also needs an
+// active Paid Apps Agreement.
 async function pricing() {
   const target = priceTarget(STORE.pricing);
   const points = await listAll('/v1/apps/' + IOS.ascAppId + '/appPricePoints?filter[territory]=' + target.territory + '&limit=200');
@@ -723,8 +764,9 @@ async function pricing() {
     }
     console.log('Price schedule already exists at ' + target.territory + ' ' + target.price + '.');
   }
+  const excluded = excludedTerritories(STORE.pricing);
   const territories = await listAll('/v1/territories?limit=200');
-  const included = territories.map(territory => ({ type: 'territoryAvailabilities', id: '${' + territory.id + '}', attributes: { available: true }, relationships: { territory: relation('territories', territory.id) } }));
+  const included = territories.map(territory => ({ type: 'territoryAvailabilities', id: '${' + territory.id + '}', attributes: { available: !excluded.has(territory.id) }, relationships: { territory: relation('territories', territory.id) } }));
   try {
     await api('/v2/appAvailabilities', 'POST', {
       data: { type: 'appAvailabilities', attributes: { availableInNewTerritories: true }, relationships: { app: relation('apps', IOS.ascAppId), territoryAvailabilities: { data: included.map(item => ({ type: item.type, id: item.id })) } } },
@@ -733,18 +775,24 @@ async function pricing() {
   } catch (error) {
     // An app keeps one availability record; a 409 means it exists, so report it rather than recreating it.
     if (!String(error.message).includes('409')) throw error;
-    // The app already has an availability record, so turn on each territory it leaves unavailable.
+    // The app already has an availability record: turn on each territory it should be sold in and off each excluded one.
     const availability = (await api('/v1/apps/' + IOS.ascAppId + '/appAvailabilityV2')).data;
-    const current = await listAll('/v2/appAvailabilities/' + availability.id + '/territoryAvailabilities?limit=200');
-    for (const item of current.filter(entry => !entry.attributes.available)) {
-      await api('/v1/territoryAvailabilities/' + item.id, 'PATCH', { data: { type: 'territoryAvailabilities', id: item.id, attributes: { available: true } } });
+    const current = await availabilityItems();
+    const changes = availabilityChanges(current, excluded);
+    for (const [items, available] of [[changes.enable, true], [changes.disable, false]]) {
+      for (const item of items) {
+        await api('/v1/territoryAvailabilities/' + item.id, 'PATCH', { data: { type: 'territoryAvailabilities', id: item.id, attributes: { available } } });
+      }
     }
+    const after = availabilityChanges(await availabilityItems(), excluded);
+    if (after.enable.length || after.disable.length) throw new Error('Availability did not read back as the store data asks; check Pricing and Availability.');
+    if (changes.disable.length) console.log('Made unavailable:', [...excluded].join(', ') + '.');
     // Apple accepts the future-storefront flag only when the record is created (apps has no such attribute and the
     // record cannot be edited), so report it rather than claim it.
     if (!availability.attributes.availableInNewTerritories) {
       throw new Error('New storefronts are off on the existing availability record; turn on "Make available in all future countries" under Pricing and Availability, then rerun `pricing`.');
     }
-    console.log('Availability existed; enabled', current.filter(entry => !entry.attributes.available).length, 'unavailable territories of', current.length + '.');
+    console.log('Availability existed; enabled', changes.enable.length, 'and disabled', changes.disable.length, 'of', current.length, 'territories.');
     return;
   }
   console.log('Requested', target.territory, target.price, 'and availability in', territories.length, 'territories; confirm under Pricing and Availability.');
@@ -1446,6 +1494,10 @@ export async function submit(flag) {
   const unfinished = promotionRefusal(promotion);
   if (unfinished) throw new Error(unfinished);
   for (const item of promotion.filter(entry => entry.state === 'waived')) console.log('Waived', item.title + ':', item.reason);
+  // China mainland rejects apps that name unlicensed AI services; read the live availability, not the store data.
+  const china = (await availabilityItems()).find(item => item.relationships?.territory?.data?.id === 'CHN');
+  const aiRefusal = chinaAiProblem(STORE.listing, Boolean(china && china.attributes.available));
+  if (aiRefusal) throw new Error(aiRefusal);
   // Leaderboard readiness is checked before any submission is opened or created, so a refusal changes nothing.
   let leaderboards = await editableLeaderboardVersions();
   // A cancellation an earlier run left in flight is resumed: wait for it instead of opening a second submission.
