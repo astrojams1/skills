@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -24,7 +24,7 @@ one. If a repository's own rule holds store listing text for the owner, change t
 | Thing | Where |
 |---|---|
 | State | `marketing/` in `astrojams1/app-sites`: `apps/<id>.json`, `ledger.jsonl`, `metrics.jsonl`, generated `LEDGER.md` |
-| Tool | `scripts/marketing.mjs` (Node 22, no dependencies), run from the app-sites checkout |
+| Tool | `scripts/marketing.mjs` (Node 22, no dependencies), run from the app-sites checkout; `scripts/gcal.mjs` for the owner's calendar |
 | Search content | `sites/<site>/src/data/guides/<app-slug>/<guide>.md`, built into `/<app-slug>/<guide>/` and `/llms.txt` |
 | Video | `app-shorts` makes and posts; `youtube-growth` reads and decides; registry at `/Volumes/ssd/projects/app-shorts/registry.json` |
 | Store submissions | `app-release`. This skill changes promotional text and prepares store data; it never submits or releases |
@@ -45,8 +45,9 @@ closed.
 
 **Developer tools also go to Hacker News.** An app for people who write or run software, which anyone can try without
 signing up, gets a `hackerNews` block and a `show-hn` item (the owner's instruction of 2026-11-07). The Mac pass checks
-earlier submissions and limits with `marketing.mjs hn`, then posts the link and title from the owner's signed-in
-account. The owner answers the thread. Read [Hacker News](references/hacker-news.md) before giving an app the block or
+earlier submissions and limits with `marketing.mjs hn`, finds a weekday morning the owner's calendar shows free and books
+it as a heads-up event (`gcal.mjs`). The `app-marketing-show-hn` task (weekdays 9:00 Pacific) then posts the link and
+title from the owner's signed-in account, and the owner answers the thread. Read [Hacker News](references/hacker-news.md) before giving an app the block or
 posting. Apps that are not developer tools get no block and behave as before.
 
 To add an app, write `marketing/apps/<id>.json`: `check` validates it and `next` starts offering its items. Backlogs

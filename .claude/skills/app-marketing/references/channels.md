@@ -16,7 +16,7 @@ released app works the open channels without asking; a new app needs no go-ahead
 | Search guides | cloud | Compounding traffic from people already looking. Slow: judge at 8 weeks, not 8 days |
 | llms.txt and structured data | cloud | What assistants read when someone asks what to play or install. Generated, so it stays true |
 | Press page | cloud | Inbound only: makes it easy for anyone who finds the app to write about it |
-| Show HN (developer tools only) | mac | Hacker News readers write software. The run checks earlier submissions and limits with `marketing.mjs hn`, then posts a link and title from the owner's signed-in account; the owner answers the thread. Opened by the owner on 2026-11-07: "for any apps that were marketing which are developer tools that might be interesting to a hacker news audience, we should post a link to hacker news", and "Skill posts it itself" once told Hacker News asks for no automated posting. See [Hacker News](hacker-news.md) |
+| Show HN (developer tools only) | mac | Hacker News readers write software. The run checks earlier submissions and limits with `marketing.mjs hn`, books a weekday morning the owner's calendar shows free, as a heads-up event, and posts a link and title from the owner's signed-in account then; the owner answers the thread. Opened by the owner on 2026-11-07: "for any apps that were marketing which are developer tools that might be interesting to a hacker news audience, we should post a link to hacker news", and "Skill posts it itself" once told Hacker News asks for no automated posting. See [Hacker News](hacker-news.md) |
 
 ## Closed until the owner opens them
 
