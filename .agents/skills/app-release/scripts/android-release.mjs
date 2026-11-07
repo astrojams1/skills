@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig, requireSection } from './lib/config.mjs';
 import { opRead, privateDir } from './lib/vault.mjs';
 import { freshBuildTmp } from './lib/build-tmp.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const PLAY = 'https://androidpublisher.googleapis.com';
 const TOKEN_URI = 'https://oauth2.googleapis.com/token';
@@ -519,6 +520,12 @@ async function main(args) {
   setup();
   // An app whose owner sends every change for review from Play Console holds every commit by default.
   if (ANDROID.holdForReview === true) flags.hold = true;
+  // A bundle that lacks a shared standard could never ship, so it stops here; a local test build only warns.
+  if (['bundle', 'release'].includes(flags.command)) {
+    const refusal = standardsRefusal(CONFIG);
+    if (refusal && !flags.allowDirty) throw new Error(refusal + ' Nothing was built.');
+    if (refusal) console.warn('Warning: ' + refusal);
+  }
   const env = toolchainEnv(process.env);
   const needsPlay = ['next-version-code', 'tracks', 'promote'].includes(flags.command) || Boolean(flags.track) || flags.versionCode === null;
   const account = needsPlay ? playAccount() : null;

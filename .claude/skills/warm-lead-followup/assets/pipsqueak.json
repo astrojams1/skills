@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "app_id": "pipsqueak",
+  "display_name": "Pipsqueak",
+  "mailbox": null,
+  "outreach_owner": {
+    "name": "Jinjin",
+    "email": null
+  },
+  "coordinator": {
+    "name": "App owner",
+    "email": null
+  },
+  "timezone": "America/Los_Angeles",
+  "goals": [
+    "Work with speech-language experts to steer app activities, parent guidance and priorities",
+    "Coordinate appropriate introductions, hands-on review and useful feedback from warm leads"
+  ],
+  "qualification": {
+    "expertise": "Speech-language practice and relevant family support; establish from the conversation",
+    "hands_on_device": "iPhone",
+    "device_required_before": "hands-on review or testing",
+    "introductory_call_requires_device_confirmation": false
+  },
+  "discovery_queries": [
+    "-in:spam -in:trash pipsqueak",
+    "-in:spam -in:trash subject:\"AI tools and human speech expertise\""
+  ],
+  "followup": {
+    "wait_business_days": 3,
+    "max_automatic_nudges": 1,
+    "owner_review_after_nudge_business_days": 7,
+    "thread_requested_timing_takes_precedence": true,
+    "clarification_policy": "At most one clarification; wait if team already asked"
+  },
+  "verified_links": {
+    "app_store": null,
+    "testflight": null
+  },
+  "action_authority": {
+    "routine_email": "configure_per_deployment",
+    "source": null,
+    "calendar_invites": "configure_per_deployment",
+    "commitments": "owner_decision"
+  },
+  "outreach_positioning_as_of": "2026-11-03",
+  "outreach_positioning": [
+    "Parent-supported speech and language practice, shaped by clinician input",
+    "Companion between sessions; do not claim AI grades speech or replaces clinicians"
+  ],
+  "active": false
+}

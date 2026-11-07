@@ -105,6 +105,47 @@ dependency, responsible party and next readback/action. Keep advancing independe
 remains nonzero and the run remains partial/blocked; do not relabel the issue fixed or manufacture an
 owner task. Finishing the requested release and publishing the skill correction are separate outcomes.
 
+## Rejection recovery and prevention
+
+Every rejected submission or information request follows this loop, even if the correction is only
+review information or an attachment rather than app code.
+
+1. Preserve the actual reviewer message, guideline, submission/build identity and requested next steps
+   in the app's records. Keep the reviewer's words separate from a diagnosis. A rejected state alone
+   does not establish the cause; if the message is unavailable, record that access issue and keep
+   gathering evidence instead of guessing or marking the item resolved.
+2. Establish the cause from the message and observed app, metadata or evidence. Record the cause,
+   correction and verification in the existing issue/fix table. Answer every requested item; distinguish
+   an incomplete review package from a demonstrated app bug.
+3. Correct and verify the app or its review package. For information-needed requests such as Apple's
+   Guideline2.1, check purpose/audience/value, feature setup and access, external services, regional
+   behavior, and any applicable authorization documentation. Verify setup instructions against the
+   actual submitted build rather than a later source candidate. If Apple asks for both a reply and Notes,
+   save and read back both. Do not infer legal facts or credentials that need the owner's evidence.
+   When a physical-device recording is required, inspect its actual launch-to-main-flow coverage,
+   relevant account/content/paid flows, build and OS provenance. Reuse qualifying existing evidence;
+   do not label simulator video, a written phone check or local purchase tests as that recording.
+   Missing required media remains open while independent preparation continues.
+4. **Prepare and verify the shared source correction before closing the recovery.** Identify the missed earlier check and add
+   the smallest reusable prevention in guidance, a preflight, an applicable app-type checklist or a
+   regression test. Keep an app's contacts, commercial choices and exact artifacts in its own config
+   or ledger. Turn a case-specific request into a conditional check, not a new universal store rule.
+   Verify that the prevention detects or calls out the original failure and that corrected evidence
+   satisfies it. Follow the maintaining reference for source changes, tests and consumer compatibility.
+5. Add a sanitized lesson to the skill ledger and link the shared change and verification from the app's
+   issue/run records, including `skill.app-release` delivery/adoption status. Record an unmerged or
+   unapplied update honestly; do not let an unrelated publishing dependency stop an otherwise complete,
+   authorized resubmission. Before later submissions, read those lessons and recheck their applicability
+   against current app behavior and provider requirements.
+
+Once the app correction and all required evidence are verified, mark the addressed rejection items
+resolved and submit the intended existing item set using the platform's documented recovery; pending
+publication or adoption of the prepared, verified skill correction does not block that submission. A posted reply, attachment, Notes save, passing check or skill PR
+is not a resubmission. Verify the resulting provider states independently. The app correction, prevention
+verification, skill delivery/adoption, submission acceptance, approval and public release stay distinct.
+If the app's required correction or evidence is still missing, keep its issue open and report the exact
+dependency; a skill update does not make an incomplete review package ready.
+
 ## Discipline
 
 - Record each consequential attempt and result promptly — before waiting, asking for input, changing

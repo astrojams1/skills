@@ -59,8 +59,16 @@ one. Keep SDKs, archives and signing material outside tracked source.
 ### Recover an isolated SSD simulator set
 
 Use the owner's designated SSD QA device set, with the same `simctl --set <qa-path>` on every device
-command. Reuse its named device and exact UUID; inspect existing devices and active jobs before creating
-anything. Never switch to, delete or reset another task's device or the default set to fix a local setup.
+command. Prefer a small shared pool selected by OS/device coverage; one simulator can hold and test
+many apps. Before use, inspect existing devices and active jobs, reserve an available exact UUID with a
+visible owner/run record, and release that reservation after testing. Do not race another task's device.
+Record and restore changed device settings (appearance, text size, locale and accessibility) and the
+prior boot state. Use app-specific devices only when concurrent runs or a demonstrated isolation need
+require them; a different app name alone is not a reason to create another device. Never delete, reset or
+move existing devices or their app data as a shortcut to pool adoption; cleanup/migration is separate.
+When external storage is required, audit default device sets and runner-created test clones too.
+Runtime images have backing files separate from their mounted paths; a mount path alone does not
+establish which physical disk holds the growing data.
 
 If device creation repeatedly fails with `EPERM` while copying sample content on an external volume,
 inspect the failing path, free capacity, mount/ownership state and simulator logs. A volume mounted with
@@ -86,7 +94,8 @@ startup or graphics, and it does not guarantee recovery on another machine.
    service. If the designated QA directory is confirmed empty, private to this task and unused, it may
    be replaced with a symlink to the mounted filesystem. Preserve its prior state for rollback. Never
    overwrite or hide a nonempty/shared set; stop this recovery route if safe isolation is not established.
-4. Create/reuse the task's named device through the same QA path, record its UUID, then check boot,
+4. Reuse a reserved pool device, or create a device only for a missing coverage/isolation need, through
+   the same QA path. Record its UUID, then check boot,
    installation, launch request and continued app execution separately. A returned PID alone proves
    neither healthy startup nor a visible UI: inspect continued process state and crash diagnostics.
    Keep CLI build/install/log evidence distinct from actual native UI verification; captures and
@@ -98,6 +107,40 @@ app ledger so another session can reattach and reuse them. Preserve the image fo
 planned detach, shut down only the owned UUID through the same set and confirm no owned job uses it;
 never eject an in-use image or shut down unrelated devices. Failure of this optional recovery leaves
 other authorized build, backend and listing work available.
+
+### Route XCTest to the designated device set
+
+`simctl --set` selects a set for that command only. It does not select the set used by Xcode's destination
+discovery or UI runner. When `simctl` finds a reserved UUID but `xcodebuild -showdestinations` omits it,
+compare the same scheme/destination using the original Apple launcher with Xcode's built-in
+`-DVTSimulatorSetLocation=<absolute-qa-path>` preference. It must be **one equals-form argument**; the
+split flag/value form is not equivalent. Use the helper to verify launcher identity and preserve that
+argument contract:
+
+```bash
+node $S/native-qa.mjs xcodebuild --device-set /Volumes/ssd/builds/simulators/qa -- \
+  -workspace <app.xcworkspace> -scheme <scheme> -showdestinations
+node $S/native-qa.mjs xcodebuild --device-set /Volumes/ssd/builds/simulators/qa -- \
+  test-without-building -xctestrun <tests.xctestrun> \
+  -destination 'platform=iOS Simulator,id=<reserved-uuid>' \
+  -parallel-testing-enabled NO -resultBundlePath <ssd-result.xcresult>
+```
+
+This changes only the launched process's preference. The helper requires an existing directory, chooses
+`xcodebuild` through `xcrun`, runs the existing Apple-signature/identity/entitlement preflight, and passes
+argv directly without a shell. It creates no simulators and changes no global preferences, default-set
+paths or Apple binaries. Pass routing only through `--device-set`; duplicate forwarded routing options
+are rejected. Reserve the UUID and disable test parallelization when device cloning is unnecessary.
+
+In the 2026-10-26 Nametag diagnosis, stock default discovery omitted both SSD UUIDs; two successive
+routed queries discovered both. The original Apple launcher then executed a real XCTest UI smoke on
+the reserved SSD device: app launch, open editor, name-field existence, cancel and return home passed
+(1 test, 0 failures). The new helper also passed the same real UI smoke on the latest installed iOS 27.1
+SSD device (1 test, 0 failures), which was restored to its prior Shutdown state. The first routed
+snapshots were empty, so allow bounded initialization/readback
+before concluding the set is unavailable. Discovery alone does not prove UI execution: preserve the
+`.xcresult`, runner log and actual interaction outcome. This observed Xcode preference is separate from
+the copied/re-signed launcher failure below; recheck it against the installed Xcode when behavior changes.
 
 ### Restore native QA state after every outcome
 
@@ -201,10 +244,33 @@ earlier attribution to broken simulator services was wrong. Correlate the denied
 PID and launcher with logs before choosing recovery.
 
 Use the original selected Apple tools. Do not re-sign them, transplant private
-entitlements, inject a device-set override, or reset shared services to repair a
-launcher identity failure. Check installed Xcode help for supported destination
-options: `simctl --set` support does not imply `xcodebuild` supports that custom
-set. Preserve the designated SSD set and other tasks' devices.
+entitlements, inject code or interpose simulator APIs, or reset shared services
+to repair a launcher identity failure. Xcode's per-command preference above does
+not modify or inject code into the launcher. Preserve the designated SSD set and
+other tasks' devices.
+
+### Document selection and simulator File Provider failures
+
+A visible file and a successful tap do not prove the app received a document URL.
+If the picker stays open, inspect logs **inside the selected simulator**, through
+its explicit device set, before changing selectors or the parser. In an observed
+Xcode27.1 run, File Provider reported FP-1005 / resolver-1012 and an empty
+`didPickDocumentURLs` array even though PDFKit could read the same staged files.
+Fresh filenames, supported app reinstallation with backed-up/restored app data
+and a clean SSD device did not recover the OS bookmark materialization. Do not
+label this an extraction failure or assume its underlying entitlement/storage
+cause from the error code alone. Preserve the failed cases and app/Health data;
+do not cycle new devices or reset private databases and shared services.
+
+An explicitly identified, simulator-only document-open entrypoint can isolate
+that layer: validate a narrow set of invented fixture names, invoke the unchanged
+coordinated document reader and parser, then exercise real purchases, system
+Health handoffs and clinical queries. Never inject parsed reports, entitlements
+or saved Health state. Exclude the entrypoint from device Release builds and
+verify its absence in the signed distribution artifact. Record this alternate
+selection mode and any standard-picker coverage separately; passing its clinical
+checks does not prove that the blocked picker worked. Keep the exact store-build
+physical document-selection check before manual public release.
 
 ### Isolated local StoreKit checks
 
@@ -274,6 +340,11 @@ Use supported native UI tools to interact with simulators/devices and capture
 screens. If those tools prohibit shell-driven UI, do not substitute `adb input`,
 screencap or AppleScript. CLI build/install/log inspection remains distinct from
 UI control and must follow the active tool policy.
+
+Apply the entrypoint's “Never require mirroring” rule to native QA too. A failed
+UI route does not reopen completed exact-build owner approval. Reuse that feedback
+and supported native test evidence; track any specifically missing physical
+recording or reviewer coverage separately, without requiring remote control.
 
 A locked-screen response establishes that this UI route is unavailable at that moment, not that the
 whole Mac, build toolchain or release is inaccessible. Check other supported authorized routes and
@@ -402,3 +473,7 @@ react-native-screens to UIKit.
 Inspect the installed version's actual forwarding path before choosing a fix.
 Source/mutation checks can protect that path, but verify the replacement build
 on the affected physical OS before claiming the appearance is corrected.
+
+## Widgets in every Home Screen appearance
+
+Check each widget in **Default, Dark, Clear and Tinted** on a real Home Screen (touch and hold, the button at top left, Customize), and on the Lock Screen. Tinted and Clear flatten a widget to one colour, so opaque custom art becomes a blank white block, with nothing in the logs and nothing in a simulator contact sheet or `ImageRenderer` output to warn you (Plenty, 2026-11-05: every style went blank). Read `@Environment(\\.widgetRenderingMode)` and, when it isn't `.fullColor`, draw a face made only of type and shapes on no background. Lock Screen accessory widgets have the same limit: nothing but shape can carry state, so don't rely on colour. Restore the simulator's appearance afterwards.

@@ -24,6 +24,8 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `buildShaEnv` | The variable that carries the short commit into the app (`EXPO_PUBLIC_BUILD_SHA` by default) |
 | `ledger.gates`, `ledger.view` | The JSON release ledger and its generated Markdown view |
 | `ledger.runs` | The hand-written run log (one dated entry per run, bug-fix table, costs, lessons) |
+| `feedback.email` | Where the in-app Send Feedback control sends mail; the address the support page shows too ([standards](standards.md)) |
+| `standards.optOut` | Optional `{ "<standard id>": "<reason>" }`: a standard this app cannot have, and why ([standards](standards.md#opting-out)) |
 | `activityLog` | The owner's shared agent activity ledger (`~/Library/Application Support/AgentActivityLedger/events.jsonl`, the only file its helper writes); each `ledger.mjs record` is appended there too. Omit to skip |
 
 `ios`:
@@ -34,7 +36,9 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `bundleId`, `bundleIdResource` | The bundle identifier and its resource id (`GET /v1/bundleIds`), needed for capabilities such as Game Center |
 | `teamId` | The signing team; every bundle in the `.ipa` must be signed by it |
 | `scheme`, `workspace` | The Xcode scheme; the workspace defaults to `<scheme>.xcworkspace` |
-| `prebuild`, `infoPlist` | Default `prebuild: true` regenerates with Expo. `false` uses a reviewed tracked native project and requires `infoPlist` relative to `ios/`; see [iOS](ios.md#reviewed-native-projects-and-existing-signing) |
+| `prebuild`, `infoPlist` | Default `prebuild: true` regenerates with Expo. `false` uses a reviewed tracked native project and requires `infoPlist` relative to `ios/` (or to the project directory with `project`); see [iOS](ios.md#reviewed-native-projects-and-existing-signing) |
+| `project` | A bare Xcode app with no Expo config and no CocoaPods: the `.xcodeproj` path relative to `projectDir`. Needs `prebuild: false`; archives with `-project` from `projectDir` and skips Expo and `pod install` |
+| `archiveSigning` | `archive` (default) signs while archiving; `export` archives unsigned and lets the App Store export sign. Use `export` for a team with no registered devices, where automatic archive signing cannot get a development profile. Automatic signing only |
 | `signing` | Defaults to `{ "style": "automatic" }`. Manual single-app export requires `{ "style": "manual", "certificate": "<40-character installed certificate SHA-1>", "profile": "<verified profile name or UUID>" }`; no private key or password belongs in config |
 | `buildNumberEnv` | The variable the app config reads for `ios.buildNumber` during prebuild |
 | `vault` | The 1Password item holding the App Store Connect key (`op://API Tokens/App Store Connect`) |
@@ -74,10 +78,12 @@ Environment overrides, for a run without the vault: `ASC_KEY_ID`, `ASC_ISSUER_ID
 | Field | Used by | Meaning |
 |---|---|---|
 | `version` | `asc.mjs` | The marketing version being prepared (`1.0.0`); `listing` creates or renames the iOS version to it |
-| `assetLibrary` | `asc.mjs assets` | A list of `{ file, category, placementType, placementGroup }`: the product page header (`PRODUCT_PAGE_HEADER_ASSET`, `DEFAULT_PROFILE`), the search-results creative (`APP_STORE_SEARCH_RESULTS_ASSET`, `DEFAULT_PROFILE`) and screenshots for profiles with no screenshot display type, such as iPhone Duo (`APP_SCREENSHOT`, `IPHONE_DUO_PROFILE`). Categories are `CREATIVE_ASSETS` and `APP_SCREENSHOTS_AND_PREVIEWS` |
+| `assetLibrary` | `asc.mjs assets` | A list of `{ file, category, placementType, placementGroup }`: the product page header (`PRODUCT_PAGE_HEADER_ASSET`, `DEFAULT_PROFILE`), the search-results creative (`APP_STORE_SEARCH_RESULTS_ASSET`, `DEFAULT_PROFILE`), app preview videos (`APP_PREVIEW` on the profile its screenshots use, such as `IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE` or `IPAD_13_PROFILE`, with an optional `previewFrame` time code `HH:MM:SS:FF` for the poster) and screenshots for profiles with no screenshot display type, such as iPhone Duo (`APP_SCREENSHOT`, `IPHONE_DUO_PROFILE`). Categories are `CREATIVE_ASSETS` and `APP_SCREENSHOTS_AND_PREVIEWS`. A `.mov`, `.mp4` or `.m4v` file is a video; keep large videos out of Git (an absolute path to the app's project home works) and record their SHA-256 beside the entry |
+| `promotion` | `asc.mjs status`, `submit` | `waived`: an item of the "Every release" list (`preview`, `header`, `search`, `nomination`) and why it is not being done, at least 20 characters: the owner's decision or a demonstrated capture dependency. `submit` refuses on any item with neither a result nor a reason ([promotion](promotion.md)) |
+| `nominations` | `asc.mjs nominate` | Featuring nominations: `{ name, type (APP_LAUNCH, APP_ENHANCEMENTS or NEW_CONTENT), description, publishStartDate }` plus optional `publishEndDate`, `deviceFamilies`, `locales`, `notes`, `supplementalMaterialsUris`, `hasInAppEvents`, `launchInSelectMarketsFirst`, `preOrderEnabled`. Matched by name, so a rerun never nominates twice |
 | `listing` | `asc.mjs listing` | `locale`, `name`, `subtitle`, `promotionalText`, `description`, `keywords`, `whatsNew` (sent only once a version is live; required on every update), `supportUrl`, `marketingUrl`, `privacyPolicyUrl`, `copyright`, `primaryCategory`, optional `primarySubcategories` (games only) and `secondaryCategory`, `contentRightsDeclaration`, `releaseType` (`MANUAL` by default; `AFTER_APPROVAL` releases on approval) |
 | `ageRating` | `asc.mjs age-rating` | Answers keyed by Apple's current attribute names; unknown keys are reported, unanswered ones listed |
-| `review` | `asc.mjs review-details` | `notes` (4,000 characters), `demoAccountRequired`, optional `firstName`, `lastName`, `email`. Omitted fields retain this version's existing contact/notes/demo requirement. Creation requires complete contact identity and `ASC_REVIEW_PHONE`; a changed identity needs its own runtime phone. No other app's contact is borrowed |
+| `review` | `asc.mjs review-details` | `notes` (4,000 characters), `demoAccountRequired`, optional `firstName`, `lastName`, `email`. Omitted fields retain this version's existing contact/notes/demo requirement. With no contact named and none on the version, the team's newest complete contact from its other apps is used, name and phone together. A named contact's phone comes from `ASC_REVIEW_PHONE`, this version's same contact, or that same person (same email, else same name) on the team's other apps. Another person's number is never used |
 | `pricing` | `asc.mjs pricing` | `baseTerritory` (`USA`) and `basePrice` (`0` for free, `1.00`…); Apple equalizes other storefronts |
 | `screenshots` | `asc.mjs screenshots` | Groups `[{ "displayType": "APP_IPHONE_67", "files": [...] }]`, or `{ "manifest": "store/assets/manifest.json", "base": "store" }` to read an asset manifest's `ios` entries |
 | `gameCenter` | `asc.mjs game-center` | `leaderboards`: `vendorIdentifier`, `referenceName`, `defaultFormatter`, `submissionType`, `scoreSortType`, `localization` |
@@ -95,10 +101,14 @@ Keep store copy in one place: other docs and pages link to the store data rather
    `versionCodeEnv` and `buildShaEnv`.
 3. `node skills/skills/app-release/scripts/ledger.mjs init --objective "…"`, then record `scope` with the
    platforms, monetization, territories and release behavior the owner chose.
-4. Write a thin repository skill (see [the template](../assets/repo-skill.template.md)) that points here
+4. Build in the [app standards](standards.md) from the start: copy the Send Feedback reference for the app's platform,
+   set `feedback.email`, link the privacy and support pages in the app, and run `node
+   skills/skills/app-release/scripts/standards.mjs audit` until it passes. The first `archive` or `bundle` refuses
+   otherwise.
+5. Write a thin repository skill (see [the template](../assets/repo-skill.template.md)) that points here
    and adds only this app's facts and gates.
-5. Read [accounts](accounts.md) for what the shared developer accounts already have, and [app types](app-types.md).
-6. For a first iOS release, create or reuse the App Store Connect record with the authorized browser or
+6. Read [accounts](accounts.md) for what the shared developer accounts already have, and [app types](app-types.md).
+7. For a first iOS release, create or reuse the App Store Connect record with the authorized browser or
    Xcode workflow in [iOS onboarding](ios.md). Verify team, bundle ID, name, SKU, primary locale and
    platform; persist its verified Apple ID as `ios.ascAppId`, then run `asc.mjs status`. Leave the ID empty
    while unverified; never copy another app's ID or treat the public API's missing create operation as

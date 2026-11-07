@@ -1,13 +1,219 @@
 # App release skill ledger
 
-Skill version **2.7.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.17.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.17.3 (2026-11-07)
+
+- Check destination-filesystem headroom for candidate and original restoration,
+  including installer staging, before QA mutation. Host SSD free space does not
+  establish owned-volume capacity. Preserve rollback/data and use installed,
+  format-compatible storage methods; verify restoration before closing the issue.
+- Persist native QA recovery state before mutation and guard each cleanup stage
+  independently. One optional window-geometry assertion previously stopped data
+  restoration; failure injection now proves later shutdown/data stages still run.
+- Resolve owned app/data paths before Shutdown or from exact offline metadata;
+  post-Shutdown `get_app_container` can fail with code 149. Verify the full
+  original bundle/data manifest, preferences, auth/fixtures and device state.
+- Current captures and observed gestures guide unknown OS window geometry.
+  Preserve target/account/run guards; no shared resets or invented owner step.
+
+## Lessons incorporated into v2.17.2 (2026-11-07)
+
+- `simctl --set` and Xcode runner routing are separate. The helper verifies Apple's original launcher
+  then passes one `-DVTSimulatorSetLocation=<path>` argument for that process only; split syntax is not
+  equivalent. Destination discovery plus a real passing UI test established recovery on observed Xcode.
+- Share a small pool by OS/device coverage, reserve the exact UUID and restore changed settings/boot
+  state. App-specific devices need a contention/isolation reason. Preserve existing data during adoption.
+- A built-in preference is distinct from code injection or an ad-hoc-signed launcher. Retain the
+  signature/identity/entitlement guard and reject ambiguous duplicate forwarded routing options.
+
+## Lessons incorporated into v2.17.1 (2026-11-05)
+
+- An approved build with recorded physical-device verification stayed at Pending Developer Release
+  after a status check. An active authorized launch now proceeds to release in the same invocation
+  once all conditions are met. Explicit holds, read-only requests and scheduled timing still apply.
+  Provider approval, release request acceptance and storefront availability have separate evidence.
+
+## Lessons incorporated into v2.17.0 (2026-11-05)
+
+- Plenty went to App Review with no app preview, header, search creative or nomination. The agent read the requirement,
+  skipped it and reported it as optional. Only prose asked for them, and the docs contradicted themselves ("Every
+  release" beside "optional slots alone are not release blockers"), while `submit` checked only source standards. Now
+  `asc.mjs status` prints each item and `submit --confirm` reads the version's live placements and refuses, before any
+  write, unless each has a result or a reason in `promotion.waived`. The contradictory wording is gone.
+- The same run reported a build as out to testers when `Release QA` had no testers, so the owner saw nothing in
+  TestFlight. `testers` printed success on the build's state alone. It now adds the account holder to an empty group,
+  invites anyone uninvited, reports the count and fails rather than report a build nobody can receive.
+
+## Lessons incorporated into v2.16.2 (2026-11-05)
+
+- Every Plenty widget rendered as a blank block on a Tinted Home Screen, which no contact sheet or log showed. `references/verification.md` now requires checking Default, Dark, Clear and Tinted on a real Home Screen, and says how to draw a safe face.
+
+## Lessons incorporated into v2.16.1 (2026-11-05)
+
+- Plenty's first widget app on a new group failed `archive` with a misleading "Authentication failed", though the key
+  worked. The cause was an app group that did not exist: there is no public API for it and API-key signing cannot create
+  one. `references/ios.md` now gives the portal route, the `group.` prefix trap and the team check, and warns against
+  touching the repository during an archive.
+
+## Lessons incorporated into v2.16.0 (2026-11-05)
+
+- The owner asked that every app have a user feedback mechanism, done the same way, and that existing apps find what
+  they lack and fix themselves. Added the app standards: `references/standards.md`, `assets/standards.json` and
+  `standards.mjs audit` (`--json`, `--all`). The first entries are Send Feedback (a pre-filled email to `feedback.email`,
+  so no backend, SDK or privacy-answer change; references in `assets/feedback/`) and the in-app privacy and support links
+  `app-types.md` already required. Each run audits at its start, a missing standard becomes an `issue.standard.<id>`
+  gate fixed in that run's build, and `archive`, `bundle`, `release` and `submit --confirm` refuse without it, `submit`
+  before any write. A new standard is a catalog entry; an opt-out needs a recorded reason in the config.
+- The first sweep passed Pipsqueak's privacy link on a heading called "Privacy" with no link behind it, so a bare quoted
+  word no longer counts: a URL, a route or a name such as `privacyURL` does. Dot folders and vendored skills never count:
+  the skill's own reference copies reach every app through the submodule and the tracked `.claude/` and `.agents/` copies.
+
+## Lessons incorporated into v2.15.2 (2026-11-05)
+
+- Importron's focused corrections repeatedly labeled all launch marketing outside scope; an actual library audit
+  found four screenshots and zero videos. The existing shared preview requirement had not been followed.
+  Added explicit per-asset preparation/placement evidence and a rule against blanket scope exclusions while
+  preserving an already accepted first-version review. Uploaded assets do not establish placement or publication.
+- The installed Xcode had no Simulator GUI. Public XCTest open-URL automation exercised the unmodified Release
+  document handler instead. Initial captures exposed a changed post-install container, persistent synthetic
+  StoreKit state and asynchronous/duplicate-label consent controls. Corrected fixture staging and native UI
+  selection passed actual nine-result Health save/readback and protected reopen; the final26.5-second preview
+  passed format and visual checks. Added this supported capture route without weakening Release provenance.
+
+## Lessons incorporated into v2.15.1 (2026-11-05)
+
+- Importron build10 received a Guideline2.1 information request asking why each PDF import is paid.
+  Price and free allowance were documented, but the usage-based business rationale was missing.
+  Added a conditional consumable review checklist: paid unit/value, rationale, free features,
+  duplicate/overlap and retry accounting, plus factual separation from Apple framework access.
+  Review-package changes can reuse the verified binary; reply and resubmission remain separate.
+- The Browser connector exposed only an empty MCP Apps inventory, but documented native Computer Use
+  could read the owner's signed-in Chrome. Added this supported fallback, correct-team verification,
+  and the distinction between queued navigation and a successful read before an owner handoff.
+
+## Lessons incorporated into v2.15.0 (2026-11-05)
+
+- Füd's universal "At the table" header went live in both slots with the App Store Connect crop preview unchecked, and
+  the run and the agent relaying it reported that as a caveat. Checked afterwards, the search card cut off the
+  headline on iPhone, iPad and iPhone Duo. Three things went wrong: the design assumed a centred crop of the full
+  canvas, when Apple keeps only the band y 415-1865 of 2950; "no sign-in" was concluded from one browser while the
+  owner's Chrome was signed in; and the old advice to check Preview before `place` could not be followed, because
+  Preview shows only what a slot holds and Browse Assets lists only approved images.
+- Added `assets crops DIR` (Apple's own render per slot, available straight after upload) and a `cropChecked` gate on
+  `assets submit` and `assets place`, tied to the file's hash. Unit and CLI tested; `assets crops` was also run against
+  Füd's live library. The fix for Füd is a dedicated 3:2 search file, in App Review on its own.
+
+## Lessons incorporated into v2.14.0 (2026-11-04)
+
+- The owner asked for a YouTube Short after Füd 1.3.0 shipped. The App Store preview's fixed device
+  frame could not serve it: on a phone YouTube's title stack covers the bottom fifth, so a device large
+  enough to read hides "Who ate this?" and the Add button, and a device small enough to show them is a
+  thumbnail. `app-preview.swift render` now takes a per-clip `shift` (the device eases up or down to
+  each scene's subject), `fade` bands (background over the top and bottom, so the device passes
+  under captions and controls without an edge) and caption `centerX`. A darwin render test reads
+  pixels back from a test-pattern cut. The promotion checklist lists the Short; posting stays the
+  owner's. The owner then judged that tour would get no engagement: a Short needs a hook, a payoff
+  and sound, and a series. `render` gained `zoom`/`focus` punch-ins, per-clip `move` and caption
+  `size`/`box`/`pop`; youtube-shorts gained `soundtrack.mjs` and the "Make it worth watching" rules.
+- The owner then asked for the pipeline as a skill for every app and a follow-up skill for the channel's metrics:
+  **app-shorts** (registry from every `app-release.config.json`, calendar, recording, Studio/API posting) and
+  **youtube-growth** (analytics, decisions, comments, policy). The promotion checklist's Shorts row now runs both,
+  and a release with a visible feature queues an episode.
+
+## Lessons incorporated into v2.13.0 (2026-11-03)
+
+- The owner launched the astrojams apps website (https://astrojams-apps.vercel.app) for every app on the personal
+  James Thompson team, kept current like the Ouro site. The release path now has an **astrojams website** gate:
+  personal-team apps run the `astrojams-website` skill at the Ouro gate's moments. An app with no website of its own
+  uses its page there as `listing.marketingUrl`; Newsworthy and Space Worms keep their own sites.
+
+## Lessons incorporated into v2.12.1 (2026-11-02)
+
+- On a version in `PENDING_DEVELOPER_RELEASE`, `assets place` placed the approved header and
+  search-results creative, then Apple refused an approved iPhone Duo screenshot placement (409
+  "Creating a placement is not permitted in AppStoreVersion's current state") and the run stopped
+  halfway. Screenshot and app preview placements ride on an editable version; on an approved or
+  released one `place` now skips those slots with a printed line and still places the creative
+  (`versionLockedPlacement`, unit-tested). No App Store Connect call was made for this fix.
+
+## Lessons incorporated into v2.12.0 (2026-11-02)
+
+- Asset Library image review requested the sparse image field but omitted the image
+  `include`; live readback therefore hid this run's own newly attached image and
+  triggered a false conflict. Explicit image inclusion restores the authoritative
+  linkage. The real CLI regression models query-dependent projection; unknown,
+  ambiguous, duplicate and foreign resources still stop the action.
+- Standalone image review now reads all iOS version pages before opening a draft
+  and requires a completed app approval, including pending manual release. An
+  initial version waiting/in review or an `ACCEPTED` item with unresolved companion
+  items is insufficient. All selected new images must be ready before any draft
+  or attachment; processing images no longer produce a partial submission.
+- Screenshots and app previews retain real native capture requirements. Header
+  and search creative may use supporting photography/illustration and optional,
+  owner-authorized AI model lifestyle art, with factual UI references and no fake
+  endorsements; Apple hardware and branding restrictions still apply.
+
+## Lessons incorporated into v2.11.0 (2026-11-02)
+
+- The owner launched the Ouro apps website (https://ouro-apps.vercel.app) as the marketing page for every Ouro LLC
+  app and asked never to have to say it is out of date. The release path now has an **Ouro website** gate: Ouro apps
+  run the `ouro-website` skill when the record and listing exist, after each submission, on release and whenever the
+  name, subtitle, copy or screenshots change, and their `listing.marketingUrl` is the app's page on that site. The
+  site flips "Coming soon" to the App Store badge by itself within six hours of a release; the skill covers the rest.
+
+## Lessons incorporated into v2.10.0 (2026-11-01)
+
+- Füd 1.3.0: the owner asked for a high-quality video tour on the product page and for every other way Apple offers
+  to present and promote an app, recorded here so every app does the same. [promotion](../references/promotion.md)
+  is now a per-release checklist (preview, promotional text, header and search creative, featuring nomination) with
+  the conditional ones (custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt) and
+  the medical device declaration that blocks updates from early 2027.
+- Apple deprecated `appPreviewSets`/`appPreviews` in API 4.5.1; previews now go through the Asset Library. `asc.mjs
+  assets` uploads and places videos (`APP_PREVIEW` per device profile, `previewFrame` for the poster) and
+  `asc.mjs nominate --confirm` sends featuring nominations. `app-preview.swift` renders a preview from simulator
+  recordings with AVFoundation alone and checks it against the spec. Two writer deadlocks were found and fixed while
+  making Füd's preview: silent audio must run ahead of the video, and the audio input must be finished as soon as it
+  is complete, or AVAssetWriter stops taking frames.
+- A simulator recording only writes frames when the screen changes; list the bursts to find cut points instead of
+  scrubbing. Rehearse the tour first so one-time consent prompts and slow first loads stay out of the take.
+
+## Lessons incorporated into v2.8.5 (2026-10-31)
+
+- Füd 1.2.0: the owner asked to replace build 247 in App Review with 248, which fixed a banner they disliked.
+  `asc.mjs` could submit, attach a build and cancel a rejected submission, but it had no command for
+  withdrawing a version that was waiting for review.
+- `withdraw --confirm` now does it: `withdrawPlan` picks the one WAITING_FOR_REVIEW or IN_REVIEW submission
+  that holds this version (it stops on none or several), cancels it, waits for the cancel to settle and reads
+  the version back. It was run against Füd: the submission was canceled and the version read back
+  DEVELOPER_REJECTED. `attach-build 248` and `submit --confirm` then opened a new submission, which read back
+  WAITING_FOR_REVIEW with release MANUAL. A test covers the plan. Consumers only need to bump the submodule.
+
+## Lessons incorporated into v2.8.3 (2026-10-31)
+
+- A diagnosed rejection must improve the shared release process as well as the current app. Preserve
+  the actual reviewer request, identify the missed earlier check, add a scoped prevention and verify it.
+- Review-information and attachment gaps are rejection causes too. Check the submitted build's actual
+  setup flow and every requested answer; keep a required physical-device demo distinct from simulator
+  footage or a written phone check.
+- Recheck applicable lessons on later submissions. Prepared/verified skill source, delivery/adoption,
+  resubmission acceptance and store approval remain separate; pending publication alone does not block
+  an otherwise complete authorized resubmission.
 
 ## Runs
 
 | Run | App ledger | Outcome | Token / dollar cost |
 |---|---|---|---|
+| [2026-11-02 Asset Library review](runs/2026-11-02-asset-review.md) ([JSON](runs/2026-11-02-asset-review.json)) | Shared maintenance; app-specific state remains in its own ledger | Explicit image include, approved-version and complete-image-set preflights; creative artwork guidance clarified; provider mutations excluded | Unknown / no new paid service |
+| [2026-11-01 Füd preview and promotion](runs/2026-11-01-fud-preview-promotion.md) | [Füd release records](https://github.com/wendigo124/FSRN_Subs/blob/main/store/ledger.json) | App preview rendered from simulator footage with `app-preview.swift`, uploaded through the Asset Library; promotion checklist, `nominate` and video `assets` added for every app | Unknown / no new paid service |
+| [2026-10-31 no mirroring dependency](runs/2026-10-31-no-mirroring.md) | Shared process maintenance; current app state remains in its own ledger | Mirroring is never required or initiated as a release dependency; preserve completed exact-build approval and ask only for genuinely missing evidence | Unknown / no new paid service |
+| [2026-10-31 direct review attachments](runs/2026-10-31-direct-review-attachments.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Inspect the existing reply/file chooser and reconcile saved media before adding transfer tools or repeating owner handoffs; actual media coverage, upload and resubmission remain independent | Unknown / no new paid service |
+| [2026-10-31 rejection prevention](runs/2026-10-31-rejection-prevention.md) | [Nametag release records](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | Root-caused rejections require a verified reusable prevention and later preflight recheck; app-specific evidence stays scoped; Nametag Notes saved while required physical recording remains outstanding | Unknown / no new paid service |
+| [2026-10-30 Giraffe Stretch first TestFlight](runs/2026-10-30-giraffe-stretch-testflight.md) | App repository `store/ledger.json` (local, no remote yet) | Bare Xcode project archived, uploaded and READY_FOR_BETA_TESTING through the script; six run issues fixed and verified; owner device check pending | Unknown / no paid services |
+| [2026-10-26 SSD XCTest routing](runs/2026-10-26-ssd-xctest-routing.md) | [Canonical skill issue log](runs/2026-10-26-ssd-xctest-routing.json); live app evidence remains in Nametag | Original Apple runner reaches the existing SSD set with one process-local equals-form preference; real UI smoke passes on iOS 18.4 and latest 27.1, 1 test/0 failures each; 25 independent CLI cases and shared pool guidance added | Unknown / no new paid service |
+| [2026-10-26 UI signal correction](runs/2026-10-26-ui-signal.md) | Shared guidance maintenance; app release evidence remains in its own ledger | Owner-identified active surface and unlocked report take precedence over inferred tool state; unavailable binding and app-access denial remain distinct | Unknown / no new paid service |
 | [2026-10-26 session continuity](runs/2026-10-26-session-continuity.md) | [Canonical skill issue log](runs/2026-10-26-session-continuity.json); [app history](https://github.com/astrojams1/nametag/blob/main/store/runs.md) | Guidance preserves known app/profile/tab and distinct session observations; 166 release tests, required local checks and independent dry-run pass; live session/privacy recovery unverified | Unknown / no new paid service |
 | [2026-10-25 issue logging and closure](runs/2026-10-25-issue-closure.md) | [Canonical skill issue log](runs/2026-10-25-issue-closure.json) | Both encountered issues fixed and verified; read-only completion check passes;166 release tests pass | Unknown / no new paid service |
 | [2026-10-25 Nametag native purchase recovery](runs/2026-10-25-nametag-native-purchases.md) | [Canonical app ledger](https://github.com/astrojams1/nametag/blob/main/store/ledger.json) | 16 local native StoreKit checks pass; both IAP review images COMPLETE and products READY_TO_SUBMIT; review blocked by unpublished App Privacy answers | Unknown / no paid services or purchases |
@@ -37,20 +243,65 @@ privacy/DSA steps, a fixed Android build still needing visual verification, and
 Google device/phone/testing gates. No private addresses, phone, tax or banking data
 are stored here. See its canonical ledger before resuming.
 
+## Lessons incorporated into v2.9.0 (2026-10-31)
+
+- Giraffe Stretch 1.0 (Kids Category, `kidsAgeBand` FIVE_AND_UNDER) was held by an automated Guideline 2.1
+  information request asking how it meets Guideline 1.3: third-party analytics, third-party advertising, data
+  shared with third parties and other data collected. Its notes had said only that the app collects no data
+  and shows no ads. The answers, checked against the code, went into the review notes and the version was
+  resubmitted the same day. The message was read in App Store Connect where the owner was signed in; the API
+  still has no Resolution Center.
+- `submit` now reads the saved review notes of a Kids Category app and refuses before any write, naming each
+  unanswered question (`kidsReviewNotesProblems`, with unit and submit-path tests). Apps without a
+  `kidsAgeBand` make no extra read. `app-types.md` gains a kids apps section.
+- This is the first script-level prevention under v2.8.3's rejection recovery loop: SKILL.md cites it as
+  the example of a preflight check, iOS "When App Review rejects" gains a "Prevent a repeat" step and the
+  Play gotchas a pointer to the loop. Consumers only bump the submodule; no config or store data changes.
+
+## Lessons incorporated into v2.8.2 (2026-10-30)
+
+- Giraffe Stretch 1.0: the agent asked the owner to name an App Review contact, then for a phone, then
+  searched the vault and the activity ledger (both refused by the session's permission checks), while every
+  other app on the team carried an established review contact with a phone in App Store Connect. The owner
+  had to type a number and was rightly annoyed.
+- `review-details` now finds what the team already has through the API: with no contact named and none on
+  the version, it takes the team's newest complete contact, name and phone together (`teamReviewContact`);
+  a named contact without a run phone gets that same person's number from the team's other apps
+  (`reviewPhoneOnFile`, email match first, then name, then newest). Another person's number is never used
+  and no contact value is printed. Tests cover both paths; consumers only bump the submodule.
+
+## Lessons incorporated into v2.8.1 (2026-10-30)
+
+- Füd 1.2.0: `asc.mjs listing` created the new version, then refused with "No editable
+  App Info" because it had read App Info before the version existed. An immediate rerun
+  saved the listing.
+- `listing` now re-reads App Info after preparing a version, a few times while Apple
+  creates the record (`awaitEditableInfo`, with a regression test). No config or store data
+  changes; consumers only bump the submodule.
+- Asked whether Füd 1.2.0 was in TestFlight, `status` could not say: it listed builds without
+  their beta state. `status` now shows each recent build's internal and external TestFlight
+  state and which groups hold the newest build (`testflightState`, `testflightGroups`, with a
+  test), read-only. The `testflight` command adds builds, so it is not a substitute.
+
+## Lessons incorporated into v2.7.3 (2026-10-26)
+
+- Rhythm's initial TestFlight run had working API credentials, a registered bundle ID
+  and a signed IPA, but no App Store Connect app record. The API limitation was
+  already in the iOS reference; the owner still had to ask why UI was required.
+- Promote that boundary into startup guidance and explain it in the first relevant
+  update. A registered bundle is separate from an app record. Keep working credentials
+  and independent preparation distinct from an unavailable UI route. No script or
+  configuration format changes; consumer migration is a shared-skill pointer update.
+
 ## Lessons incorporated into v2.7.2 (2026-10-26)
 
-- Check destination-filesystem headroom for candidate and original restoration,
-  including installer staging, before QA mutation. Host SSD free space does not
-  establish owned-volume capacity. Preserve rollback/data and use installed,
-  format-compatible storage methods; verify restoration before closing the issue.
-- Persist native QA recovery state before mutation and guard each cleanup stage
-  independently. One optional window-geometry assertion previously stopped data
-  restoration; failure injection now proves later shutdown/data stages still run.
-- Resolve owned app/data paths before Shutdown or from exact offline metadata;
-  post-Shutdown `get_app_container` can fail with code 149. Verify the full
-  original bundle/data manifest, preferences, auth/fixtures and device state.
-- Current captures and observed gestures guide unknown OS window geometry.
-  Preserve target/account/run guards; no shared resets or invented owner step.
+- Bind the exact active app/profile/tab named by the owner first. Preserve an
+  explicit unlocked/sign-in report when the connector cannot inspect that surface.
+- A lock diagnostic or unavailable in-app browser is a tool observation. It does
+  not establish desktop lock or Apple sign-out, and does not justify repeating
+  an unchanged unlock/sign-in request.
+- An explicit app-access denial applies across routes; native host-app binding
+  cannot be used to reach an unavailable embedded browser through that denial.
 
 ## Lessons incorporated into v2.7.1 (2026-10-26)
 
@@ -457,3 +708,8 @@ an older snapshot in a clearly dated note, not by silently rewriting its history
 Keep measured costs separate from unavailable metrics. Refresh discovery copies
 with the repository's `bin/manage.sh link` after changing the source skill, and run
 `node --test tests/app-release/*.test.mjs` after changing a script.
+
+
+### 2026-11-03 — Importron PDF / File Provider QA
+
+Version2.12.2 documents simulator-side bookmark diagnostics and a narrowly validated Debug-only document-open lane that preserves actual reader/parser, StoreKit, Health handoff and clinical queries. Files resolution errors and incomplete materialization must be distinguished from extraction errors. Failed selector/profile retries remain evidence; the alternate lane must not be presented as successful standard selection. Distribution excludes its entrypoint; manual release still waits for exact-build physical QA. Importron verifies its private report independently and uses only invented fixtures in Health and Git. No source medical records or account contacts are included in this lesson.
