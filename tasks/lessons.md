@@ -1,5 +1,40 @@
 # Lessons Learned
 
+## Complete the authorized App Store release
+
+An active launch status check continues to public release once Apple has approved
+the intended build and its physical-device check and other release conditions
+are verified. Carry forward the existing authorization. Apply explicit holds,
+scheduled timing, testing-only scopes and read-only requests. Confirm the result
+in App Store Connect and verify the public storefront independently.
+
+## Physical evidence does not require mirrored access
+
+**Source:** Owner correction during Nametag review recovery (2026-10-31).
+
+- Never turn Mac screen mirroring or iPhone Mirroring into a release dependency
+  or initiate setup/authentication requests. It is optional only when the owner
+  explicitly chooses it; no replacement remote-control tool is mandatory.
+- Preserve completed exact-build approval. Reuse owner feedback, supplied physical
+  recordings and supported native QA; ask only for a genuinely missing piece of
+  reviewer evidence, without prescribing its transport.
+- Keep required physical capture/build/OS/paid-flow evidence factual. Removing a
+  transport prerequisite does not make simulator video physical-device evidence.
+
+## Inspect the direct attachment route before building a transfer tool
+
+**Source:** Nametag review-recording correction (2026-10-31).
+
+- An open App Review reply already offers Attach File. Inspect its supported
+  native chooser, including Media Photos/Movies when present, before creating an
+  exporter or asking the owner to repeat file transfer. Preserve public API use
+  where it meets the required destination and honor an explicit UI route.
+- Reconcile actual saved bytes and playback before trusting a later failure or
+  cancellation label. Preserve successful export receipts across retries; an
+  existing valid file should not become another owner handoff.
+- Separate acquisition, evidence coverage, upload completion, reply delivery and
+  accepted resubmission. Simpler transfer does not waive physical/build/OS proof.
+
 ## Explain known provider boundaries before the owner asks
 
 **Source:** Rhythm TestFlight correction (2026-10-26).
@@ -22,6 +57,15 @@
   assumed owner obligations or bypass real security/provider restrictions.
 
 Capture patterns and corrections here after any mistake or user feedback. Review at session start.
+
+## Share simulator coverage and route the original runner (2026-10-26)
+
+- A simulator can test many apps; app names do not justify separate devices. Reuse a small pool by
+  OS/device coverage, reserve the exact UUID during use, and restore changed settings and boot state.
+- `simctl --set` does not route `xcodebuild`. On the observed Xcode, the original launcher reaches the
+  SSD set using one `-DVTSimulatorSetLocation=<path>` argument; split syntax is not equivalent.
+- Preserve Apple's original launcher and distinguish a built-in process-local preference from binary
+  re-signing/code injection. Destination discovery needs a real UI test before the runner issue closes.
 
 ## Honor current owner evidence when a UI diagnostic disagrees (2026-10-26)
 
@@ -403,3 +447,20 @@ current store requirements, and check existing method authorization before askin
   itself a demonstrated owner-only challenge; keep the tool's actual security boundary in force.
 - Successful later binding does not prove an earlier service restart caused recovery. Record the
   working route and independent app readback without claiming an unproven infrastructure repair.
+
+## 2026-10-31 — Root-caused store rejections must improve the release skill
+
+The owner requires each diagnosed rejection to produce both an app correction and a verified reusable prevention check or evidence requirement. Logging a retry alone loses the lesson. Preserve the reviewer request, distinguish missing review evidence from a code bug, update the shared workflow at the right scope, and recheck that lesson before later submissions. A required physical demo remains a real dependency; neither simulator footage nor a written phone approval satisfies it.
+
+## Asset Library queries and creative categories (2026-11-02)
+
+- Exercise the real request and response projection in regressions. Sparse fields
+  alone may not expose Apple's resource linkage; explicitly include the supported
+  target and keep missing, unknown, duplicate and conflicting items fail-closed.
+- Read standalone-review eligibility and readiness before opening a draft. An app's
+  first version awaiting review is not approved, an `ACCEPTED` item may have rejected
+  companions, and a processing selected image must not silently produce a subset.
+- Scope native-capture rules to screenshots and app previews. Optional creative
+  photography/illustration and owner-authorized AI model scenes may support an app's
+  marketing without fabricating UI, customer evidence or endorsements. Keep generated
+  lifestyle scenes separate from real screenshots and visibly disclosed on the website.

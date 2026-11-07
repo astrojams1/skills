@@ -81,9 +81,9 @@ A failed UI route cannot block CLI builds or listing preparation that still work
   answers are separate observations; the public API key does not authenticate the Fastlane action.
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
-- **Submission and release:** honor existing explicit authorization for `submit --confirm`. For `MANUAL`
-  release, complete the owner's physical-device check and obtain authorization for `release --confirm`
-  if public release is outside the scope already granted.
+- **Submission and release:** honor existing explicit authorization for `submit --confirm`. Use existing
+  public launch authorization for `release --confirm` once the exact build and release conditions are
+  verified. A testing or review scope ends at its stated stage.
 
 ## Release loop
 
@@ -103,6 +103,30 @@ changes source. Review and commit legitimate generated changes before rerunning;
 just to make a build look clean. This mode does not regenerate icons, launch assets or other Expo plugin
 output: update and review those native assets explicitly when app configuration changes.
 
+**Bare Xcode projects.** A native Swift app with no Expo config, no `ios/` folder and no CocoaPods sets
+`ios.project` to its `.xcodeproj` (relative to `projectDir`) with `prebuild: false`; `infoPlist` is then relative
+to `projectDir`. `archive` checks that the Info.plist, `project.pbxproj` and the shared scheme are tracked, skips
+Expo and CocoaPods, and runs `xcodebuild -project` from `projectDir`. Giraffe Stretch (SwiftUI + SpriteKit, Xcode
+synchronized folders) shipped build 1 this way.
+
+**Teams with no registered devices.** Automatic archive signing uses a development profile, and Apple issues one
+only to a team with registered devices: Xcode stops with "Your team has no devices from which to generate a
+provisioning profile". Forcing `CODE_SIGN_IDENTITY=Apple Distribution` conflicts with automatic signing. Set
+`ios.archiveSigning: "export"`: the archive is built unsigned and the `app-store-connect` export signs it with the
+team's distribution certificate and an App Store profile, which need no devices.
+
+**A brand-new app's TestFlight group.** A new record has no beta groups. When the app has no internal group at all,
+`testers` creates `ios.testflightGroup` through the API, reads it back and adds the build; an app that already has
+internal groups but none with that name still stops, so a mistyped name never adds a group. A build in an empty group
+shows in nobody's TestFlight, so `testers` adds the team's account holder to an empty group, invites any tester still
+`NOT_INVITED`, reads the group back and reports the tester count. It fails rather than report a build nobody can
+receive. Add other internal testers (App Store Connect users of that team) with `POST /v1/betaTesters` carrying the
+user's username as `email`, their names and a `betaGroups` relationship (state `INVITED` until they accept).
+
+**Archive before the app record exists.** `archive --build-number N` reads nothing from App Store Connect, so it
+runs without `ios.ascAppId`; prepare and verify the `.ipa` while the record is being created. `validate` and
+`upload` still need the record (altool error 19, "Unable to find Apple ID for Bundle ID").
+
 When an installed distribution identity/profile is already verified for the intended team, manual
 signing can reuse it. Set `ios.signing.style: "manual"`, `certificate` to the installed certificate's
 40-character SHA-1 and `profile` to the distribution profile name or UUID. Keep the private key and
@@ -120,8 +144,9 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
 ### Commands
 
 1. **Start from facts.** Pull, read the ledger (`ledger.mjs status`), then `node $S/asc.mjs status`: versions,
-   recent builds, review submissions with their items, attached build, screenshot and attachment delivery,
-   and Game Center when configured.
+   recent builds with their internal and external TestFlight state, the TestFlight groups holding the newest
+   build, review submissions with their items, attached build, screenshot and attachment delivery, and Game
+   Center when configured.
 2. **Prove it compiles and launches, for free.** The repository's checks, then `CI=1 npx expo prebuild -p ios
    --no-install --clean`, `cd ios && LANG=en_US.UTF-8 pod install` (CocoaPods fails on Unicode normalization
    without UTF-8), and a Release simulator build:
@@ -158,12 +183,39 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    compare the live values with the repository's previous copy so only the intended change goes out.
 7. **Attach and submit.** `asc.mjs attach-build <N>`, then with the owner's approval `asc.mjs submit
    --confirm`. Read back `WAITING_FOR_REVIEW` on both the version and the submission before saying it was
-   submitted; `READY_FOR_REVIEW` is still a draft.
-8. **Release.** With `releaseType: MANUAL` an approved version waits as `PENDING_DEVELOPER_RELEASE`; after the
-   owner's physical-device check of the TestFlight build, `asc.mjs release --confirm`. With
-   `AFTER_APPROVAL` it goes live on approval, so the device check must happen before submitting. Never
-   release on simulator evidence alone.
+   submitted; `READY_FOR_REVIEW` is still a draft. To put a newer build in front of App Review, the owner
+   must approve giving up the version's place in the queue; then `asc.mjs withdraw --confirm` (cancels only
+   the one submission in review with this version, waits for the cancel to settle and reads the version
+   back, usually `DEVELOPER_REJECTED`), `attach-build <N>`, and `submit --confirm`, which opens a new
+   submission. Recheck the listing and screenshots against the new build first.
+8. **Release.** Use `releaseType: MANUAL` when the physical-device check or another release condition
+   may follow submission. On an authorized launch, including a status check for that launch, read back
+   the approved version's `PENDING_DEVELOPER_RELEASE` state and the attached build ID and number. Match
+   that build to the recorded physical-device check and verify any app-specific conditions. Run
+   `asc.mjs release --confirm` when eligible. Respect explicit holds, schedules and read-only requests.
+   Keep the `status` command read-only. Record release request acceptance, provider distribution
+   state and actual public App Store availability separately. With `AFTER_APPROVAL`, complete the
+   physical-device check and other release conditions before submission because Apple can publish
+   on approval.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
+
+## Unattended review submissions
+
+A scheduled run takes eligible updates to `WAITING_FOR_REVIEW` and no further. `review-sweep.mjs sweep` reads both
+teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
+one, or any submission not `COMPLETE`, including a `READY_FOR_REVIEW` draft and `UNRESOLVED_ISSUES`), `deferred`,
+`no_product_change` or `candidate`. A candidate is only a list of files: read the diff and decide whether the shipped
+app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse.
+
+Provenance is the build's `summary.json` from `ios-release.mjs archive`. A build without one (a cloud build) needs
+`<state>/provenance/<ascAppId>-<version>-<build>.json` with `commit` (full hash), `appleBuildId`, `evidence` and
+`cleanTree` if proven; write it only from provider records, such as EAS `gitCommitHash` and Apple's build id.
+
+Take `claim --app ID --key VERSION-COMMIT --run RUN` before any write and `finish … --result submitted|deferred`
+afterwards. Run every release script through `review-sweep.mjs run -- node $S/asc.mjs …`, which sets
+`APP_RELEASE_UNATTENDED=1`: `listing` then writes `MANUAL` whatever the store data says, `submit --confirm` rereads
+Apple before opening a submission and again before sending it and refuses anything not `MANUAL` or already occupied,
+and `release`, `withdraw`, `pricing` and replacing a rejected submission are refused.
 
 ## First-subscription review
 
@@ -282,17 +334,49 @@ only when the intended review scope changes after provider readback, never to by
    each item's state.
 2. **The message is not in the API.** App Store Connect API 4.5.1 (checked against Apple's OpenAPI spec on
    2026-10-13) has no endpoint for the Resolution Center: `resolutionCenterThreads` paths answer 404 and
-   `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read Apple's email to the owner's
-   account through the Gmail connector (search App Store Connect / App Review), or ask the owner to paste it.
-3. **Answer through the API.** Put the answers in the store data's `review.notes` and run `review-details`.
-   Upload files App Review asked for (a screen recording) with `asc.mjs review-attachment <path>`: it
-   reserves, uploads and commits the file, waits for `COMPLETE`, and only then removes earlier copies with the
-   same name. Keep large media outside the repository (`/Volumes/ssd/projects/<slug>/`).
+   `GET /v1/reviewSubmissionItems/{id}` answers 403. Do not guess paths. Read the submission's Messages in
+   App Store Connect where the owner is signed in (App Review, then the submission;
+   `https://appstoreconnect.apple.com/apps/<ascAppId>/distribution/reviewsubmissions`), Apple's email to the
+   owner's account through the Gmail connector (search App Store Connect / App Review). Notification emails
+   may contain only a link. If the Browser connector exposes no usable tabs, inspect available supported
+   Computer Use capabilities and the already-signed-in Chrome session before asking the owner to paste
+   anything or sign in again. Read that tool's installed instructions and use its documented UI API;
+   do not substitute AppleScript, private browser endpoints, or weakened browser security. An empty
+   connector inventory does not establish that Chrome is unavailable. Verify the selected developer
+   team and app before reading or acting; multiple teams can share the same login. A queued request
+   to open a page is not a successful page read.
+3. **Provide the answers and attachments.** Put the answers in the store data's `review.notes` and run
+   `review-details`. For a local file, `asc.mjs review-attachment <path>` reserves, uploads and commits an
+   App Review Information attachment, waits for `COMPLETE`, and only then removes earlier copies with the
+   same name. Use the reply's **Attach File** control for correspondence attachments. Inspect its supported
+   chooser before introducing an exporter; see “Attach the owner's recording” below. Keep large media
+   outside the repository (`/Volumes/ssd/projects/<slug>/`).
 4. **Resubmit** with the owner's approval: `submit --confirm` marks the rejected items resolved and sends the
    submission again, or — when a rejected submission must gain items Apple will not add to it (leaderboards,
    409 "does not allow adding more items") — cancels it, waits for it to settle and opens a new one. A posted
    reply alone does not resubmit; the owner's request to resubmit authorizes these steps, nothing earlier does.
    Keep a receipt in the repository (submission id, build, what changed) and record `apple.review`.
+5. **Prevent a repeat.** With the root cause established, follow [ledger](ledger.md), “Rejection recovery and
+   prevention”: where `asc.mjs` can detect the cause, the prevention is a check that refuses before any write.
+
+For a **2.1 question about per-use charges**, explain the actual paid unit and the business rationale,
+not just the SKU and price. Verify the free allowance, the user action that triggers purchase,
+what remains free, duplicate/overlap behavior, canceled/failed attempts and recovery against the
+submitted build. Include the answer in Notes and post the requested correspondence reply. Keep
+existing answers to prior review questions when fitting Notes within Apple's length limit.
+Do not invent server costs for an on-device utility or imply that Apple charges for the operation.
+Where Apple frameworks are involved, state exactly which app functionality is paid and which system
+access remains free; check current guidelines on monetizing built-in capabilities rather than
+assuming this explanation establishes compliance. Preserve the owner's chosen model unless an
+actual requirement or authorized correction changes it. An information request alone does not
+require a replacement binary: use the existing verified build when only the review package changes,
+then verify resubmission separately from the posted reply.
+
+**Kids Category apps** (an `ageRating.kidsAgeBand`) receive an automated 2.1 information request on their
+first submission asking how they meet Guideline 1.3: third-party analytics, third-party advertising, data
+shared with third parties, and other data collected (Giraffe Stretch 1.0, 31 October 2026). `submit` reads the
+saved review notes and refuses, naming the unanswered questions, until they answer all four
+([app types](app-types.md), "Kids apps").
 
 **Guideline 2.1 information requests for a new developer** have needed, for both apps: a physical-device
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the
@@ -315,6 +399,14 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 
 ## Gotchas
 
+- **A new app group must be registered by hand first.** The public API has no App Group resource (`GET /v1/appGroups` is 404), and Xcode's API-key signing cannot create one. Until the group exists and is assigned to every bundle ID, `archive` fails with a misleading "Authentication failed: Make sure a bearer token was provided" plus "No profiles for …", while the same key still reads and creates profiles through the API. In the Developer portal: check the selected team first (the owner has two, and an identifier on the wrong team is stranded), register the group under Identifiers → App Groups, and type the identifier **without** its `group.` prefix, which the field adds itself (typing it registers `group.group.…`). Then open each bundle ID, App Groups → Configure, select the group, Save, Confirm. `archiveSigning: "export"` is no workaround: an unsigned archive loses the entitlements, and the archive check refuses it with "app group … is missing" (Plenty, 2026-11-05).
+- **Keep the repository untouched while `archive` runs.** Writing or adding files during an archive makes the finished build dirty, and `upload` then refuses it. Put captures and other generated files outside the repository until it finishes.
+- **App Store Connect rejects pictographic symbols in copy.** A description containing a check mark (U+2713)
+  failed with `ENTITY_ERROR.ATTRIBUTE.INVALID.INVALID_CHARACTERS` after the App Info had already saved; `listing`
+  now refuses dingbats and emoji before writing anything. Spell symbols out ("check-mark button").
+- **The age-rating declaration requires `socialMedia`** (observed 2026-10-30): the PATCH fails with
+  `ENTITY_ERROR.ATTRIBUTE.REQUIRED` until the store data answers it. `age-rating` lists the questions the store data
+  leaves unanswered; answer every one Apple marks required.
 - **iOS 27 SDK builds need the UIScene life cycle**, or the app stops at launch (SIGTRAP, "UIScene life
   cycle is required"). Both apps adopt it through an Expo config plugin and Expo's scene delegate; after an
   Expo upgrade, check the plugin still matches the template and launch on iOS 27 before releasing. The
@@ -364,9 +456,16 @@ fetch the current same-app/version record and retain omitted first/last name, em
 payload on readback; an omitted config field must not be compared against Apple's retained value as
 though it requested removal. Other demo-account fields remain untouched by the PATCH.
 
-First creation needs complete `review.firstName`, `lastName`, `email` and a private runtime
-`ASC_REVIEW_PHONE`. A changed contact identity also requires its own runtime phone; never silently
-reuse the old person's number or search unrelated apps for a replacement. Empty/null explicit identity
+The team's other apps already hold an App Review contact with a phone, so **never ask the owner for a review
+contact or phone before `review-details` has run**. With no `review.firstName`, `lastName` or `email` and
+none on the version yet, it takes the team's newest complete contact from its other apps, name and phone
+together. A named contact's phone comes from `ASC_REVIEW_PHONE`, else this version's same contact, else the
+same person on the team's other apps (same email, else same first and last name; an email match, then the
+newest version, wins). It prints only which app and version a contact came from. A changed contact identity
+never inherits another person's number: with none on file for that person it stops and asks for
+`ASC_REVIEW_PHONE`, the only case where the owner is asked. Giraffe Stretch 1.0 (October 2026) asked the
+owner to name a contact and then for a phone while every other app on the team carried one; the owner
+corrected it. Empty/null explicit identity
 overrides are rejected before saving. Keep all contact values out of logs and error messages. A provider
 request failure does not establish that Notes were saved; an echoed/readback mismatch or lost response
 requires inspecting provider state before retrying. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
@@ -410,9 +509,12 @@ submitted app/build, preserve the unaltered recording and verify reviewer access
 Reassess older recordings after feature changes: a video of an earlier build
 cannot prove a new Settings flow or a different OS/build combination, but this
 alone does not establish why Apple repeated its request. Check the
-current official OS release information and the physical device's current version;
-last-seen device metadata and a busy/disconnected mirroring session are not fresh
-verification. Record unavailable physical access as a separate owner-device gate.
+current official OS release information and evidence of the physical device's version
+on the recording date; last-seen device metadata alone is not fresh verification.
+Reuse existing owner feedback and physical recordings without reopening completed
+exact-build approval. Any genuinely missing reviewer evidence is a separate,
+narrow evidence request, not a need for mirrored access or a particular transport
+(see “Never require mirroring” in the skill entrypoint).
 Inspect any newly supplied recording before sending it. Record only visible
 coverage; a current OS or build number cannot be established from a video that
 does not show them. Preserve those verification limits in the evidence record
@@ -421,6 +523,33 @@ Simulator captures do not satisfy a physical-device request. Leave missing
 evidence explicitly pending; do not send an incomplete package as a completed
 response or claim testing from device pairing alone. Apply the session's actual
 authorization when replying, inviting testers or resubmitting.
+
+#### Attach the owner's recording
+
+Before repeating selection, exporting again or asking the owner to move a file,
+check the intended saved-artifact location. A later picker failure or cancellation
+can coexist with an earlier successful export. Inspect the existing bytes, duration
+and playback, match them to the intended recording, and preserve a valid source.
+Keep success receipts and later attempt outcomes separately; a filename or the last
+status label alone establishes neither file validity nor failure.
+
+Use a public API when it covers the required destination and a usable local file
+is available. When continuing in an App Review reply, or when the owner asks for
+**Attach File**, inspect that control's native chooser first. It may expose
+**Media → Photos/Movies** as well as ordinary files. Select only the intended asset
+through the available supported surface, or choose its verified local path.
+An unavailable source in one chooser is not grounds for broad photo-library grants
+or private-library access. Introduce a custom exporter only after the useful
+supported chooser/API routes have a demonstrated limitation; record that reason
+and keep the fallback scoped to the requested file.
+
+Recheck actual flow coverage, submitted build and any requested device/OS evidence
+before treating the recording as a complete review response. Verify that upload
+has finished and the intended attachment is accessible in its destination.
+App Review Information attachments and reply attachments are separate collections;
+verify each one required by the reviewer's request. Preserve matching evidence
+references in Notes and correspondence. A chosen file, completed upload, saved
+draft or sent reply does not establish an accepted resubmission.
 
 #### TestFlight preparation is not physical QA
 

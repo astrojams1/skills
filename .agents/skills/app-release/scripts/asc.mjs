@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 // asc.mjs
 // Drives every App Store Connect step of an iOS release through Apple's API: status, listing copy, age rating,
-// pricing and availability, screenshots, App Review details and attachments, Game Center leaderboards, TestFlight,
-// build selection, submission and manual release. Identity comes from the app's app-release.config.json (`ios`) and
+// pricing and availability, screenshots, Asset Library images and app preview videos, featuring nominations, App Review
+// details and attachments, Game Center leaderboards, TestFlight, build selection, submission, withdrawal from review and
+// manual release. Identity comes from the app's app-release.config.json (`ios`) and
 // copy from its store data file; credentials come from 1Password in memory; every write is read back so a release
 // never depends on clicking through the web console. Run from the app repository.
 
 import { createHash, sign } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
+import { unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
-const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'testflight', 'release', 'assets'];
+const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
 
 // CONFIG, IOS and STORE are read on first use, so tests can import the decision helpers without a configured app.
 let CONFIG = null;
@@ -23,10 +26,11 @@ let IOS = null;
 let STORE = null;
 
 // setup reads the app's configuration and store data.
-export function setup(start) {
+export function setup(start, fields) {
   CONFIG = loadConfig(start);
   // API access does not establish Xcode signing authority; its team/scheme/build settings may still be unverified.
-  IOS = requireSection(CONFIG, 'ios', ['ascAppId', 'bundleId', 'vault', 'platform']);
+  // Callers that never address the app record (an archive with a chosen build number) may omit ascAppId.
+  IOS = requireSection(CONFIG, 'ios', fields || ['ascAppId', 'bundleId', 'vault', 'platform']);
   STORE = loadStoreData(CONFIG);
   return { config: CONFIG, ios: IOS, store: STORE };
 }
@@ -126,6 +130,17 @@ export function schedulePricePoints(prices) {
 // editableAppInfo returns the App Info whose state (or deprecated appStoreState) is explicitly editable.
 export function editableAppInfo(infos) {
   return infos.find(info => EDITABLE_STATES.includes(info.attributes.state || info.attributes.appStoreState || '')) || null;
+}
+
+// awaitEditableInfo re-reads App Info after a version is prepared. Apple makes the next version's editable App Info
+// only when that version exists, so the list read before creating it has none (Füd 1.2.0, 2026-10-30); the record can
+// lag the version briefly, so it reads a few times before giving up with null.
+export async function awaitEditableInfo(readInfos, { attempts = 5, delay = 2000, wait = ms => new Promise(done => setTimeout(done, ms)) } = {}) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const info = editableAppInfo(await readInfos());
+    if (info || attempt === attempts) return info;
+    await wait(delay);
+  }
 }
 
 // PRIVATE_FIELDS are never printed, even in a readback error.
@@ -292,6 +307,15 @@ export function alreadyInReview(submission, items, versionId) {
   return ['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(submission.attributes.state) && items.some(item => itemVersionId(item) === versionId);
 }
 
+// withdrawPlan picks the submission `withdraw --confirm` cancels: the one waiting for or in review with this version.
+// None means there is nothing to withdraw; more than one is a state the script will not guess its way through.
+export function withdrawPlan(active, itemsById, versionId) {
+  const holding = active.filter(submission => alreadyInReview(submission, itemsById[submission.id] || [], versionId));
+  if (!holding.length) return { action: 'none' };
+  if (holding.length > 1) return { action: 'conflict', ids: holding.map(submission => submission.id) };
+  return { action: 'cancel', id: holding[0].id };
+}
+
 // itemsToResolve returns this version's and its leaderboards' rejected items, which Apple requires marked resolved
 // before resubmission.
 export function itemsToResolve(items, versionId, reviewTargets = []) {
@@ -391,6 +415,34 @@ export function replacementLeaderboards(refreshed, heldItems) {
   return refreshed.concat(carried);
 }
 
+// listingCharacterProblems names store copy fields holding pictographic symbols. Apple refused a description containing
+// a check mark (U+2713) with INVALID_CHARACTERS after the app info was already saved (Giraffe Stretch, 2026-10-30), so
+// dingbats and emoji are caught before any write.
+export function listingCharacterProblems(copy) {
+  const symbol = /[\u2700-\u27BF\u{1F000}-\u{1FAFF}\u2600-\u26FF]/u;
+  return ['name', 'subtitle', 'promotionalText', 'description', 'keywords', 'whatsNew']
+    .filter(field => typeof copy[field] === 'string' && symbol.test(copy[field]))
+    .map(field => field + ' contains ' + JSON.stringify(copy[field].match(symbol)[0]) + ', which App Store Connect rejects; spell it out');
+}
+
+// KIDS_CATEGORY_QUESTIONS are the four Guideline 1.3 questions App Review asks of every Kids Category app in an
+// automated information request, holding the version until they are answered (Giraffe Stretch 1.0, 2026-10-31). Each
+// pairs the question with the words an answer to it must use.
+const KIDS_CATEGORY_QUESTIONS = [
+  ['third-party analytics (whether the app includes any, and what data they collect)', /analytics/i],
+  ['third-party advertising (whether the app shows any, and a link to the ad network\'s policies for kids apps)', /\bads?\b|advertis/i],
+  ['data shared with third parties (with whom, for what, and where it is stored)', /\bshar(?:e|ed|es|ing)\b[^.]*third[- ]part|third[- ]part[^.]*\bshar(?:e|ed|es|ing)\b/i],
+  ['other user or device data the app collects (and every use of it)', /\bcollect/i],
+];
+
+// kidsReviewNotesProblems names the Kids Category questions the review notes leave unanswered. An app outside the Kids
+// Category (no kidsAgeBand in its age rating) is not asked them.
+export function kidsReviewNotesProblems(ageRating, notes) {
+  if (!ageRating || !ageRating.kidsAgeBand) return [];
+  const text = typeof notes === 'string' ? notes : '';
+  return KIDS_CATEGORY_QUESTIONS.filter(([, answered]) => !answered.test(text)).map(([question]) => question);
+}
+
 // whatsNewPlan decides whether a version's copy carries release notes. Apple refuses "What's New" on an app's first
 // version, so nothing is sent before a version is live; every later version is an update and must ship notes, so an
 // update with empty notes stops the command instead of reaching App Review without them.
@@ -407,13 +459,35 @@ export function manualTestflightGroups(groups, name) {
   return groups.filter(group => group.attributes.name === name && group.attributes.isInternalGroup && !group.attributes.hasAccessToAllBuilds);
 }
 
+// testflightState says where a build stands in TestFlight, from the buildBetaDetail a builds read includes: internal
+// testers can install it at IN_BETA_TESTING, while external testers need Beta App Review first.
+export function testflightState(build, included) {
+  const link = build.relationships && build.relationships.buildBetaDetail && build.relationships.buildBetaDetail.data;
+  const detail = link && (included || []).find(item => item.type === 'buildBetaDetails' && item.id === link.id);
+  const state = detail ? 'TestFlight internal ' + detail.attributes.internalBuildState + ', external ' + detail.attributes.externalBuildState
+    : 'TestFlight state unknown';
+  // Apple usually reports an expired build's beta states as EXPIRED already; say so only when it does not.
+  return build.attributes.expired && !state.includes('EXPIRED') ? state + ', expired' : state;
+}
+
+// testflightGroups reads every TestFlight group and whether it holds the build; `read` lists a collection, so a group
+// that receives every build on its own is still checked rather than assumed.
+export async function testflightGroups(appId, buildId, read = listAll) {
+  const groups = [];
+  for (const group of await read('/v1/apps/' + appId + '/betaGroups')) {
+    const builds = await read('/v1/betaGroups/' + group.id + '/builds?limit=200');
+    groups.push({ name: group.attributes.name, internal: group.attributes.isInternalGroup === true, hasBuild: builds.some(item => item.id === buildId) });
+  }
+  return groups;
+}
+
 // context finds the app, its editable App Info and the iOS version being prepared; writing commands pass
 // prepare=true to create or rename that version when the configured version string has none yet.
 async function context(prepare) {
   const app = (await api('/v1/apps/' + IOS.ascAppId)).data;
   const infos = await listAll('/v1/apps/' + IOS.ascAppId + '/appInfos');
   // Only metadata edits need an editable App Info; submit and release read the version alone.
-  const editableInfo = editableAppInfo(infos);
+  let editableInfo = editableAppInfo(infos);
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   let version = versions.find(item => item.attributes.versionString === STORE.version);
   if (!version && !prepare) throw new Error('No iOS version ' + STORE.version + ' yet; run `listing` to prepare it.');
@@ -424,6 +498,7 @@ async function context(prepare) {
     } else {
       version = (await api('/v1/appStoreVersions', 'POST', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: STORE.version }, relationships: { app: relation('apps', IOS.ascAppId) } } })).data;
     }
+    if (!editableInfo) editableInfo = await awaitEditableInfo(() => listAll('/v1/apps/' + IOS.ascAppId + '/appInfos'));
   }
   return { app: app, info: editableInfo, version: version };
 }
@@ -452,8 +527,16 @@ async function status() {
   }
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   for (const item of versions) console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
-  const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5');
-  for (const item of builds.data) console.log('  build', item.attributes.version, item.attributes.processingState, item.attributes.uploadedDate);
+  const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5&include=buildBetaDetail');
+  for (const item of builds.data) {
+    console.log('  build', item.attributes.version, item.attributes.processingState, item.attributes.uploadedDate, testflightState(item, builds.included));
+  }
+  // The newest build is the one a tester asks about, attached to a version or not.
+  if (builds.data.length) {
+    for (const group of await testflightGroups(IOS.ascAppId, builds.data[0].id)) {
+      console.log('    TestFlight group', group.name, group.internal ? 'internal' : 'external', group.hasBuild ? 'has build ' + builds.data[0].attributes.version : 'does not have it');
+    }
+  }
   const submissions = await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&limit=5');
   for (const item of submissions.data) {
     console.log('  review submission', item.id, item.attributes.state, item.attributes.submittedDate || '');
@@ -480,6 +563,9 @@ async function status() {
   for (const set of sets) {
     const shots = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
     console.log('  screenshots', set.attributes.screenshotDisplayType, shots.map(shot => shot.attributes.assetDeliveryState.state).join(','));
+  }
+  for (const item of await versionPromotion(ctx.version.id)) {
+    console.log('  promotion', item.id, item.state + (item.detail ? ': ' + item.detail : item.reason ? ': ' + item.reason : ''));
   }
   const reviewDetail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   if (reviewDetail.data) {
@@ -535,6 +621,9 @@ export function categoryRelationships(copy) {
 
 // listing saves the name, subtitle, privacy URL, categories, content rights, copyright and version copy.
 async function listing() {
+  // Checked before context(true), which may already create or rename the version.
+  const symbols = listingCharacterProblems(STORE.listing);
+  if (symbols.length) throw new Error('Store copy cannot be sent: ' + symbols.join('; '));
   const ctx = await context(true);
   requireEditableInfo(ctx);
   const copy = STORE.listing;
@@ -555,7 +644,8 @@ async function listing() {
     const savedApp = await api('/v1/apps/' + IOS.ascAppId, 'PATCH', { data: { type: 'apps', id: IOS.ascAppId, attributes: appAttributes } });
     assertSaved('App', appAttributes, savedApp.data.attributes);
   }
-  const versionAttributes = { copyright: copy.copyright, releaseType: copy.releaseType || 'MANUAL' };
+  // An unattended run holds the version whatever the store data prefers, so approval can never publish it.
+  const versionAttributes = { copyright: copy.copyright, releaseType: unattended() ? 'MANUAL' : copy.releaseType || 'MANUAL' };
   const savedVersion = await api('/v1/appStoreVersions/' + ctx.version.id, 'PATCH', { data: { type: 'appStoreVersions', id: ctx.version.id, attributes: versionAttributes } });
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
@@ -937,15 +1027,33 @@ export async function reviewDetails() {
   const current = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   const existing = current.data?.attributes || {};
   const attributes = {};
-  for (const [field, attribute] of [['firstName', 'contactFirstName'], ['lastName', 'contactLastName'], ['email', 'contactEmail']]) {
-    const value = Object.hasOwn(contact, field) ? contact[field] : existing[attribute];
+  const identity = [['firstName', 'contactFirstName'], ['lastName', 'contactLastName'], ['email', 'contactEmail']];
+  // With no contact named in the store data and none on this version yet, the app takes the team's established review
+  // contact from its other apps, name and phone together, so the owner is never asked for what the team already has.
+  let adopted = null;
+  if (!identity.some(([field]) => Object.hasOwn(contact, field)) && !Object.hasOwn(process.env, 'ASC_REVIEW_PHONE')
+      && !identity.every(([, attribute]) => typeof existing[attribute] === 'string' && existing[attribute].trim())) {
+    adopted = teamReviewContact(await reviewContactsOnFile(IOS.ascAppId));
+    if (adopted) console.log('Using the App Review contact already on file with ' + adopted.appName + ' ' + adopted.versionString + '.');
+  }
+  for (const [field, attribute] of identity) {
+    const value = Object.hasOwn(contact, field) ? contact[field] : adopted ? adopted[attribute] : existing[attribute];
     if (typeof value !== 'string' || !value.trim()) throw new Error('A complete review contact is required: supply review.' + field + ' or retain a valid current same-app contact.');
     attributes[attribute] = value;
   }
   // A different identity cannot silently inherit the prior contact's private phone number.
   const sameContact = ['contactFirstName', 'contactLastName', 'contactEmail'].every(field => attributes[field] === existing[field]);
-  const phone = Object.hasOwn(process.env, 'ASC_REVIEW_PHONE') ? process.env.ASC_REVIEW_PHONE : sameContact ? existing.contactPhone : undefined;
-  if (typeof phone !== 'string' || !phone.trim()) throw new Error('A review contact phone is required; set ASC_REVIEW_PHONE for this run and never commit it.');
+  let phone = Object.hasOwn(process.env, 'ASC_REVIEW_PHONE') ? process.env.ASC_REVIEW_PHONE
+    : adopted ? adopted.contactPhone : sameContact ? existing.contactPhone : undefined;
+  if (phone === undefined) {
+    // The same person's number is already on file with the team's other apps: reuse it rather than ask the owner.
+    const found = reviewPhoneOnFile(attributes, await reviewContactsOnFile(IOS.ascAppId));
+    if (found) {
+      phone = found.contactPhone;
+      console.log('Using the review phone already on file for this contact with ' + found.appName + ' ' + found.versionString + '.');
+    }
+  }
+  if (typeof phone !== 'string' || !phone.trim()) throw new Error('A review contact phone is required and none is on file for this contact with the team\'s other apps; set ASC_REVIEW_PHONE for this run and never commit it.');
   attributes.contactPhone = phone;
   const demoAccountRequired = Object.hasOwn(contact, 'demoAccountRequired') ? contact.demoAccountRequired : existing.demoAccountRequired ?? false;
   if (typeof demoAccountRequired !== 'boolean') throw new Error('review.demoAccountRequired must be a boolean.');
@@ -957,6 +1065,50 @@ export async function reviewDetails() {
     : await api('/v1/appStoreReviewDetails', 'POST', { data: { type: 'appStoreReviewDetails', attributes: attributes, relationships: { appStoreVersion: relation('appStoreVersions', ctx.version.id) } } });
   assertSaved('Review details', attributes, saved.data.attributes);
   console.log('Saved and verified the review contact and notes.');
+}
+
+// reviewPhoneOnFile picks, from the review contacts the team's other apps hold, the phone of the person being saved:
+// the same email, or failing that the same first and last name. An email match beats a name match, then the newest
+// version wins. Another person's number is never used. Returns the matching record, or null.
+export function reviewPhoneOnFile(identity, records) {
+  const lower = value => String(value || '').trim().toLowerCase();
+  const sameEmail = record => Boolean(lower(identity.contactEmail)) && lower(record.contactEmail) === lower(identity.contactEmail);
+  const sameName = record => Boolean(lower(identity.contactFirstName) && lower(identity.contactLastName))
+    && lower(record.contactFirstName) === lower(identity.contactFirstName) && lower(record.contactLastName) === lower(identity.contactLastName);
+  const matches = records.filter(record => typeof record.contactPhone === 'string' && record.contactPhone.trim() && (sameEmail(record) || sameName(record)));
+  matches.sort((a, b) => (Number(sameEmail(b)) - Number(sameEmail(a))) || String(b.createdDate || '').localeCompare(String(a.createdDate || '')));
+  return matches[0] || null;
+}
+
+// teamReviewContact is the team's established App Review contact: the newest one on file with a complete name, email
+// and phone. Returns the record, or null when no other app has one.
+export function teamReviewContact(records) {
+  const complete = records.filter(record => ['contactFirstName', 'contactLastName', 'contactEmail', 'contactPhone']
+    .every(field => typeof record[field] === 'string' && record[field].trim()));
+  complete.sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')));
+  return complete[0] || null;
+}
+
+// reviewContactsOnFile reads the App Review contact of every version of the team's other apps, with each app's name
+// and the version's string and creation date. Values stay in memory; callers print only where one came from.
+export async function reviewContactsOnFile(appId) {
+  const records = [];
+  for (const app of await listAll('/v1/apps?limit=200&fields[apps]=name')) {
+    if (app.id === appId) continue;
+    let next = '/v1/apps/' + app.id + '/appStoreVersions?limit=50&include=appStoreReviewDetail'
+      + '&fields[appStoreVersions]=versionString,createdDate,appStoreReviewDetail'
+      + '&fields[appStoreReviewDetails]=contactFirstName,contactLastName,contactEmail,contactPhone';
+    while (next) {
+      const page = await api(next);
+      const versions = new Map((page.data || []).map(version => [relatedId(version, 'appStoreReviewDetail'), version]));
+      for (const detail of page.included || []) {
+        const version = detail.type === 'appStoreReviewDetails' ? versions.get(detail.id) : null;
+        if (version) records.push({ ...detail.attributes, appName: app.attributes.name, versionString: version.attributes.versionString, createdDate: version.attributes.createdDate });
+      }
+      next = page.links && page.links.next ? page.links.next.replace(API, '') : null;
+    }
+  }
+  return records;
 }
 
 // openReviewSubmission returns the app's open (draft or rejected) review submission, creating a draft when there is
@@ -1171,6 +1323,7 @@ async function waitForCancel(id) {
 // replaceRejectedSubmission cancels a rejected submission that cannot take new items, waits until Apple reports it
 // COMPLETE (or gone), and returns the new draft; `fillSubmission` then adds the version and leaderboards.
 async function replaceRejectedSubmission(submission) {
+  if (unattended()) throw new Error('An unattended run does not replace a submission; nothing was canceled.');
   await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { canceled: true } } });
   console.log('Canceled rejected submission', submission.id, 'so the required items can go to review with the version');
   await waitForCancel(submission.id);
@@ -1252,10 +1405,33 @@ async function testflight(buildNumber) {
 }
 
 // submit sends the prepared version to App Review; it needs --confirm because it is the one irreversible step.
+// requireUnattendedSubmit rereads Apple's state and stops an unattended run that could publish or collide; a person's
+// run is unaffected. It runs before anything is opened and again immediately before the submission is sent.
+async function requireUnattendedSubmit(versionId) {
+  if (!unattended()) return;
+  const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
+  const submissions = await listAll('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS');
+  const version = versions.find(item => item.id === versionId);
+  const refusal = version ? unattendedSubmitRefusal(version, versions, submissions) : 'The version is gone from App Store Connect.';
+  if (refusal) throw new Error(refusal + ' Nothing was submitted.');
+}
+
 export async function submit(flag) {
   if (flag !== '--confirm') throw new Error('Submitting for review is outward-facing; rerun as `asc.mjs submit --confirm` once the owner has approved it.');
   const ctx = await context();
   if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was submitted.');
+  // Every app ships the shared standards; the source is audited, so a build without them never reaches App Review.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal) throw new Error(refusal + ' Then build, attach the new build and submit again; nothing was submitted.');
+  // A Kids Category app is held for Guideline 1.3 answers; the saved notes are what App Review reads, so they are checked.
+  if (STORE.ageRating && STORE.ageRating.kidsAgeBand) {
+    const detail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
+    const unanswered = kidsReviewNotesProblems(STORE.ageRating, detail.data?.attributes?.notes);
+    if (unanswered.length) throw new Error('A Kids Category app (kidsAgeBand ' + STORE.ageRating.kidsAgeBand + ') is held by App Review until '
+      + 'its notes answer how it meets Guideline 1.3. The saved review notes do not answer: ' + unanswered.join('; ')
+      + '. Answer each from the shipped code in the store data\'s review.notes, run `asc.mjs review-details`, then submit again; nothing was submitted.');
+  }
+  await requireUnattendedSubmit(ctx.version.id);
   let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
   const pending = await submissionInReview(ctx.version.id, reviewTargets);
@@ -1263,6 +1439,11 @@ export async function submit(flag) {
     console.log('Version', STORE.version, 'is already', pending.attributes.state, 'in submission', pending.id);
     return;
   }
+  // Read before anything is opened: a preview cannot be added once the version is approved.
+  const promotion = await versionPromotion(ctx.version.id);
+  const unfinished = promotionRefusal(promotion);
+  if (unfinished) throw new Error(unfinished);
+  for (const item of promotion.filter(entry => entry.state === 'waived')) console.log('Waived', item.title + ':', item.reason);
   // Leaderboard readiness is checked before any submission is opened or created, so a refusal changes nothing.
   let leaderboards = await editableLeaderboardVersions();
   // A cancellation an earlier run left in flight is resumed: wait for it instead of opening a second submission.
@@ -1295,6 +1476,7 @@ export async function submit(flag) {
       missingSubmissionItems(finalItems, ctx.version.id, leaderboards).leaderboards.length) {
     throw new Error('Review targets changed before submission; nothing was submitted.');
   }
+  await requireUnattendedSubmit(ctx.version.id);
   await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
   const saved = (await api('/v1/reviewSubmissions/' + submission.id)).data;
   const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
@@ -1320,14 +1502,55 @@ export function assetReference(fileName, bytes) {
   return fileName + '@' + createHash('sha256').update(bytes).digest('hex').slice(0, 12);
 }
 
-// ASSET_PLACEMENTS are the placement types `assets` places on a version's localization, each with the profile group
-// Apple's reference data gives it; anything else in store data stops the run before it uploads.
+// CREATIVE_SLOTS are the sizes `assets crops` asks Apple for, one per slot a creative can fill.
+const CREATIVE_SLOTS = {
+  PRODUCT_PAGE_HEADER_ASSET: { name: 'header-21x9', width: 1260, height: 540 },
+  APP_STORE_SEARCH_RESULTS_ASSET: { name: 'search-3x2', width: 1200, height: 800 },
+};
+
+// creativeCrops lists Apple's own renders of one uploaded creative. Apple serves a universal image (5244x2950) through
+// the crop code UAS.ApGCL01, which keeps only a band of the canvas at every aspect ratio: y 415-1865 of 2950, centred
+// across (measured 2026-11-05 from a live header; App Store Connect's Device Preview agrees). So a 3:2 search card
+// shows about 2175x1450 px of it, and it can fill either slot, so both are listed. A dedicated file is served whole
+// with the plain code `sr`, in the slots store data lists it for.
+export function creativeCrops(image, placementTypes) {
+  const { templateUrl, width, height } = image.attributes.imageAsset || {};
+  if (!templateUrl) return [];
+  const universal = width === 5244 && height === 2950;
+  return Object.entries(CREATIVE_SLOTS).filter(([type]) => universal || placementTypes.includes(type)).map(([, slot]) => ({
+    name: slot.name,
+    url: templateUrl.replace('{w}', slot.width).replace('{h}', slot.height).replace('bb.{f}', (universal ? 'UAS.ApGCL01' : 'sr') + '.jpg'),
+  }));
+}
+
+// cropCheckProblem stops a creative going to App Review or onto the store until someone has looked at Apple's crops of
+// these exact bytes: `cropChecked` holds the file's hash, so a changed file needs a fresh look.
+export function cropCheckProblem(entry, reference) {
+  if (entry.category !== 'CREATIVE_ASSETS') return null;
+  const hash = reference.split('@').pop();
+  if (entry.cropChecked === hash) return null;
+  return reference + ': run `assets crops DIR`, look at every crop, then set cropChecked to "' + hash + '" on its store data entry';
+}
+
+// ASSET_PLACEMENTS are the placement types `assets` places on a version's localization, each with the profile groups
+// Apple's reference data gives it (GET /v1/appAssetLibraryRefData, read 2026-11-01); anything else in store data stops
+// the run before it uploads.
 export const ASSET_PLACEMENTS = {
   PRODUCT_PAGE_HEADER_ASSET: ['DEFAULT_PROFILE'],
   APP_STORE_SEARCH_RESULTS_ASSET: ['DEFAULT_PROFILE'],
   // Other screenshot profiles have display types that `screenshots` manages; only Duo has none.
   APP_SCREENSHOT: ['IPHONE_DUO_PROFILE'],
+  // App previews have no maintained legacy path (appPreviewSets is deprecated), so every device profile goes here.
+  APP_PREVIEW: ['IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE', 'IPHONE_DYNAMIC_ISLAND_MEDIUM_PROFILE', 'IPHONE_FACE_ID_LARGE_PROFILE',
+    'IPHONE_FACE_ID_MEDIUM_PROFILE', 'IPHONE_HOME_BUTTON_LARGE_PROFILE', 'IPHONE_HOME_BUTTON_MEDIUM_PROFILE', 'IPHONE_HOME_BUTTON_40_PROFILE',
+    'IPHONE_DUO_PROFILE', 'IPAD_13_PROFILE', 'IPAD_129_PROFILE', 'IPAD_11_PROFILE', 'IPAD_105_PROFILE', 'IPAD_97_PROFILE',
+    'MAC_PROFILE', 'TV_PROFILE', 'VISION_PRO_PROFILE'],
 };
+
+// assetMedia tells an Asset Library video from an image by its file extension.
+export function assetMedia(file) {
+  return /\.(mov|mp4|m4v)$/i.test(file) ? 'video' : 'image';
+}
 
 // assetEntryProblem checks one store-data `assetLibrary` entry, returning what is wrong or null.
 export function assetEntryProblem(entry) {
@@ -1336,6 +1559,13 @@ export function assetEntryProblem(entry) {
   const groups = ASSET_PLACEMENTS[entry.placementType];
   if (!groups) return entry.file + ': unsupported placementType ' + entry.placementType;
   if (!groups.includes(entry.placementGroup)) return entry.file + ': placementGroup ' + entry.placementGroup + ' does not take ' + entry.placementType;
+  const media = assetMedia(entry.file);
+  if (entry.placementType === 'APP_PREVIEW' && media !== 'video') return entry.file + ': an app preview is a .mov, .mp4 or .m4v video';
+  if (entry.placementType === 'APP_SCREENSHOT' && media !== 'image') return entry.file + ': a screenshot is an image';
+  if (entry.previewFrame !== undefined) {
+    if (media !== 'video') return entry.file + ': only a video takes a previewFrame';
+    if (!/^\d\d:\d\d:\d\d:\d\d$/.test(entry.previewFrame)) return entry.file + ': previewFrame is a time code like 00:00:05:00 (hours:minutes:seconds:frames)';
+  }
   return null;
 }
 
@@ -1351,32 +1581,57 @@ export function assetUploadAction(images, reference) {
 // PLACEABLE_STATES are the image states a placement accepts: processed, and not failed or archived.
 export const PLACEABLE_STATES = ['COMPLETE', 'PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'ACCEPTED', 'APPROVED'];
 
-// placementPlan compares a localization's placements of one type and profile with the images store data wants there,
-// in order: which images still need a placement, and which placements hold an image store data no longer lists.
-export function placementPlan(existing, wantedImageIds) {
-  const imageOf = item => (item.relationships && item.relationships.image && item.relationships.image.data ? item.relationships.image.data.id : null);
-  const placedImages = existing.map(imageOf);
+// placedAsset is the id of the image or video a placement holds.
+export function placedAsset(item) {
+  const relationships = item.relationships || {};
+  for (const name of ['image', 'video']) if (relationships[name] && relationships[name].data) return relationships[name].data.id;
+  return null;
+}
+
+// placementPlan compares a localization's placements of one type and profile with the assets store data wants there,
+// in order: which assets still need a placement, and which placements hold an asset store data no longer lists.
+export function placementPlan(existing, wantedAssetIds) {
+  const placedAssets = existing.map(placedAsset);
   return {
-    missing: wantedImageIds.filter(id => !placedImages.includes(id)),
-    stale: existing.filter(item => !wantedImageIds.includes(imageOf(item))).map(item => item.id),
+    missing: wantedAssetIds.filter(id => !placedAssets.includes(id)),
+    stale: existing.filter(item => !wantedAssetIds.includes(placedAsset(item))).map(item => item.id),
   };
 }
 
 // SUBMITTABLE_ASSET_STATES are the Asset Library states an image can be sent to App Review from.
 export const SUBMITTABLE_ASSET_STATES = ['COMPLETE', 'PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW'];
 
-// assetsToSubmit picks the store data's images that still need App Review, and reports the others' states, so a rerun
-// never sends an image twice and an unprocessed or rejected one is named instead of sent.
+// assetsToSubmit picks images that still need App Review, retaining already reviewed/in-review copies.
+// A missing, processing, rejected or unknown selected image blocks the whole batch before opening a draft.
 export function assetsToSubmit(images, references) {
   const send = [];
   const skipped = [];
+  const pending = [];
   for (const reference of references) {
     const image = images.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
-    if (!image) skipped.push(reference + ' (not uploaded)');
+    if (!image) pending.push(reference + ' (not uploaded)');
     else if (SUBMITTABLE_ASSET_STATES.includes(image.attributes.state)) send.push(image.id);
-    else skipped.push(reference + ' (' + image.attributes.state + ')');
+    else if (['WAITING_FOR_REVIEW', 'IN_REVIEW', 'ACCEPTED', 'APPROVED'].includes(image.attributes.state)) skipped.push(reference + ' (' + image.attributes.state + ')');
+    else pending.push(reference + ' (' + image.attributes.state + ')');
   }
+  if (pending.length) throw new Error('Selected images are not ready: ' + pending.join(', ') + '; no draft was opened or image attached. Wait for processing or resolve the listed asset states, then read back before retrying.');
   return { send: send, skipped: skipped };
+}
+
+// Standalone assets require an approved version on this submission's platform (Apple help, checked 2026-11-02).
+// ACCEPTED can still have rejected companion items; it is not a completed app approval.
+const ASSET_APPROVED_VERSION_STATES = [...LIVE_STATES, 'PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE',
+  'PROCESSING_FOR_DISTRIBUTION', 'PROCESSING_FOR_APP_STORE'];
+
+// VERSION_LOCKED_PLACEMENTS ride on the version itself: Apple refuses a new screenshot or app preview placement (Duo
+// profile included) on an approved version with 409 "Creating a placement is not permitted in AppStoreVersion's
+// current state" (observed 2026-11-02 in PENDING_DEVELOPER_RELEASE), while header and search creative still place.
+const VERSION_LOCKED_PLACEMENTS = ['APP_SCREENSHOT', 'APP_PREVIEW'];
+
+// versionLockedPlacement says whether a placement type cannot be written on a version in this state, so `assets place`
+// skips it on an approved or released version instead of stopping halfway through the slots.
+export function versionLockedPlacement(placementType, state) {
+  return VERSION_LOCKED_PLACEMENTS.includes(placementType) && ASSET_APPROVED_VERSION_STATES.includes(state);
 }
 
 // An image-only action must never inherit another item's submission authorization.
@@ -1396,11 +1651,16 @@ function assetReviewItems(items, wanted) {
 
 // Read all held items before each add, read each attachment back, and require the exact final image set.
 // Transport injection exercises this same orchestration without credentials or provider mutations.
-export async function submitAssetImages(imageIds, { openSubmission = openReviewSubmission, readItems = submissionItems, request = api, report = console.log } = {}) {
+export async function submitAssetImages(imageIds, { appId = IOS?.ascAppId, openSubmission = openReviewSubmission, readItems = submissionItems, request = api, report = console.log } = {}) {
   if (!Array.isArray(imageIds) || !imageIds.length || imageIds.some(id => typeof id !== 'string' || !id.trim())) {
     throw new Error('Image review submission needs explicit image IDs.');
   }
   const wanted = new Set(imageIds);
+  if (!appId) throw new Error('Image review submission needs the configured app ID.');
+  const versions = await listAll('/v1/apps/' + appId + '/appStoreVersions?filter[platform]=IOS&limit=200', request);
+  if (!versions.some(version => ASSET_APPROVED_VERSION_STATES.includes(versionState(version)))) {
+    throw new Error('Standalone image review requires an approved iOS version; no draft was opened or image attached. Include assets with the first app version, or wait for its approval. Preserve any active first-version submission.');
+  }
   const submission = await openSubmission();
   if (!submission?.id || submission.attributes?.state !== 'READY_FOR_REVIEW') {
     throw new Error('Image review submission must be READY_FOR_REVIEW; existing draft preserved. Inspect rejected or changed submissions separately.');
@@ -1431,31 +1691,49 @@ export async function submitAssetImages(imageIds, { openSubmission = openReviewS
   return saved;
 }
 
-// assets lists, uploads (`upload`) or places (`place`) the store data's Asset Library images: the product page header,
-// the search-results creative and screenshots for profiles without a screenshot display type, such as iPhone Duo.
-// Uploads stay unsubmitted drafts until placed and sent to App Review with a version or from App Store Connect.
+// ASSET_RESOURCES names each Asset Library media type's resource and its relationship on a placement.
+const ASSET_RESOURCES = { image: { type: 'appAssetLibraryImages', relation: 'image' }, video: { type: 'appAssetLibraryVideos', relation: 'video' } };
+
+// assets lists, uploads (`upload`), shows Apple's crops of (`crops`) or places (`place`) the store data's Asset Library
+// images and videos: the product page header, the search-results creative, app previews, and screenshots for profiles
+// without a screenshot display type, such as iPhone Duo. Uploads stay unsubmitted drafts until placed and sent to App
+// Review with a version or from App Store Connect.
 async function assets(mode) {
   const entries = STORE.assetLibrary || [];
   for (const entry of entries) {
     const problem = assetEntryProblem(entry);
     if (problem) throw new Error('store data assetLibrary: ' + problem);
   }
+  const fileReference = entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file)));
+  const creative = entries.filter(entry => entry.category === 'CREATIVE_ASSETS');
+  if (mode === 'submit' || mode === 'place') {
+    const unchecked = creative.map(entry => cropCheckProblem(entry, fileReference(entry))).filter(Boolean);
+    if (unchecked.length) throw new Error('Crops not checked: ' + unchecked.join('; ') + '.');
+  }
   const library = (await api('/v1/apps/' + IOS.ascAppId + '/assetLibrary')).data;
-  const images = await listAll('/v1/appAssetLibraries/' + library.id + '/images');
+  const held = {
+    image: await listAll('/v1/appAssetLibraries/' + library.id + '/images'),
+    video: await listAll('/v1/appAssetLibraries/' + library.id + '/videos'),
+  };
   if (!mode) {
-    for (const image of images) {
-      const placements = await listAll('/v1/appAssetLibraryImages/' + image.id + '/placements');
-      console.log('  image', image.attributes.referenceName || image.attributes.fileName, image.attributes.category, image.attributes.state,
-        placements.map(item => item.attributes.placementType + '/' + item.attributes.placementGroup + ' ' + item.attributes.state).join(', ') || 'unplaced');
+    for (const media of ['image', 'video']) {
+      for (const asset of held[media]) {
+        const placements = await listAll('/v1/' + ASSET_RESOURCES[media].type + '/' + asset.id + '/placements');
+        const frame = media === 'video' && asset.attributes.previewFrameTimeCode ? ' frame ' + asset.attributes.previewFrameTimeCode : '';
+        console.log('  ' + media, asset.attributes.referenceName || asset.attributes.fileName, asset.attributes.category, asset.attributes.state + frame,
+          placements.map(item => item.attributes.placementType + '/' + item.attributes.placementGroup + ' ' + item.attributes.state).join(', ') || 'unplaced');
+      }
     }
-    console.log(images.length + ' Asset Library images; store data lists ' + entries.length + '.');
+    console.log(held.image.length + ' Asset Library images and ' + held.video.length + ' videos; store data lists ' + entries.length + '.');
     return;
   }
   if (mode === 'submit') {
     // An approved version takes only approved images, so on such a version the images go to App Review on their own.
     if (process.argv[4] !== '--confirm') throw new Error('Sending images to App Review is outward-facing; rerun as `asc.mjs assets submit --confirm` with the owner\'s approval.');
-    const references = entries.map(entry => assetReference(basename(resolve(CONFIG.root, entry.file)), readFileSync(resolve(CONFIG.root, entry.file))));
-    const plan = assetsToSubmit(images, references);
+    // Videos go to App Review with the version they are placed on; sending one on its own is not built.
+    for (const entry of entries.filter(item => assetMedia(item.file) === 'video')) console.log('not sent:', basename(entry.file), '(video; it goes with its version)');
+    const references = entries.filter(entry => assetMedia(entry.file) === 'image').map(fileReference);
+    const plan = assetsToSubmit(held.image, references);
     for (const line of plan.skipped) console.log('not sent:', line);
     if (!plan.send.length) {
       console.log('No listed image needs App Review.');
@@ -1464,41 +1742,78 @@ async function assets(mode) {
     await submitAssetImages(plan.send);
     return;
   }
-  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|place|submit --confirm]');
-  const localization = mode === 'place' ? await versionLocalization((await context()).version.id, false) : null;
-  // Each placement type and profile, with the image ids store data wants there in order.
+  if (mode === 'crops') {
+    const dir = process.argv[4];
+    if (!dir) throw new Error('Usage: asc.mjs assets crops DIR');
+    mkdirSync(dir, { recursive: true });
+    for (const reference of new Set(creative.map(fileReference))) {
+      const image = held.image.find(item => item.attributes.referenceName === reference && item.attributes.state !== 'ARCHIVED');
+      const crops = image ? creativeCrops(image, creative.filter(entry => fileReference(entry) === reference).map(entry => entry.placementType)) : [];
+      if (!crops.length) throw new Error(reference + ' has no processed image yet; run `assets upload`, then `assets` until it has finished processing.');
+      for (const crop of crops) {
+        const response = await fetch(crop.url);
+        if (!response.ok) throw new Error(crop.name + ' of ' + reference + ' returned ' + response.status);
+        const file = join(dir, reference.replace('@', '-') + '-' + crop.name + '.jpg');
+        writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+        console.log(file);
+      }
+      console.log('Look at each crop, then set cropChecked to "' + reference.split('@').pop() + '" on its store data entry.');
+    }
+    return;
+  }
+  if (!['upload', 'place'].includes(mode)) throw new Error('Usage: asc.mjs assets [upload|crops DIR|place|submit --confirm]');
+  const version = mode === 'place' ? (await context()).version : null;
+  const localization = version ? await versionLocalization(version.id, false) : null;
+  // Each placement type and profile, with the asset ids store data wants there in order.
   const wanted = new Map();
   for (const entry of entries) {
     const path = resolve(CONFIG.root, entry.file);
     const bytes = readFileSync(path);
     const reference = assetReference(basename(path), bytes);
-    const plan = assetUploadAction(images, reference);
+    const media = assetMedia(path);
+    const resource = ASSET_RESOURCES[media].type;
+    const plan = assetUploadAction(held[media], reference);
     if (mode === 'upload') {
       if (plan.action === 'keep') {
-        console.log('kept', reference);
+        const kept = held[media].find(item => item.id === plan.id);
+        // A video's poster frame can change until it is approved; the footage itself cannot.
+        if (media === 'video' && entry.previewFrame && kept.attributes.previewFrameTimeCode !== entry.previewFrame) {
+          await api('/v1/' + resource + '/' + plan.id, 'PATCH', { data: { type: resource, id: plan.id, attributes: { previewFrameTimeCode: entry.previewFrame } } });
+          console.log('kept', reference, 'and set its preview frame to', entry.previewFrame);
+        } else {
+          console.log('kept', reference);
+        }
         continue;
       }
-      if (plan.action === 'replace') await api('/v1/appAssetLibraryImages/' + plan.id, 'DELETE');
-      const reserved = (await api('/v1/appAssetLibraryImages', 'POST', { data: { type: 'appAssetLibraryImages',
-        attributes: { category: entry.category, fileName: basename(path), fileSize: statSync(path).size, referenceName: reference },
+      if (plan.action === 'replace') await api('/v1/' + resource + '/' + plan.id, 'DELETE');
+      const attributes = { category: entry.category, fileName: basename(path), fileSize: statSync(path).size, referenceName: reference };
+      if (media === 'video' && entry.previewFrame) attributes.previewFrameTimeCode = entry.previewFrame;
+      const reserved = (await api('/v1/' + resource, 'POST', { data: { type: resource, attributes: attributes,
         relationships: { assetLibrary: relation('appAssetLibraries', library.id) } } })).data;
       await uploadParts(reserved.attributes.uploadOperations, bytes, basename(path));
-      await api('/v1/appAssetLibraryImages/' + reserved.id, 'PATCH', { data: { type: 'appAssetLibraryImages', id: reserved.id, attributes: { uploaded: true } } });
+      await api('/v1/' + resource + '/' + reserved.id, 'PATCH', { data: { type: resource, id: reserved.id, attributes: { uploaded: true } } });
       // A later entry with the same bytes then finds this upload instead of making another.
-      images.push({ id: reserved.id, attributes: { referenceName: reference, state: 'UPLOAD_COMPLETE' } });
+      held[media].push({ id: reserved.id, attributes: { referenceName: reference, state: 'UPLOAD_COMPLETE', previewFrameTimeCode: attributes.previewFrameTimeCode } });
       console.log('uploaded', reference, 'for', entry.placementType, entry.placementGroup);
       continue;
     }
-    const image = images.find(item => item.id === plan.id);
-    if (plan.action !== 'keep' || !PLACEABLE_STATES.includes(image.attributes.state)) {
-      throw new Error(reference + ' is ' + (image ? image.attributes.state : 'not in the Asset Library') + '; run `assets upload`, then `assets` until it has finished processing.');
+    const asset = held[media].find(item => item.id === plan.id);
+    if (plan.action !== 'keep' || !PLACEABLE_STATES.includes(asset.attributes.state)) {
+      throw new Error(reference + ' is ' + (asset ? asset.attributes.state : 'not in the Asset Library') + '; run `assets upload`, then `assets` until it has finished processing.');
     }
     const key = entry.placementType + ' ' + entry.placementGroup;
-    if (!wanted.has(key)) wanted.set(key, { type: entry.placementType, group: entry.placementGroup, ids: [] });
+    if (!wanted.has(key)) wanted.set(key, { type: entry.placementType, group: entry.placementGroup, media: media, ids: [] });
     wanted.get(key).ids.push(plan.id);
   }
+  const state = version ? versionState(version) : '';
+  const locked = [...wanted.values()].filter(slot => versionLockedPlacement(slot.type, state));
+  if (locked.length) {
+    console.log('not placed:', locked.map(slot => slot.type + ' ' + slot.group).join(', '), '(version ' + STORE.version + ' is ' + state +
+      '; screenshots and app previews need an editable version: a new version, or this one after it is rejected and resubmitted)');
+  }
   for (const slot of wanted.values()) {
-    const query = '?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=image';
+    if (locked.includes(slot)) continue;
+    const query = '?filter[placementType]=' + slot.type + '&filter[placementGroup]=' + slot.group + '&include=' + ASSET_RESOURCES[slot.media].relation;
     const existing = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
     const plan = placementPlan(existing, slot.ids);
     if (plan.stale.length && !IOS.pruneScreenshots) {
@@ -1508,26 +1823,183 @@ async function assets(mode) {
       await api('/v1/appAssetLibraryPlacements/' + id, 'DELETE');
       console.log('removed placement', id, slot.type, slot.group, '(not in the store data)');
     }
-    for (const imageId of plan.missing) {
+    for (const assetId of plan.missing) {
+      const { type, relation: name } = ASSET_RESOURCES[slot.media];
       await api('/v1/appAssetLibraryPlacements', 'POST', { data: { type: 'appAssetLibraryPlacements',
         attributes: { placementType: slot.type, placementGroup: slot.group },
-        relationships: { image: relation('appAssetLibraryImages', imageId), appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
-      console.log('placed', imageId, slot.type, slot.group);
+        relationships: { [name]: relation(type, assetId), appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
+      console.log('placed', assetId, slot.type, slot.group);
     }
     if (slot.ids.length > 1) {
       // Order the slot as store data lists it, as `screenshots` orders a set.
       const placed = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
-      const imageOf = item => item.relationships.image.data.id;
-      const ordered = slot.ids.map(id => placed.find(item => imageOf(item) === id)).filter(Boolean);
+      const ordered = slot.ids.map(id => placed.find(item => placedAsset(item) === id)).filter(Boolean);
       await api('/v1/appAssetLibraryPlacementOrderingRequests', 'POST', { data: { type: 'appAssetLibraryPlacementOrderingRequests',
         attributes: { placementGroup: slot.group },
         relationships: { orderedPlacements: { data: ordered.map(item => ({ type: 'appAssetLibraryPlacements', id: item.id })) },
           appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } });
       const after = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements' + query);
-      if (after.map(imageOf).join() !== slot.ids.join()) console.log('Order requested for', slot.type, slot.group + '; check it in App Store Connect, since the list did not read back in that order.');
+      if (after.map(placedAsset).join() !== slot.ids.join()) console.log('Order requested for', slot.type, slot.group + '; check it in App Store Connect, since the list did not read back in that order.');
     }
   }
-  console.log('Run `assets` until every image has finished processing.');
+  console.log('Run `assets` until every image and video has finished processing.');
+  if (mode === 'place' && creative.length) console.log('Then check the Preview in App Store Connect on iPhone, iPad and iPhone Duo, for the product page and search results.');
+}
+
+// PROMOTION_ITEMS is the "Every release" list in references/promotion.md as data, so a release cannot pass it by
+// oversight. Each needs a result or a recorded reason (store data's `promotion.waived.<id>`).
+export const PROMOTION_ITEMS = [
+  { id: 'preview', title: 'app preview video', placementType: 'APP_PREVIEW' },
+  { id: 'header', title: 'product page header', placementType: 'PRODUCT_PAGE_HEADER_ASSET' },
+  { id: 'search', title: 'search-results creative', placementType: 'APP_STORE_SEARCH_RESULTS_ASSET' },
+  { id: 'nomination', title: 'featuring nomination' },
+];
+// A reason short enough to be "later" or "optional" records nothing a later run could weigh.
+const MIN_WAIVER_REASON = 20;
+
+// deviceFamily reads a screenshot display type or placement group's device, so previews are matched per family.
+export function deviceFamily(name) {
+  const found = /IPHONE|IPAD|DESKTOP|MAC|APPLE_TV|TV|VISION/.exec(String(name));
+  if (!found) return null;
+  return { DESKTOP: 'MAC', APPLE_TV: 'TV' }[found[0]] || found[0];
+}
+
+// promotionReport says where each item stands: `done`, `waived` with its reason, or `missing` with what is absent.
+// Previews are needed per device family the screenshots cover; `placements` are the version's live placements.
+export function promotionReport(store, placements) {
+  const waived = (store.promotion && store.promotion.waived) || {};
+  return PROMOTION_ITEMS.map(item => {
+    const base = { id: item.id, title: item.title };
+    let absent = null;
+    if (item.id === 'nomination') {
+      if (!(store.nominations || []).length) absent = 'none in the store data\'s `nominations`';
+    } else {
+      const placed = placements.filter(entry => entry.attributes.placementType === item.placementType);
+      if (item.id === 'preview') {
+        const covered = new Set(placed.map(entry => deviceFamily(entry.attributes.placementGroup)));
+        const families = [...new Set((store.screenshots || []).map(group => deviceFamily(group.displayType)).filter(Boolean))];
+        const uncovered = (families.length ? families : ['IPHONE']).filter(family => !covered.has(family));
+        if (uncovered.length) absent = 'none placed for ' + uncovered.join(', ');
+      } else if (!placed.length) {
+        absent = 'none placed';
+      }
+    }
+    if (!absent) return { ...base, state: 'done' };
+    const reason = typeof waived[item.id] === 'string' ? waived[item.id].trim() : '';
+    if (reason.length >= MIN_WAIVER_REASON) return { ...base, state: 'waived', reason: reason };
+    return { ...base, state: 'missing', detail: absent };
+  });
+}
+
+// promotionRefusal is the sentence `submit` refuses with, or null when every item has a result or a reason.
+export function promotionRefusal(report) {
+  const missing = report.filter(item => item.state === 'missing');
+  if (!missing.length) return null;
+  return 'The "Every release" promotion list is not finished: ' + missing.map(item => item.title + ' (' + item.detail + ')').join('; ')
+    + '. App previews cannot be placed once a version is approved, so make them now (references/media.md), or record why not in the store data\'s '
+    + '`promotion.waived.<id>`: the owner\'s decision or a demonstrated capture dependency, never that it is optional. Nothing was submitted.';
+}
+
+// versionPromotion reads the version's placements and reports the list.
+async function versionPromotion(versionId) {
+  const localization = await versionLocalization(versionId, false);
+  return promotionReport(STORE, await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements'));
+}
+
+// NOMINATION_TYPES are the featuring nomination types Apple takes.
+export const NOMINATION_TYPES = ['APP_LAUNCH', 'APP_ENHANCEMENTS', 'NEW_CONTENT'];
+const NOMINATION_FIELDS = ['name', 'type', 'description', 'publishStartDate', 'publishEndDate', 'deviceFamilies', 'locales', 'notes',
+  'supplementalMaterialsUris', 'hasInAppEvents', 'launchInSelectMarketsFirst', 'preOrderEnabled'];
+
+// nominationProblem checks one store-data `nominations` entry, returning what is wrong or null.
+export function nominationProblem(entry) {
+  if (!entry || typeof entry.name !== 'string' || !entry.name.trim()) return 'a nomination has no name';
+  if (!NOMINATION_TYPES.includes(entry.type)) return entry.name + ': type is one of ' + NOMINATION_TYPES.join(', ');
+  if (typeof entry.description !== 'string' || !entry.description.trim()) return entry.name + ': no description';
+  const start = Date.parse(entry.publishStartDate);
+  if (!Number.isFinite(start)) return entry.name + ': publishStartDate is not a date';
+  if (entry.publishEndDate !== undefined && !(Date.parse(entry.publishEndDate) > start)) return entry.name + ': publishEndDate must follow publishStartDate';
+  const unknown = Object.keys(entry).filter(key => !NOMINATION_FIELDS.includes(key));
+  if (unknown.length) return entry.name + ': unknown field ' + unknown.join(', ');
+  return null;
+}
+
+// nominationPlan matches store data's nominations to the app's existing ones by name: create the new ones, submit a
+// draft of that name, and leave a submitted or archived one alone, so a rerun never nominates twice.
+export function nominationPlan(entries, existing) {
+  return entries.map(entry => {
+    const found = existing.find(item => item.attributes.name === entry.name);
+    if (!found) return { entry: entry, action: 'create' };
+    if (found.attributes.state === 'DRAFT') return { entry: entry, action: 'submit', id: found.id };
+    return { entry: entry, action: 'keep', id: found.id, state: found.attributes.state };
+  });
+}
+
+// nominate lists the app's featuring nominations and, with --confirm, sends Apple the store data's `nominations` that
+// it does not hold yet. A nomination tells App Store editorial about a launch or update; it costs nothing and promises
+// nothing, but it is outward-facing, so it waits for the owner's approval like a submission.
+async function nominate(flag) {
+  const entries = STORE.nominations || [];
+  for (const entry of entries) {
+    const problem = nominationProblem(entry);
+    if (problem) throw new Error('store data nominations: ' + problem);
+  }
+  const existing = [];
+  for (const state of ['DRAFT', 'SUBMITTED', 'ARCHIVED']) {
+    existing.push(...await listAll('/v1/nominations?filter[relatedApps]=' + IOS.ascAppId + '&filter[state]=' + state + '&limit=200'));
+  }
+  for (const item of existing) console.log('  nomination', item.attributes.name, item.attributes.type, item.attributes.state, item.attributes.publishStartDate || '');
+  const pending = nominationPlan(entries, existing).filter(step => step.action !== 'keep');
+  if (!pending.length) {
+    console.log(entries.length ? 'Every nomination in store data is with Apple.' : 'Store data lists no nominations.');
+    return;
+  }
+  if (flag !== '--confirm') {
+    for (const step of pending) console.log('would', step.action, step.entry.name);
+    console.log('Nominating is outward-facing; rerun as `asc.mjs nominate --confirm` with the owner\'s approval.');
+    return;
+  }
+  for (const step of pending) {
+    let id = step.id;
+    if (step.action === 'create') {
+      const attributes = Object.fromEntries(NOMINATION_FIELDS.filter(key => step.entry[key] !== undefined).map(key => [key, step.entry[key]]));
+      id = (await api('/v1/nominations', 'POST', { data: { type: 'nominations', attributes: { ...attributes, submitted: true },
+        relationships: { relatedApps: { data: [{ type: 'apps', id: IOS.ascAppId }] } } } })).data.id;
+    } else {
+      await api('/v1/nominations/' + id, 'PATCH', { data: { type: 'nominations', id: id, attributes: { submitted: true } } });
+    }
+    const saved = (await api('/v1/nominations/' + id)).data;
+    if (saved.attributes.state !== 'SUBMITTED') throw new Error('Nomination ' + step.entry.name + ' reads ' + saved.attributes.state + ', not SUBMITTED; check App Store Connect.');
+    console.log('Nominated', step.entry.name, '(' + step.entry.type + ') for', step.entry.publishStartDate, '— Apple shows it as', saved.attributes.state);
+  }
+}
+
+// withdraw takes the version out of App Review so another build can be attached; `submit --confirm` then sends it
+// back. It needs --confirm because the version loses its place in Apple's queue.
+async function withdraw(flag) {
+  if (flag !== '--confirm') throw new Error('Withdrawing from review gives up the place in Apple\'s queue; rerun as `asc.mjs withdraw --confirm` once the owner has approved it.');
+  const ctx = await context();
+  if (ctx.app.attributes.bundleId !== IOS.bundleId) throw new Error('Configured app/bundle identity mismatch; nothing was withdrawn.');
+  // A cancel an earlier run left in flight finishes first, so a rerun after a lost response reads the settled state.
+  for (const settling of settlingSubmissions((await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=CANCELING,COMPLETING')).data)) {
+    console.log('Waiting for submission', settling.id, 'to finish', settling.attributes.state);
+    await waitForCancel(settling.id);
+  }
+  const active = (await api('/v1/apps/' + IOS.ascAppId + '/reviewSubmissions?filter[platform]=IOS&filter[state]=WAITING_FOR_REVIEW,IN_REVIEW')).data;
+  const items = {};
+  for (const submission of active) items[submission.id] = await submissionItems(submission.id);
+  const plan = withdrawPlan(active, items, ctx.version.id);
+  if (plan.action === 'conflict') throw new Error('Version ' + STORE.version + ' is in review in more than one submission (' + plan.ids.join(', ') + '); inspect App Store Connect. Nothing was withdrawn.');
+  if (plan.action === 'cancel') {
+    await api('/v1/reviewSubmissions/' + plan.id, 'PATCH', { data: { type: 'reviewSubmissions', id: plan.id, attributes: { canceled: true } } });
+    console.log('Canceled review submission', plan.id);
+    await waitForCancel(plan.id);
+  } else {
+    console.log('Version', STORE.version, 'is not waiting for or in review; nothing was withdrawn.');
+  }
+  const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
+  if (['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(versionState(version))) throw new Error('Version ' + STORE.version + ' still reads ' + versionState(version) + '; inspect provider state before retrying.');
+  console.log('Version', STORE.version, 'is', versionState(version) + '; attach a build with `attach-build <N>`, then `submit --confirm`.');
 }
 
 // main dispatches one command.
@@ -1538,6 +2010,7 @@ async function main() {
     console.log('Usage: node skills/skills/app-release/scripts/asc.mjs ' + COMMANDS.join('|') + ' [argument]');
     process.exit(command ? 1 : 0);
   }
+  if (unattended() && ['release', 'withdraw', 'pricing'].includes(command)) throw new Error('`' + command + '` is refused in an unattended run; nothing was changed.');
   setup();
   if (command === 'status') await status();
   if (command === 'listing') await listing();
@@ -1551,8 +2024,10 @@ async function main() {
   if (command === 'attach-build') await attachBuild(argument);
   if (command === 'testflight') await testflight(argument);
   if (command === 'submit') await submit(argument);
+  if (command === 'withdraw') await withdraw(argument);
   if (command === 'release') await release(argument);
   if (command === 'assets') await assets(argument);
+  if (command === 'nominate') await nominate(argument);
 }
 
 // Run only when invoked as a command, so tests can import the decision helpers.

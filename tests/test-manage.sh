@@ -11,6 +11,7 @@ PASSED=0
 FAILED=0
 TMPDIR=""
 TMP_INSTALL=""
+TMP_PIN=""
 
 pass() { PASSED=$((PASSED + 1)); echo "  PASS: $1"; }
 fail() { FAILED=$((FAILED + 1)); echo "  FAIL: $1"; }
@@ -26,7 +27,7 @@ PY
 }
 
 cleanup() {
-    for d in "$TMPDIR" "$TMP_INSTALL"; do
+    for d in "$TMPDIR" "$TMP_INSTALL" "$TMP_PIN"; do
         if [ -n "$d" ] && [ -d "$d" ]; then
             rm -rf "$d"
         fi
@@ -255,6 +256,20 @@ fi
 # agent-instruction warnings. (An upstream-drift WARN can appear when this
 # repo's HEAD is a feature branch ahead of main, so don't require zero WARNs.)
 echo "Uses the skills submodule" > "$TMP_INSTALL/AGENTS.md"
+# A newly excluded skill may still be copied while all included skills are
+# current. Exercise check's cleanup with macOS's stock Bash, not just link.
+echo "ouro-website" > "$TMP_INSTALL/.skillsexclude"
+excluded_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && excluded_status=0 || excluded_status=$?
+if [ "$excluded_status" -eq 0 ] \
+    && [ ! -d "$TMP_INSTALL/.agents/skills/ouro-website" ] \
+    && [ ! -d "$TMP_INSTALL/.claude/skills/ouro-website" ] \
+    && ! echo "$excluded_output" | grep -q "bad substitution"; then
+    pass "check removes newly excluded discovery copies on stock Bash"
+else
+    fail "check must clean excluded copies without Bash4-only syntax"
+fi
+rm "$TMP_INSTALL/.skillsexclude"
+(cd "$TMP_INSTALL" && bash "$MANAGE" link >/dev/null)
 agents_only_output="$(cd "$TMP_INSTALL" && bash "$MANAGE" check 2>&1)" && agents_only_status=0 || agents_only_status=$?
 if [ "$agents_only_status" -eq 0 ] \
     && echo "$agents_only_output" | grep -q "PASS: AGENTS.md is the only agent instructions file" \
@@ -680,6 +695,82 @@ sys.exit(1)
     pass "reinstall re-adds SessionStart hook"
 else
     fail "reinstall did not re-add SessionStart hook"
+fi
+
+echo ""
+echo "Testing repositories that pin the submodule..."
+
+TMP_PIN="$(mktemp -d)"
+pin_git() { git -c user.email=test@example.com -c user.name="Test User" -c commit.gpgsign=false "$@"; }
+
+# A small upstream carrying this manage.sh and one skill.
+upstream="$TMP_PIN/upstream"
+mkdir -p "$upstream/bin" "$upstream/skills/first"
+cp "$MANAGE" "$upstream/bin/manage.sh"
+printf -- '---\nname: first\ndescription: First skill.\n---\n' > "$upstream/skills/first/SKILL.md"
+git -C "$upstream" init --quiet -b main
+pin_git -C "$upstream" add -A
+pin_git -C "$upstream" commit -q -m "first"
+
+# A repository pinning that upstream at the given path, with an app-specific skill of its own.
+pin_repo() {
+    local repo="$TMP_PIN/$1" path="$2"
+    mkdir -p "$repo/.agents/skills/app-release"
+    echo "app skill" > "$repo/.agents/skills/app-release/SKILL.md"
+    git -C "$repo" init --quiet -b main
+    GIT_ALLOW_PROTOCOL=file pin_git -C "$repo" submodule add -q -b main "$upstream" "$path" >/dev/null 2>&1
+    pin_git -C "$repo" add -A
+    pin_git -C "$repo" commit -q -m "pin skills"
+    echo "$repo"
+}
+
+for path in vendor/skills skills; do
+    repo="$(pin_repo "pin-${path%%/*}" "$path")"
+    before="$(git -C "$repo" ls-tree HEAD "$path" | awk '{print $3}')"
+
+    pin_git -C "$upstream" commit -q --allow-empty -m "next: $path"
+
+    if (cd "$repo" && GIT_ALLOW_PROTOCOL=file bash "$path/bin/manage.sh" sync >/dev/null 2>&1); then
+        pass "sync finds a submodule at $path"
+    else
+        fail "sync could not find a submodule at $path"
+    fi
+    after="$(git -C "$repo" ls-files -s "$path" | awk '{print $2}')"
+    if [ "$after" = "$(git -C "$upstream" rev-parse HEAD)" ] && [ "$after" != "$before" ]; then
+        pass "sync stages the new pointer at $path"
+    else
+        fail "sync did not stage the new pointer at $path"
+    fi
+    (cd "$repo" && GIT_ALLOW_PROTOCOL=file bash "$path/bin/manage.sh" check >/dev/null 2>&1) || true
+    if [ ! -e "$repo/.claude" ] && [ ! -e "$repo/.agents/skills/first" ] && [ ! -e "$repo/.agents/skills/.astrojams-skills.json" ]; then
+        pass "sync and check add no copies or hook when pinning at $path"
+    else
+        fail "sync or check added copies or a hook when pinning at $path"
+    fi
+    if [ "$(cat "$repo/.agents/skills/app-release/SKILL.md")" = "app skill" ]; then
+        pass "the repository's own skill is untouched at $path"
+    else
+        fail "the repository's own skill changed at $path"
+    fi
+done
+
+# Running link opts in: later syncs refresh the copies, and the hook names the real path.
+repo="$(pin_repo pin-opted vendor/skills)"
+(cd "$repo" && GIT_ALLOW_PROTOCOL=file bash vendor/skills/bin/manage.sh link >/dev/null 2>&1)
+mkdir -p "$upstream/skills/second"
+printf -- '---\nname: second\ndescription: Second skill.\n---\n' > "$upstream/skills/second/SKILL.md"
+pin_git -C "$upstream" add -A
+pin_git -C "$upstream" commit -q -m "second"
+(cd "$repo" && GIT_ALLOW_PROTOCOL=file bash vendor/skills/bin/manage.sh sync >/dev/null 2>&1)
+if [ -f "$repo/.claude/skills/second/SKILL.md" ] && [ -f "$repo/.agents/skills/second/SKILL.md" ]; then
+    pass "sync refreshes copies in a repository that opted in"
+else
+    fail "sync did not refresh copies in a repository that opted in"
+fi
+if grep -q 'ROOT\\"/vendor/skills/bin/manage.sh link' "$repo/.claude/settings.json"; then
+    pass "the SessionStart hook uses the real submodule path"
+else
+    fail "the SessionStart hook does not use the real submodule path"
 fi
 
 echo ""

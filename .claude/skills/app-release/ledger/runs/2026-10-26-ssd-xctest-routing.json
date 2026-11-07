@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "app": "app-release SSD XCTest routing maintenance",
+  "repository": "https://github.com/astrojams1/skills",
+  "objective": "Route the original XCTest runner to existing SSD QA devices and reuse shared coverage",
+  "platforms": [
+    "ios"
+  ],
+  "created_at": "2026-10-26T15:45:41+00:00",
+  "updated_at": "2026-10-26T15:54:32+00:00",
+  "steps": {
+    "issue.ssd-runner-routing": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Root cause was mismatched device-set selection: simctl --set did not route Xcode discovery/UI runner. The original Apple launcher with one equals-form process-local preference discovers both SSD devices and passes the real compatibility UI smoke; the new helper itself passes latest iOS 27.1 UI smoke and restores prior boot state. All 18 launcher/routing tests and 25 independent CLI subprocess cases pass. Parent code review is clean. No device creation, data deletion, persistent preference or binary modification was needed for this fix.",
+      "evidence": [
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/routing-confirmation.json",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/latest-ui-run.json",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-review.json"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:54:32+00:00"
+    },
+    "issue.diagnostic-file-inventory": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Read current rg/ls inventory, actual existing session-continuity run format, current references and verified live native logs. The absent optional files were not required; subsequent reads use present source files. No missing file is treated as a product blocker.",
+      "evidence": [
+        "skills/app-release/ledger/runs/2026-10-26-session-continuity.json",
+        "skills/app-release/references/verification.md",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:45:41+00:00"
+    },
+    "issue.validation-python": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "The same screenshot-fit suite passes all8 checks using the existing bundled Python containing numpy/Pillow. The system-Python skip is retained as historical evidence; no global package or runtime was changed.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-ssd-routing/fit.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/fit-bundled.log"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:48:05+00:00"
+    },
+    "verification.local-checks": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "172 app-release tests including18 launcher/routing tests,65 management checks,142 specification checks, identity,8 bundled-Python image-fit checks and skill validator pass. YouTube5 pass with1 existing unavailable-ffmpeg skip. Seven checkout configs across5apps normalize; preflight compatibility and config fields unchanged.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-ssd-routing/release.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/manage.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/spec.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/identity.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/fit-bundled.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/youtube.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/skill.log",
+        "/Volumes/ssd/builds/app-release-ssd-routing/consumer-compatibility.json"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:48:06+00:00"
+    },
+    "verification.live-ui-smoke": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "The original Apple launcher passed the real UI smoke on existing SSD iOS 18.4 compatibility device (1 test, 0 failures). The new shared helper itself then passed the same smoke on latest installed iOS 27.1 SSD device (1 test, 0 failures, exit 0); the device was restored from Shutdown to Shutdown. Checks cover launch, open editor, name-field existence, Cancel and home verification. These are runtime-specific reachability/interaction proofs, not the full application QA matrix.",
+      "evidence": [
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/latest-ui-run.json",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test-latest.log",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/ssd-runner-latest.xcresult"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:54:32+00:00"
+    },
+    "issue.management-command-scope": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "The supported standalone source operation bin/manage.sh link succeeds; all 65 management regressions pass, including consumer check behavior. Source diff whitespace check passes. No management code change was needed; check remains a consumer-only command.",
+      "evidence": [
+        "bin/manage.sh",
+        "/Volumes/ssd/builds/app-release-ssd-routing/manage.log"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:50:03+00:00"
+    },
+    "verification.independent-cli": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Independent review found no defects in the exact current source hashes. All 25 real CLI subprocess fixtures passed with system-tool calls mocked and an actual fixture child executable: literal argv, stdout/stderr, exit status, denied launcher gates, duplicate routing and path validation. The independent full Node 22 regression suite also passed all 172 tests. This verifies command orchestration; supplied real UI smoke remains one compatibility-runtime test.",
+      "evidence": [
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-review.json",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-fixtures/results.json",
+        "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-fixtures/app-release-tests-ssd-tmp.log"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T15:53:32+00:00"
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-10-26T15:45:41+00:00",
+      "gate": "issue.ssd-runner-routing",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Default Xcode discovery omitted SSD devices although simctl selected the designated set. The earlier copied/ad-hoc-signed launcher was a separate identity denial. Controlled queries now show the original launcher reaches both SSD devices using exactly one equals-form process-local preference; root live UI smoke passes. Shared helper and regression verification are in progress.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/routing-confirmation.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log"
+        ],
+        "next_action": "Verify narrow command transport and fail-closed preflight, then review live evidence and source changes before publication",
+        "updated_at": "2026-10-26T15:45:41+00:00"
+      }
+    },
+    {
+      "sequence": 2,
+      "at": "2026-10-26T15:45:41+00:00",
+      "gate": "issue.diagnostic-file-inventory",
+      "result": {
+        "state": "failed",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Initial optional reads guessed a workflow directory, historical run filename and gitignore that are absent in this source checkout. No product or external state changed. Actual paths must come from current file inventory.",
+        "evidence": [
+          "AGENTS.md",
+          "skills/app-release/ledger/runs/2026-10-26-session-continuity.json"
+        ],
+        "next_action": "Read authoritative existing file inventory and actual native evidence, then continue source implementation",
+        "updated_at": "2026-10-26T15:45:41+00:00"
+      }
+    },
+    {
+      "sequence": 3,
+      "at": "2026-10-26T15:45:41+00:00",
+      "gate": "issue.diagnostic-file-inventory",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Read current rg/ls inventory, actual existing session-continuity run format, current references and verified live native logs. The absent optional files were not required; subsequent reads use present source files. No missing file is treated as a product blocker.",
+        "evidence": [
+          "skills/app-release/ledger/runs/2026-10-26-session-continuity.json",
+          "skills/app-release/references/verification.md",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:45:41+00:00"
+      }
+    },
+    {
+      "sequence": 4,
+      "at": "2026-10-26T15:47:07+00:00",
+      "gate": "issue.validation-python",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The system Python lacks numpy/Pillow, so the required screenshot-fit suite reported a dependency skip rather than running. Source tests otherwise passed.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-ssd-routing/fit.log"
+        ],
+        "next_action": "Run the same fit suite with the existing bundled Python that includes image dependencies, without global installation",
+        "updated_at": "2026-10-26T15:47:07+00:00"
+      }
+    },
+    {
+      "sequence": 5,
+      "at": "2026-10-26T15:48:05+00:00",
+      "gate": "issue.validation-python",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The same screenshot-fit suite passes all8 checks using the existing bundled Python containing numpy/Pillow. The system-Python skip is retained as historical evidence; no global package or runtime was changed.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-ssd-routing/fit.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/fit-bundled.log"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:48:05+00:00"
+      }
+    },
+    {
+      "sequence": 6,
+      "at": "2026-10-26T15:48:06+00:00",
+      "gate": "verification.local-checks",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "172 app-release tests including18 launcher/routing tests,65 management checks,142 specification checks, identity,8 bundled-Python image-fit checks and skill validator pass. YouTube5 pass with1 existing unavailable-ffmpeg skip. Seven checkout configs across5apps normalize; preflight compatibility and config fields unchanged.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-ssd-routing/release.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/manage.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/spec.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/identity.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/fit-bundled.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/youtube.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/skill.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/consumer-compatibility.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:48:06+00:00"
+      }
+    },
+    {
+      "sequence": 7,
+      "at": "2026-10-26T15:49:12+00:00",
+      "gate": "verification.live-ui-smoke",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The original Apple xcodebuild with one equals-form process-local SSD-set preference executed a real UI smoke on the existing reserved compatibility device: launch, Customize tap, name-field existence, Cancel tap and home verification. One test passed with0failures in8.498seconds. This proves runner reachability and those interactions on that runtime; it does not establish the full app QA matrix or newest-OS coverage.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ssd-runner-smoke.xcresult"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:49:12+00:00"
+      }
+    },
+    {
+      "sequence": 8,
+      "at": "2026-10-26T15:49:12+00:00",
+      "gate": "issue.ssd-runner-routing",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Root cause was mismatched device-set selection: simctl --set did not route Xcode discovery/UI runner. The original Apple launcher with exactly one -DVTSimulatorSetLocation=<path> argument discovers bothSSD devices and passes the real UI smoke. New helper validates the existing absolute set, preflights the original launcher, rejects duplicate routing and forwards argv without a shell or persistent changes. All18launcher/routing tests pass, including zero execution for denied identity. No device creation, data deletion, shared-service reset or binary modification was used.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/routing-confirmation.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/release.log",
+          "/Volumes/ssd/builds/app-release-ssd-routing/launcher-preflight.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:49:12+00:00"
+      }
+    },
+    {
+      "sequence": 9,
+      "at": "2026-10-26T15:50:03+00:00",
+      "gate": "issue.management-command-scope",
+      "result": {
+        "state": "failed",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "After successful source discovery refresh, bin/manage.sh check rejected this standalone source repository because that command is consumer-only. The chained diff check therefore did not run. This was a command-scope mistake; source management tests had already passed.",
+        "evidence": [
+          "bin/manage.sh",
+          "/Volumes/ssd/builds/app-release-ssd-routing/manage.log"
+        ],
+        "next_action": "Use source link plus management regression tests, rerun diff check and preserve the failed command as issue history",
+        "updated_at": "2026-10-26T15:50:03+00:00"
+      }
+    },
+    {
+      "sequence": 10,
+      "at": "2026-10-26T15:50:03+00:00",
+      "gate": "issue.management-command-scope",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The supported standalone source operation bin/manage.sh link succeeds; all 65 management regressions pass, including consumer check behavior. Source diff whitespace check passes. No management code change was needed; check remains a consumer-only command.",
+        "evidence": [
+          "bin/manage.sh",
+          "/Volumes/ssd/builds/app-release-ssd-routing/manage.log"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:50:03+00:00"
+      }
+    },
+    {
+      "sequence": 11,
+      "at": "2026-10-26T15:53:32+00:00",
+      "gate": "verification.independent-cli",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Independent review found no defects in the exact current source hashes. All 25 real CLI subprocess fixtures passed with system-tool calls mocked and an actual fixture child executable: literal argv, stdout/stderr, exit status, denied launcher gates, duplicate routing and path validation. The independent full Node 22 regression suite also passed all 172 tests. This verifies command orchestration; supplied real UI smoke remains one compatibility-runtime test.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-review.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-fixtures/results.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-fixtures/app-release-tests-ssd-tmp.log"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:53:32+00:00"
+      }
+    },
+    {
+      "sequence": 12,
+      "at": "2026-10-26T15:54:32+00:00",
+      "gate": "verification.live-ui-smoke",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The original Apple launcher passed the real UI smoke on existing SSD iOS 18.4 compatibility device (1 test, 0 failures). The new shared helper itself then passed the same smoke on latest installed iOS 27.1 SSD device (1 test, 0 failures, exit 0); the device was restored from Shutdown to Shutdown. Checks cover launch, open editor, name-field existence, Cancel and home verification. These are runtime-specific reachability/interaction proofs, not the full application QA matrix.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/latest-ui-run.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test-latest.log",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ssd-runner-latest.xcresult"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:54:32+00:00"
+      }
+    },
+    {
+      "sequence": 13,
+      "at": "2026-10-26T15:54:32+00:00",
+      "gate": "issue.ssd-runner-routing",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Root cause was mismatched device-set selection: simctl --set did not route Xcode discovery/UI runner. The original Apple launcher with one equals-form process-local preference discovers both SSD devices and passes the real compatibility UI smoke; the new helper itself passes latest iOS 27.1 UI smoke and restores prior boot state. All 18 launcher/routing tests and 25 independent CLI subprocess cases pass. Parent code review is clean. No device creation, data deletion, persistent preference or binary modification was needed for this fix.",
+        "evidence": [
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/routing-confirmation.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/ui-test.log",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/latest-ui-run.json",
+          "/Volumes/ssd/builds/nametag/evidence/native-followup/shared-runner-review.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T15:54:32+00:00"
+      }
+    }
+  ],
+  "metrics": {
+    "tokens": null,
+    "cost_usd": null
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "scan": {
+    "extensions": [".swift", ".m", ".mm", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".kt", ".java", ".dart", ".vue", ".svelte", ".html", ".strings", ".xcstrings"],
+    "rootDirs": ["skills", "vendor", "local-skills", "store", "docs", "web", "website", "site", "sites", "marketing", "design", "tools", "scripts", "benchmarks", "tasks", "test", "tests", "Tests", "e2e", "fastlane"],
+    "dirs": ["node_modules", "Pods", "build", "dist", "out", "public", "coverage", "DerivedData", "__tests__", "__mocks__"],
+    "skipFiles": ["\\.d\\.ts$", "\\.min\\.js$", "\\.(test|spec)\\.[cm]?[jt]sx?$", "Tests?\\.swift$"],
+    "maxBytes": 2097152
+  },
+  "standards": [
+    {
+      "id": "feedback",
+      "title": "Send Feedback in the app",
+      "doc": "references/standards.md#send-feedback",
+      "checks": [
+        { "type": "config", "path": "feedback.email", "format": "email",
+          "problem": "app-release.config.json has no valid feedback.email" },
+        { "type": "marker", "text": "app-standard: feedback",
+          "problem": "no app source file carries the marker comment `app-standard: feedback`" },
+        { "type": "source", "in": "marker", "anyOf": ["mailto:", "MFMailComposeViewController"],
+          "problem": "the marked file opens no mail composer (MFMailComposeViewController or a mailto: URL)" },
+        { "type": "source", "in": "marker", "anyOf": [" feedback\\] "],
+          "problem": "the marked file does not build the subject `[<App name> feedback] <version> (<build>)`" },
+        { "type": "source", "in": "app", "anyOf": ["Send Feedback"],
+          "problem": "no control is labelled exactly `Send Feedback`" },
+        { "type": "source", "in": "app", "literalsFromConfig": ["feedback.email"],
+          "problem": "the address in feedback.email appears nowhere in the app source" },
+        { "type": "wired", "names": ["FeedbackButton", "sendFeedback"],
+          "problem": "the marked file is in the repository but no screen uses it" },
+        { "type": "kidsGate", "anyOf": ["parent", "grown", "adult"],
+          "problem": "this Kids Category app shows the control where no parental gate is evident" }
+      ],
+      "fix": "Copy assets/feedback/FeedbackButton.swift (native) or assets/feedback/feedback.ts (Expo, React Native, Capacitor) into the app, put the control on the settings or about screen, set feedback.email in app-release.config.json and mention the address on the support page.",
+      "verify": "On a simulator or device, tap Send Feedback and see the composer or the fallback with the right address, subject and footer; open the support page and see the same address."
+    },
+    {
+      "id": "privacy-link",
+      "title": "Privacy policy linked inside the app",
+      "doc": "references/standards.md#privacy-and-support-links",
+      "checks": [
+        { "type": "source", "in": "app", "literalsFromStore": ["listing.privacyPolicyUrl"],
+          "anyOf": ["app-standard: privacy-link", "https?://[^\\s\"'`]*privacy", "/privacy(?:[-_]policy)?(?:\\.html)?/?[\"'`]", "\\bprivacy[ _-]?(?:policy|url|link)\\b", "URL_PRIVACY"],
+          "flags": "i",
+          "problem": "no link to the privacy policy found in the app source" }
+      ],
+      "fix": "Link the privacy policy (the store data's listing.privacyPolicyUrl) from the settings or about screen, behind the parental gate in a Kids Category app. Where the app builds the URL in a way the audit cannot see, add the comment `app-standard: privacy-link` beside it.",
+      "verify": "On a simulator or device, open the link from inside the app and see the live policy."
+    },
+    {
+      "id": "support-link",
+      "title": "Support page linked inside the app",
+      "doc": "references/standards.md#privacy-and-support-links",
+      "checks": [
+        { "type": "source", "in": "app", "literalsFromStore": ["listing.supportUrl"],
+          "anyOf": ["app-standard: support-link", "https?://[^\\s\"'`]*(?:support|contact)", "/(?:support|contact)(?:\\.html)?/?[\"'`]", "(?:[Ss]upport|[Cc]ontact)(?:URL|Url|Link|Page)\\b", "\\bsupport_(?:url|link|page)\\b", "URL_SUPPORT"],
+          "problem": "no link to the support page found in the app source" }
+      ],
+      "fix": "Link the support page (the store data's listing.supportUrl) from the settings or about screen, behind the parental gate in a Kids Category app. Where the app builds the URL in a way the audit cannot see, add the comment `app-standard: support-link` beside it.",
+      "verify": "On a simulator or device, open the link from inside the app and see the live support page."
+    }
+  ]
+}

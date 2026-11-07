@@ -5,8 +5,12 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { generateKeyPairSync, verify } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   COMMIT_DEFAULT, COMMIT_HELD, TOOLCHAIN, TRACKS, assertion, blockedPermissionsIn, certificateDigest, commitQuery, jwtClaims, keptProvenance,
   missingResources, nextVersionCode, parseArgs, parseTrack, parseVersionCode, playTrackName, releaseEnv, sameCheckout, signingEnv, toolchainEnv,
@@ -14,6 +18,24 @@ import {
 } from '../../skills/app-release/scripts/android-release.mjs';
 
 const SCRIPT = readFileSync(new URL('../../skills/app-release/scripts/android-release.mjs', import.meta.url), 'utf8');
+
+test('an app missing a shared standard builds no bundle, before the vault or Play is read', t => {
+  const root = mkdtempSync(join(tmpdir(), 'android-standards-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', ledger: { gates: 'l.json', view: 'l.md' },
+    android: { package: 'com.example.app', vault: 'op://API Tokens/Example Android', versionCodeEnv: 'CODE', artifactName: 'Example' } }));
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  const script = fileURLToPath(new URL('../../skills/app-release/scripts/android-release.mjs', import.meta.url));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'APP_RELEASE_CONFIG' && !key.startsWith('OP_')));
+  for (const command of ['bundle', 'release']) {
+    const result = spawnSync(process.execPath, [script, command, '--version-code', '1'], { cwd: root, env, encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Example is missing required app standards: feedback[\s\S]*Nothing was built/);
+  }
+  const test = spawnSync(process.execPath, [script, 'bundle', '--version-code', '1', '--allow-dirty'], { cwd: root, env, encoding: 'utf8' });
+  assert.match(test.stderr, /Warning: Example is missing required app standards/);
+  assert.doesNotMatch(test.stderr, /Nothing was built/);
+});
 
 test('the version code is a positive integer', () => {
   assert.equal(parseVersionCode('13'), 13);

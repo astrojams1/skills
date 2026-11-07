@@ -2,18 +2,26 @@
   "version": 1,
   "source": "astrojams1/skills",
   "skills": {
-    "app-release": "ac02bb0de22e96936da2d0ab47c2e31e4627c78ffb83e999c974af25b0656224",
+    "app-marketing": "9d0cacccaa2259eef801e7325028242db706f8eea5763179bc1025b8f080490d",
+    "app-release": "b7a02c13ff2aab952bcf5ea8ae9a2f69e32ee50cc39d52ef75d1de83a19c7a11",
+    "app-shorts": "ba1f79dea7bf2b95572fe0e7132819e429255a9c39601dba3d6268aa0622d830",
+    "astrojams-website": "9f9e42909286a301c431c34994b8486cba421ce38148ec8e93007fbd22f007c4",
+    "call-triage": "1b18916a0e86483cea0628a038530e6f27accf289b3ab2b7d7c0fb8c75b7d70a",
     "careful": "9424d454923a60e012295824b7474a6176377afebf7a17e882cf4333adca282a",
     "design-system": "3fadf8fa4521b188ae8baadfcf3cb017661b4f75dfa3882aea05f98a8276897e",
     "design-system-migration-prompt": "151583267dccb5d8820991c025e0cf812d6ee6fcc5f8da542acbcad8caaeb618",
     "freeze": "d91b03559e3c46e563a8c30503f79734746a747f53217f8c32ca9661085b19db",
     "health-check-prompt": "cedc9fa4ebd79143209aea4058f818062153c3cd3e0eef98c5f23819cac3cf41",
     "health-check-review": "4a445cbc0f5c20fd76d56ba025e02d914e0a075d4da79124c3762456ca206a65",
+    "ouro-website": "e4baf7c393d6868cc8841f5735f3584bc31e1f5718f0e14322772a45ee719f99",
+    "reddit-posting": "8f5b7faa8478e22890026a6d6ce5e8829f83c8ba5e06c1bb980e5b9e83be97bf",
     "research-paper": "5aaf51467ae6254ef8d04fe6887ff2933dfd5feaa2b6589cd62a28cac0b60199",
     "simplify": "025a34d898cdbbff56e323e6cf2a5c794a7f0962ed96fe3003c9b9426c3ccb44",
     "skill-integration-prompt": "094182b4ffc00ac862cde597b5f7357a7010740fad054f20a20a09395119ce51",
     "skill-orchestrator": "2f3698ebe3092a46d764c78809d833015030a300a22c72206cba3952e9a1abc6",
+    "warm-lead-followup": "ad14eaf6fdea782de4a7b1b8ef2c639990bae7d9784043ee127fe8cfa3ddf761",
     "workflow-orchestration": "793c64e3227ce3ecebd285fe0269b1f0351ccaded37ab6539d82f46e6e53d59b",
-    "youtube-shorts": "4df29dc8b7a1014b3995278043b12466edc3af2fb596bd2c317f460c0f5039f2"
+    "youtube-growth": "e0bbd78d164643b368a57dd9c7324479b5447e2475fd4035eb4055c101572437",
+    "youtube-shorts": "cb2cdde8ed7b6d5f188103ac9a638cde7c3b18b95c567f2538fdb2f51629076d"
   }
 }

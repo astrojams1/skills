@@ -15,11 +15,12 @@ import { api, listAll, loadCredentials, setup as setupAsc } from './asc.mjs';
 import { privateDir } from './lib/vault.mjs';
 import { freshBuildTmp } from './lib/build-tmp.mjs';
 import { requireSection } from './lib/config.mjs';
+import { standardsRefusal } from './lib/standards.mjs';
 
 const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
   '  next-build-number   print App Store Connect\'s highest build number plus one\n' +
-  '  archive             prebuild, pod install, archive, export and verify an .ipa (writes summary.json)\n' +
+  '  archive             prebuild/pod install (none for ios.project), archive, export, verify (writes summary.json)\n' +
   '  validate <N>        validate build N\'s .ipa with App Store Connect, uploading nothing\n' +
   '  upload <N>          upload build N\'s .ipa and wait for Apple\'s processing\n' +
   '  testers <N>         add processed build N to the configured internal TestFlight group\n' +
@@ -106,15 +107,29 @@ export function authArgs(key) {
   return ['-allowProvisioningUpdates', '-authenticationKeyPath', key.path, '-authenticationKeyID', key.keyId, '-authenticationKeyIssuerID', key.issuerId];
 }
 
-// archiveArgs builds the Release device archive with the configured store signing and chosen build number.
+// archiveSigningMode reads `ios.archiveSigning`: "archive" (default) signs while archiving; "export" leaves the archive
+// unsigned and lets the App Store export sign it. Automatic archive signing uses a development profile, which Apple only
+// issues to a team with registered devices; a distribution profile needs none (Giraffe Stretch on Ouro, 2026-10-30).
+export function archiveSigningMode(ios) {
+  const mode = ios.archiveSigning === undefined ? 'archive' : ios.archiveSigning;
+  if (!['archive', 'export'].includes(mode)) throw new Error('ios.archiveSigning must be "archive" or "export"');
+  if (mode === 'export' && signingSettings(ios.signing).style !== 'automatic') throw new Error('ios.archiveSigning "export" needs automatic signing');
+  return mode;
+}
+
+// archiveArgs builds the Release device archive with the configured store signing and chosen build number. A bare
+// Xcode project (`ios.project`) is archived with -project; everything else through its workspace.
 export function archiveArgs(ios, archivePath, derivedData, key, build) {
   const signing = signingSettings(ios.signing);
-  const signingArgs = signing.style === 'manual'
-    ? ['CODE_SIGN_STYLE=Manual', 'CODE_SIGN_IDENTITY=' + signing.certificate, 'PROVISIONING_PROFILE_SPECIFIER=' + signing.profile]
-    : authArgs(key).concat(['CODE_SIGN_STYLE=Automatic']);
+  const signingArgs = archiveSigningMode(ios) === 'export'
+    ? ['CODE_SIGNING_ALLOWED=NO', 'CODE_SIGNING_REQUIRED=NO']
+    : signing.style === 'manual'
+      ? ['CODE_SIGN_STYLE=Manual', 'CODE_SIGN_IDENTITY=' + signing.certificate, 'PROVISIONING_PROFILE_SPECIFIER=' + signing.profile]
+      : authArgs(key).concat(['CODE_SIGN_STYLE=Automatic']);
   if (ios.prebuild === false && build === undefined) throw new Error('A tracked native archive needs its chosen build number');
-  return ['-workspace', ios.workspace, '-scheme', ios.scheme, '-configuration', 'Release', '-destination', 'generic/platform=iOS',
-    '-archivePath', archivePath, '-derivedDataPath', derivedData]
+  const container = ios.project ? ['-project', ios.project] : ['-workspace', ios.workspace];
+  return container.concat(['-scheme', ios.scheme, '-configuration', 'Release', '-destination', 'generic/platform=iOS',
+    '-archivePath', archivePath, '-derivedDataPath', derivedData])
     .concat(signingArgs, ['DEVELOPMENT_TEAM=' + ios.teamId], build === undefined ? [] : ['CURRENT_PROJECT_VERSION=' + parseBuildNumber(build)], ['archive']);
 }
 
@@ -258,11 +273,17 @@ function bundlesIn(app) {
 // plist reads one Info.plist value.
 const plist = (file, key) => capture('plutil', ['-extract', key, 'raw', '-o', '-', file]);
 
-// Tracked-native mode supports a flat workspace of local projects plus generated Pods.
-// Check the actual workspace references, not just that some native project is in Git.
+// nativeRoot is where xcodebuild runs: the generated or tracked `ios/` folder, or for a bare Xcode project
+// (`ios.project`) the project directory itself.
+export function nativeRoot(config, ios) {
+  return ios.project ? resolve(config.projectDir) : resolve(config.projectDir, 'ios');
+}
+
+// Tracked-native mode supports a flat workspace of local projects plus generated Pods, or a bare Xcode project with
+// no Expo and no CocoaPods (`ios.project`). Check the actual references, not just that some native project is in Git.
 function checkedNativeInfo() {
-  if (!IOS.infoPlist) throw new Error('ios.prebuild=false needs ios.infoPlist, relative to the ios directory');
-  const root = resolve(CONFIG.projectDir, 'ios');
+  if (!IOS.infoPlist) throw new Error('ios.prebuild=false needs ios.infoPlist, relative to ' + (IOS.project ? 'the project directory' : 'the ios directory'));
+  const root = nativeRoot(CONFIG, IOS);
   const tracked = new Set(capture('git', ['ls-files', '-z']).split('\0'));
   const requireTracked = path => {
     const local = relative(CONFIG.root, path);
@@ -270,6 +291,12 @@ function checkedNativeInfo() {
     if (realpathSync(path) !== resolve(realpathSync(CONFIG.root), local)) throw new Error('Tracked native inputs must not use symlinks: ' + local);
   };
   const info = resolve(root, IOS.infoPlist);
+  if (IOS.project) {
+    if (!IOS.project.endsWith('.xcodeproj') || isAbsolute(IOS.project)) throw new Error('ios.project must be a relative path to a .xcodeproj');
+    const project = resolve(root, IOS.project);
+    for (const path of [info, join(project, 'project.pbxproj'), join(project, 'xcshareddata', 'xcschemes', IOS.scheme + '.xcscheme')]) requireTracked(path);
+    return info;
+  }
   const workspace = resolve(root, IOS.workspace, 'contents.xcworkspacedata');
   for (const path of [info, workspace, join(root, 'Podfile'), join(root, 'Podfile.lock')]) requireTracked(path);
   const xml = readFileSync(workspace, 'utf8');
@@ -335,12 +362,18 @@ function verify(out, build, ipa, provenance) {
 async function archive(flags) {
   const signing = signingSettings(IOS.signing);
   if (IOS.prebuild !== undefined && typeof IOS.prebuild !== 'boolean') throw new Error('ios.prebuild must be true or false');
+  if (IOS.project && IOS.prebuild !== false) throw new Error('ios.project is a bare Xcode project; set ios.prebuild to false');
+  archiveSigningMode(IOS);
   if (IOS.prebuild === false) {
     const nativeInfo = checkedNativeInfo();
     if (plist(nativeInfo, 'CFBundleVersion') !== '$(CURRENT_PROJECT_VERSION)') throw new Error('Tracked native CFBundleVersion must be $(CURRENT_PROJECT_VERSION) so the chosen build number can be applied without editing source');
   }
   const before = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (before.status && !flags.allowDirty) throw new Error('The checkout has uncommitted changes; archive from a clean commit or pass --allow-dirty for a test build.');
+  // A build that lacks a shared standard could never be submitted, so it stops here; a local test build only warns.
+  const refusal = standardsRefusal(CONFIG);
+  if (refusal && !flags.allowDirty) throw new Error(refusal + ' Nothing was archived.');
+  if (refusal) console.warn('Warning: ' + refusal);
   let build = flags.build;
   if (build === null) {
     const numbers = await readBuildNumbers();
@@ -361,19 +394,21 @@ async function archive(flags) {
   const exportPath = join(out, 'export');
   rmSync(archivePath, { recursive: true, force: true });
   rmSync(exportPath, { recursive: true, force: true });
-  if (IOS.prebuild === false) {
+  if (IOS.project) {
+    // A bare Xcode project has no Expo config to evaluate and no CocoaPods to install.
+  } else if (IOS.prebuild === false) {
     // Evaluate the same release config/guards without replacing a reviewed native project.
     run('npx', ['expo', 'config', '--type', 'public', '--json'], { env: env, log: join(out, 'expo-config.json') });
   } else {
     run('npx', ['expo', 'prebuild', '--platform', 'ios', '--no-install', '--clean'], { env: env });
   }
   // CocoaPods fails on Unicode normalization without a UTF-8 locale.
-  run('pod', IOS.prebuild === false ? ['install', '--deployment'] : ['install'], { cwd: join(CONFIG.projectDir, 'ios'), env: env, log: join(out, 'pod-install.log') });
+  if (!IOS.project) run('pod', IOS.prebuild === false ? ['install', '--deployment'] : ['install'], { cwd: nativeRoot(CONFIG, IOS), env: env, log: join(out, 'pod-install.log') });
   const prepared = { commit: capture('git', ['rev-parse', 'HEAD']), status: capture('git', ['status', '--porcelain']) };
   if (prepared.commit !== before.commit || prepared.status !== before.status) throw new Error('Native preparation changed tracked source; review and commit those changes, then archive again with the same chosen build number. No archive or export was started.');
   const key = signing.style === 'automatic' ? writeKey() : null;
   run('xcodebuild', archiveArgs(IOS, archivePath, join(CONFIG.buildRoot, 'xcode', CONFIG.slug, 'DerivedData'), key, build),
-    { cwd: join(CONFIG.projectDir, 'ios'), env: env, log: join(out, 'xcodebuild-archive.log') });
+    { cwd: nativeRoot(CONFIG, IOS), env: env, log: join(out, 'xcodebuild-archive.log') });
   const optionsPath = join(out, 'ExportOptions.plist');
   writeFileSync(optionsPath, exportOptionsPlist(IOS.teamId, IOS.signing, IOS.bundleId));
   run('xcodebuild', exportArgs(archivePath, exportPath, optionsPath, key, IOS.signing), { env: env, log: join(out, 'xcodebuild-export.log') });
@@ -433,6 +468,29 @@ export async function waitForUpload(build, io) {
   throw new Error('Build ' + build + ' is still processing after 30 minutes; check `asc.mjs status` before testers or attach-build.');
 }
 
+// ensureTesters makes the group reach someone. A new group is empty and a build in an empty group shows in nobody's
+// TestFlight, so the team's account holder (who does the device check) is added, and anyone uninvited is invited.
+async function ensureTesters(group, config, read, all, log) {
+  const list = () => all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200');
+  let people = await list();
+  if (!people.length) {
+    const holder = (await all('/v1/users?limit=200')).find(user => (user.attributes.roles || []).includes('ACCOUNT_HOLDER'));
+    if (!holder) throw new Error(config.testflightGroup + ' has no testers and the team has no readable account holder; add a tester, or the build reaches nobody.');
+    const { username, firstName, lastName } = holder.attributes;
+    await read('/v1/betaTesters', 'POST', { data: { type: 'betaTesters', attributes: { email: username, firstName, lastName },
+      relationships: { betaGroups: { data: [{ type: 'betaGroups', id: group.id }] } } } });
+    people = await list();
+    if (!people.length) throw new Error('Adding the account holder to ' + config.testflightGroup + ' did not read back; the build reaches nobody.');
+    log(config.testflightGroup + ' had no testers, so the account holder was added.');
+  }
+  for (const person of people.filter(item => item.attributes.state === 'NOT_INVITED')) {
+    await read('/v1/betaTesterInvitations', 'POST', { data: { type: 'betaTesterInvitations', relationships: {
+      app: { data: { type: 'apps', id: config.ascAppId } }, betaTester: { data: { type: 'betaTesters', id: person.id } } } } });
+    log('Invited tester ' + person.id + '.');
+  }
+  return people.length;
+}
+
 // VALID and automatic group access do not establish testability: export compliance can still block a build.
 // Verify exact group membership and the build's internal beta state on both group paths.
 export async function testers(build, io) {
@@ -457,8 +515,20 @@ export async function testers(build, io) {
   }
   if (!found || found.attributes.processingState !== 'VALID') throw new Error('Build ' + build + ' is not VALID after 30 minutes');
   // The app's own /v1/apps/{id}/betaGroups refuses filter[name] with a 400; the top-level collection takes both.
-  const groups = (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' + encodeURIComponent(config.testflightGroup))).data
+  const readGroups = async () => (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' +
+    encodeURIComponent(config.testflightGroup))).data
     .filter(group => group.attributes.isInternalGroup && group.attributes.name === config.testflightGroup);
+  let groups = await readGroups();
+  const anyInternal = groups.length || (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[isInternalGroup]=true')).data.length;
+  if (!anyInternal) {
+    // A brand-new app has no internal groups, and the API can create one; read it back rather than trusting the reply.
+    // An app that already has internal groups but not this name keeps failing below, so a typo never adds a group.
+    await read('/v1/betaGroups', 'POST', { data: { type: 'betaGroups',
+      attributes: { name: config.testflightGroup, isInternalGroup: true, hasAccessToAllBuilds: false },
+      relationships: { app: { data: { type: 'apps', id: config.ascAppId } } } } });
+    groups = await readGroups();
+    log('Created the internal TestFlight group ' + config.testflightGroup + '; add its testers in App Store Connect or with the API.');
+  }
   if (groups.length !== 1) throw new Error('Expected one internal TestFlight group named ' + config.testflightGroup + ', found ' + groups.length);
   const group = groups[0];
   if (group.attributes.hasAccessToAllBuilds) {
@@ -479,8 +549,9 @@ export async function testers(build, io) {
     }
     buildPresent = (await all('/v1/betaGroups/' + group.id + '/builds?limit=200')).some(item => item.id === found.id);
     if (testable && buildPresent) {
-      log('Build ' + build + ' (' + found.id + ') is in ' + config.testflightGroup + '; internal state ' + internalBuildState + '.');
-      return { build: String(build), buildId: found.id, groupId: group.id, internalBuildState, buildPresent };
+      const testerCount = await ensureTesters(group, config, read, all, log);
+      log('Build ' + build + ' (' + found.id + ') is in ' + config.testflightGroup + '; internal state ' + internalBuildState + '; ' + testerCount + ' tester(s).');
+      return { build: String(build), buildId: found.id, groupId: group.id, internalBuildState, buildPresent, testers: testerCount };
     }
     log('Waiting for build ' + build + ' internal TestFlight readiness: ' + internalBuildState + ', group membership ' + buildPresent + '.');
     await pause();
@@ -494,10 +565,12 @@ async function main(args) {
     return;
   }
   const flags = parseArgs(args);
-  const loaded = setupAsc();
+  // An archive with a chosen build number never reads App Store Connect, so it can run before the app record exists.
+  const offline = flags.command === 'archive' && flags.build !== null;
+  const loaded = setupAsc(undefined, offline ? ['bundleId', 'vault', 'platform'] : undefined);
   CONFIG = loaded.config;
   STORE = loaded.store;
-  IOS = requireSection(CONFIG, 'ios');
+  IOS = requireSection(CONFIG, 'ios', offline ? ['bundleId', 'teamId', 'scheme', 'buildNumberEnv'] : undefined);
   if (flags.command === 'next-build-number') {
     const numbers = await readBuildNumbers();
     console.log(nextBuildNumber(numbers.builds, numbers.uploads));

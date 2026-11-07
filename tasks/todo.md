@@ -4,7 +4,126 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
-## app-release 2.7.3: explain Apple app creation at onboarding
+## app-release 2.18.1: independently guarded native QA cleanup
+
+- [x] Document persisted pre-mutation state and independently guarded cleanup.
+- [x] Add destination-filesystem headroom and format-compatible recovery guidance.
+- [x] Review every local app-release consumer without changing its checkout.
+- [x] Refresh discovery copies and run the required integrity suites.
+- [x] Commit, push and open a draft shared-skill PR; preserve consumer pointers.
+
+Plan: Keep the reusable Füd cleanup lesson in the native verification reference.
+Preserve target/account/run guards and existing authorization. No new script,
+API or app change is needed for this documentation correction.
+
+Review: 166 release tests, 53 management checks, 142 specification checks, identity,
+eight screenshot-fit checks and skill validation pass. YouTube: five passes and
+one explicit unavailable-ffmpeg skip. Independent review has no remaining
+findings after isolating re-termination, initial-Shutdown capture and simulator
+scope. Seven consumer checkouts representing five apps need no config/command
+migration; their pointers stay unchanged pending shared merge and app PRs.
+Draft publication: https://github.com/astrojams1/skills/pull/104 (merge deferred).
+Storage follow-up: check destination capacity for candidate/restoration staging,
+preserve rollback after clean detachment, and select a supported method for the
+actual image format. The same suites pass again; independent review is clean.
+The procedure change does not close another run's pending native verification.
+
+
+
+## app-release 2.17.2: route the original XCTest runner to shared SSD devices
+
+- [x] Consult current skill specification and inspect the observed discovery/real UI test evidence.
+- [x] Add narrow existing-set xcodebuild routing with launcher preflight and no persistent mutation.
+- [x] Add regressions for exact argv transport, ambiguous routing and zero execution on denied launchers.
+- [x] Document shared device coverage, reservations, setting restoration and observed native recovery.
+- [x] Refresh source discovery, run required checks and reconcile the source issue log.
+- [x] Parent reviews the patch and live evidence before source publication and consumer adoption.
+- [x] Publish the source PR and merge only after current-head hosted review/CI is terminal and clean.
+
+Plan: Add the original-launcher per-command route, retain read-only preflight compatibility and leave
+existing devices/app data untouched. The parent owns live QA evidence, PR publication and consumer pins.
+
+Review: 172 release tests (18 launcher/routing), 65 management checks, 142 specification checks,
+identity, skill validation and 8 image-fit checks pass. YouTube: 5 pass and 1 existing unavailable-ffmpeg
+skip. The system-Python image dependency skip was corrected using the existing bundled runtime.
+Seven configs/five apps need no migration. Live original-runner UI smoke passes 1 test/0 failures;
+the same smoke also passes through the new helper on latest iOS 27.1 with prior Shutdown restored.
+Full app QA remains separate. Source issue validation, generated-view check and closure pass.
+Independent review found no defects; 25 real CLI subprocess fixtures pass with mocked system-tool
+identity checks and an actual fixture child, and the independent full suite passes all 172 tests.
+
+## app-release 2.17.1 — Finish authorized App Store releases
+
+Plan: document the release default in the shared source. Confirm the attached
+build and all release conditions before a public release.
+
+- [x] Read the shared skill, iOS procedure, repository instructions and owner correction.
+- [x] Update the release default and verify it against explicit holds, read-only checks and incomplete evidence.
+- [x] Check consumer compatibility, refresh discovery copies and run repository checks.
+- [ ] Open and merge the shared pull request and hand off consumer adoption.
+
+Review: verified the policy for an approved, physically checked launch, a
+different attached build, an explicit hold, a scheduled release, a read-only
+status request and a testing-only scope. Inspected 12 local consumer configs.
+Their release types and existing command interfaces require no migration.
+The 232 release tests, 55 other Node tests, 205 specification checks,
+76 management checks, identity check, eight image-fit checks and skill
+validator pass. A relative section anchor failed the specification link check
+and was replaced with the file link. Ran the skill validator with the existing
+SSD PyYAML environment and the image-fit checks with the bundled runtime.
+
+
+## app-release 2.12.0 — Asset Library review preflight and readback
+
+Plan: fix the reusable helper and creative guidance in an isolated checkout from main.
+Keep existing app submissions and unrelated working copies untouched.
+
+- [x] Read personal/repository conventions, skill-creator, maintaining guidance and primary Apple/spec documents.
+- [x] Diagnose omitted image include against saved live readback; distinguish standalone review eligibility.
+- [x] Reproduce provider projection, first-version refusal and incomplete image processing with meaningful regressions.
+- [x] Correct query/preflight and scoped creative guidance; preserve strict conflict/unknown/duplicate guards.
+- [ ] Audit consumers, refresh discovery, run all required checks and independently review the final change.
+- [ ] Publish, review and merge the shared source; report exact consumer synchronization instructions.
+
+Review: real-CLI query projection and missing preflights reproduce five failures on main; corrected focused set passes53/53. Required suites pass:200 release tests,6 Ouro,159 spec,65 management, identity,8 fit checks,5 YouTube (one existing ffmpeg skip). Both skills validate using the existing PyYAML venv;11 consumer configs normalize without migration. Independent review/publication pending; no provider mutations performed. Ouro1.0.1 documents the already shipped optional lifestyle field; unrelated PR120/version1.1.0 remains untouched and will need rebasing.
+
+## app-release 2.9.1 — Never require mirroring
+
+Plan: correct the shared release process's confusion between required physical
+evidence and a chosen transport. Preserve completed exact-build owner approval,
+actual reviewer evidence requirements and the current main's unrelated changes.
+
+- [x] Read source instructions, skill creator, current specification and the owner's correction.
+- [x] Make mirroring optional only by explicit owner choice; preserve evidence-based alternatives.
+- [x] Check all consumer configs and independently exercise representative recovery scenarios.
+- [x] Refresh discovery copies; run required suites and skill validation.
+- [x] Prepare verified source for publication; retain exact-head review, merge and adoption receipts separately.
+
+Review: 191 release tests, 65 management checks, 146 specification checks, identity,
+8 image-fit checks, 5 YouTube tests and skill validation pass. One existing
+ffmpeg-dependent test skips. Eleven consumer configs normalize without migration.
+Independent scenarios preserve completed approval, retain actual missing evidence
+and allow only owner-chosen optional mirroring without making it a release gate.
+Publication and consumer adoption remain separate delivery records.
+
+## app-release 2.8.4 — Use the available review attachment surface
+
+Plan: correct reusable attachment routing and retry reconciliation in the shared
+source. App-specific media, evidence and provider work remain with the app run;
+no source helper, account permission, config schema or store behavior changes.
+
+- [x] Read source instructions, skill creator, current specification and the owner's correction.
+- [x] Add direct-chooser discovery, saved-file reconciliation and separate delivery/evidence semantics.
+- [x] Check consumer compatibility and forward-test representative recovery scenarios.
+- [x] Refresh discovery copies; run required suites and skill validation.
+- [x] Prepare verified source for publication; retain actual PR/merge/adoption receipts separately.
+
+Review: all required suites and skill validation pass; eleven consumer configs
+need no migration. Independent scenarios confirm direct UI, saved-artifact and
+API routes without weakening evidence, authority or resubmission checks. Actual
+provider release and consumer adoption are not claimed by this source snapshot.
+
+## app-release 2.18.2: explain Apple app creation at onboarding
 
 - [x] Put the known public API boundary and first-update explanation in the entrypoint.
 - [x] Keep detailed iOS routing sourced and separate bundle IDs, app records, credentials and UI availability.
@@ -817,3 +936,26 @@ underlying diagnostic and that live UI recovery remains unverified; no restart i
 - [x] Incorporate app-record API readback from the release root (6827325155, intended bundle/SKU/locale/iOS).
 - [x] Validate final guidance:166 release,65 management,143 spec,8 fit,identity and skill validation; YouTube5pass/1existing skip.
 - [x] Updated PR #108 with v2.7.4 and verified Safari app creation.
+
+## app-release 2.8.3 — Learn from confirmed store rejections
+
+Plan: add a verified rejection-to-prevention loop in the shared skill while keeping app-specific evidence in each release ledger. Preserve concurrent work in other checkouts and keep the ongoing Nametag2.1 information response separate from skill delivery.
+
+- [x] Read skill-creator, current specification, source instructions and exact supplied reviewer request.
+- [x] Isolate this change from observed concurrent edits and preserve those files.
+- [x] Add a shared prevention requirement, prior-lesson recheck and detailed evidence/closure semantics.
+- [x] Record consumer compatibility and lesson; refresh generated discovery copies.
+- [x] Run all required suites, skill validation and independent recovery-scenario review.
+- [x] Prepare the verified source for publication; track actual PR/delivery/adoption state in the app and activity ledgers.
+
+Review:182 release,65 management,145 specification,identity,8 image-fit and5 YouTube checks pass; one existing ffmpeg-dependent check skips. Independent scenarios found two wording ambiguities, both corrected and rechecked. Missing validator PyYAML was recovered in an isolated SSD environment; the original validator passes. All ten consumer configurations need no migration.
+
+## Warm lead followup skill and cloud runner 2026-11-03
+
+- [x] Read conventions and actual Pipsqueak email threads; establish sending authority.
+- [x] Create reusable skill, app profile, private ledger contract and local activity helper.
+- [x] Independently review behavior and run required repository checks; image-fit rerun passed after isolated dependency setup.
+- [x] Create private cloud lead ledger, deploy and verify hosted schedule and the first actual cloud execution.
+- [x] Publish the skill branch and reviewable [PR #123](https://github.com/astrojams1/skills/pull/123); install locally.
+
+Review: Read two existing lead threads and recorded the actionable state in a private cloud ledger. Existing team followups already cover the current next steps; no setup email is due. Live contacts and message IDs remain outside Git. First hosted execution verified the intended mailbox, reread both tracked threads, persisted complete activity events, and correctly sent no duplicate messages.
