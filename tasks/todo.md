@@ -4,7 +4,7 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
-## app-release 2.17.3: independently guarded native QA cleanup
+## app-release 2.18.1: independently guarded native QA cleanup
 
 - [x] Document persisted pre-mutation state and independently guarded cleanup.
 - [x] Add destination-filesystem headroom and format-compatible recovery guidance.

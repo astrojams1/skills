@@ -1,11 +1,10 @@
 # App release skill ledger
 
-<<<<<<< HEAD
-Skill version **2.17.3**. This index preserves sanitized outcomes and lessons across
+Skill version **2.18.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
-## Lessons incorporated into v2.17.3 (2026-11-07)
+## Lessons incorporated into v2.18.1 (2026-11-07)
 
 - Check destination-filesystem headroom for candidate and original restoration,
   including installer staging, before QA mutation. Host SSD free space does not
@@ -19,17 +18,12 @@ Dates describe observations, not guarantees that provider state remains unchange
   original bundle/data manifest, preferences, auth/fixtures and device state.
 - Current captures and observed gestures guide unknown OS window geometry.
   Preserve target/account/run guards; no shared resets or invented owner step.
-=======
-Skill version **2.18.0**. This index preserves sanitized outcomes and lessons across
-apps; each application's repository remains authoritative for current progress.
-Dates describe observations, not guarantees that provider state remains unchanged.
 
 ## Lessons incorporated into v2.18.0 (2026-11-07)
 
 - A daily unattended run needed one rule for what occupies an app, and `submit --confirm` did not read `releaseType`, so
   an `AFTER_APPROVAL` version could publish on approval and a rejected submission could be replaced. `review-sweep.mjs`
   and the `APP_RELEASE_UNATTENDED` guard now stop both; a person's run is unchanged.
->>>>>>> origin/main
 
 ## Lessons incorporated into v2.17.2 (2026-11-07)
 
