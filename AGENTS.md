@@ -49,6 +49,10 @@ skills/                                    # Skill definitions (Agent Skills spe
     scripts/{ledger.py,check_refs.py,build.sh}   # Run ledger, reference resolver, strict LaTeX build
     assets/template/main.tex               # arXiv preprint template
     ledger/LEDGER.md, ledger/runs/         # The skill's own ledger: versions, runs, tokens, issues
+  reddit-posting/
+    SKILL.md                               # Wildly concise Reddit posts and replies, owner-approved, logged
+    references/{tone,subreddits}.md        # Templates, before/after cuts, subreddit notes
+    ledger/LEDGER.md                       # The skill's own append-only ledger
   simplify/
     SKILL.md                               # Code quality review — find and fix over-engineering
   skill-integration-prompt/
@@ -326,6 +330,23 @@ the channel inside YouTube's policies for templated content.
 Invoke with `/youtube-growth`, or ask how the Shorts are doing or how to grow the channel. Run
 `node skills/youtube-growth/scripts/evaluate.mjs` for decisions and `node skills/youtube-growth/scripts/yt-api.mjs check`
 for the API connection. After changing a script or the rules, run `node --test tests/youtube-growth/*.test.mjs`.
+
+### Reddit Posting
+
+**Skill:** `skills/reddit-posting/SKILL.md`
+
+Drafts, logs and follows up Reddit posts and replies for a project (tester
+recruitment, test-for-test swaps, launch notes) in a wildly concise voice that
+matches each subreddit. Agent tools cannot reach Reddit, so the owner posts the
+approved text and pastes threads back; every post and reply is approved. Each
+project keeps its own Reddit file (default `docs/reddit.md`); the skill's ledger
+indexes runs across projects.
+
+#### How to use
+
+Invoke with `/reddit-posting` or ask to post on Reddit. Consumer repos with the
+skills submodule get it on `./skills/bin/manage.sh sync`; a repo without the
+submodule can point a thin repo skill at this one.
 
 ## Internal Skills
 
