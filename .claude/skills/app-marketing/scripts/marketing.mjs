@@ -298,19 +298,28 @@ async function analyticsRequest(api, appId) {
   return { id: made.data.id, created: true };
 }
 
-async function reportText(api, requestId, name, sinceDay) {
+// processedThrough is the newest report instance already counted for an app. Instances are compared by their own
+// processing date, never by the days inside them: an instance processed on the 7th can hold the 5th, so comparing with
+// the last data day counts it again on every pull. Lines written before this field fall back to their throughDay.
+export function processedThrough(metrics, app) {
+  return metrics.filter(m => m.app === app && m.source === 'asc-analytics').map(m => m.processedThrough ?? m.throughDay).filter(Boolean).sort().pop();
+}
+
+async function reportText(api, requestId, name, processedAfter) {
+  const none = { texts: [], processed: undefined };
   const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent(name)}&limit=5`)).data || [];
-  if (!reports.length) return [];
+  if (!reports.length) return none;
   const instances = (await api(`/v1/analyticsReports/${reports[0].id}/instances?filter[granularity]=DAILY&limit=60`)).data || [];
+  const fresh = instances.filter(i => !processedAfter || i.attributes.processingDate > processedAfter);
   const texts = [];
-  for (const instance of instances.filter(i => !sinceDay || i.attributes.processingDate > sinceDay)) {
+  for (const instance of fresh) {
     const segments = (await api(`/v1/analyticsReportInstances/${instance.id}/segments?limit=20`)).data || [];
     for (const segment of segments) {
       const res = await fetch(segment.attributes.url);
       if (res.ok) texts.push(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8'));
     }
   }
-  return texts;
+  return { texts, processed: fresh.map(i => i.attributes.processingDate).sort().pop() };
 }
 
 async function cmdPull(root, args) {
@@ -320,8 +329,7 @@ async function cmdPull(root, args) {
     const api = ascClient(p.ascVault);
     const request = await analyticsRequest(api, p.appStoreId);
     if (request.created) console.log(`${p.id}: analytics report request created; Apple's first reports take a day or two`);
-    const seen = previous.filter(m => m.app === p.id && m.source === 'asc-analytics').map(m => m.throughDay).filter(Boolean).sort().pop();
-    const texts = await reportText(api, request.id, 'App Downloads Standard', seen);
+    const { texts, processed } = await reportText(api, request.id, 'App Downloads Standard', processedThrough(previous, p.id));
     if (!texts.length) { console.log(`${p.id}: no new downloads report yet`); continue; }
     const totals = { days: {}, sources: {} };
     for (const text of texts) {
@@ -332,7 +340,7 @@ async function cmdPull(root, args) {
     const days = Object.keys(totals.days).sort();
     const before = latest(previous, p.id).downloads || 0;
     const added = days.reduce((sum, d) => sum + totals.days[d].first, 0);
-    const line = { at: new Date().toISOString(), app: p.id, source: 'asc-analytics', throughDay: days[days.length - 1], values: { downloads: before + added, downloadsAdded: added, sources: totals.sources }, days: totals.days };
+    const line = { at: new Date().toISOString(), app: p.id, source: 'asc-analytics', throughDay: days[days.length - 1], processedThrough: processed, values: { downloads: before + added, downloadsAdded: added, sources: totals.sources }, days: totals.days };
     if (args.write) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
     console.log(JSON.stringify({ app: p.id, ...line.values, throughDay: line.throughDay }));
   }

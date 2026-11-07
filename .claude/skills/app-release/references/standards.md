@@ -74,7 +74,7 @@ unless the owner names another for an app.
 **Check it.** Tap the control on a simulator or device. A simulator has no mail account or Mail app, so it shows the
 fallback: the address and a Copy button that puts the address on the clipboard. On a device with a mail account, see
 the composer with the right recipient, subject and footer. Then open the support page and see the address. Record
-which path was seen; a simulator's fallback does not show the composer works, so check that in the owner's device check.
+which path was seen; a simulator's fallback does not show the composer works, so say that in the record.
 
 **What can be said truthfully.** Say only what the shipped code does:
 

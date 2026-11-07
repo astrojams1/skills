@@ -3,7 +3,7 @@
 // Drives every App Store Connect step of an iOS release through Apple's API: status, listing copy, age rating,
 // pricing and availability, screenshots, Asset Library images and app preview videos, featuring nominations, App Review
 // details and attachments, Game Center leaderboards, TestFlight, build selection, submission, withdrawal from review and
-// manual release. Identity comes from the app's app-release.config.json (`ios`) and
+// release of a version still awaiting it. Identity comes from the app's app-release.config.json (`ios`) and
 // copy from its store data file; credentials come from 1Password in memory; every write is read back so a release
 // never depends on clicking through the web console. Run from the app repository.
 
@@ -15,7 +15,7 @@ import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './l
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
-import { unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
+import { RELEASE_TYPE, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
@@ -644,8 +644,8 @@ async function listing() {
     const savedApp = await api('/v1/apps/' + IOS.ascAppId, 'PATCH', { data: { type: 'apps', id: IOS.ascAppId, attributes: appAttributes } });
     assertSaved('App', appAttributes, savedApp.data.attributes);
   }
-  // An unattended run holds the version whatever the store data prefers, so approval can never publish it.
-  const versionAttributes = { copyright: copy.copyright, releaseType: unattended() ? 'MANUAL' : copy.releaseType || 'MANUAL' };
+  // Every app releases on approval, whatever older store data says.
+  const versionAttributes = { copyright: copy.copyright, releaseType: RELEASE_TYPE };
   const savedVersion = await api('/v1/appStoreVersions/' + ctx.version.id, 'PATCH', { data: { type: 'appStoreVersions', id: ctx.version.id, attributes: versionAttributes } });
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
@@ -1386,7 +1386,7 @@ async function testflight(buildNumber) {
   if (!buildNumber) throw new Error('Usage: asc.mjs testflight <build number>');
   const build = await findBuild(buildNumber);
   const groups = await listAll('/v1/apps/' + IOS.ascAppId + '/betaGroups');
-  // The owner's device check needs the configured group, so a missing or duplicated group stops the release loop.
+  // TestFlight needs the configured group, so a missing or duplicated group stops the release loop.
   const named = groups.filter(group => group.attributes.name === IOS.testflightGroup && group.attributes.isInternalGroup);
   if (named.length !== 1) throw new Error('Expected one internal TestFlight group named ' + IOS.testflightGroup + ', found ' + named.length + '.');
   const targets = manualTestflightGroups(named, IOS.testflightGroup);
@@ -1405,7 +1405,7 @@ async function testflight(buildNumber) {
 }
 
 // submit sends the prepared version to App Review; it needs --confirm because it is the one irreversible step.
-// requireUnattendedSubmit rereads Apple's state and stops an unattended run that could publish or collide; a person's
+// requireUnattendedSubmit rereads Apple's state and stops an unattended run that would stall or collide; a person's
 // run is unaffected. It runs before anything is opened and again immediately before the submission is sent.
 async function requireUnattendedSubmit(versionId) {
   if (!unattended()) return;
@@ -1431,6 +1431,8 @@ export async function submit(flag) {
       + 'its notes answer how it meets Guideline 1.3. The saved review notes do not answer: ' + unanswered.join('; ')
       + '. Answer each from the shipped code in the store data\'s review.notes, run `asc.mjs review-details`, then submit again; nothing was submitted.');
   }
+  const wrongRelease = releaseTypeRefusal(ctx.version);
+  if (wrongRelease) throw new Error(wrongRelease + ' Nothing was submitted.');
   await requireUnattendedSubmit(ctx.version.id);
   let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
@@ -1487,9 +1489,9 @@ export async function submit(flag) {
   console.log('Review submission', submission.id, 'is', saved.attributes.state, '; app version is', versionState(version));
 }
 
-// release publishes an approved version held for manual release; it needs --confirm and the owner's physical-device OK.
+// release publishes an approved version left awaiting release, such as one submitted before every app released on approval.
 async function release(flag) {
-  if (flag !== '--confirm') throw new Error('Releasing publishes the app; rerun as `asc.mjs release --confirm` once the owner has checked the TestFlight build on a physical device.');
+  if (flag !== '--confirm') throw new Error('Releasing publishes the app; rerun as `asc.mjs release --confirm`.');
   const ctx = await context();
   if (versionState(ctx.version) !== 'PENDING_DEVELOPER_RELEASE') throw new Error('Version ' + STORE.version + ' is ' + versionState(ctx.version) + ', not awaiting release.');
   await api('/v1/appStoreVersionReleaseRequests', 'POST', { data: { type: 'appStoreVersionReleaseRequests', relationships: { appStoreVersion: relation('appStoreVersions', ctx.version.id) } } });

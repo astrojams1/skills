@@ -202,7 +202,7 @@ async function classify(api, app, team, index, stateRoot) {
   if (!live) return { ...row, status: 'not_live', reason: 'no public iOS version' };
   const build = (await api.get('/v1/appStoreVersions/' + live.id + '/build')).data;
   row.live = { version: live.attributes.versionString, build: build ? build.attributes.version : null };
-  row.occupied = occupancy(versions, submissions);
+  row.occupied = occupancy(versions, submissions, { draftOk: true });
   const mapped = mapRepo(index, app, team.id);
   if (mapped.repo) row.repo = mapped.repo.dir;
   if (row.occupied.length) return { ...row, status: 'occupied', reason: row.occupied.join('; ') };

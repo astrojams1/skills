@@ -63,6 +63,12 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/agent-instructions.md       # Template for consumer AGENTS.md
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
+  abandoned-prs/
+    SKILL.md                               # Weekly triage of abandoned PRs: merge, close or wait, then report
+    references/{triage,repos}.md           # Decision, close, fix and merge rules; what earlier runs learned per repository
+    scripts/discover.mjs                   # Open PRs sorted into triage buckets, plus saved decisions (Node 22, no deps)
+    assets/scope.json                      # Owners, trusted authors, time windows, per-run cap and hold markers
+    ledger/LEDGER.md                       # Versions and lessons
   call-triage/
     SKILL.md                               # Turn a recorded call about any product into finished follow-through; audio and transcripts stay on the SSD
     references/{intake,routing,deliverables}.md   # Getting and transcribing a recording; where each item goes; the page and the email draft
@@ -87,7 +93,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
-tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/, tests/youtube-growth/ and tests/call-triage/ cover those skills' scripts)
+tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/, tests/youtube-growth/, tests/call-triage/ and tests/abandoned-prs/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
   lessons.md                               # Patterns and corrections from past mistakes
@@ -357,6 +363,12 @@ These skills are internal to the skills repository and are NOT distributed to co
 **Skill:** `skills/call-triage/SKILL.md`
 
 Takes a recorded call about any app, service or venture and carries it through: finds the recording, transcribes it on the Mac, sorts what was said into action items, ideas, marketing insights and the rest, tracks every item until it closes with evidence, and prepares a page and an email draft for the person on the call. Audio and transcripts stay in `/Volumes/ssd/projects/calls/` and never reach GitHub; `scripts/call_triage.py guard` checks repositories and pages for audio, transcripts and quoted runs of the transcript. It drafts email and never sends it.
+
+### Abandoned PRs — Weekly Pull Request Cleanup
+
+**Skill:** `skills/abandoned-prs/SKILL.md`
+
+Finds PRs that have gone quiet in the owner's repositories and merges, closes or leaves each one, as a standing weekly job. `scripts/discover.mjs` sorts open PRs into buckets and remembers decisions, so a PR waiting on the owner is reported each week without being reworked. Forks and strangers' PRs are never checked out. It keeps every branch, and never submits, releases or deploys.
 
 ### Design System Migration Prompt
 

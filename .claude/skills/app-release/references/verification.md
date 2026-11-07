@@ -49,7 +49,7 @@ EAS, whose free plan caps cloud builds at 15 per platform a month shared by ever
 | Release simulator build (local Xcode) | Bundled native iOS UI and simulator screenshots | Physical iPhone signing/device behavior |
 | Universal APK from the store bundle | Emulator installation and captures | Play eligibility/review, physical device |
 | Store `.ipa` / `.aab` with `summary.json` | Upload; provenance (commit, dirty flag, toolchain, SHA-256) | Processing, review acceptance or public release |
-| TestFlight / Play internal-testing install | The owner's physical-device check | Review or public availability |
+| TestFlight / Play internal-testing install | Behavior on a physical device, when someone chooses to try it; never a release gate | Review or public availability |
 
 Before building, read what App Store Connect and Play already hold and whether a finished artifact for the
 same commit exists. Record build number or version code, source commit, dirty-tree state, toolchain and

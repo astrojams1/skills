@@ -260,6 +260,10 @@ exposes duplicate labels. A stalled/failed capture is rehearsal evidence, not a 
    the app's project home rather than Git, record their SHA-256, `asc.mjs assets upload`, wait for `assets` to show it
    processed, then `assets place` on the version before `submit --confirm`. It goes to App Review with the version.
 
+Preview videos need no owner approval, in any run: the owner has said so for every app. Once `check` passes and the
+sheet and frames look right, upload and place it. An older ledger gate waiting on the owner's review of a preview is
+closed by that decision.
+
 ## Every update
 
 Before any update of any app goes to review, on both stores:

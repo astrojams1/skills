@@ -7,14 +7,13 @@ the store data. Never copy another app's answers: derive each from the shipped a
 ## Every app
 
 - `scope`: platforms, monetization (free, paid download, IAP, subscription), base price and currency,
-  territories, release behavior (`MANUAL` after the owner's device check, or `AFTER_APPROVAL`).
+  territories. Every app releases on approval.
 - Privacy and support pages live on the web, linked from both listings **and from inside the app**.
 - A **Send Feedback** control in the app, done the same way everywhere ([standards](standards.md)); `standards.mjs
   audit` checks this and the two links above, and builds and `submit` refuse without them.
 - Privacy answers from evidence ([privacy](privacy.md)): hosting logs keep IP addresses even without
   analytics, so "Data Not Collected" is rarely right for an online app.
 - Content rights, encryption export compliance, age rating, target audience, ads declaration.
-- A physical-device check of the exact store build before release, on each platform.
 
 ## Per-use consumable purchases
 

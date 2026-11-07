@@ -7,9 +7,11 @@ export const LIVE_VERSION_STATES = ['READY_FOR_DISTRIBUTION', 'READY_FOR_SALE'];
 const FREE_VERSION_STATES = ['PREPARE_FOR_SUBMISSION', 'REPLACED_WITH_NEW_VERSION'];
 const FINISHED_SUBMISSION_STATES = ['COMPLETE'];
 
-// UNATTENDED_ENV is set by `review-sweep.mjs run`. With it, asc.mjs cannot publish, withdraw, replace a submission or
-// change a price, and any listing it writes holds the version for manual release.
+// UNATTENDED_ENV is set by `review-sweep.mjs run`. With it, asc.mjs cannot run `release`, withdraw, replace a submission
+// or change a price.
 export const UNATTENDED_ENV = 'APP_RELEASE_UNATTENDED';
+// RELEASE_TYPE is the owner's rule for every app and every run: Apple releases a version on approval. No app is manual.
+export const RELEASE_TYPE = 'AFTER_APPROVAL';
 export const unattended = env => (env || process.env)[UNATTENDED_ENV] === '1';
 
 export const versionStateOf = version => version.attributes.appVersionState || version.attributes.appStoreState;
@@ -44,11 +46,18 @@ export function occupancy(versions, submissions, { draftOk = false } = {}) {
   return reasons;
 }
 
+// releaseTypeRefusal returns why this version must not go to App Review, or null.
+export function releaseTypeRefusal(version) {
+  const releaseType = version.attributes.releaseType;
+  if (releaseType === RELEASE_TYPE) return null;
+  return 'Version ' + version.attributes.versionString + ' has releaseType ' + releaseType + ', so approval would not release it; every app submits ' + RELEASE_TYPE + '. Run `asc.mjs listing` first.';
+}
+
 // unattendedSubmitRefusal returns why an unattended run must not submit this version, or null. It runs on a fresh read
 // immediately before the submission goes to Apple.
 export function unattendedSubmitRefusal(version, versions, submissions) {
-  const releaseType = version.attributes.releaseType;
-  if (releaseType !== 'MANUAL') return 'Version ' + version.attributes.versionString + ' has releaseType ' + releaseType + ', so approval could publish it; an unattended run submits MANUAL versions only.';
+  const refusal = releaseTypeRefusal(version);
+  if (refusal) return refusal;
   const reasons = occupancy(versions.filter(item => item.id !== version.id), submissions, { draftOk: true });
   return reasons.length ? 'App Store Connect shows unresolved review state: ' + reasons.join('; ') + '.' : null;
 }

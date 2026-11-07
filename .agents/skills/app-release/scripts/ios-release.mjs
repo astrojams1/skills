@@ -469,7 +469,7 @@ export async function waitForUpload(build, io) {
 }
 
 // ensureTesters makes the group reach someone. A new group is empty and a build in an empty group shows in nobody's
-// TestFlight, so the team's account holder (who does the device check) is added, and anyone uninvited is invited.
+// TestFlight, so the team's account holder is added, and anyone uninvited is invited.
 async function ensureTesters(group, config, read, all, log) {
   const list = () => all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200');
   let people = await list();
@@ -545,7 +545,7 @@ export async function testers(build, io) {
     internalBuildState = detail.internalBuildState;
     const testable = ['READY_FOR_BETA_TESTING', 'IN_BETA_TESTING'].includes(internalBuildState);
     if (!testable && internalBuildState !== 'PROCESSING') {
-      throw new Error('Build ' + build + ' is not internally testable: ' + internalBuildState + '; resolve that state in App Store Connect before requesting a device check.');
+      throw new Error('Build ' + build + ' is not internally testable: ' + internalBuildState + '; resolve that state in App Store Connect before testing it.');
     }
     buildPresent = (await all('/v1/betaGroups/' + group.id + '/builds?limit=200')).some(item => item.id === found.id);
     if (testable && buildPresent) {
@@ -583,7 +583,7 @@ async function main(args) {
     const summary = await archive(flags);
     await upload(summary.build);
     await testers(summary.build);
-    console.log('Next: asc.mjs attach-build ' + summary.build + ' for a release, after the owner\'s device check.');
+    console.log('Next: asc.mjs attach-build ' + summary.build + ' for a release.');
   }
 }
 
