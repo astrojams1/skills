@@ -1,8 +1,13 @@
 # App release skill ledger
 
-Skill version **2.19.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.20.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.20.0 (2026-11-07)
+
+- No app is manual and there is no device check before release. `listing` writes `AFTER_APPROVAL` for every run,
+  `submit --confirm` refuses anything else for every run, and store data no longer has a release setting.
 
 ## Lessons incorporated into v2.19.0 (2026-11-07)
 

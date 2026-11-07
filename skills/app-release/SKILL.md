@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.19.0"
+  version: "2.20.0"
 ---
 
 # App release
@@ -92,7 +92,7 @@ For an app that has none of this yet, follow Onboarding a new app in [config](re
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
 | Update recheck | Recheck existing media and listing copy against the build, supply every device family, and write release notes (Every update in [media](references/media.md)) |
-| Device check and release | The owner's physical-device check of the exact store build, then `asc.mjs release --confirm` / production in Play Console |
+| Release | Every app releases on approval, with no device check; Apple publishes it. Production in Play Console |
 | Ouro website | Apps on Ouro LLC's team (`ios.teamId` `AYCDG243RJ`): run the `ouro-website` skill once the app record and listing exist, after each submission, on release and whenever the name, subtitle, copy or screenshots change; the store data's `listing.marketingUrl` is the app's page, `https://ouro-apps.vercel.app/<slug>/` |
 | astrojams website | Apps on the personal James Thompson team (`ios.teamId` `CWQ9AWJF8T`): run the `astrojams-website` skill at the same moments; an app with no website of its own uses its page, `https://astrojams-apps.vercel.app/<slug>/`, as the store data's `listing.marketingUrl`, and an app with one keeps it |
 
@@ -117,8 +117,8 @@ For simulator/XCTest failures or purchase QA, read “Route XCTest to the design
 “Diagnose XCTest launcher identity” in [verification](references/verification.md) before handing checks
 to the owner. Reuse a small shared device pool by OS/device coverage and reserve a device while testing.
 The per-command Xcode preference selects the set without code injection or persistent configuration;
-an altered launcher can fail Apple's service authorization even when its signature verifies. Preserve
-completed physical-device checks and use authorized native test routes.
+an altered launcher can fail Apple's service authorization even when its signature verifies. Use authorized native
+test routes.
 For simulator QA that changes app/device state, follow “Restore native QA state after every outcome”
 in that reference.
 
@@ -152,7 +152,7 @@ commit a key, token, password, review phone or bank detail; check access without
   chooser before building an exporter or handing file transfer back to the owner. Honor an explicit
   **Attach File** request; see [iOS](references/ios.md), “Attach the owner's recording”.
 - **Never require mirroring.** Mac screen mirroring and iPhone Mirroring are never prerequisites for
-  QA, physical-device checks, recording transfer, submission or release. Never initiate Mirroring setup
+  QA, recording transfer, submission or release. Never initiate Mirroring setup
   or ask the owner to enable, unlock or authenticate it as a release dependency; use it only if the
   owner explicitly chooses it. Preserve completed exact-build owner approval. Use existing owner
   feedback, owner-provided physical recordings, supported native QA and direct attachment/API routes.
@@ -162,19 +162,14 @@ commit a key, token, password, review phone or bank detail; check access without
   `submit --confirm`, `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor explicit scope
   already granted in this session; ask only when the next action is outside it. An upload request alone
   does not authorize public release.
-- **Finish authorized App Store releases by default.** Treat an unqualified status check on an active,
-  authorized launch or update as a continuation of that release. When App Store Connect shows
-  `PENDING_DEVELOPER_RELEASE`, verify the intended attached build has the required physical-device
-  check and that any app-specific release conditions are met. Use the existing launch authorization
-  to run `asc.mjs release --confirm` in the same invocation, then verify provider state and public
-  availability. Honor explicit read-only requests, holds, release schedules and testing-only scopes.
-  See [iOS release](references/ios.md) for the provider timing and readback.
-- **An unattended run releases on approval.** The owner's standing choice for every app: a scheduled run submits
-  `AFTER_APPROVAL`, whatever the store data says, and Apple publishes on approval. So everything a release needs comes
-  first, and the run itself never calls `release` ([iOS](references/ios.md), “Unattended review submissions”).
+- **No app is manual.** The owner's rule for every app and every run: `listing` writes `AFTER_APPROVAL`, whatever
+  older store data says, `submit --confirm` refuses anything else, and Apple publishes on approval. There is no
+  physical-device check before release, so everything a release needs comes before submitting. If an older version
+  shows `PENDING_DEVELOPER_RELEASE`, run `asc.mjs release --confirm` and verify provider state and public availability;
+  a scheduled run leaves that to a person ([iOS](references/ios.md), “Unattended review submissions”).
 - **Owner involvement:** sign-in or security challenges without an available authorized session; legal,
-  tax and banking facts or certifications; identity and device verification; the physical-device check;
-  tester recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
+  tax and banking facts or certifications; identity and device verification; tester
+  recruitment. App Privacy and Data safety answers can be entered in an authorized browser from
   verified evidence. Before asking, establish the precise dependency and complete all useful work that
   does not depend on it. Ask only for the demonstrated missing human action, once, with the exact
   destination and readback that will unblock it. Record tooling failures and attempted alternatives as
