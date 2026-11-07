@@ -27,8 +27,9 @@ app's Shorts need no go-ahead. The task's stored prompt carries this text; chang
 > 4. Comment replies follow `youtube-growth`: `yt-api.mjs unanswered`, then answer at most five real comments per run
 >    with `yt-api.mjs reply --parent ID --text "..." --confirm`. Skip spam, arguments and anything you cannot answer
 >    truthfully. Log one `finding` with the count and video IDs, never the comment text.
-> 5. Work in another repository follows that repository's `AGENTS.md`, on its own branch, with a PR. Store data may
->    change; never submit, release, change a price or change anything a player sees.
+> 5. Work in another repository follows that repository's `AGENTS.md`, on its own branch, with a PR. Store listing text
+>    and data are your call: decide and merge them, never leave a draft for the owner. Never submit, release, change a
+>    price or change the app itself.
 > 6. `marketing.mjs board`, then `mirror`. Ship through a `marketing-run/` branch and PR, merge once CI passes, verify.
 >
 > Use only the credentials named in the app profiles and the skills' scripts. Never list a vault or print a value. Follow
