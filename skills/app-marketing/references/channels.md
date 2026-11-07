@@ -1,6 +1,7 @@
 # Channels
 
-What each channel is for, and whether an unattended run may use it. Evidence first: use what has moved a number.
+What each channel is for, and whether an unattended run may use it. Evidence first: use what has moved a number. Every
+released app works the open channels without asking; a new app needs no go-ahead for any of them.
 
 ## Open
 

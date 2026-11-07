@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series — one registry for both App Store teams (Ouro and the personal James Thompson team), a series format per app, fresh recordings of the real app with rehearsed inputs, a 10–20 s edit with a hook, a real payoff and sound, posting and scheduling on the owner's channel through YouTube Studio (or the API once connected), and links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode. Pair with youtube-growth for the follow-up.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -42,12 +42,12 @@ that connects them for every app.
    the spec in the app's repository (`store/source/shorts/<episode>.json`).
 5. **Check and score it** with `youtube-shorts`: `safe-zone.mjs` contact sheets until nothing readable crosses a
    zone, then `soundtrack.mjs` for the bed and cued effects, seeded per episode so no two Shorts share a bed (record
-   the printed signature as the episode's `music`). Look at the hook and payoff frames full size, and have the
-   owner (or the run's reviewer) watch the final cut before it posts.
+   the printed signature as the episode's `music`). Look at the hook and payoff frames full size, and have an
+   independent reviewer (a subagent in an unattended run) check the final cut before it posts.
 6. **Package** title (about 40 characters, hook first), description (what the app did, then one line on the app
    and "Search '<App>' on the App Store"), three hashtags, a JPEG cover and the pinned comment. Write it in the
    episode's upload notes.
-7. **Post or schedule** on the owner's go-ahead (`references/posting.md`): one Short every two days across the
+7. **Post or schedule** (`references/posting.md`): one Short every two days across the
    channel, rotating apps, at the plan's slot, through Studio or `yt-api.mjs upload`. `record` the episode with `videoId`, `status` and `postedAt` or
    `publishAt` immediately.
 8. **Hand over to `youtube-growth`:** it reads metrics at 3, 7 and 28 days, pins comments on Shorts that have gone
@@ -58,8 +58,10 @@ that connects them for every app.
 
 - **Real app, real result.** Every number and screen in a Short is what the shipped build did in that take,
   with synthetic data. No mock-ups, roadmap features or edited outcomes.
-- **Owner's channel, owner's go-ahead.** Posting, scheduling, comments and channel settings act as the owner. A
-  request to post a series covers that series; a new series or app needs its own go-ahead. Never create accounts or
+- **Every released app gets a series, without asking.** The owner's standing instruction (2026-11-06): every app live
+  on the App Store on either team runs Shorts, and the owner does not approve each one. Starting a new app or series,
+  posting and scheduling need no go-ahead; an app not yet live waits for its release. Do not park an episode for
+  approval. Only channel settings (links, handle, branding) need the owner's go-ahead. Never create accounts or
   channels.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
 - **Parents are the audience, not children.** Mark Shorts "not made for kids" unless the video really is for

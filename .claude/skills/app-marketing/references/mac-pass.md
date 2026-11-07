@@ -1,7 +1,8 @@
 # The Mac pass
 
 The instructions for the `mac` items. The owner approved this as a daily scheduled task on 2026-11-05 (`app-marketing-mac`,
-about 05:34 Pacific), Shorts posting included. The task's stored prompt carries this text; change both together.
+about 05:34 Pacific), Shorts posting included. On 2026-11-06 the owner made that standing for every released app on both teams, so a new
+app's Shorts need no go-ahead. The task's stored prompt carries this text; change both together.
 
 > Run the app-marketing skill's Mac pass, unattended. The owner is not watching and nothing may wait for them: if
 > something is blocked, log it as deferred with a reason and a retry_after, skip it, and finish the rest. Never end by
