@@ -1,0 +1,113 @@
+// Purchase review targets are explicit store data, never inferred from arbitrary held items.
+export const REVIEW_RELATIONSHIPS = [
+  'appStoreVersion', 'appCustomProductPageVersion', 'appStoreVersionExperiment', 'appStoreVersionExperimentV2',
+  'appEvent', 'appAssetLibraryImage', 'appAssetLibraryVideo', 'backgroundAssetVersion',
+  'gameCenterAchievementVersion', 'gameCenterActivityVersion', 'gameCenterChallengeVersion',
+  'gameCenterLeaderboardSetVersion', 'gameCenterLeaderboardVersion', 'inAppPurchaseVersion',
+  'subscriptionVersion', 'subscriptionGroupVersion',
+];
+
+// Apple rejects including both experiment variants. Request every linkage field, but explicitly include
+// supported targets too: live image-item responses omit their linkage when only sparse fields request it.
+// Missing/unknown linkage still fails the conflict guards; never infer a resource from an encoded item ID.
+export function reviewItemsQuery() {
+  return new URLSearchParams({
+    include: 'appStoreVersion,appAssetLibraryImage,gameCenterLeaderboardVersion,inAppPurchaseVersion,subscriptionVersion,subscriptionGroupVersion',
+    'fields[reviewSubmissionItems]': ['state', ...REVIEW_RELATIONSHIPS].join(','),
+    limit: '200',
+  }).toString();
+}
+
+export const resourceKey = resource => `${resource.relation}:${resource.type}:${resource.id}`;
+
+// Read all resource linkages, not just supported ones, so an unknown resource cannot hide behind a null version.
+export function itemResource(item) {
+  if (item.attributes?.state === 'REMOVED') return null;
+  const resources = Object.entries(item.relationships || {})
+    .filter(([name, link]) => name !== 'reviewSubmission' && link?.data !== null && link?.data !== undefined);
+  if (resources.length !== 1) return null;
+  const [relation, { data }] = resources[0];
+  if (Array.isArray(data) || !data.type || !data.id) return null;
+  return { relation, type: data.type, id: data.id };
+}
+
+// A duplicate, ambiguous, unknown or foreign resource is a conflict, even when the intended app version is present.
+export function reviewItemPlan(items, versionId, targets = []) {
+  const expected = new Set(targets.map(resourceKey));
+  const seen = new Set();
+  let hasVersion = false;
+  for (const item of items) {
+    const resource = itemResource(item);
+    if (!resource) return { conflict: true };
+    const key = resourceKey(resource);
+    if (seen.has(key)) return { conflict: true };
+    seen.add(key);
+    if (resource.relation === 'appStoreVersion' && resource.type === 'appStoreVersions' && resource.id === versionId) hasVersion = true;
+    else if (resource.relation === 'gameCenterLeaderboardVersion' && resource.type === 'gameCenterLeaderboardVersions') continue;
+    else if (!expected.has(key)) return { conflict: true };
+  }
+  return { conflict: false, hasVersion, missing: targets.filter(target => !seen.has(resourceKey(target))) };
+}
+
+// Ownership is checked through each parent collection with the caller's paginated API reader before any mutation.
+// No review-version fields means no subscription API calls and preserves an app's existing no-subscription flow.
+export async function verifySubscriptionReview(subscription, appId, readAll) {
+  if (!subscription?.subscriptionVersionId && !subscription?.subscriptionGroupVersionId) return [];
+  for (const field of ['appStoreId', 'groupId', 'productId', 'subscriptionVersionId', 'subscriptionGroupVersionId']) {
+    if (typeof subscription[field] !== 'string' || !subscription[field].trim()) throw new Error('store data subscription.' + field + ' is required for first-subscription review.');
+  }
+  const one = (items, id, label) => {
+    const matches = items.filter(item => item.id === id);
+    if (matches.length !== 1) throw new Error(label + ' ownership mismatch or ambiguous identity; nothing was attached or submitted.');
+    return matches[0];
+  };
+  one(await readAll('/v1/apps/' + appId + '/subscriptionGroups?limit=200'), subscription.groupId, 'Subscription group/app');
+  const product = one(await readAll('/v1/subscriptionGroups/' + subscription.groupId + '/subscriptions?limit=200'), subscription.appStoreId, 'Subscription/group');
+  if (product.attributes?.productId !== subscription.productId) throw new Error('Subscription productId mismatch; nothing was attached or submitted.');
+  one(await readAll('/v1/subscriptions/' + subscription.appStoreId + '/versions?limit=200'), subscription.subscriptionVersionId, 'Subscription version/product');
+  one(await readAll('/v1/subscriptionGroups/' + subscription.groupId + '/versions?limit=200'), subscription.subscriptionGroupVersionId, 'Subscription group version/group');
+  return [
+    { relation: 'subscriptionVersion', type: 'subscriptionVersions', id: subscription.subscriptionVersionId },
+    { relation: 'subscriptionGroupVersion', type: 'subscriptionGroupVersions', id: subscription.subscriptionGroupVersionId },
+  ];
+}
+
+// Only explicitly selected review versions are current targets; historical product IDs add no API reads.
+export async function verifyInAppPurchaseReview(purchases, appId, readAll) {
+  if (purchases === undefined) return [];
+  if (!Array.isArray(purchases)) throw new Error('store data inAppPurchases must be an array.');
+  const selected = [];
+  const identities = { appStoreId: new Set(), productId: new Set(), reviewVersionId: new Set() };
+  for (const purchase of purchases) {
+    if (!purchase || typeof purchase !== 'object' || Array.isArray(purchase)) throw new Error('store data inAppPurchases rows must be objects.');
+    if (!Object.hasOwn(purchase, 'reviewVersionId')) continue;
+    for (const field of Object.keys(identities)) {
+      if (typeof purchase[field] !== 'string' || !purchase[field].trim()) throw new Error('store data inAppPurchases.' + field + ' is required for in-app purchase review.');
+      if (identities[field].has(purchase[field])) throw new Error('Duplicate inAppPurchases.' + field + '; nothing was attached or submitted.');
+      identities[field].add(purchase[field]);
+    }
+    selected.push(purchase);
+  }
+  if (!selected.length) return [];
+  const one = (items, id, label) => {
+    const matches = items.filter(item => item.id === id);
+    if (matches.length !== 1) throw new Error(label + ' ownership mismatch or ambiguous identity; nothing was attached or submitted.');
+    return matches[0];
+  };
+  const products = await readAll('/v1/apps/' + appId + '/inAppPurchasesV2?limit=200');
+  const targets = [];
+  for (const purchase of selected) {
+    const product = one(products, purchase.appStoreId, 'In-app purchase/app');
+    if (product.attributes?.productId !== purchase.productId) throw new Error('In-app purchase productId mismatch; nothing was attached or submitted.');
+    one(await readAll('/v2/inAppPurchases/' + purchase.appStoreId + '/versions?limit=200'), purchase.reviewVersionId, 'In-app purchase version/product');
+    targets.push({ relation: 'inAppPurchaseVersion', type: 'inAppPurchaseVersions', id: purchase.reviewVersionId });
+  }
+  return targets;
+}
+
+export async function verifyPurchaseReviewTargets(store, appId, readAll) {
+  return [
+    ...await verifySubscriptionReview(store.subscription, appId, readAll),
+    ...await verifyInAppPurchaseReview(store.inAppPurchases, appId, readAll),
+  ];
+}

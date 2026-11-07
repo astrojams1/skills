@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "app": "app-release skill maintenance",
+  "repository": "https://github.com/astrojams1/skills",
+  "objective": "Require the release skill to log execution issues and verify their closure before claiming completion",
+  "platforms": [
+    "ios",
+    "android"
+  ],
+  "created_at": "2026-10-25T23:47:19+00:00",
+  "updated_at": "2026-10-25T23:48:46+00:00",
+  "steps": {
+    "issue.completion-check": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Added issues completion check, prompt logging/reconciliation and verified closure rules. Open/uncertain issues and unsupported closures fail; all166 release tests and22 independent targeted tests pass.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-issue-closure/closure-before-after.json",
+        "/Volumes/ssd/builds/app-release-issue-closure/release.log",
+        "tests/app-release/issue-closure.test.mjs"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-25T23:48:46+00:00"
+    },
+    "issue.lessons-format": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Normalized trailing newline; git diff --check now passes.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-issue-closure/whitespace-after.json"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-25T23:47:19+00:00"
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-10-25T23:47:19+00:00",
+      "gate": "issue.completion-check",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Existing check verifies generated view only and passes with a failed issue; missing explicit closure check and mandatory failure reconciliation.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-issue-closure/closure-before-after.json"
+        ],
+        "next_action": "Add and test issue closure command plus log-and-fix completion rule",
+        "updated_at": "2026-10-25T23:47:19+00:00"
+      }
+    },
+    {
+      "sequence": 2,
+      "at": "2026-10-25T23:47:19+00:00",
+      "gate": "issue.lessons-format",
+      "result": {
+        "state": "failed",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Whitespace check rejected a new blank line at end of tasks/lessons.md while editing this skill.",
+        "evidence": [
+          "git diff --check: tasks/lessons.md:341 new blank line at EOF"
+        ],
+        "next_action": "Normalize trailing newline and rerun whitespace validation",
+        "updated_at": "2026-10-25T23:47:19+00:00"
+      }
+    },
+    {
+      "sequence": 3,
+      "at": "2026-10-25T23:47:19+00:00",
+      "gate": "issue.lessons-format",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Normalized trailing newline; git diff --check now passes.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-issue-closure/whitespace-after.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-25T23:47:19+00:00"
+      }
+    },
+    {
+      "sequence": 4,
+      "at": "2026-10-25T23:48:46+00:00",
+      "gate": "issue.completion-check",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Added issues completion check, prompt logging/reconciliation and verified closure rules. Open/uncertain issues and unsupported closures fail; all166 release tests and22 independent targeted tests pass.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-issue-closure/closure-before-after.json",
+          "/Volumes/ssd/builds/app-release-issue-closure/release.log",
+          "tests/app-release/issue-closure.test.mjs"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-25T23:48:46+00:00"
+      }
+    }
+  ],
+  "metrics": {
+    "tokens": null,
+    "cost_usd": null
+  }
+}

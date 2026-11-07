@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "app": "app-release session-continuity maintenance",
+  "repository": "https://github.com/astrojams1/skills",
+  "objective": "Preserve authorized UI sessions and stop unchanged sign-in handoffs across release turns",
+  "platforms": [
+    "ios"
+  ],
+  "created_at": "2026-10-26T03:03:05+00:00",
+  "updated_at": "2026-10-26T03:11:05+00:00",
+  "steps": {
+    "issue.session-continuity-guidance": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "The independent dry-run preserves the exact known PWA/profile, separates control/authentication/team/vault, requests no owner action without a new dependency and waits for published-privacy readback before submission retry. Root review approved the narrow diff; clarified that unprovable Fastlane session-only reuse makes that CLI route unavailable without normal-login execution. Required local checks pass. This verifies guidance behavior, not live UI-session recovery or App Privacy publication.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-session-continuity/forward-test.md",
+        "/Volumes/ssd/builds/app-release-session-continuity/validation-summary.json",
+        "skills/app-release/references/accounts.md",
+        "skills/app-release/references/privacy.md"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T03:08:56+00:00"
+    },
+    "issue.spec-validation": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "The specification checker treated a Markdown fragment in the entrypoint reference as part of the filename. Linked the existing accounts reference and named its section in text; the original suite now passes all142 checks.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-session-continuity/spec.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/spec-after.log"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T03:05:16+00:00"
+    },
+    "verification.local-checks": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Guidance-only patch passes 166 app-release tests, 53 management checks, 142 spec checks, identity, 8 image-fit checks and skill validation; YouTube 5 pass with 1 existing ffmpeg-unavailable skip. Seven checkout configurations across five apps normalize without migration. These checks do not prove repaired live UI access or published privacy.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-session-continuity/release.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/manage.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/spec-after.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/fit.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/identity.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/youtube.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/skill.log",
+        "/Volumes/ssd/builds/app-release-session-continuity/consumer-compatibility.json"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T03:11:05+00:00"
+    },
+    "issue.evidence-summary-serialization": {
+      "state": "done",
+      "owner": "agent",
+      "basis": "observed",
+      "summary": "Used the JSON-native Node runtime to write the validation summary and parsed the actual artifact back for structural equality. Corrected the premature activity reference; original test logs were unchanged.",
+      "evidence": [
+        "/Volumes/ssd/builds/app-release-session-continuity/summary-before.json",
+        "/Volumes/ssd/builds/app-release-session-continuity/validation-summary.json"
+      ],
+      "next_action": "",
+      "updated_at": "2026-10-26T03:08:15+00:00"
+    }
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "at": "2026-10-26T03:03:05+00:00",
+      "gate": "issue.session-continuity-guidance",
+      "result": {
+        "state": "in_progress",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The release history records a working direct App Store Connect PWA route, but later evidence retained only failing inventory. Existing guidance lacked durable per-surface observations and cross-turn deduplication of sign-in handoffs.",
+        "evidence": [
+          "https://github.com/astrojams1/nametag/blob/main/store/runs.md",
+          "https://github.com/astrojams1/nametag/blob/main/store/source/ui-session-status.json"
+        ],
+        "next_action": "Preserve the known route and distinct control/authentication/team/vault observations; validate and independently forward-test the corrected guidance",
+        "updated_at": "2026-10-26T03:03:05+00:00"
+      }
+    },
+    {
+      "sequence": 2,
+      "at": "2026-10-26T03:04:05+00:00",
+      "gate": "issue.spec-validation",
+      "result": {
+        "state": "failed",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Required specification suite exited 1; cause not yet inspected.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/spec.log"
+        ],
+        "next_action": "Inspect actual validation failure, correct the cause and rerun the specification suite",
+        "updated_at": "2026-10-26T03:04:05+00:00"
+      }
+    },
+    {
+      "sequence": 3,
+      "at": "2026-10-26T03:05:16+00:00",
+      "gate": "issue.spec-validation",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The specification checker treated a Markdown fragment in the entrypoint reference as part of the filename. Linked the existing accounts reference and named its section in text; the original suite now passes all142 checks.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/spec.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/spec-after.log"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T03:05:16+00:00"
+      }
+    },
+    {
+      "sequence": 4,
+      "at": "2026-10-26T03:05:16+00:00",
+      "gate": "verification.local-checks",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Guidance-only patch passes166 app-release tests,53 management checks,142 spec checks, identity,8 image-fit checks and skill validation; YouTube5 pass with1 existing ffmpeg-unavailable skip. Seven consumer configurations normalize without migration. These checks do not prove repaired live UI access or published privacy.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/release.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/manage.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/spec-after.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/fit.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/identity.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/youtube.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/skill.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/consumer-compatibility.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T03:05:16+00:00"
+      }
+    },
+    {
+      "sequence": 5,
+      "at": "2026-10-26T03:05:16+00:00",
+      "gate": "issue.session-continuity-guidance",
+      "result": {
+        "state": "waiting_verification",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Implemented persistent known-route and separate control/authentication/team/vault observations, same-surface readback after reported sign-in, unchanged-handoff deduplication and privacy-publication retry gating. Required local checks pass; independent behavioral forward-testing is pending. No live session or App Privacy recovery is established.",
+        "evidence": [
+          "skills/app-release/references/accounts.md",
+          "skills/app-release/references/privacy.md",
+          "/Volumes/ssd/builds/app-release-session-continuity/release.log"
+        ],
+        "next_action": "Owning release agent independently forward-tests the guidance using realistic isolated session evidence, reviews the patch and records the observed result before closure/publication; retain actual live session/privacy issues in the app ledger",
+        "updated_at": "2026-10-26T03:05:16+00:00"
+      }
+    },
+    {
+      "sequence": 6,
+      "at": "2026-10-26T03:08:15+00:00",
+      "gate": "issue.evidence-summary-serialization",
+      "result": {
+        "state": "failed",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "A validation-summary writer passed JSON boolean syntax as Python source and failed with NameError. The summary artifact was not created; completed suite logs remain available.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/summary-before.json"
+        ],
+        "next_action": "Serialize with a JSON-native runtime, parse the actual written artifact and correct the activity evidence reference before delivery",
+        "updated_at": "2026-10-26T03:08:15+00:00"
+      }
+    },
+    {
+      "sequence": 7,
+      "at": "2026-10-26T03:08:15+00:00",
+      "gate": "issue.evidence-summary-serialization",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Used the JSON-native Node runtime to write the validation summary and parsed the actual artifact back for structural equality. Corrected the premature activity reference; original test logs were unchanged.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/summary-before.json",
+          "/Volumes/ssd/builds/app-release-session-continuity/validation-summary.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T03:08:15+00:00"
+      }
+    },
+    {
+      "sequence": 8,
+      "at": "2026-10-26T03:08:56+00:00",
+      "gate": "issue.session-continuity-guidance",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "The independent dry-run preserves the exact known PWA/profile, separates control/authentication/team/vault, requests no owner action without a new dependency and waits for published-privacy readback before submission retry. Root review approved the narrow diff; clarified that unprovable Fastlane session-only reuse makes that CLI route unavailable without normal-login execution. Required local checks pass. This verifies guidance behavior, not live UI-session recovery or App Privacy publication.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/forward-test.md",
+          "/Volumes/ssd/builds/app-release-session-continuity/validation-summary.json",
+          "skills/app-release/references/accounts.md",
+          "skills/app-release/references/privacy.md"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T03:08:56+00:00"
+      }
+    },
+    {
+      "sequence": 9,
+      "at": "2026-10-26T03:11:05+00:00",
+      "gate": "verification.local-checks",
+      "result": {
+        "state": "done",
+        "owner": "agent",
+        "basis": "observed",
+        "summary": "Guidance-only patch passes 166 app-release tests, 53 management checks, 142 spec checks, identity, 8 image-fit checks and skill validation; YouTube 5 pass with 1 existing ffmpeg-unavailable skip. Seven checkout configurations across five apps normalize without migration. These checks do not prove repaired live UI access or published privacy.",
+        "evidence": [
+          "/Volumes/ssd/builds/app-release-session-continuity/release.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/manage.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/spec-after.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/fit.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/identity.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/youtube.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/skill.log",
+          "/Volumes/ssd/builds/app-release-session-continuity/consumer-compatibility.json"
+        ],
+        "next_action": "",
+        "updated_at": "2026-10-26T03:11:05+00:00"
+      }
+    }
+  ],
+  "metrics": {
+    "tokens": null,
+    "cost_usd": null
+  }
+}
