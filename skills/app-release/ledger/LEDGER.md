@@ -8,6 +8,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 
 - No app is manual and there is no device check before release. `listing` writes `AFTER_APPROVAL` for every run,
   `submit --confirm` refuses anything else for every run, and store data no longer has a release setting.
+- An unsent draft submission no longer stops the daily run: Nametag's was empty and blocked it. `submit` reuses it.
 
 ## Lessons incorporated into v2.19.0 (2026-11-07)
 

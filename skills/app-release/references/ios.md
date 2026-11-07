@@ -199,7 +199,8 @@ A scheduled run works every eligible app, not just the first, and takes each upd
 `AFTER_APPROVAL`, so Apple publishes on approval with nothing further from the run. It closes the gaps a release has
 (standards, version, notes, listing, media, privacy) and then submits; an app's own hold is met first or defers the app. `review-sweep.mjs sweep` reads both
 teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
-one, or any submission not `COMPLETE`, including a `READY_FOR_REVIEW` draft and `UNRESOLVED_ISSUES`), `deferred`,
+one, or a submission sent or with `UNRESOLVED_ISSUES`; an unsent `READY_FOR_REVIEW` draft is not, because `submit` reuses
+it), `deferred`,
 `no_product_change` or `candidate`. A candidate is only a list of files: read the diff and decide whether the shipped
 app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse.
 
