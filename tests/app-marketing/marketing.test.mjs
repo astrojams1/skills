@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { downloadRows, eventProblems, itemState, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { processedThrough, downloadRows, eventProblems, itemState, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const DAY = 86400000;
 const NOW = Date.parse('2026-11-05T12:00:00Z');
@@ -101,4 +101,16 @@ test('the board says "not yet read" rather than inventing a zero', () => {
   const board = renderBoard([profile()], [event({ app: 'x', item: 'a', operation: 'did | it', channel: 'web' })], []);
   assert.ok(board.includes('not yet read'));
   assert.ok(board.includes('did / it'));
+});
+
+test('processedThrough tracks report instances, not the days inside them', () => {
+  const metrics = [
+    { app: 'a', source: 'asc-analytics', throughDay: '2026-11-04' },
+    { app: 'a', source: 'asc-analytics', throughDay: '2026-11-05', processedThrough: '2026-11-07' },
+    { app: 'a', source: 'itunes-lookup', processedThrough: '2026-12-01' },
+    { app: 'b', source: 'asc-analytics', throughDay: '2026-11-02' }
+  ];
+  assert.equal(processedThrough(metrics, 'a'), '2026-11-07');
+  assert.equal(processedThrough(metrics, 'b'), '2026-11-02');
+  assert.equal(processedThrough(metrics, 'c'), undefined);
 });
