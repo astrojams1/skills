@@ -2,7 +2,7 @@
 name: reddit-posting
 description: Write, post and follow up Reddit posts and replies for a project, such as recruiting app testers, test-for-test swaps or launch notes, in a wildly concise voice that matches the subreddit. Use when asked to post on Reddit, recruit testers there, answer Reddit comments, or keep a Reddit outreach log.
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
 ---
 
 # Reddit posting
@@ -48,8 +48,9 @@ so the next session knows what was said, where, and what is owed.
    if missing, with those sections.
 2. **Learn the subreddit.** Check [references/subreddits.md](references/subreddits.md).
    If the subreddit's rules and three recent posts are not on record, ask the
-   owner to paste them (text or screenshots), then record what you learn there
-   (generic observations only) and in the project's file.
+   owner to paste them (text or screenshots), then record what you learn in the
+   project's file. From a checkout of the skills repository, also add generic
+   observations to that reference.
 3. **Draft** the exact title and body in a code block, ready to paste. Show the
    character count of the title. Fill every link; never post a placeholder.
 4. **Approve and post.** The owner approves and posts, then gives you the URL.
@@ -66,8 +67,11 @@ so the next session knows what was said, where, and what is owed.
 
 - Many subreddits remove tester requests outright (r/androiddev does). Post
   only where the rules allow it.
-- Google Play closed tests: testers must join with the Google account on their
-  phone, and leaving before day 14 does not count. Recruit 15 to 20 for 12.
+- Google Play closed tests: check the developer account first. The 12 testers
+  for 14 days rule covers personal accounts created after 2023-11-13, not
+  organization or older personal accounts, so recruit for it only when it
+  applies. Where it does, testers must join with the Google account on their
+  phone, leaving before day 14 does not count, and 15 to 20 covers drop-offs.
   Paid apps must be bought by closed testers; say how that is handled.
 - Read-only Reddit mirrors (Redlib) are often down or block bots; do not
   depend on them.
@@ -76,6 +80,8 @@ so the next session knows what was said, where, and what is owed.
 
 ## Ledger
 
-[ledger/LEDGER.md](ledger/LEDGER.md) is append-only. Read it before a run; add a
-row after, with lessons that should change this skill. Project posts go in the
-project's own file, not here.
+[ledger/LEDGER.md](ledger/LEDGER.md) is append-only. Read it before a run. Each
+run's record and posts go in the project's own Reddit file, because the copy
+installed in a project is regenerated on refresh and a row added there is lost.
+Do not edit the installed copy or the skills submodule. Add a row here only from
+a checkout of the skills repository, for lessons that should change this skill.
