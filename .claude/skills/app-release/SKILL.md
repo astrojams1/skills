@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac — local Xcode and Gradle builds, App Store Connect and Play Developer API scripts, TestFlight, App Review and rejections, Play testing tracks and listings, Game Center, pricing — with credentials from 1Password and a persistent release ledger. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.18.0"
+  version: "2.18.1"
 ---
 
 # App release
@@ -119,6 +119,8 @@ to the owner. Reuse a small shared device pool by OS/device coverage and reserve
 The per-command Xcode preference selects the set without code injection or persistent configuration;
 an altered launcher can fail Apple's service authorization even when its signature verifies. Preserve
 completed physical-device checks and use authorized native test routes.
+For simulator QA that changes app/device state, follow “Restore native QA state after every outcome”
+in that reference.
 
 ## Credentials
 
