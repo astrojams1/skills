@@ -468,11 +468,36 @@ export async function waitForUpload(build, io) {
   throw new Error('Build ' + build + ' is still processing after 30 minutes; check `asc.mjs status` before testers or attach-build.');
 }
 
-// ensureTesters makes the group reach someone. A new group is empty and a build in an empty group shows in nobody's
-// TestFlight, so the team's account holder is added, and anyone uninvited is invited.
+// ensureTesters makes the group reach the owner. Every configured `ios.testers` email (the owner by default) is added on
+// every team, so a build never lands only with an account holder who is someone else (Hanzi Cards on OURO, 2026-11-08).
+// An internal tester must be an App Store Connect user of that team; a missing one fails with what to do. A group
+// with nobody configured still falls back to the account holder. Anyone uninvited is invited.
 async function ensureTesters(group, config, read, all, log) {
   const list = () => all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200');
+  const emailOf = person => String(person.attributes.email || '').toLowerCase();
   let people = await list();
+  const wanted = (config.testers || []).map(email => String(email).toLowerCase());
+  const missing = wanted.filter(email => !people.some(person => emailOf(person) === email));
+  if (missing.length) {
+    const users = await all('/v1/users?limit=200');
+    for (const email of missing) {
+      const user = users.find(item => String(item.attributes.username || '').toLowerCase() === email);
+      if (!user) throw new Error(email + ' is not an App Store Connect user of this team, so it cannot be an internal tester in ' +
+        config.testflightGroup + '; invite it under Users and Access, then rerun testers.');
+      const existing = (await read('/v1/betaTesters?filter[email]=' + encodeURIComponent(email) + '&limit=1')).data[0];
+      if (existing) {
+        await read('/v1/betaGroups/' + group.id + '/relationships/betaTesters', 'POST', { data: [{ type: 'betaTesters', id: existing.id }] });
+      } else {
+        const { firstName, lastName } = user.attributes;
+        await read('/v1/betaTesters', 'POST', { data: { type: 'betaTesters', attributes: { email, firstName, lastName },
+          relationships: { betaGroups: { data: [{ type: 'betaGroups', id: group.id }] } } } });
+      }
+      log('Added ' + email + ' to ' + config.testflightGroup + '.');
+    }
+    people = await list();
+    const absent = wanted.filter(email => !people.some(person => emailOf(person) === email));
+    if (absent.length) throw new Error('Adding ' + absent.join(', ') + ' to ' + config.testflightGroup + ' did not read back.');
+  }
   if (!people.length) {
     const holder = (await all('/v1/users?limit=200')).find(user => (user.attributes.roles || []).includes('ACCOUNT_HOLDER'));
     if (!holder) throw new Error(config.testflightGroup + ' has no testers and the team has no readable account holder; add a tester, or the build reaches nobody.');
