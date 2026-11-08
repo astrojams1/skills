@@ -138,6 +138,11 @@ Skills cluster into recurring categories. Use this taxonomy to identify gaps in 
 - **The description field is for the model.** The description is what Claude scans to decide "is there a skill for this request?" Write it as a trigger description, not a summary. Include specific keywords and "Use when..." patterns.
 - **Start small, iterate.** Most good skills began as a few lines and a single gotcha. They got better because people kept adding to them as Claude hit new edge cases.
 
+## Skills Run by Routines
+
+- **A routine's prompt never restates its skill.** The prompt of a routine or scheduled task says only what the skill can't know: which skill to run, where the repository is checked out, that the run is unattended, how to load tools in that environment, and the final message format when a notification shows it. Every step, rule and limit lives in the skill (or the file it points to), so the two can't drift apart. When a prompt seems to need more, move that text into the skill (James, 2026-11-08).
+- **A scheduled run clears its known work.** Each run works through every open item it can safely do together (every backlog idea, every app pending release, every due thread), not one item a run. Skip only what is blocked, with the reason, so no backlog builds up between runs, above all for skills that run rarely (James, 2026-11-08).
+
 ## Available Skills
 
 ### Design System — Architectural Minimalist
