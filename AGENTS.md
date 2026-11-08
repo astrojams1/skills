@@ -238,7 +238,7 @@ Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a re
 
 **Skill:** `skills/ph-clone-scout/SKILL.md`
 
-Scans the past week's Product Hunt boards, drops big-brand, infrastructure and network-effect launches, checks the top ~6 product pages, and emails a three-line report of the easiest launches for a solo builder to clone with a better angle.
+Scans the week's Product Hunt boards for focused products a solo builder can sell. Checks buyer pain, spending, customer acquisition and feasibility before emailing three qualifying picks.
 
 #### How to use
 

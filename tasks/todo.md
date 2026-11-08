@@ -4,6 +4,22 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## PH Clone Scout commercial screening
+
+- [x] Replace clone-speed ranking with evidence gates for buyer pain, spend, reach and a sellable MVP.
+- [x] Replay the latest shortlist and check that the revised skill can also advance a credible commercial candidate.
+- [x] Verify the email format and repository checks before publishing to the branch the weekly runner tracks.
+
+### Review
+
+- The saved Nov 2 evidence lacked enough buyer and spending evidence for the three delivered picks.
+  Datastripes advanced to further research for small-agency report QA. A paid reporting category and
+  reachable prospects justify investigation. Willingness to buy a standalone QA tool remains open.
+- The email template and personal-account check match the prior skill. Partial shortlists appear
+  in the run result. The replay ran without opening or sending email.
+- The skill validator and identity check passed. Repository checks passed for management (53),
+  skill specification (147), screenshot fit (8), app release (124), and YouTube Shorts (6).
+
 ## app-release 2.5.2: check the documented privacy CLI alternative
 
 - [x] Verify Fastlane authentication, import format and replacement/publication behavior against primary sources.

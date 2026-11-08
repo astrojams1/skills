@@ -1,27 +1,43 @@
 ---
 name: ph-clone-scout
-description: Weekly Product Hunt scan that ranks current top launches by how easy they'd be to clone and relaunch, then emails James a minimal report. Triggers on "PH clone scout", "product hunt clones", or the Sunday scheduled run.
+description: Weekly Product Hunt scan for commercially promising products a solo builder could launch with a focused angle. Triggers on "PH clone scout", "product hunt clones", or the Sunday scheduled run.
 ---
 
 # PH Clone Scout
 
-Goal: find the 3 Product Hunt products from the past week that would be easiest for a solo builder to clone and launch with a better angle, and email James a very minimal report.
+Find three opportunities from this week's Product Hunt launches where a solo builder can sell a focused product to a reachable group of buyers. Use the launches as leads and look for evidence in the market they serve.
 
 ## 1. Gather the boards
 1. Get the week: `date +%G/%V` (ISO year/week; Product Hunt weeks run Monday to Sunday) and that week's Monday date.
-2. WebFetch https://www.producthunt.com/leaderboard/weekly/YYYY/W (e.g. /2026/43). It shows only the top 10, mostly big launches.
-3. WebFetch each day of the week so far: https://www.producthunt.com/leaderboard/daily/YYYY/M/D (no zero padding, top 10 per day). This is where the small cloneable tools are.
+2. WebFetch https://www.producthunt.com/leaderboard/weekly/YYYY/W (e.g. /2026/43).
+3. WebFetch each daily board from Monday through today at https://www.producthunt.com/leaderboard/daily/YYYY/M/D (no zero padding). Look past the top ten when the board exposes more entries.
 4. Record name, tagline, topics, score and the product slug from each entry.
 5. If a fetch fails, WebSearch "Product Hunt leaderboard <week>" and fetch the result.
 
-## 2. Shortlist
-Drop anything one person can't clone in a few weeks: big-brand or funded-platform launches (Canva, Figma, 1Password, Framer, model labs), deep infrastructure (inference, headless browsers, agent infra, CAD engines), products an incumbent gives away free, and network-effect products with no seed community. Keep single-purpose apps and tools: Mac/iOS utilities, menu-bar apps, small SaaS, MCP servers, Chrome extensions.
+## 2. Shortlist by buyer and job
 
-## 3. Check the top ~6 candidates
-WebFetch each product page (https://www.producthunt.com/products/<slug>) and note: what it does, platform, price (free / one-time / subscription), license if open source (FSL or similar = do not copy code), feature requests in comments the maker says aren't built yet, platforms marked "coming soon" or not planned, and competitors in the sidebar.
+Favor recurring workflows where a defined buyer already loses time, money, or sales. Look across customer support, agency and freelance work, ecommerce, back-office operations, and professional workflows. Consider a narrow paid workflow inside a larger launch when it can stand on its own. A web app, integration, extension, or mobile app can all qualify.
 
-## 4. Score
-Judge build effort (weekend / 1-2 wks / 3+ wks), outside dependency risk (paid or locked APIs), whether people pay, and whether there's a concrete gap to launch into. Pick the top 3: easiest build that still has a real gap. A paid product proves demand; a free one only proves interest.
+Screen out cosmetic tweaks and convenience utilities unless you can point to a consequential workflow and evidence of spending. Also screen out commodity features bundled free, products that need a network to work, and bets that depend on proprietary data, locked APIs, deep infrastructure, or replicating an entire platform.
+
+## 3. Check about six candidates
+
+Read each Product Hunt product page at https://www.producthunt.com/products/SLUG and check the maker's pricing or docs. Record the product, platform, pricing, relevant license, stated limitations, and direct alternatives. Use only your own implementation when a source license bars reuse.
+
+Look outside the launch for buyer evidence. Check recent reviews, marketplace listings, public buyer discussions, or paid alternatives. For each candidate, record the following with source URLs and distinguish observed facts from estimates.
+
+- **Buyer and pain.** Name the role that pays, the repeated job, its current workaround, and the cost of leaving it unsolved. Find evidence from people who do the job.
+- **Willingness to pay.** Look for paid usage, buyers describing a budget or current spend, or a priced substitute for the same job backed by independent evidence that buyers use it to solve that problem. A public list price, maker claim, upvote count, or feature request alone does not clear this gate.
+- **Reach.** Identify one place where buyers already look for help with this job, such as a specific marketplace category, trade community, or search query with buyer intent. Explain how a solo builder could reach the first ten buyers there. Use the observed price range to check how many customers or monthly sales meaningful revenue would require.
+- **Gap and scope.** Identify a buyer-valued outcome that current options serve poorly. Check the closest substitute for the proposed angle. Describe the smallest version someone would pay for, the time to ship it, and its API, data, support, or compliance dependencies. A first paid version should fit within a few weeks of solo work.
+
+## 4. Gate and rank
+
+Require credible evidence for buyer pain, spending, a reachable acquisition channel, and a defensible gap with a feasible paid MVP. Unknowns that could overturn any gate keep a candidate out of the picks. A small professional utility can qualify when it clears the same gates.
+
+For candidates that pass, score each factor from 0 (no evidence) to 2 (strong evidence). Weight willingness to pay and pain ×3 each, reach and differentiation ×2 each, and solo feasibility ×1. Rank by the weighted total, breaking ties on stronger buyer evidence. Record scores for qualifying candidates, sources for every check, and reasons for each rejection. Use Product Hunt rank for discovery only.
+
+If fewer than three pass, revisit the boards for promising buyers or workflows missed on the first pass. Check up to three more candidates with the same gates before choosing the report format.
 
 ## 5. Email the report
 Load the Gmail connector's send tool with ToolSearch query `gmail send message` and send to astrojams1@gmail.com. Search by keyword: the server name varies by session (`mcp__Gmail__send_message` in one, `mcp__<uuid>__send_message` in another).
@@ -38,7 +54,7 @@ Body, plain text, nothing else:
 3. ...
 ```
 
-No greeting, no intro, no sign-off, no methodology. If nothing worth cloning showed up, the body is one line: `No good clone targets this week.`
+No greeting, no intro, no sign-off, no methodology. The angle should name the buyer or paid job when possible. If enough research was possible and zero candidates clear the gates, use the one-line body `No good clone targets this week.` If only one or two qualify, show those picks in the run result and withhold the email because the delivery format requires three. Report insufficient evidence or fetch coverage as a research failure.
 
 If the Gmail tool won't load or is signed in to the wrong account, don't stop silently: end the session with the same subject and body as your final message, saying why the email wasn't sent.
 

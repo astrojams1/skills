@@ -315,3 +315,10 @@ task. The first ph-clone-scout report went out from a work account (cleanstreets
 tool was called without checking. Before any send, read the sender of one recent sent message and
 stop if it isn't the intended account. Connector server names also differ between sessions, so find
 the send tool by keyword, never by a hard-coded name.
+
+## 2026-11-08 — Screen clone ideas for buyer demand first
+
+Ranking by ease of cloning favored small utilities with thin evidence of a paying market. Require
+a buyer with a costly or recurring job, evidence of spending, a reachable channel and a distinct
+paid MVP before ranking. Use build speed as one input after those gates. A maker's list price or
+one feature request cannot establish demand by itself.
