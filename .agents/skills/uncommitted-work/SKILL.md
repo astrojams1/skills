@@ -37,8 +37,8 @@ ledger (see [Records](#records)). Commands below are `python3 scripts/scan.py`.
 
    | Bucket | Meaning | Do |
    |---|---|---|
-   | `work` | Changed 3 or more days ago, on the owner's repository; this run's share, oldest first | Triage |
-   | `deferred` | Past the per-run cap | Report the count; the next run reaches them |
+   | `work` | Changed 3 or more days ago, on the owner's repository, oldest first; all of them, since the run is weekly | Triage every one |
+   | `deferred` | Empty unless `maxWorkedPerRun` is set in `assets/scope.json` | Report the count |
    | `unchanged` | Decided earlier, same contents | Report the saved reason |
    | `live` | Changed in the last 3 days, or a process is running there | Leave |
    | `foreign` | Another account owns the repository | Report only |

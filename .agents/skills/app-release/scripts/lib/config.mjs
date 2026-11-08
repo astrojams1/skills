@@ -65,7 +65,7 @@ export function normalizeConfig(raw, path) {
   };
   config.activityLog = raw.activityLog === undefined ? null : expandHome(raw.activityLog);
   if (raw.ios) {
-    config.ios = Object.assign({ vault: 'op://API Tokens/App Store Connect', testflightGroup: 'Release QA', requiredEntitlements: {}, appGroup: null,
+    config.ios = Object.assign({ vault: 'op://API Tokens/App Store Connect', testflightGroup: 'Release QA', testers: ['astrojams1@gmail.com'], requiredEntitlements: {}, appGroup: null,
       workspace: raw.ios.scheme + '.xcworkspace', platform: 'IOS', pruneScreenshots: false }, raw.ios);
   }
   if (raw.android) {

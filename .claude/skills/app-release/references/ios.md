@@ -117,7 +117,10 @@ team's distribution certificate and an App Store profile, which need no devices.
 **A brand-new app's TestFlight group.** A new record has no beta groups. When the app has no internal group at all,
 `testers` creates `ios.testflightGroup` through the API, reads it back and adds the build; an app that already has
 internal groups but none with that name still stops, so a mistyped name never adds a group. A build in an empty group
-shows in nobody's TestFlight, so `testers` adds the team's account holder to an empty group, invites any tester still
+shows in nobody's TestFlight, so `testers` adds every `ios.testers` email (the owner, `astrojams1@gmail.com`, by
+default) to the group on every team, OURO included. The team's account holder can be someone else, and a build sent
+only to them never reaches the owner. Each email must be an App Store Connect user of that team; one that is not fails
+with the fix. A group still empty after that gets the account holder. `testers` then invites any tester still
 `NOT_INVITED`, reads the group back and reports the tester count. It fails rather than report a build nobody can
 receive. Add other internal testers (App Store Connect users of that team) with `POST /v1/betaTesters` carrying the
 user's username as `email`, their names and a `betaGroups` relationship (state `INVITED` until they accept).

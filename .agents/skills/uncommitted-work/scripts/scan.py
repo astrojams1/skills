@@ -225,7 +225,8 @@ def main():
     if args.command == "list":
         now = dt.datetime.now().timestamp()
         out = scan(scope, state, now, open_directories())
-        limit = scope["maxWorkedPerRun"]
+        # No cap unless scope.json sets one: a weekly run works every checkout (owner, 2026-11-08).
+        limit = scope.get("maxWorkedPerRun")
         out["deferred"], out["work"] = out["work"][limit:], out["work"][:limit]
         out["junk"] = len(out["junk"])
         print(json.dumps(out, indent=1))

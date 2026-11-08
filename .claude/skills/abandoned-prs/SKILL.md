@@ -35,8 +35,8 @@ activity ledger (see [Records](#records)).
 
    | Bucket | Meaning | Do |
    |---|---|---|
-   | `candidate` | Quiet for 7 days or more, this run's share, longest quiet first | Triage |
-   | `deferred` | Candidates past the per-run cap | Report the count; next run reaches them |
+   | `candidate` | Quiet for 7 days or more, longest quiet first; all of them, since the run is weekly | Triage every one |
+   | `deferred` | Empty unless `maxWorkedPerRun` is set in `assets/scope.json` | Report the count |
    | `unchanged` | Decided earlier; same head, nothing new | Report the saved reason, don't redo the work |
    | `held` | Hold label or title, or a staging branch | Leave |
    | `active` | Someone touched it this week | Leave |

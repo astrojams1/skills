@@ -4,6 +4,6 @@
   "owners": ["astrojams1", "wendigo124"],
   "quietDays": 3,
   "recheckDays": 28,
-  "maxWorkedPerRun": 10,
+  "maxWorkedPerRun": null,
   "junk": ["node_modules", ".DS_Store"]
 }
