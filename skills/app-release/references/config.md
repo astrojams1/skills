@@ -43,6 +43,7 @@ Start from [app-release.config.example.json](../assets/app-release.config.exampl
 | `buildNumberEnv` | The variable the app config reads for `ios.buildNumber` during prebuild |
 | `vault` | The 1Password item holding the App Store Connect key (`op://API Tokens/App Store Connect`) |
 | `testflightGroup` | The internal TestFlight group whose testers get each build (`Release QA`) |
+| `testers` | Emails always added to that group on every team; each must be an App Store Connect user of the team (`["astrojams1@gmail.com"]`, the owner) |
 | `requiredEntitlements` | Entitlements the signed app must keep, such as `{"com.apple.developer.game-center": true}` or `{"aps-environment": "production"}` |
 | `appGroup` | An app group every bundle, extensions included, must be signed with (widgets) |
 | `pruneScreenshots` | `true` lets `asc.mjs screenshots` delete App Store screenshots and whole sets the store data no longer lists; by default they are reported and left in place |
