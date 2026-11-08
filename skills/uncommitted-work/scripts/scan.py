@@ -210,6 +210,16 @@ def scan(scope, state, now, cwds):
     return out
 
 
+def cap(out, limit):
+    """Move work past `limit` to deferred. No cap unless scope.json sets one: a weekly run works
+    every checkout (owner, 2026-11-08)."""
+    if limit is None:
+        out["deferred"] = []
+    else:
+        out["deferred"], out["work"] = out["work"][limit:], out["work"][:limit]
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["list", "archive", "archive-stashes", "close", "record"])
@@ -225,9 +235,7 @@ def main():
     if args.command == "list":
         now = dt.datetime.now().timestamp()
         out = scan(scope, state, now, open_directories())
-        # No cap unless scope.json sets one: a weekly run works every checkout (owner, 2026-11-08).
-        limit = scope.get("maxWorkedPerRun")
-        out["deferred"], out["work"] = out["work"][limit:], out["work"][:limit]
+        cap(out, scope.get("maxWorkedPerRun"))
         out["junk"] = len(out["junk"])
         print(json.dumps(out, indent=1))
     elif args.command == "archive":
