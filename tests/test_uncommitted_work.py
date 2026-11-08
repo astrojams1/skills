@@ -110,6 +110,12 @@ class Buckets(unittest.TestCase):
     def bucket(self, saved=None, cwds=(), **over):
         return scan.bucket_for(self.item(**over), SCOPE, saved, NOW, list(cwds))
 
+    def test_cap_defers_nothing_when_unset(self):
+        out = scan.cap({"work": [1, 2, 3]}, None)
+        self.assertEqual((out["work"], out["deferred"]), ([1, 2, 3], []))
+        out = scan.cap({"work": [1, 2, 3]}, 2)
+        self.assertEqual((out["work"], out["deferred"]), ([1, 2], [3]))
+
     def test_buckets(self):
         self.assertEqual(self.bucket(), "work")
         self.assertEqual(self.bucket(entries=[("??", "node_modules"), ("??", "x/.DS_Store")]), "junk")

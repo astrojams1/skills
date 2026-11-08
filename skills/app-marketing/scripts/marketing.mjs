@@ -7,7 +7,7 @@
 //
 //   node marketing.mjs check                        validate profiles, ledger and metrics; exit 1 on any problem
 //   node marketing.mjs status                       per app: stage, numbers, what shipped, what is open
-//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   the open items worth doing now, best first
+//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs pull [--write]               Mac only: App Store downloads and page views through Apple's API
@@ -289,7 +289,7 @@ function cmdStatus(root) {
 }
 
 function cmdNext(root, args) {
-  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner }).slice(0, Number(args.limit) || 10);
+  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner }).slice(0, Number(args.limit) || Infinity);
   if (args.json) return console.log(JSON.stringify(items, null, 2));
   items.forEach(i => console.log(`${String(i.score).padStart(6)}  ${i.app}/${i.id} [${i.runner}, ${i.channel}]  ${i.title}`));
   if (!items.length) console.log('Nothing open for this runner: add ideas to a profile\'s backlog.');

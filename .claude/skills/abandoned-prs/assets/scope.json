@@ -5,7 +5,7 @@
   "windowDays": 30,
   "quietDays": 7,
   "recheckDays": 28,
-  "maxWorkedPerRun": 8,
+  "maxWorkedPerRun": null,
   "holdLabels": ["hold", "do-not-merge", "do not merge", "staging", "wip"],
   "holdPattern": "\\b(do not merge|don't merge|never merge|on hold|staging)\\b"
 }

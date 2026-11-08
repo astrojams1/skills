@@ -144,8 +144,10 @@ function main(args) {
   const seen = new Map();
   for (const owner of scope.owners) for (const pr of fetchOpen(owner, since)) seen.set(pr.url, pr);
   const buckets = triage([...seen.values()], scope, state, now);
-  const worked = buckets.candidate.slice(0, scope.maxWorkedPerRun);
-  const deferred = buckets.candidate.slice(scope.maxWorkedPerRun);
+  // No cap unless scope.json sets one: a weekly run works every candidate (owner, 2026-11-08).
+  const cap = scope.maxWorkedPerRun ?? Infinity;
+  const worked = buckets.candidate.slice(0, cap);
+  const deferred = buckets.candidate.slice(cap);
   console.log(JSON.stringify({ since, ...buckets, candidate: worked, deferred }, null, 2));
 }
 

@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -10,8 +10,12 @@ metadata:
 
 **The goal is first-time downloads.** Judge every choice by one question: does this most likely raise downloads?
 
-**Nothing waits on the owner.** A blocked item is logged `deferred` with a reason and a `retry_after`, and the run moves
-to the next one. Never end a run asking for something, and never list "waiting on you" work. If an item can only ever be
+**Do all the known work in one run** (owner, 2026-11-08: "if you have a bunch of ideas in your backlog and there's
+nothing inherently wrong with doing them all at once, then just do them all"). A run works every open item for its
+runner, not the top one or two, and every app, not one.
+
+**Nothing waits on the owner.** A blocked item first tries another way in the same run; only then is it logged
+`deferred` with a reason and a `retry_after`, and the run moves to the next one. Never end a run asking for something, and never list "waiting on you" work. If an item can only ever be
 done by the owner, drop it (`status: skipped`, `dropped: true`) and find another route to the same downloads.
 
 **Make the call yourself.** Keywords, subtitles, promotional text, descriptions and what to try next are this skill's
@@ -78,15 +82,16 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
 3. **Learn.** Read the last two weeks of the ledger and which sources brought downloads (`sources` in the metrics).
    Raise or lower backlog scores from evidence. A channel with three mature results and no effect gets its items
    lowered, with the numbers in a `finding`.
-4. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>`. Do the top items within the budget: **cloud, at most two
-   items; mac, at most one Short and three small items.** Fewer, better. Log anything passed over and why.
+4. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner, best first. Do
+   them all, best first, each to the content bar. The only pacing limits are the ones that protect the channel: one
+   Short every two days across apps (`app-shorts`) and the Show HN limits (`hn`). Log anything passed over and why.
 5. **Do.** Follow the item's `how` and [content](references/content.md). Log an `action` with `app`, `item`, `channel`,
    `operation` (one line), `evidence` and `status`. `status: ok` finishes the item; `deferred` parks it.
 6. **Ship.** `npm test && npm run build`, then `node $R/marketing.mjs board`, commit, push the branch, open a PR, wait
    for CI, merge it. Routine site updates from verified facts are authorized; follow the site skills' verification.
 7. **Verify.** Fetch the live URL and check the new thing is there. Log a `verify` event. A change is not done until seen
    live. A failed check is logged `failed`, never rounded up.
-8. **End.** Log `end` with `status` and `next`. Report three lines: what shipped with URLs, the headline number change,
+8. **End.** Log `end` with `status` and `next`; `next` holds only items with a future `retry_after` or a pacing date. Report three lines: what shipped with URLs, the headline number change,
    what failed or was skipped.
 
 ## Never

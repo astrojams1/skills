@@ -18,13 +18,14 @@ app's Shorts need no go-ahead. The task's stored prompt carries this text; chang
 > 1. `marketing.mjs public --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. Total each app's Shorts
 >    views from `/Volumes/ssd/projects/app-shorts/registry.json` and append one `youtube` snapshot per app with
 >    `values.shortsViews`. Run `evaluate.mjs` and read its decisions.
-> 2. `marketing.mjs next --runner mac`, then do the top items: at most one Short and three small items. Read the app's
+> 2. `marketing.mjs next --runner mac`, then do every open item, best first: all the small
+>    items, and a Short when the one-every-two-days pacing allows. Read the app's
 >    profile first; its rules and decisions win.
 > 3. Shorts follow `app-shorts` and `youtube-shorts`. An independent reviewer subagent checks the hook and payoff frames
 >    and each caption against the take before posting. Upload with `yt-api.mjs upload --confirm` and record the episode
 >    at once. Comments cannot be pinned through the API: log that as skipped. Keep to one Short every two days across
 >    apps, using `publishAt`.
-> 4. Comment replies follow `youtube-growth`: `yt-api.mjs unanswered`, then answer at most five real comments per run
+> 4. Comment replies follow `youtube-growth`: `yt-api.mjs unanswered`, then answer every real unanswered comment
 >    with `yt-api.mjs reply --parent ID --text "..." --confirm`. Skip spam, arguments and anything you cannot answer
 >    truthfully. Log one `finding` with the count and video IDs, never the comment text.
 > 5. Work in another repository follows that repository's `AGENTS.md`, on its own branch, with a PR. Store listing text
