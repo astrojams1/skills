@@ -1,0 +1,57 @@
+[
+  {
+    "trigger_id": "trig_015zPZvGreQQpMArcuekZdh1",
+    "name": "CS inbox-processor",
+    "prompt": "Run the Clean Streets inbox-processor skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for inbox-processor. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01BgTZaGaBLxno9rHqZxwCxA",
+    "name": "CS patreon-growth",
+    "prompt": "Run the Clean Streets patreon-growth skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for patreon-growth. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01S3NrCpjCa8VRChZ6tr5jy6",
+    "name": "CS skill-improver",
+    "prompt": "Run the Clean Streets skill-improver skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for skill-improver. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01Y8PrjQcmvsSPESAZrfsrUf",
+    "name": "CS field-updates",
+    "prompt": "Run the Clean Streets field-updates skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for field-updates. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01QbbYGTh69KWt1ZwFcZUaBn",
+    "name": "CS site-refresh",
+    "prompt": "Run the Clean Streets site-refresh skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for site-refresh. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01U4FeptA141FVPv4iXvfULE",
+    "name": "Clean Streets: crew-pay",
+    "prompt": "Run the Clean Streets crew-pay skill. This is an unattended Routine: nobody is watching. The cleanstreets repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"A routine run\" in .claude/skills/README.md for crew-pay. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01DvAPEXPNEnPvi3syDUhrZU",
+    "name": "App marketing",
+    "prompt": "Run the app-marketing skill's daily pass as the `cloud` runner. This is an unattended Routine: nobody is watching. This session has two checkouts, /home/user/skills and /home/user/app-sites; read /home/user/skills/skills/app-marketing/SKILL.md and follow \"A run\". `gh` is not logged in here: `git push` works, and the mcp__github__ tools (load them with ToolSearch) open and merge pull requests."
+  },
+  {
+    "trigger_id": "trig_01LPKJ3soVEffSdmHnqEcXh7",
+    "name": "Money coaching lead gen",
+    "prompt": "Run the money-coaching lead-gen skill. This is an unattended Routine: nobody is watching. The money-coaching repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow skills/lead-gen/SKILL.md."
+  },
+  {
+    "trigger_id": "trig_01NzvBfJyE4bwnKTNXhrS1sQ",
+    "name": "IRA rotation",
+    "prompt": "Run the daily IRA rotation check. This is an unattended Routine: nobody is watching. The ira-rotation repository is checked out in this session; `cd` to it with `git rev-parse --show-toplevel` and follow \"The routine run\" in README.md. `gh` is not logged in here: load the mcp__github__ tools with ToolSearch."
+  },
+  {
+    "trigger_id": "trig_01RTkCNieAx6SVwVRvQ89aGc",
+    "name": "Nightly market predictions",
+    "prompt": "Run /market-predictions in the astrojams1/Predictions repository. This is an unattended Routine: nobody is watching, so make sensible decisions yourself. If the skill isn't registered, read .claude/skills/market-predictions/SKILL.md and follow it. If the repository isn't checked out, attach it with add_repo (owner astrojams1, repo Predictions, push access), clone it and work from its root. Load the mcp__github__ tools with ToolSearch if they are deferred. This routine's email notification shows your final message, so end with exactly the one-line summary printed by mkt.py notify."
+  },
+  {
+    "trigger_id": "trig_017Mqc31HVmf5o9eh4bX64Hs",
+    "name": "Weekly skill improvement",
+    "prompt": "Run /skill-improver in the astrojams1/Predictions repository. This is an unattended Routine: nobody is watching, so make sensible decisions yourself. If the skill isn't registered, read .claude/skills/skill-improver/SKILL.md and follow it. If the repository isn't checked out, attach it with add_repo (owner astrojams1, repo Predictions, push access), clone it and work from its root. Load the mcp__github__ tools with ToolSearch if they are deferred."
+  }
+]
