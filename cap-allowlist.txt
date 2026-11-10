@@ -1,0 +1,10 @@
+# Limits that hold scheduled work back, kept on purpose. bin/check_caps.py fails on any cap not listed here.
+# Format: path :: text on the flagged line :: why it stays (James's words or the outside rule it follows).
+# Add a line only with a reason James gave or a rule a third party sets. Never add one to get a check green.
+
+skills/app-marketing/references/hacker-news.md :: One post a month, across all apps :: Hacker News's own rule that self-promotion is fine only part of the time; breaking it gets the site banned
+skills/app-marketing/references/mac-pass.md :: a budget such as "at most one Short and three small :: Quotes a stale prompt so a run can recognise it; not a limit
+skills/app-marketing/references/mac-pass.md :: There is no item budget :: States that there is no limit
+skills/app-marketing/scripts/marketing.mjs :: the way "one guide a week" did :: Comment naming the old cap the check replaces
+skills/call-triage/scripts/call_triage.py :: "--days", type=int, default=7 :: How far ahead `due` looks for dated items; items with no date always list, so it is a horizon, not a limit on work
+skills/research-paper/scripts/arxiv_search.py :: "--max", type=int, default=25 :: Results per query in an on-demand literature search (run by hand, not on a schedule); the step runs as many queries as it needs

@@ -82,6 +82,11 @@ export function profileProblems(profile, name = profile.id) {
     }
     if (item.requires && !STAGES.includes(item.requires)) problems.push(`${label}: requires must be a stage`);
     if (item.repeat_days !== undefined && !(item.repeat_days > 0)) problems.push(`${label}: repeat_days must be positive`);
+    // A run does all known work (AGENTS.md), so recurring work comes back every run. A longer rest is a throttle and
+    // must say why, in the owner's terms, so it can't creep back unnoticed the way "one guide a week" did.
+    if (item.repeat_days > 1 && !(typeof item.pace_reason === 'string' && item.pace_reason.trim())) {
+      problems.push(`${label}: repeat_days ${item.repeat_days} holds known work back; use 1, or add pace_reason saying why it must wait`);
+    }
   }
   if (profile.hackerNews !== undefined) {
     const hn = profile.hackerNews;
@@ -164,7 +169,10 @@ export function itemState(item, events, app, now = Date.now()) {
   const at = Date.parse(last.ts);
   if (last.status === 'skipped' && last.dropped) return { state: 'dropped', last };
   if (last.status === 'ok' || last.status === 'partial') {
-    if (item.repeat_days && now - at >= item.repeat_days * DAY) return { state: 'open', last };
+    // Grace of half the interval, at most half a day, so a daily run that starts a few minutes earlier than
+    // yesterday's still sees the item while a shorter repeat keeps a rest above zero.
+    const rest = item.repeat_days * DAY;
+    if (item.repeat_days && now - at >= rest - Math.min(DAY / 2, rest / 2)) return { state: 'open', last };
     return { state: item.repeat_days ? 'resting' : 'done', last };
   }
   if (last.status === 'deferred' || last.status === 'failed' || last.status === 'skipped') {

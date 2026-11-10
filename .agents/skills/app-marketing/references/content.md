@@ -13,7 +13,9 @@ A guide earns its page by answering something a real person searches for, better
 4. **Link.** Link related guides. The page adds the App Store badge itself.
 
 Not doorway pages: never publish near-copies with a keyword swapped, and never use another product's name to catch its
-searches. One good guide a week per app beats ten thin ones, and thin pages can sink a whole site.
+searches. Thin pages can sink a whole site, so the bar is the checks above, never a count: each run writes every guide
+that a real, uncovered search need calls for, for every app, and none that only fills a slot. A guide that passes is
+published that run, never held for a date.
 
 ## Voice
 

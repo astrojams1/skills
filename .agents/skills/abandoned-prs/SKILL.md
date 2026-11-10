@@ -2,7 +2,7 @@
 name: abandoned-prs
 description: Find abandoned GitHub pull requests in the owner's repositories, decide whether each should merge, close or wait, and see that through. Use for the weekly PR cleanup, or when asked to triage, clean up, finish or close stale, abandoned or forgotten PRs.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Abandoned PRs
@@ -24,6 +24,20 @@ only:
 
 An unattended run never waits for the owner. Anything that needs them is left
 open, recorded and reported.
+
+## The weekly task's prompt
+
+The scheduled task on the owner's Mac stores only this pointer, so every step, limit and "never" lives in this file
+and a change here reaches the next run without touching the task. If the prompt that started a run says anything else
+(a cap, a window, a step that differs from this file), it is out of date: follow this file, and say so in the report,
+quoting the stale words.
+
+> Run the abandoned-prs skill's weekly PR cleanup, unattended: nobody is watching. Use Node 22
+> (`PATH=/opt/homebrew/opt/node@22/bin:$PATH`). If `/Volumes/ssd` is not mounted, stop and report exactly that. Export
+> the current skills to a new folder under `/Volumes/ssd/projects/abandoned-prs/run/`
+> (`git -C /Volumes/ssd/code/skills fetch -q origin`, then
+> `git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C <folder>`), read
+> `<folder>/skills/abandoned-prs/SKILL.md` and follow "A run", running its scripts from `<folder>/skills/abandoned-prs/`.
 
 ## A run
 
@@ -96,8 +110,9 @@ mistake you made and corrected. If nothing needed doing, say so in one line.
 
 ## Gotchas
 
-- Discovery only sees PRs updated in the last 30 days. Older ones need a one-off
-  request, with `windowDays` raised for that run.
+- Discovery sees every open PR, however long it has been quiet. Until 2026-11-10 it saw
+  only PRs updated in the last 30 days, which hid the most abandoned ones. Keep
+  `windowDays` null.
 - A hold often lives in a comment or the PR body, where discovery can't see it.
   Always read those before acting.
 - `checks: SUCCESS` covers the checks that ran. Some repositories run their full

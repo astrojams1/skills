@@ -2,7 +2,7 @@
 name: uncommitted-work
 description: Find uncommitted changes and stashes left in every local Git checkout and worktree, decide whether each should ship or close, then merge it through a PR or back it up and clear it. Use for the weekly local cleanup, or when asked to audit, triage or clean up uncommitted, dirty, stashed or forgotten local work across repositories.
 metadata:
-  version: "1.0.1"
+  version: "1.1.0"
 ---
 
 # Uncommitted work
@@ -26,6 +26,20 @@ without asking first. It covers this cleanup only:
 
 An unattended run never waits for the owner. Anything that needs them stays as
 it is, is recorded, and is reported.
+
+## The weekly task's prompt
+
+The scheduled task on the owner's Mac stores only this pointer, so every step, limit and "never" lives in this file
+and a change here reaches the next run without touching the task. If the prompt that started a run says anything else
+(a cap, a window, a step that differs from this file), it is out of date: follow this file, and say so in the report,
+quoting the stale words.
+
+> Run the uncommitted-work skill's weekly local cleanup, unattended: nobody is watching. Use Node 22
+> (`PATH=/opt/homebrew/opt/node@22/bin:$PATH`). If `/Volumes/ssd` is not mounted, stop and report exactly that. Export
+> the current skills to a new folder under `/Volumes/ssd/projects/uncommitted-work/run/`
+> (`git -C /Volumes/ssd/code/skills fetch -q origin`, then
+> `git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C <folder>`), read
+> `<folder>/skills/uncommitted-work/SKILL.md` and follow "A run", running its scripts from `<folder>/skills/uncommitted-work/`.
 
 ## A run
 

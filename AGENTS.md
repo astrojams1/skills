@@ -7,6 +7,8 @@ This repository contains reusable AI agent skills that can be applied across pro
 ```
 bin/
   manage.sh                                # CLI: install, check, sync, status for skill management
+  check_caps.py                            # Flags caps and throttles on scheduled work not in cap-allowlist.txt
+cap-allowlist.txt                          # The few caps kept on purpose, each with its reason
 skills/                                    # Skill definitions (Agent Skills spec)
   careful/
     SKILL.md                               # On-demand safety hooks for destructive commands
@@ -142,6 +144,16 @@ Skills cluster into recurring categories. Use this taxonomy to identify gaps in 
 
 - **A routine's prompt never restates its skill.** The prompt of a routine or scheduled task says only what the skill can't know: which skill to run, where the repository is checked out, that the run is unattended, how to load tools in that environment, and the final message format when a notification shows it. Every step, rule and limit lives in the skill (or the file it points to), so the two can't drift apart. When a prompt seems to need more, move that text into the skill (James, 2026-11-08).
 - **A scheduled run clears its known work.** Each run works through every open item it can safely do together (every backlog idea, every app pending release, every due thread), not one item a run. Skip only what is blocked, with the reason, so no backlog builds up between runs, above all for skills that run rarely (James, 2026-11-08).
+- **A throttle is a cap, wherever it lives.** A limit on how much a run does is a cap whether it sits in `SKILL.md`, a reference ("one good guide a week per app"), a script default (`windowDays`) or a data file (`repeat_days` over 1). Pacing may decide *when* finished work goes public (a Short's `publishAt`), never whether the work is done this run. A cap stays only with a reason James gave or a rule a third party sets (Hacker News's limits), written in `cap-allowlist.txt`. `python3 bin/check_caps.py . skills` fails on any other, and `tests/test_no_hidden_caps.py` runs it; consumer repos with a skill-improver run the same check (James, 2026-11-10).
+- **Every scheduled task is listed below, with where its prompt lives.** Cloud routines show up in the routine list; tasks on James's Mac (Cowork or Codex) don't, so an audit that reads only the routine list misses them, as the 2026-11-08 audit missed `app-marketing-mac`. Each Mac task's stored prompt is a pointer, written in its skill, and a skill that finds a stale prompt follows itself and reports the stale words. When a Mac task's prompt must change, give James the exact new text to paste, because no agent can edit it.
+- **Done means seen in a run.** A change to how a scheduled skill paces or caps its work is done when the next run's ledger shows the new behaviour, not when the PR merges.
+
+| Mac scheduled task | When | Stored prompt (pointer) |
+|---|---|---|
+| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md` |
+| `app-marketing-show-hn` | Weekdays 09:00 Pacific | `skills/app-marketing/references/hacker-news.md`, "The task's stored prompt" |
+| `abandoned-prs` | Weekly | `skills/abandoned-prs/SKILL.md`, "The weekly task's prompt" |
+| `uncommitted-work` | Weekly | `skills/uncommitted-work/SKILL.md`, "The weekly task's prompt" |
 
 ## Available Skills
 
@@ -436,7 +448,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_no_hidden_caps.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 

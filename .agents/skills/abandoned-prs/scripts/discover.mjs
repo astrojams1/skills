@@ -87,13 +87,20 @@ export function triage(prs, scope, state, now) {
     const bucket = bucketFor(pr, item, scope, state, now);
     out[bucket].push(bucket === 'unchanged' ? { ...item, saved: state[item.id] } : item);
   }
-  // Longest quiet first, so a capped run always reaches the most neglected PRs.
+  // Longest quiet first, so the most neglected PRs are worked first.
   out.candidate.sort((a, b) => b.quietDays - a.quietDays);
   return out;
 }
 
-function fetchOpen(owner, sinceDate) {
-  const q = `is:pr is:open archived:false user:${owner} updated:>=${sinceDate}`;
+// searchQuery finds every open PR the owner has. A `windowDays` limits it to PRs updated since then; it is null by
+// default, because the PRs quiet longest are the most abandoned and must never fall out of view (owner, 2026-11-10).
+export function searchQuery(owner, windowDays, now) {
+  const base = `is:pr is:open archived:false user:${owner}`;
+  if (windowDays == null) return base;
+  return `${base} updated:>=${new Date(now - windowDays * DAY).toISOString().slice(0, 10)}`;
+}
+
+function fetchOpen(owner, q) {
   const prs = [];
   let after = null;
   do {
@@ -140,9 +147,9 @@ function main(args) {
   }
   const scope = readJson(flag(args, '--scope', DEFAULT_SCOPE));
   const now = Date.now();
-  const since = new Date(now - scope.windowDays * DAY).toISOString().slice(0, 10);
+  const since = scope.windowDays == null ? null : new Date(now - scope.windowDays * DAY).toISOString().slice(0, 10);
   const seen = new Map();
-  for (const owner of scope.owners) for (const pr of fetchOpen(owner, since)) seen.set(pr.url, pr);
+  for (const owner of scope.owners) for (const pr of fetchOpen(owner, searchQuery(owner, scope.windowDays, now))) seen.set(pr.url, pr);
   const buckets = triage([...seen.values()], scope, state, now);
   // No cap unless scope.json sets one: a weekly run works every candidate (owner, 2026-11-08).
   const cap = scope.maxWorkedPerRun ?? Infinity;
