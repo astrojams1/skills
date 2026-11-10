@@ -28,7 +28,7 @@ PATTERNS = [
     r'"windowDays"\s*:\s*\d',
 ]
 SKIP_PARTS = {"node_modules", "ledger", ".git"}
-SKIP_NAMES = {"LEDGER.md", "CHANGELOG.md"}
+SKIP_NAMES = {"LEDGER.md", "CHANGELOG.md", "check_caps.py"}
 
 
 def allowlist(root):
