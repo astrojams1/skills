@@ -169,8 +169,10 @@ export function itemState(item, events, app, now = Date.now()) {
   const at = Date.parse(last.ts);
   if (last.status === 'skipped' && last.dropped) return { state: 'dropped', last };
   if (last.status === 'ok' || last.status === 'partial') {
-    // Half a day of grace, so a daily run that starts a few minutes earlier than yesterday's still sees the item.
-    if (item.repeat_days && now - at >= item.repeat_days * DAY - DAY / 2) return { state: 'open', last };
+    // Grace of half the interval, at most half a day, so a daily run that starts a few minutes earlier than
+    // yesterday's still sees the item while a shorter repeat keeps a rest above zero.
+    const rest = item.repeat_days * DAY;
+    if (item.repeat_days && now - at >= rest - Math.min(DAY / 2, rest / 2)) return { state: 'open', last };
     return { state: item.repeat_days ? 'resting' : 'done', last };
   }
   if (last.status === 'deferred' || last.status === 'failed' || last.status === 'skipped') {

@@ -63,6 +63,12 @@ test('daily work comes back on the next daily run, even one that starts a little
   assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(0.2) })], 'x', NOW).state, 'resting');
 });
 
+test('a repeat shorter than a day still rests right after it is done', () => {
+  const i = item({ repeat_days: 0.5 });
+  assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(0) })], 'x', NOW).state, 'resting');
+  assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(0.5) })], 'x', NOW).state, 'open');
+});
+
 test('a rest longer than a day must say why', () => {
   assert.deepEqual(profileProblems(profile({ backlog: [item({ repeat_days: 1 })] })), []);
   assert.ok(profileProblems(profile({ backlog: [item({ repeat_days: 7 })] }))[0].includes('pace_reason'));

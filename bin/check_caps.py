@@ -6,7 +6,8 @@ back anyway, hidden in places a read of SKILL.md misses: a reference file ("one 
 field (`repeat_days`), a script default (`windowDays`). This scans every skill file for those shapes and fails on any
 not listed in `cap-allowlist.txt` at the repository root with the reason it must stay.
 
-Usage: check_caps.py [repo root] [skills folder, relative to the root]
+Usage: check_caps.py [repo root] [folders to scan, relative to the root ...]
+  (here: python3 bin/check_caps.py . skills; each skill's helpers live in its own scripts/ folder)
 Allowlist lines: `path :: text on the flagged line :: why it is kept` (blank lines and # comments are ignored).
 """
 import json
@@ -26,6 +27,8 @@ PATTERNS = [
     r"\b(?:one|a single) (?:item|skill|lead|guide|thread) (?:a|per) run\b",
     r'"(?:max\w*PerRun|maxItems|limit|perRun)"\s*:\s*\d',
     r'"windowDays"\s*:\s*\d',
+    # a script flag whose default trims the work: --limit 10, --days 60, --max-items 5
+    r"""add_argument\(\s*["']--(?:limit|max[\w-]*|top|count|per-run|days|window[\w-]*|since[\w-]*)["'].*\bdefault\s*=\s*[1-9]""",
 ]
 SKIP_PARTS = {"node_modules", "ledger", ".git"}
 SKIP_NAMES = {"LEDGER.md", "CHANGELOG.md", "check_caps.py"}
@@ -45,7 +48,8 @@ def allowlist(root):
 
 
 def json_hits(rel, text):
-    """repeat_days over 1 without a pace_reason, anywhere in a JSON file."""
+    """Every repeat_days over 1, anywhere in a JSON file. A pace_reason beside it is a note, not a pass: only
+    cap-allowlist.txt, with James's reason or the outside rule, lets one stay."""
     try:
         data = json.loads(text)
     except ValueError:
@@ -55,8 +59,8 @@ def json_hits(rel, text):
     def walk(node):
         if isinstance(node, dict):
             days = node.get("repeat_days")
-            if isinstance(days, (int, float)) and days > 1 and not str(node.get("pace_reason", "")).strip():
-                hits.append((rel, 0, f'"repeat_days": {days} on "{node.get("id", "?")}" with no pace_reason'))
+            if isinstance(days, (int, float)) and days > 1:
+                hits.append((rel, 0, f'"repeat_days": {days} on "{node.get("id", "?")}"'))
             for v in node.values():
                 walk(v)
         elif isinstance(node, list):
@@ -67,10 +71,10 @@ def json_hits(rel, text):
     return hits
 
 
-def scan(root, folder):
+def scan(root, *folders):
     hits = []
-    base = root / folder
-    for path in sorted(base.rglob("*")):
+    paths = sorted({p for folder in folders for p in (root / folder).rglob("*")})
+    for path in paths:
         if not path.is_file() or path.suffix not in {".md", ".json", ".mjs", ".js", ".py", ".sh", ".yml", ".yaml"}:
             continue
         if SKIP_PARTS & set(path.relative_to(root).parts) or path.name in SKIP_NAMES:
@@ -87,9 +91,13 @@ def scan(root, folder):
 
 def main(argv):
     root = Path(argv[1] if len(argv) > 1 else ".").resolve()
-    folder = argv[2] if len(argv) > 2 else "skills"
+    folders = argv[2:] or ["skills"]
+    missing = [f for f in folders if not (root / f).is_dir()]
+    if missing:
+        print(f"check_caps: no such folder under {root}: {', '.join(missing)}")
+        return 2
     allowed = allowlist(root)
-    bad = [h for h in scan(root, folder) if not any(h[0] == p and t in h[2] for p, t, _ in allowed)]
+    bad = [h for h in scan(root, *folders) if not any(h[0] == p and t in h[2] for p, t, _ in allowed)]
     for rel, n, line in bad:
         print(f"{rel}:{n}: {line[:160]}")
     if bad:

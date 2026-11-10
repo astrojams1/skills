@@ -37,11 +37,21 @@ class NoHiddenCaps(unittest.TestCase):
         for shape in ["guide a week per app", "at most three items", "Cap: 20", "windowDays", '"repeat_days": 7']:
             self.assertIn(shape, found)
 
-    def test_a_daily_repeat_and_a_rest_with_a_reason_pass(self):
+    def test_a_daily_repeat_passes(self):
         self.assertEqual(scan_files({
-            "p.json": '{"backlog": [{"id": "a", "repeat_days": 1}, {"id": "b", "repeat_days": 4, "pace_reason": "x"}]}',
+            "p.json": '{"backlog": [{"id": "a", "repeat_days": 1}]}',
             "SKILL.md": "Work every open item, best first.\n",
         }), [])
+
+    def test_a_pace_reason_is_a_note_not_a_pass(self):
+        found = scan_files({"p.json": '{"backlog": [{"id": "b", "repeat_days": 4, "pace_reason": "x"}]}'})
+        self.assertEqual(len(found), 1)
+
+    def test_a_script_default_that_trims_the_work(self):
+        found = " ".join(scan_files({"scripts/pick.py": 'ap.add_argument("--limit", type=int, default=10)\n'
+                                                        'ap.add_argument("--since-days", type=int, default=0)\n'}))
+        self.assertIn("--limit", found)
+        self.assertNotIn("--since-days", found)
 
 
 if __name__ == "__main__":
