@@ -7,56 +7,51 @@ description: >-
   over-engineering, redundant code, missed abstractions, or unnecessary
   complexity before committing.
 metadata:
-  version: "1.0"
+  version: "1.1.0"
 ---
 
-# Skill: Simplify
+# Simplify
 
-Review recently changed code with a critical eye toward simplicity, then fix what you find. This is a code quality pass — not a review that produces comments, but one that produces better code.
+**Make the code you just changed simpler, then fix what you find.** This pass produces better code, not a list of
+comments.
 
-## When to Use
+Use it after a feature or bug fix and before you commit. Use it when code feels too complex or you suspect a simpler
+way. Use it as a last quality gate before you call a task done.
 
-- After completing a feature or bug fix, before committing
-- When code feels more complex than it should be
-- When you suspect there's a simpler way but want a structured check
-- As a final quality gate before marking a task complete
+Done means: every changed file was checked against the patterns below, each issue is fixed, and the user has a short
+summary.
 
-## Process
+## A run
 
-### 1. Identify What Changed
-
-Use `git diff` (staged and unstaged) to find all modified and new files. Focus your review on these files only — don't boil the ocean.
-
-### 2. Check for These Patterns
-
-For each changed file, look for:
+1. **Find what changed.** Run `git diff`, staged and unstaged, to list every modified and new file. Review only these.
+2. **Check each file** for the patterns below.
+3. **Fix, don't report.** Fix each issue directly. Don't list findings or ask for permission. The user asked for
+   cleaner code, not a report.
+4. **Summarize.** Say how many files you reviewed. Give one line per fix: what changed and why. If nothing needed
+   fixing, say "Reviewed N files, no simplification needed".
 
 | Pattern | Fix |
 |---------|-----|
-| **Dead code** — unused variables, unreachable branches, commented-out code | Delete it |
-| **Redundant abstractions** — wrapper functions that add no value, single-use helpers | Inline them |
-| **Over-engineering** — generic solutions for specific problems, premature configurability | Simplify to the concrete case |
-| **Copy-paste duplication** — same logic repeated across changed files | Extract if 3+ occurrences; leave 2 alone |
-| **Unnecessary dependencies** — new imports/packages that could be avoided | Remove and use built-in alternatives |
-| **Verbose patterns** — long-winded code that has a simpler idiomatic equivalent | Rewrite idiomatically |
-| **Missing early returns** — deeply nested conditionals that could be flattened | Add guard clauses |
-| **Inconsistent naming** — new names that don't match existing conventions | Rename to match |
+| **Dead code**: unused variables, unreachable branches, commented-out code | Delete it |
+| **Redundant abstractions**: wrapper functions that add no value, single-use helpers | Inline them |
+| **Over-engineering**: generic solutions for specific problems, premature configurability | Simplify to the concrete case |
+| **Copy-paste duplication**: same logic repeated across changed files | Extract if 3+ occurrences; leave 2 alone |
+| **Unnecessary dependencies**: new imports or packages that could be avoided | Remove and use built-in alternatives |
+| **Verbose patterns**: long-winded code with a simpler idiomatic equivalent | Rewrite idiomatically |
+| **Missing early returns**: deeply nested conditionals that could be flattened | Add guard clauses |
+| **Inconsistent naming**: new names that don't match existing conventions | Rename to match |
 
-### 3. Fix, Don't Report
+## Rules
 
-For each issue found: **fix it directly**. Don't list findings and ask for permission — just make the code better. The user invoked this skill because they want cleaner code, not a report.
-
-### 4. Summarize
-
-After fixing, provide a brief summary:
-- How many files were reviewed
-- What was changed and why (one line per fix)
-- If nothing needed fixing, say so — "Reviewed N files, no simplification needed"
+- **Don't change behavior.** Every simplification must keep what the code does. Skip any that would change it.
+- **Stay inside the diff.** This reviews recent changes, not the whole codebase. Old issues are out of scope unless
+  they sit in a changed file.
+- **Don't add abstractions.** The goal is less complexity, not moved complexity. If a "simplification" adds a new
+  helper class, think again.
 
 ## Gotchas
 
-- **Don't change behavior.** Simplification must be behavior-preserving. If a simplification would change what the code does, skip it.
-- **Don't touch files outside the diff.** This is a review of recent changes, not a codebase-wide refactor. Pre-existing issues are out of scope unless they're in a changed file.
-- **Don't add abstractions.** The goal is to reduce complexity, not shift it. If your "simplification" introduces a new helper class, reconsider.
-- **Respect test code differently.** Test code can be more verbose and repetitive than production code — that's often intentional for readability. Only simplify tests if the duplication is truly excessive (5+ identical blocks).
-- **Three similar lines is fine.** Don't extract a function for something used twice. Wait until the pattern appears three or more times.
+- **Test code may repeat itself.** Tests are often verbose on purpose, for readability. Simplify them only when the
+  duplication is truly excessive (5+ identical blocks).
+- **Three similar lines is fine.** Don't extract a function for something used twice. Wait until the pattern appears
+  three or more times.

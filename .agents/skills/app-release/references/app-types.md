@@ -1,8 +1,8 @@
 # What differs by kind of app
 
-The release process is the same for every app; what the stores ask about depends on what the app is. Set
-`type` in `app-release.config.json`, add the matching gates to the ledger at `scope`, and keep the answers in
-the store data. Never copy another app's answers: derive each from the shipped app.
+The release process is the same for every app. What the stores ask about depends on what the app is. Set `type` in
+`app-release.config.json`, add the matching gates to the ledger at `scope`, and keep the answers in the store data.
+Never copy another app's answers: derive each from the shipped app.
 
 ## Every app
 
@@ -17,15 +17,14 @@ the store data. Never copy another app's answers: derive each from the shipped a
 
 ## Per-use consumable purchases
 
-Before submitting a utility that charges per document, conversion or action, put its business-model
-rationale in Review Notes alongside the price: what one purchase provides, why usage-based pricing
-fits the workflow, the free allowance, and the exact purchase trigger. Verify what users can do for
-free and how duplicate-only inputs, partial overlaps, cancellation, failure and retries affect the
-allowance. Describe only behavior proved by the submitted build; do not invent recurring server
-costs or claim a local test proves production StoreKit approval. For integrations with Apple
-frameworks, distinguish the app's paid functionality from free system capabilities and review the
-current [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), including
-Monetizing Built-In Capabilities. This checklist does not establish that Apple accepts a pricing model.
+Some utilities charge per document, conversion or action. Before you submit one, put its business-model reasons in
+Review Notes beside the price: what one purchase gives, why usage-based pricing fits the workflow, the free allowance,
+and the exact purchase trigger. Verify what users can do for free. Check how duplicate-only inputs, partial overlaps,
+cancellation, failure and retries affect the allowance. Describe only behavior the submitted build proves. Don't
+invent recurring server costs, and don't claim a local test proves production StoreKit approval. For integrations
+with Apple frameworks, tell the app's paid features apart from free system capabilities. Review the current
+[App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), including Monetizing Built-In
+Capabilities. This checklist does not show that Apple accepts a pricing model.
 
 ## Games (`type: game`, e.g. Space Worms)
 
@@ -43,7 +42,7 @@ Monetizing Built-In Capabilities. This checklist does not establish that Apple a
 | Topic | What to do |
 |---|---|
 | Categories | Apple `NEWS` (no subcategories); Play News & Magazines |
-| Google News policy | Complete the News apps declaration in App content, and show the publisher, contact and ownership inside the app (Settings) — Play rejected Newsworthy without it |
+| Google News policy | Complete the News apps declaration in App content, and show the publisher, contact and ownership inside the app (Settings). Play rejected Newsworthy without it |
 | Content rights | Declare whether third-party content (articles, images, feeds) is shown; generated summaries and original artwork are not publisher content |
 | Apple 4.2 | A thin feed or web wrapper invites a minimum-functionality rejection; ship on-device function (widgets, offline reading, notifications) and explain it in the review notes |
 | AI-generated content | Describe what is generated and by whom in the review notes; keep store copy factual about accuracy limits |

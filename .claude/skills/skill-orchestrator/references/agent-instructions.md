@@ -1,6 +1,8 @@
-# Agent Instructions Template
+# Agent instructions template
 
-Copy the section below into `AGENTS.md` in the target project. `AGENTS.md` is the only agent instructions file: Claude Code reads it automatically when no `CLAUDE.md` exists. Do not create `CLAUDE.md`; remove an existing one with `git rm CLAUDE.md` (or `git mv CLAUDE.md AGENTS.md` if it is the only file).
+Copy the section below into `AGENTS.md` in the target project. `AGENTS.md` is the only agent instructions file. Claude
+Code reads it when no `CLAUDE.md` exists. Do not create `CLAUDE.md`. Remove an existing one with `git rm CLAUDE.md`, or
+use `git mv CLAUDE.md AGENTS.md` if it is the only file.
 
 ---
 
@@ -10,26 +12,34 @@ This project uses the `skills/` submodule from [astrojams1/skills](https://githu
 
 ### Session Start
 
-**Claude Code:** The skills submodule is automatically initialized and synced at session start via a `SessionStart` hook in `.claude/settings.json`. This runs before the first turn to: (1) initialize the submodule to the recorded pointer, (2) best-effort fetch and update to the latest upstream `main` (silently skipped if offline), and (3) refresh skill discovery directories. This means skills are always up-to-date when a new session starts, with no manual sync required.
+**Claude Code:** A `SessionStart` hook in `.claude/settings.json` starts and syncs the skills submodule before the first
+turn. It:
 
-**Codex:** Run `git submodule update --init --recursive && ./skills/bin/manage.sh check` at the start of each session. The submodule update ensures you run the latest manage.sh before check verifies integrity and auto-fixes any issues.
+1. Initializes the submodule to the recorded pointer.
+2. Tries to fetch and update to the latest upstream `main`, skipped quietly if offline.
+3. Refreshes the skill discovery directories.
 
-Run `./skills/bin/manage.sh check` to verify integrity. The `check` command auto-fixes missing or stale skill directories and stale hooks in place, so most issues self-heal without intervention.
+Skills are always current when a session starts, with no manual sync.
+
+**Codex:** Run `git submodule update --init --recursive && ./skills/bin/manage.sh check` at the start of each session.
+The submodule update makes sure you run the latest manage.sh before `check` verifies integrity and auto-fixes issues.
+
+Run `./skills/bin/manage.sh check` to verify integrity:
 
 ```bash
 ./skills/bin/manage.sh check
 ```
 
-The `check` command auto-fixes most issues it detects:
-- **Behind upstream** — automatically syncs the submodule to latest upstream main
-- **Missing/stale discovery dirs** — automatically refreshes `.claude/skills/` and `.agents/skills/`
-- **Stale hooks** — automatically migrates to the current hook format
-- **Stale lowercase files** — automatically renames a lowercase `agents.md` to `AGENTS.md` (a `claude.md` is flagged, never renamed)
+It fixes most issues in place:
+- **Behind upstream.** It syncs the submodule to the latest upstream main.
+- **Missing or stale discovery dirs.** It refreshes `.claude/skills/` and `.agents/skills/`.
+- **Stale hooks.** It migrates them to the current hook format.
+- **Stale lowercase files.** It renames a lowercase `agents.md` to `AGENTS.md`. A `claude.md` is flagged, never renamed.
 
-If `check` reports warnings or failures that it cannot auto-fix, address them before proceeding:
-- **Not initialized** — run `git submodule update --init --recursive`
-- **Local modifications** — run `git -C skills checkout .` to restore clean state
-- **Spec failures** — report to the user, likely a corrupted submodule; re-sync
+Fix any warning or failure it can't auto-fix before you go on:
+- **Not initialized.** Run `git submodule update --init --recursive`.
+- **Local modifications.** Run `git -C skills checkout .` to restore a clean state.
+- **Spec failures.** Tell the user. The submodule is likely corrupted. Re-sync.
 
 After `check` auto-fixes issues, stage and commit the changes:
 ```bash
@@ -37,48 +47,59 @@ git add skills .claude .agents
 git commit -m "chore: auto-fix skills integration issues"
 ```
 
-**Important:** `.claude/skills/` and `.agents/skills/` directories must be committed to the repo, not just created locally. If these directories are missing from version control, other developers and CI environments will not discover skills.
+**Important:** Commit `.claude/skills/` and `.agents/skills/` to the repo. Don't just create them locally. Without them
+in version control, other developers and CI environments won't find the skills.
 
 ### Rules
 
-1. **AGENTS.md is the only agent instructions file.** Codex and Claude Code both read it. Never create `CLAUDE.md` (any case). Run `./skills/bin/manage.sh check` to verify (check #12 fails if a `CLAUDE.md` exists).
-2. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored.
+1. **AGENTS.md is the only agent instructions file.** Codex and Claude Code both read it. Never create `CLAUDE.md` (in
+   any case). Run `./skills/bin/manage.sh check` to verify: check #12 fails if a `CLAUDE.md` exists.
+2. **Zero failing tests.** All tests must pass before you commit. No exceptions: fix even failures that were already
+   there. Never ignore them.
 
 ### How Skills Are Discovered
 
-Skills are exposed to agents via two discovery paths:
+Agents find skills in two places:
 
-- **Claude Code** scans `.claude/skills/<name>/SKILL.md` — full skill directories (including `references/`, `scripts/`, `assets/`)
-- **Codex** scans `.agents/skills/<name>/SKILL.md` — full skill directories (same structure)
+- **Claude Code** scans `.claude/skills/<name>/SKILL.md`: full skill directories (with `references/`, `scripts/`,
+  `assets/`).
+- **Codex** scans `.agents/skills/<name>/SKILL.md`: full skill directories (same structure).
 
-Each skill at `skills/skills/<name>/` is copied in full to both `.claude/skills/<name>/` and `.agents/skills/<name>/`. This preserves the complete directory structure so relative references (e.g., `references/components.md`) resolve correctly.
+Each skill at `skills/skills/<name>/` is copied in full to both `.claude/skills/<name>/` and `.agents/skills/<name>/`.
+The whole directory comes along, so relative references (e.g. `references/components.md`) still resolve.
 
-These directories **must be committed to version control** so that every clone has them. The `install`, `sync`, and `link` commands create and maintain these directories automatically.
+These directories **must be committed to version control**, so every clone has them. The `install`, `sync` and `link`
+commands create and maintain them.
 
-1. Read `skills/skills/<skill-name>/SKILL.md` for step-by-step instructions
-2. Load any supplementary files from `skills/skills/<skill-name>/references/` on demand
-3. Follow the skill's instructions to complete the task
+To use a skill:
+
+1. Read `skills/skills/<skill-name>/SKILL.md` for step-by-step instructions.
+2. Load any extra files from `skills/skills/<skill-name>/references/` when you need them.
+3. Follow the skill's instructions to finish the task.
 
 ### Skill Version Reporting
 
-When you run a skill, include a version summary at the end of your output so the user can confirm you're using the latest version. Extract the `metadata.version` from the local `SKILL.md` frontmatter, then compare it against upstream `main`:
+When you run a skill, end your output with a version summary, so the user can confirm you use the latest version. Take
+`metadata.version` from the local `SKILL.md` frontmatter, then compare it with upstream `main`:
 
 ```bash
 # Get the upstream version (origin/main is kept fresh by the SessionStart hook)
 git -C skills show origin/main:skills/<skill-name>/SKILL.md 2>/dev/null | sed -n '/^---$/,/^---$/p' | grep 'version:'
 ```
 
-Print the version summary in this format:
+Print the summary in this format:
 
 ```
 Skill: <skill-name> | Local: <local-version> | Latest: <upstream-version>
 ```
 
-If the versions match, append `(up to date)`. If they differ, append `(update available — run ./skills/bin/manage.sh sync)`. If the upstream version cannot be fetched (offline), append `(upstream check skipped — offline)`.
+If the versions match, add `(up to date)`. If they differ, add `(update available — run ./skills/bin/manage.sh sync)`.
+If you can't fetch the upstream version (offline), add `(upstream check skipped — offline)`.
 
 ### Available Skills
 
-Skills are discovered from `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex). Only non-excluded, non-internal skills appear in these directories.
+Skills are found in `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex). Only skills that are not excluded and
+not internal appear there.
 
 To see which skills are available:
 
@@ -88,11 +109,12 @@ ls .claude/skills/
 ./skills/bin/manage.sh status
 ```
 
-Each skill has a `SKILL.md` with instructions. Read it at `skills/skills/<name>/SKILL.md` (or `.claude/skills/<name>/SKILL.md`).
+Each skill has a `SKILL.md` with instructions. Read it at `skills/skills/<name>/SKILL.md` (or
+`.claude/skills/<name>/SKILL.md`).
 
 ### Keeping Skills Up to Date
 
-When the user asks to update skills, or when `check` reports the submodule is behind:
+When the user asks to update skills, or `check` says the submodule is behind:
 
 ```bash
 ./skills/bin/manage.sh sync
@@ -102,16 +124,18 @@ git commit -m "chore: sync skills submodule to latest main"
 
 ### Contributing Skill Improvements
 
-If you discover a gap, error, or better approach in any skill while working here, improve it upstream rather than working around it locally:
+If you find a gap, an error or a better approach in any skill while working here, improve it upstream. Don't work
+around it locally. Write the change in the house style of the `skill-writing` skill.
 
-1. `cd skills` — enter the submodule
+1. `cd skills` to enter the submodule.
 2. `git checkout -b improve/<skill-name>-<brief-description>`
-3. Edit `skills/<skill-name>/SKILL.md` or its reference files
+3. Edit `skills/<skill-name>/SKILL.md` or its reference files.
 4. `git add <files> && git commit -m "improve(<skill-name>): <what and why>"`
-5. Attempt `git push -u origin improve/<skill-name>-<brief-description>`
-6. **If push succeeds:** give the user a link to create the PR:
+5. Try `git push -u origin improve/<skill-name>-<brief-description>`.
+6. **If the push succeeds:** give the user a link to create the PR:
    `https://github.com/astrojams1/skills/compare/main...improve/<skill-name>-<brief-description>`
-7. **If push fails** (403 / permission denied): tell the user the branch name and what it contains, and ask them to push from a local checkout of `astrojams1/skills` and open the PR
+7. **If the push fails** (403 or permission denied): tell the user the branch name and what it contains. Ask them to
+   push from a local checkout of `astrojams1/skills` and open the PR.
 8. Return to the consumer project: `cd ..`
 
 After the PR merges, sync this project:

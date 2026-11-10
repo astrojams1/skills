@@ -144,7 +144,7 @@ The icon buttons must visually align with the app name's cap-height (the top of 
 | Button padding | `p-2.5` (10px) | Centers the 20px icon in a 40px button; icon midpoint aligns with the title's cap-height |
 | Flex alignment | `items-start` | Top-aligns the button box with the title box so the padding offset produces the correct optical position |
 
-With `items-start`, the button's top edge aligns with the title's top edge. The 10px top padding then pushes the icon center down to ~20px, which matches the cap-height of `text-[26px]` Tenor Sans. Using `items-center` instead would push buttons down because the title's `leading-tight` line-height is taller than the button, and the icons would sit too low.
+With `items-start`, the button's top edge aligns with the title's top edge. The 10px top padding then pushes the icon center down to ~20px, which matches the cap-height of `text-[26px]` Tenor Sans. Don't use `items-center`. The title's `leading-tight` line-height is taller than the button, so centering pushes the icons too low.
 
 **Common mistakes that break the sidebar header:**
 1. **Missing icon size** — Lucide React defaults to 24px. Every icon MUST have `className="w-5 h-5"` or it will be oversized and misaligned with the title text.
@@ -300,7 +300,7 @@ Wrap the input in a relative container and position the suffix absolutely. The i
 </div>
 ```
 
-**When to show the unit suffix:** Show it when the field represents a physical measurement or quantity with a meaningful unit (inches, pixels, percent, feet, degrees). Omit it for dimensionless counts or identifiers:
+**When to show the unit suffix:** Show it when the field is a measurement or quantity with a real unit (inches, pixels, percent, feet, degrees). Omit it for dimensionless counts or identifiers:
 
 | Show suffix | No suffix |
 |-------------|-----------|
@@ -489,7 +489,7 @@ Interaction: the label changes from `text-text-muted` to `text-primary` on group
 
 ## SVG / Canvas Measurement Annotations
 
-Apps that draw measurement lines, dimension annotations, or ruler overlays on a canvas or SVG viewport must use the terracotta accent color — not default black or framework defaults.
+Apps that draw measurement lines, dimension annotations or ruler overlays on a canvas or SVG use the terracotta accent color. Never use default black or framework defaults.
 
 **Dimension line with capped ends and value label:**
 
@@ -515,7 +515,7 @@ Apps that draw measurement lines, dimension annotations, or ruler overlays on a 
 - **Cap size:** Short perpendicular lines (~8px total) at each measurement endpoint, same terracotta color
 - **Label:** A small filled rectangle (`fill="#C67D63"`) with `rx="4"` for legibility, containing white bold text centered on the line
 - **Pointer events:** Add `pointer-events="none"` to the measurement group so annotations don't interfere with canvas interaction
-- **Scaling:** When the canvas has a dynamic scale factor, divide stroke widths, font sizes, and cap sizes by the scale to keep annotations a consistent screen size regardless of zoom
+- **Scaling:** When the canvas has a dynamic scale factor, divide stroke widths, font sizes and cap sizes by the scale. Annotations then keep the same screen size at any zoom.
 - **Short measurements:** When the dimension line is very short (< ~40px rendered), offset the label above or beside the line instead of overlapping it
 
 **React helper pattern (from reference implementation):**

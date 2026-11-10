@@ -6,8 +6,10 @@ file, so decide once and keep to it.
 ## Thesis (stage 6)
 
 Shape: "<Method/system> achieves <measured outcome> on <task/benchmark> under <constraint>, and <the
-mechanism/finding that explains it>." Keep the constraint honest: "without training" means no gradient
-updates anywhere, including no fine-tuning of the classical part; "cheap" is a number with what it includes.
+mechanism/finding that explains it>."
+
+Keep the constraint honest. "Without training" means no gradient updates anywhere, including no fine-tuning of the
+classical part. "Cheap" is a number with what it includes.
 
 ## Paper type (stage 7)
 
@@ -37,8 +39,8 @@ template requirement; use the skill template (article class, 10pt, two-column op
 
 ## Scope and length (stage 10)
 
-Write "In scope" and "Out of scope" lists. Out-of-scope items are things a reviewer might expect that the
-paper explicitly declines to address, with the sentence in the paper that says so. Target page count.
+Write "In scope" and "Out of scope" lists. An out-of-scope item is something a reviewer might expect that the
+paper explicitly declines to address. Give the sentence in the paper that says so. Target page count.
 
 ## Mathematical treatment (stage 11)
 

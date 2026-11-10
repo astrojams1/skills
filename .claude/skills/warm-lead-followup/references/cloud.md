@@ -1,15 +1,50 @@
 # Cloud deployment
 
-Use a hosted scheduler with connected Gmail and a private, writable, durable cloud ledger. Keep lead records separate from the skill's Git source. The user requested cloud execution, so do not silently substitute the desktop automation tool's local cron/heartbeat.
+Use a hosted scheduler with connected Gmail and a private, writable, durable cloud ledger. Keep lead records apart
+from the skill's Git source. The user asked for cloud runs, so never quietly swap in the desktop automation tool's
+local cron or heartbeat. A hosted run needs the skill instructions, the app profile, the Gmail connection and a
+writable durable ledger, all without this Mac. A local heartbeat, local cron job or sandbox file does not count.
 
-For the initial Pipsqueak deployment, the private ChatGPT Page titled `Pipsqueak warm lead followup ledger` holds the app profile, runtime instructions, JSON lead register and JSONL skill activity. The Pages tools provide a supported hosted scheduler through a Page auto-update controller and its managed worker.
+For the first Pipsqueak deployment, the private ChatGPT Page titled `Pipsqueak warm lead followup ledger` holds the
+app profile, runtime instructions, JSON lead register and JSONL skill activity. The Pages tools give a supported
+hosted scheduler through a Page auto-update controller and its managed worker.
 
-1. Read an existing intended Page and its instructions, or create a private Page when none serves this deployment. Take block schemas from the Pages tools themselves, or from a Page-writing skill where the host provides one; this skill bundles none, so read them before writing. Put enough maintained runtime guidance in a native Agent Instructions block that a cloud worker can run without a local checkout. Include the owner's send authority, actual mailbox, skill source URL/version, email-reading and idempotency rules, Pipsqueak goal/iPhone requirement, followup policy, and ledger schema. Do not embed credentials.
-2. Read `get_page_auto_update` and `list_page_automations`. Reuse the worker that already serves this app; do not duplicate it. If no controller exists, `set_page_auto_update` with a retained idempotency key creates the hosted controller. Read back its ID and state. The controller reconciles the Page and workers, and must not send lead followups itself.
-3. Use `create_controller_automation` with the exact active controller ID for the lead worker. Include the full Page URL and instruct the worker to read current Page instructions/profile/register before Gmail. For this deployment the default is daily at 08:00, 10:00, 12:00, 14:00, 16:00 and 18:00 in `America/Los_Angeles`, unless the user changes it. Use an explicit timezone with the schedule; preserve requested timing.
-4. Read back `list_page_automations` and verify that the worker is active, enabled, has `runtime:cloud`, and has the intended schedule/timezone. Record exact provider IDs and verified configuration in the private ledger. After a failed or uncertain creation, inspect existing schedules before retrying; a paused worker may already exist.
-5. Keep the controller responsible for maintaining Page state and supervising its worker, and the worker responsible for mail actions. A controller may verify existing configuration without adding or changing schedules on each run. If a run is requested for validation, distinguish a run acceptance receipt from completion; verify the actual mailbox read and cloud-ledger update before claiming the worker works end to end. A cloud/connector outage must surface without falling back to sending from an untracked local job.
+## Set it up
 
-The cloud copy is a deployed version of the Git skill. When updating the skill, reconcile the Page instructions and source revision explicitly; do not assume the scheduler loads local files or a private GitHub URL automatically. A source URL aids review; the Page runtime copy keeps the deployed worker self-contained. Preserve action keys, opt-outs and outstanding handoffs when updating the deployment.
+1. **Find or make the Page.** Read the intended Page and its instructions if one exists. Otherwise create a private
+   Page for this deployment. Take block schemas from the Pages tools themselves, or from a Page-writing skill where
+   the host has one. This skill bundles none, so read them before writing.
+   - Put enough runtime guidance in a native Agent Instructions block for a cloud worker to run without a local
+     checkout.
+   - Include the owner's send authority, the actual mailbox, and the skill source URL and version.
+   - Include the email-reading and idempotency rules, the Pipsqueak goal and iPhone requirement, the followup policy
+     and the ledger schema.
+   - Never embed credentials.
+2. **Find or make the controller.** Read `get_page_auto_update` and `list_page_automations`. Reuse the worker that
+   already serves this app. Never make a duplicate. If no controller exists, `set_page_auto_update` with a kept
+   idempotency key creates the hosted controller. Read back its ID and state. The controller keeps the Page and
+   workers in line. It must never send lead followups itself.
+3. **Make the worker.** Use `create_controller_automation` with the exact active controller ID for the lead worker.
+   Include the full Page URL. Tell the worker to read the current Page instructions, profile and register before
+   Gmail. For this deployment the default is daily at 08:00, 10:00, 12:00, 14:00, 16:00 and 18:00 in
+   `America/Los_Angeles`, unless the user changes it. Give the schedule an explicit time zone. Keep any timing the
+   user asked for.
+4. **Verify.** Read back `list_page_automations`. Check that the worker is active and enabled, has `runtime:cloud`,
+   and has the intended schedule and time zone. Record the exact provider IDs and the verified settings in the
+   private ledger. After a failed or unclear creation, check the existing schedules before you retry. A paused worker
+   may already exist.
 
-Stay quiet on unchanged or non-actionable scans. Notify only on meaningful new interest, a sent coordination step, confirmed progress, failure, or required owner action. Do not configure a second sender for the same app/mailbox/threads.
+## Keep it running
+
+- **Split the jobs.** The controller keeps the Page state and watches its worker. The worker does the mail actions. A
+  controller may check the existing settings without adding or changing schedules on each run.
+- **A receipt is not a run.** When a run is requested to test it, tell a run acceptance receipt apart from a finished
+  run. Verify the real mailbox read and the cloud ledger update before you say the worker works end to end.
+- **Outages show.** A cloud or connector outage must surface. Never fall back to sending from an untracked local job.
+- **Update on purpose.** The cloud copy is a deployed version of the Git skill. When the skill changes, bring the
+  Page instructions and source revision up to date by hand. Don't assume the scheduler loads local files or a
+  private GitHub URL. The source URL helps review. The Page's runtime copy keeps the worker self-contained. Keep
+  action keys, opt-outs and open handoffs when you update the deployment.
+- **Stay quiet.** Say nothing on unchanged or non-actionable scans. Notify only on real new interest, a coordination
+  step sent, confirmed progress, a failure, or an action the owner must take.
+- **One sender.** Never set up a second sender for the same app, mailbox or threads.

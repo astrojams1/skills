@@ -16,7 +16,7 @@ the ledger, a gotcha) goes to the shared skill in the skills repository, never h
 
 - Configuration: `app-release.config.json`; store data: `<path>`.
 - Ledger: `<gates json>` (view `<view md>`); run log `<runs md>`.
-- Kind of app: `<game|news|…>` — see the shared `references/app-types.md`.
+- Kind of app: `<game|news|…>`. See the shared `references/app-types.md`.
 
 ## Facts
 

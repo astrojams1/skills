@@ -16,6 +16,7 @@ and **Open issues** before every run.
 | 0.3.0 | 2026-11-03 | "App videos from screen recordings": render with app-release's `app-preview.swift` (per-clip `shift`, `fade`, caption `centerX`); ffmpeg and numpy are not preinstalled. | Füd's Short needed the phone to follow each scene's subject; the App Store preview's fixed frame hid the form's chips and button under the title stack. |
 | 0.4.0 | 2026-11-03 | "Make it worth watching" (hook, payoff number, 10–15 s, sound, series, rehearse inputs); `soundtrack.mjs`; app-preview.swift `zoom`/`focus`/per-clip `move`, caption overrides, `box`, `pop`. | The owner judged the 0.3.0 Short (a silent 29 s tour) would get no engagement; the skill had covered framing, not whether anyone would watch. |
 | 0.5.0 | 2026-11-04 | `soundtrack.mjs` varies its bed from a seed (tempo, key, progression, pattern, feel) and prints the signature; points to the new app-shorts and youtube-growth skills. | Research: the spam policy names identical background music across many videos; the owner asked for a pipeline for every app and a follow-up skill. |
+| 0.6.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. "Workflow" is now "A run" and comes before the craft sections | The owner asked that every skill read as one author wrote it, plainly |
 
 ## Measurements
 

@@ -10,6 +10,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.0.0 | 2026-11-07 | Initial skill: discovery buckets, saved decisions, triage rules, repository notes | The owner asked for the first manual cleanup (8 merged, 6 closed) to run every week |
 | 1.1.0 | 2026-11-10 | Discovery finds every open PR: `windowDays` is null, so PRs quiet for more than 30 days are no longer dropped | The owner asked that scheduled runs do all known work; the 30-day window hid the most abandoned PRs. The weekly task's stored prompt is now a pointer, written in the skill |
 | 1.2.0 | 2026-11-10 | A run fixes what it finds; thin evidence is work for the run; the report lists anything left open with its blocker. "Never end by asking" and reading `/Users/astro/AGENTS.md` moved here from the old prompt | James: a run that notes an issue and leaves it is being lazy |
+| 1.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. The run rules block replaces the skill's own copies of those rules, and the report names what is left open. Same structure as its pair skill | The owner asked that every skill read as one author wrote it, plainly |
 
 ## Lessons
 

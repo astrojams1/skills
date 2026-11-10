@@ -11,6 +11,7 @@ app-shorts registry; each run goes in the owner's activity ledger.
 | 1.0.1 | 2026-11-06 | Uploads, pins and metadata edits on a released app's Shorts follow the standing instruction in `app-shorts`. | The owner does not approve each app's Shorts. |
 | 1.1.0 | 2026-11-06 | Comment replies and channel settings need no go-ahead. | The owner removed these last approvals. |
 | 1.2.0 | 2026-11-06 | `yt-api.mjs unanswered` and `reply`: list open comments on live Shorts and answer one, refusing links, long text and threads already answered. | Replies had no way to post unattended; the owner wants them to run without them. |
+| 1.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. The run rules block applies when a scheduled pass runs this skill | The owner asked that every skill read as one author wrote it, plainly |
 
 ## Experiments
 

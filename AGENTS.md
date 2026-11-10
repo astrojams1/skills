@@ -26,7 +26,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Process health check reports and fix issues
   app-release/
     SKILL.md                               # App Store + Google Play release process for every app
-    references/{config,accounts,ios,android,privacy,media,verification,app-types,standards,ledger,maintaining}.md
+    references/{config,accounts,ios,android,privacy,media,verification,app-types,standards,ledger,maintaining,scripts,daily-review-run,promotion}.md
     scripts/{ledger,ios-release,asc,android-release,play,standards,review-sweep}.mjs, scripts/lib/   # Shared release tooling (Node 22, no deps)
     assets/                                # Config, store data and repository-skill templates; the app standards catalog and Send Feedback references
     ledger/LEDGER.md, ledger/runs/         # Cross-app run index and lessons
@@ -63,6 +63,11 @@ skills/                                    # Skill definitions (Agent Skills spe
     SKILL.md                               # Wire another repo to this skills submodule
     scripts/quick-check.sh                 # Fast pass/fail integration check
     references/agent-instructions.md       # Template for consumer AGENTS.md
+  skill-writing/
+    SKILL.md                               # Write or rework a skill in the house style
+    assets/template.md                     # The standard SKILL.md shape to copy
+    scripts/readability.py                 # Reading grade and long-sentence count for a SKILL.md
+    ledger/LEDGER.md                       # The skill's own append-only ledger
   workflow-orchestration/
     SKILL.md                               # Workflow orchestration practices for AI agents
   abandoned-prs/
@@ -132,15 +137,19 @@ Skills cluster into recurring categories. Use this taxonomy to identify gaps in 
 
 ## Writing Good Skills
 
-- **Don't state the obvious.** Claude already knows a lot about coding. Focus on information that pushes Claude out of its default behavior — gotchas, internal conventions, edge cases.
-- **Build a Gotchas section.** The highest-signal content in any skill. Build it up from failure points Claude hits when using the skill. Update it over time as new edge cases emerge.
-- **Use the file system for progressive disclosure.** A skill is a folder, not just a markdown file. Tell Claude what files exist in `references/`, `scripts/`, and `assets/` — it will read them at appropriate times.
-- **Don't over-specify.** Give Claude the information it needs but leave flexibility to adapt. Skills are reusable across contexts — being too specific breaks reuse.
-- **Store scripts and libraries.** Giving Claude pre-built scripts lets it spend turns on composition (deciding what to do) rather than reconstruction (rebuilding boilerplate). E.g., data fetching helpers, verification scripts.
-- **The description field is for the model.** The description is what Claude scans to decide "is there a skill for this request?" Write it as a trigger description, not a summary. Include specific keywords and "Use when..." patterns.
-- **Start small, iterate.** Most good skills began as a few lines and a single gotcha. They got better because people kept adding to them as Claude hit new edge cases.
+Write and rework every skill with [`skills/skill-writing/SKILL.md`](skills/skill-writing/SKILL.md). It holds the
+standard shape, the run rules block every scheduled skill carries, and the plain-words rules (an 8th grader should
+follow each sentence). `python3 skills/skill-writing/scripts/readability.py skills/*/SKILL.md` grades them, and
+`tests/test_readability.py` fails any `SKILL.md` over grade 9 (James, 2026-11-10).
+
+- **The description is for the model.** Say what the skill does, then "Use when…" with the words a person would type.
+- **Write gotchas.** They are the highest-signal part. Add one each time a run trips on something.
+- **Use the folder.** Detail goes in `references/`, code in `scripts/`, templates and data in `assets/`.
+- **Start small and grow.** Most good skills began as a few lines and one gotcha.
 
 ## Skills Run by Routines
+
+Every scheduled skill carries the short run rules block from `skills/skill-writing/SKILL.md`, word for word. The rules below are the full form.
 
 - **A routine's prompt never restates its skill.** The prompt of a routine or scheduled task says only what the skill can't know: which skill to run, where the repository is checked out, that the run is unattended, how to load tools in that environment, and the final message format when a notification shows it. Every step, rule and limit lives in the skill (or the file it points to), so the two can't drift apart. When a prompt seems to need more, move that text into the skill (James, 2026-11-08).
 - **A scheduled run clears its known work.** Each run works through every open item it can safely do together (every backlog idea, every app pending release, every due thread), not one item a run. Skip only what is blocked, with the reason, so no backlog builds up between runs, above all for skills that run rarely (James, 2026-11-08).
@@ -215,6 +224,17 @@ When the user asks to add skills to a project, read `skills/skill-orchestrator/S
 - **Exclude a skill:** Add the skill name to `.skillsexclude` in the target project (one per line), then run `./skills/bin/manage.sh link` to remove it from discovery directories
 - **Check integrity:** Run `./skills/bin/manage.sh check` from the target project
 - **Sync to latest:** Run `./skills/bin/manage.sh sync` from the target project
+
+### Skill Writing — The House Style for Skills
+
+**Skill:** `skills/skill-writing/SKILL.md`
+
+Writes or reworks a skill so every skill reads as if one person wrote it: the same shape, plain words, nothing extra.
+
+- The standard shape and a template to copy
+- The run rules block that every scheduled skill carries word for word
+- `scripts/readability.py` to grade a `SKILL.md`
+- Rework steps that keep every behavior while cutting what is not needed
 
 ### Simplify — Code Quality & Review
 
@@ -452,7 +472,7 @@ Read `skills/skill-integration-prompt/SKILL.md`, copy the prompt between the `--
 5. **Use progressive disclosure.** Keep `SKILL.md` concise (< 500 lines). Move detailed reference material (full HTML patterns, verbose CSS) into `references/` files that agents load on demand.
 6. **SKILL.md summarizes; references/ implements.** `SKILL.md` should state *what* and *why* — principles, token definitions, component names, brief behavioral summaries, and pointers to `references/`. It should NOT contain full implementation examples (exact class strings, HTML snippets, code blocks) when those already exist in `references/` files. If a concept needs a code example, put the example in `references/` and add a one-line summary + link in `SKILL.md`.
 7. **Dependent skills reference, never duplicate.** When one skill depends on another (e.g., a migration prompt depends on the design system skill), it must reference the source skill's sections by name rather than re-specifying the same information. Migration-specific additions (translation mappings, workflow phases, constraints) are fine; re-stating the source skill's class strings, property values, or patterns is not.
-8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_no_hidden_caps.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
+8. **Zero failing tests.** All tests must pass before committing. No exceptions — even pre-existing failures must be fixed, not ignored. Run `bash tests/test-manage.sh`, `bash tests/test-identity.sh`, `python3 tests/test_skills_spec.py`, `python3 tests/test_no_hidden_caps.py`, `python3 tests/test_readability.py`, `python3 tests/test_youtube_shorts_fit.py`, `node --test tests/app-release/*.test.mjs`, `node --test tests/ouro-website/*.test.mjs`, `node --test tests/astrojams-website/*.test.mjs` and `node --test tests/youtube-shorts/*.test.mjs` (Node 22) to verify.
 
 ## Workflow Orchestration
 

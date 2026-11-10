@@ -27,8 +27,15 @@ Apple's [Apps API documentation](https://developer.apple.com/documentation/appst
 explicitly directs initial app-record creation to the website (checked 2026-10-26).
 `POST /v1/bundleIds` registers a provisioning identifier; it does not create that app record.
 The earlier observed `POST /v1/apps` response was 403, “does not allow CREATE”; do not
-repeat that unsupported probe. Explain the known boundary in the first relevant update,
-as directed by the skill entrypoint. Use an authorized signed-in browser or Xcode session.
+repeat that unsupported probe, and don't ask for new credentials to work around it.
+
+**Explain the boundary early.** When the record is missing, say so in the first progress update it affects, before
+the owner has to ask why you aren't using the API. State apart the verified credential status, the authorized browser
+or Xcode route you use, and any tool failure you saw. Keep independent preparation moving: a UI failure does not make
+the credentials or the rest of the release unavailable. Once the record exists, upload and use TestFlight with the
+existing key. Recheck Apple's documentation during onboarding, and update this guidance if Apple changes it.
+
+Use an authorized signed-in browser or Xcode session.
 Preserve the owner's existing scope authorization; do not ask them
 to create a record merely because the API cannot. Do not extract browser cookies or trigger credential
 fallback outside the authorized sign-in scope. Ordinary authorized UI navigation and existing

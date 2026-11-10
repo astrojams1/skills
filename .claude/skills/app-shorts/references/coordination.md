@@ -5,19 +5,19 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 ## With app-release
 
 - **A release is an episode.** When `app-release` ships a feature (What's New names something people can see),
-  add an `idea` episode for it in the registry, and record it from the release build once it is live. The app
-  preview's take is real footage of the same build: reuse its moments for a Short's B-roll, but cut the Short for
-  YouTube (a hook, one payoff, 10–20 s, sound).
+  add an `idea` episode for it in the registry. Record it from the release build once it is live. The app
+  preview's take is real footage of the same build. Reuse its moments for a Short's B-roll, but cut the Short for
+  YouTube: a hook, one payoff, 10–20 s, sound.
 - **Promotion checklist.** `app-release/references/promotion.md` lists YouTube Shorts; its release brief should say
   which episode, if any, goes out with the release.
 
 ## With the App Store
 
-- **Attribution:** links from YouTube (channel links, long-video descriptions, pinned comments where links are
-  allowed) use `shorts.mjs link <app> <campaign>`, which adds the team's provider token (`pt`) and a campaign token
-  (`ct`, e.g. `yt-fud-crusts`). App Store Connect → Analytics then reports product page views, downloads and
+- **Attribution:** links from YouTube use `shorts.mjs link <app> <campaign>`. That covers channel links, long-video
+  descriptions, and pinned comments where links are allowed. It adds the team's provider token (`pt`) and a campaign
+  token (`ct`, e.g. `yt-fud-crusts`). App Store Connect → Analytics then reports product page views, downloads and
   proceeds per campaign. Record each team's provider token in the registry's `teams` (App Store Connect →
-  Analytics → Campaigns shows it); without it the link works but is unattributed.
+  Analytics → Campaigns shows it). Without it the link works but is unattributed.
 - **Search:** Shorts say "Search '<App name>' on the App Store". Use the store name exactly, so the search lands.
 - **Promotional text** can echo a running series ("As seen on our Shorts: …"); it changes without App Review
   (`asc.mjs listing`).
@@ -25,8 +25,8 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 ## With the marketing websites
 
 - Each app's page on the Ouro site (`ouro-website`) or the astrojams site (`astrojams-website`) is its Marketing
-  URL. Link the channel from the site's footer or an app page only through those skills' own update path (the
-  shared showcase in `astrojams1/app-sites` changes both sites at once).
+  URL. Link the channel from the site's footer or an app page only through those skills' own update path. The
+  shared showcase in `astrojams1/app-sites` changes both sites at once.
 - The showcase has no video slot yet (a known gap in `ouro-website`'s ledger). When one exists, the registry's live
   episodes (`videoId`) are the source for it; until then, do not hand-edit embeds into a site.
 

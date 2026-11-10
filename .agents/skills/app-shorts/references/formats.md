@@ -18,7 +18,7 @@ numbers. Each line below is a starting point, not a script.
 
 ## Per app (seeds; check the app's current features before using one)
 
-- **Füd** (family food tracker, describe a meal): "Can Füd work out this meal?", with relatable parent meals
+- **Füd** (family food tracker, describe a meal): "Can Füd work out this meal?" Use relatable parent meals
   (crusts, leftovers, dinner for three) and comment-supplied meals. Live as series 1.
 - **Giraffe Stretch** (letter game for little learners): a 7–10 s calm loop per letter ("Calm and cute ABCs"),
   the channel's best performer so far.

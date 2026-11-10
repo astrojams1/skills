@@ -1,14 +1,18 @@
 # Stage playbook
 
-Each stage: inputs → work → artifact → gate. Artifact templates are given as headings; keep them, add under
-them. Write artifacts as plain markdown with tables where they help; they are working documents, not prose.
+Each stage: inputs → work → artifact → gate. Artifact templates are given as headings. Keep them, and add under
+them. Write artifacts as plain markdown, with tables where they help. They are working documents, not prose.
 
-## Stage 1 — Understand the project deeply → `00-understanding.md`
+## Stage 1: Understand the project deeply → `00-understanding.md`
 
-Read, in this order: README and any docs; the entry point(s); every file that implements the core idea, in
-full (not skimmed — the paper's method section is written from these); the evaluation/scoring code; every
-results file (JSON/CSV/logs) — load them programmatically and print summaries; changelogs, benchmark logs,
-`git log` (commit messages and dates carry the experimental narrative).
+Read, in this order:
+
+1. The README and any docs.
+2. The entry point(s).
+3. Every file that implements the core idea, in full, not skimmed. The paper's method section is written from these.
+4. The evaluation and scoring code.
+5. Every results file (JSON/CSV/logs). Load them programmatically and print summaries.
+6. Changelogs, benchmark logs and `git log`. Commit messages and dates carry the experimental narrative.
 
 Artifact headings:
 
@@ -24,32 +28,35 @@ Artifact headings:
 ```
 
 Gate: a results table where every row names a file. If a headline number in the README has no file, mark it
-"unbacked" — it cannot appear in the paper.
+"unbacked". It cannot appear in the paper.
 
-## Stage 2 — Infer the research question → `01-research-question.md`
+## Stage 2: Infer the research question → `01-research-question.md`
 
-Write three candidate questions; for each, the evidence that would answer it and whether the repo has that
-evidence. Choose one. Typical shapes: "Can X be done with Y under constraint Z?", "How much of capability C
-comes from component A vs B?", "What is the cost/accuracy frontier of approach P on task T?".
+Write three candidate questions. For each, give the evidence that would answer it and whether the repo has that
+evidence. Choose one. Typical shapes:
+
+- "Can X be done with Y under constraint Z?"
+- "How much of capability C comes from component A vs B?"
+- "What is the cost/accuracy frontier of approach P on task T?"
 
 Gate: the chosen question is falsifiable and the repo's evidence bears on it.
 
-## Stage 3 — Discover results and contributions → `02-contributions.md`
+## Stage 3: Discover results and contributions → `02-contributions.md`
 
-List every candidate contribution (aim for 6-12, then prune to 3-5 for the paper): method components,
-benchmark/protocol, empirical findings (including negative ones and failure taxonomies), cost/time analyses,
-tooling. Table columns: contribution, evidence (file), strength (strong/medium/weak), reviewer objection.
+List every candidate contribution. Aim for 6-12, then prune to 3-5 for the paper. Kinds: method components,
+benchmark/protocol, empirical findings (negative ones and failure taxonomies too), cost/time analyses, tooling.
+Table columns: contribution, evidence (file), strength (strong/medium/weak), reviewer objection.
 
 Hidden-result sources: iteration histories (each row is an ablation), reverted attempts (negative results),
 capacity/scaling ladders, per-instance failure notes, transcripts.
 
-## Stage 4 — Literature → `03-literature.md` + `refs.bib`
+## Stage 4: Literature → `03-literature.md` + `refs.bib`
 
 Follow `literature.md`. Output: search log (query, source, date, hits kept), then an annotated bibliography
 grouped by theme, 1-3 sentences each on relation to this work. 20-40 entries is typical for a full paper,
 8-15 for a short report.
 
-## Stage 5 — Novelty → `04-novelty.md`
+## Stage 5: Novelty → `04-novelty.md`
 
 ```
 ## Closest prior work (3-8)
@@ -59,17 +66,18 @@ grouped by theme, 1-3 sentences each on relation to this work. 20-40 entries is 
 ## What would falsify the novelty claim (a paper we might have missed; how we searched for it)
 ```
 
-## Stage 6 — Thesis → `05-decisions.md` (section "Thesis")
+## Stage 6: Thesis → `05-decisions.md` (section "Thesis")
 
 One sentence. Test: every word is backed; removing any word weakens it; a reviewer can check it from the
-paper's tables. Write two rejected broader versions and why they were rejected.
+paper's tables. Write two rejected broader versions and why they were rejected. Example: "world's cheapest X"
+becomes "X at $0.03 and 22 s per instance with no training, on this benchmark".
 
-## Stages 7-12 — Type, audience, venue, scope, math, style → `05-decisions.md`
+## Stages 7-12: Type, audience, venue, scope, math, style → `05-decisions.md`
 
 See `decisions.md` for the option menus. Record each decision with a one-line reason. The file is the contract
 the reviews check against.
 
-## Stage 13 — Missing experiments → `06-experiments.md`
+## Stage 13: Missing experiments → `06-experiments.md`
 
 For each outline claim (or contribution), list what a reviewer of the chosen audience would demand:
 
@@ -80,21 +88,27 @@ For each outline claim (or contribution), list what a reviewer of the chosen aud
 - cost/time breakdown (what dominates)
 - failure analysis (taxonomy with counts)
 
-Classify: **runnable here** (no cost, tools available), **runnable by user** (exact command, estimated cost,
-expected effect on the paper), **out of scope** (reason; how the paper's wording avoids the claim).
+Classify each one:
 
-Always in the "runnable here" list when the evaluated code is deterministic and free to run: a fresh test set
-(new seeds/instances, ≥100, bootstrap CI), the exact-commit re-run of every headline number, the
-"classical/tool part alone" ablation, and a table of the instances where the headline component actually
-acted (cells > 1, retries, interventions) with the sign of its effect.
+- **runnable here:** no cost, tools available.
+- **runnable by user:** exact command, estimated cost, expected effect on the paper.
+- **out of scope:** the reason, and how the paper's wording avoids the claim.
 
-## Stage 14 — Run / recommend → `06-experiments.md` + `experiments/`
+When the evaluated code is deterministic and free to run, these are always in the "runnable here" list:
+
+- a fresh test set (new seeds/instances, ≥100, bootstrap CI)
+- the exact-commit re-run of every headline number
+- the "classical/tool part alone" ablation
+- a table of the instances where the headline component actually acted (cells > 1, retries, interventions), with
+  the sign of its effect
+
+## Stage 14: Run / recommend → `06-experiments.md` + `experiments/`
 
 Run the "runnable here" items; store raw outputs and the script that produced them. Re-analysis of existing
 result files counts as an experiment (per-instance error taxonomy, variance across repeated runs, cost curves).
 Write a "Recommended runs" section the user can execute verbatim.
 
-## Stage 15 — Outline → `07-outline.md`
+## Stage 15: Outline → `07-outline.md`
 
 Per section: purpose (one line), paragraphs (one line each, ending with the evidence pointer), figures/tables
 (name, data file, script). Standard skeleton: Abstract; Introduction (problem, why hard, what we do, claims);
@@ -103,7 +117,7 @@ Limitations; Conclusion; Appendix (prompts, full tables, reproducibility).
 
 Gate: every paragraph line ends with a pointer or the marker `[no evidence — cut or hedge]`.
 
-## Stage 16 — Draft → `main.tex`
+## Stage 16: Draft → `main.tex`
 
 - Copy `assets/template/` into `paper/<slug>/`. Fill metadata.
 - Figures: matplotlib scripts under `paper/<slug>/scripts/`, output PDF to `figures/`. Tables: scripts write
@@ -116,7 +130,7 @@ Gate: every paragraph line ends with a pointer or the marker `[no evidence — c
 - Disclosure paragraph if AI tools produced code, results or text.
 - Build after each section: `bash scripts/build.sh paper/<slug>`.
 
-## Stage 17 — Scientific review → `08-review-scientific.md`
+## Stage 17: Scientific review → `08-review-scientific.md`
 
 Subagent prompt (adapt paths):
 
@@ -130,16 +144,17 @@ template there. Do not fix anything; report.
 Then, below the report, add "## Response" with one entry per point: fixed (what changed) / rebutted (why) /
 deferred (why acceptable). Re-run the gate of any earlier stage a point invalidates.
 
-## Stage 18 — Writing review → `09-review-writing.md`
+## Stage 18: Writing review → `09-review-writing.md`
 
 Same pattern with rubric B; the editor gets `05-decisions.md` so it can check voice/scope drift.
 
-## Stage 19 — Submission checks → `10-submission-checks.md`
+## Stage 19: Submission checks → `10-submission-checks.md`
 
 Run `check_refs.py`, `build.sh --strict`, then checklist C. Every item pass/fail with the fix applied.
 
-## Stage 20 — Close
+## Stage 20: Close
 
-`ledger.py close`; fill totals; move new issues to `LEDGER.md` open issues; if the skill changed during the
-run, bump `metadata.version` in SKILL.md and add a version row. Deliver: PDF, the `paper/<slug>/` folder,
-and a short summary naming the thesis, venue, and the recommended experiments still to run.
+Run `ledger.py close` and fill the totals. Move new issues to the open issues in `LEDGER.md`. If the skill
+changed during the run, bump `metadata.version` in SKILL.md and add a version row. Deliver the PDF, the
+`paper/<slug>/` folder, and a short summary naming the thesis, venue, and the recommended experiments still to
+run.

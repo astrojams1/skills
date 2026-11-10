@@ -6,40 +6,38 @@ description: >-
   production issue and you want to ensure no accidental edits are made to files
   outside the area you're investigating. Invoke with /freeze.
 metadata:
-  version: "1.0"
+  version: "1.1.0"
 ---
 
-# Skill: Freeze Mode
+# Freeze
 
-Lock down file modifications to a single directory for the current session. Prevents accidental edits to files outside the area you're actively working in.
+**Allow edits in one directory only, for the rest of this session.** Read widely, but change only the area you are
+working in.
 
-## When to Use
+Use it to debug a production issue, or in a monorepo where the wrong package could break others. Use it to chase a bug
+without side effects, or any time you want to limit how far changes reach.
 
-- Debugging a production issue — you want to read broadly but only edit in one place
-- Working in a monorepo where touching the wrong package could break others
-- Investigating a bug where you want to guarantee you don't introduce side effects
-- Any time you want to restrict the blast radius of file changes
+Done means: every Edit or Write outside the chosen directory is refused, and the user hears what was blocked.
 
-## Activation
+## A run
 
-When this skill is invoked, ask the user which directory should remain editable. Then enforce the constraint:
+1. **Ask.** "Which directory should remain editable? Everything outside it will be frozen."
+2. **Store** the allowed path, for example `src/components/auth/`.
+3. **Check every Edit and Write.** Is the target file inside the allowed directory?
+4. **Refuse outside it.** Don't make the edit. Explain what was blocked and suggest other ways forward.
+5. **Go ahead inside it.** Edit as normal.
 
-1. **Ask:** "Which directory should remain editable? Everything outside it will be frozen."
-2. **Store** the allowed directory path (e.g., `src/components/auth/`)
-3. **Before every Edit or Write:** check if the target file is inside the allowed directory
-4. **If outside:** refuse the edit, explain what was blocked, and suggest alternatives
-5. **If inside:** proceed normally
+## Rules
 
-### Behavior
-
-- **Read** is always allowed everywhere — freeze only affects writes
-- **Glob** and **Grep** are always allowed — freeze only affects file modifications
-- **New file creation** follows the same rule — only inside the allowed directory
-- The allowed directory is matched as a prefix, so `src/auth/` allows `src/auth/login.ts` and `src/auth/utils/helpers.ts`
+- **Only writes are frozen.** Read, Glob and Grep work everywhere.
+- **New files follow the same rule.** Create them only inside the allowed directory.
+- **The path matches as a prefix.** `src/auth/` allows `src/auth/login.ts` and `src/auth/utils/helpers.ts`.
+- **Ask before you touch a frozen file.** Tell the user what you want to change and why. Let them lift the freeze or
+  make the edit themselves.
 
 ## Gotchas
 
-- This is a **session-level** constraint. It does not persist across sessions.
-- If you need to edit a frozen file, tell the user what you want to change and why. Let them decide whether to lift the freeze or make the edit themselves.
-- Relative paths are resolved from the project root. Be precise when specifying the allowed directory.
-- This does not prevent Bash commands from modifying files (e.g., `sed -i`). If you need full protection, combine with the `careful` skill.
+- **It lasts one session.** The freeze does not carry over.
+- **Relative paths start at the project root.** Be precise when you name the allowed directory.
+- **Bash can still write files.** Commands like `sed -i` get past the freeze. For full protection, also use the
+  `careful` skill.

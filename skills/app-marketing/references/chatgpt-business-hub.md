@@ -1,15 +1,15 @@
 # Businesses in ChatGPT (Business Hub)
 
-OpenAI opened this in beta on 2026-11-10. A business claims its profile in ChatGPT, keeps its details current, can
-connect a product feed, sees how often ChatGPT mentions it, and, if eligible, publishes a Business Agent that answers
-customers' questions. James, 2026-11-10: every one of our businesses uses it, and this file is kept up to date.
+OpenAI opened this in beta on 2026-11-10. A business claims its profile in ChatGPT and keeps its details current. It can
+connect a product feed and see how often ChatGPT mentions it. If eligible, it can publish a Business Agent that
+answers customers' questions. James, 2026-11-10: every one of our businesses uses it, and this file is kept up to date.
 
 This file covers all of them, not only the apps: Ouro, astrojams, Vegas Microworks and Clean Streets. Their own
 instructions link here.
 
 **Last checked against OpenAI's pages: 2026-11-10.** The feature is in beta and its rules will move. Re-read the
-sources below on the first run of each month, and whenever a claim, verification or agent step behaves differently
-from this file; then correct this file in the same run and change the date.
+sources below on the first run of each month. Also re-read them whenever a claim, verification or agent step behaves
+differently from this file. Then correct this file in the same run and change the date.
 
 ## Sources
 
@@ -25,13 +25,13 @@ openai.com and help.openai.com refuse plain fetches (403). Read them in a browse
 
 ## How it works
 
-1. **Claim.** Signed in to ChatGPT, open Business Hub, search for the business, pick the listing, and verify by one of
+1. **Claim.** Signed in to ChatGPT, open Business Hub, search for the business and pick the listing. Verify by one of
    the methods offered: a code to the business phone, a code to the business email, a DNS TXT record on the website's
    domain, or a Shopify store. An eligible online business that has no listing may be offered "add it". A local store
    or restaurant can only claim a listing that already exists, in the US. Claiming needs a website. OpenAI reviews the
    claim and emails its decision.
 2. **Identity check with Persona.** Needed before anything can be published: profile changes, a product feed,
-   insights, an agent. It may ask for a government ID, business registration details and proof of authority; the
+   insights, an agent. It may ask for a government ID, business registration details and proof of authority. The
    name, address and any registration or tax number must match official records. The blue check appears only after
    this is approved. If Persona is used to create a new profile, approval publishes it at once.
 3. **Profile.** Website, description, product or service category, logo, cover photo, delivery policy, return policy.
@@ -46,10 +46,10 @@ openai.com and help.openai.com refuse plain fetches (403). Read them in a browse
    website; it cannot take orders or bookings. It is published separately, after a preview.
 
 **Adding the DNS record.** ChatGPT asks for a TXT record named `openai-business-claim.<website host>`, valid for 24
-hours. `cleanstreets.io`'s DNS is at Squarespace Domains (the former Google Domains account), which has no API and
-whose connector has no DNS tools, so the owner adds it in the website. Squarespace's Name field takes only the part
+hours. `cleanstreets.io`'s DNS is at Squarespace Domains (the former Google Domains account). It has no API, and its
+connector has no DNS tools, so the owner adds the record in the website. Squarespace's Name field takes only the part
 before the domain: enter `openai-business-claim.www`, not the full name, or the domain is added twice. Check it with
-`dig +short TXT openai-business-claim.www.cleanstreets.io` before pressing Verify, and if ChatGPT looked first, wait
+`dig +short TXT openai-business-claim.www.cleanstreets.io` before pressing Verify. If ChatGPT looked first, wait
 five minutes: it remembers the earlier "no such record" answer for that long.
 
 Each brand is its own profile; there is no shared management across brands. The person who claimed it can add
@@ -58,23 +58,24 @@ There is no API: everything is done in Business Hub.
 
 ## Who does what
 
-**Only the owner:** signing in to ChatGPT, starting a claim, receiving and entering a verification code, the Persona
-identity check, accepting OpenAI's terms, and publishing a Business Agent. A run never does these, never enters a
+**Only the owner** signs in to ChatGPT, starts a claim, and receives and enters a verification code. Only the owner
+does the Persona identity check, accepts OpenAI's terms and publishes a Business Agent. A run never does these, never enters a
 code or an ID, and never creates an account. An unattended run logs a needed owner step as `blocked_by: owner` with
 the exact step, once, and does not repeat it every day.
 
 **Agents, every time it applies:**
 
-- Keep the facts a profile shows true at their source, so the profile and the website never disagree: business name,
-  description, category, website, logo, contact, prices, policies. The sources are in the table below.
-- When one of those facts changes (an app is released, renamed or removed, a price or policy changes, a site moves to
-  a new address), update the website the same day and record in the table that the profile needs the same change.
+- Keep the facts a profile shows true at their source, so the profile and the website never disagree. Those facts
+  are business name, description, category, website, logo, contact, prices and policies. The sources are in the table below.
+- When one of those facts changes, update the website the same day. Record in the table that the profile needs the
+  same change. Such changes include an app released, renamed or removed, a new price or policy, or a site's new
+  address.
   With the owner present and signed in, make the change in Business Hub; it publishes as the owner, so confirm the
   wording first.
-- Keep each website easy for ChatGPT to cite, since mentions are counted from website citations: `robots.txt` allows
-  all crawlers, a sitemap is listed in it, pages carry schema.org data that matches the profile, and the app sites
-  keep `/llms.txt` current.
-- Once a profile is verified, read its Insights on the first run of each month with the owner signed in, and record
+- Keep each website easy for ChatGPT to cite, since mentions are counted from website citations. `robots.txt` allows
+  all crawlers and lists a sitemap. Pages carry schema.org data that matches the profile. The app sites keep
+  `/llms.txt` current.
+- Once a profile is verified, read its Insights on the first run of each month with the owner signed in. Record
   mentions, website clicks and discovery topics in that business's metrics. Turn a discovery topic nobody has written
   for into a guide or tool, under the usual content rules.
 - Keep this file's table and date current.
@@ -91,8 +92,8 @@ identity check are still to come. The other three are not claimed yet. Every cla
 | Vegas Microworks | https://vegas-microworks.vercel.app | Online service business in Las Vegas, no storefront; "Vegas Microworks" is a working name | Business email or phone; same `vercel.app` limit. Settle the name before a profile is published, since a published profile cannot be removed | No feed. An agent only once there is an offer and policies to describe; never invent them | `public/` in `astrojams1/vegas-microworks` and its `AGENTS.md` |
 | Clean Streets | https://www.cleanstreets.io | Nonprofit (the site marks itself as an NGO), with a merch shop at merch.cleanstreets.io | DNS TXT record on `cleanstreets.io`, business email or phone | A product feed for the merch shop if OpenAI accepts it as a retailer; whether nonprofits are eligible is not stated, so find out at claim time | `astrojams1/cleanstreets` and its `AGENTS.md` |
 
-An app with a website and business of its own (Füd, for one, which has a co-owner) gets its own row when its owner
-decides to claim it.
+An app with a website and business of its own gets its own row when its owner decides to claim it. Füd, which has
+a co-owner, is one.
 
 Website check on 2026-11-10: all four sites allow every crawler and list a sitemap. Both app sites serve `/llms.txt`
 and `Organization` data. Vegas Microworks carries `ProfessionalService` data and has no `/llms.txt`. Clean Streets

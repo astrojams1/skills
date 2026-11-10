@@ -194,7 +194,7 @@ useEffect(() => {
 }, []);
 ```
 
-The key insight: `flex-1` on the main content div automatically adjusts its width as the sidebar opens/closes — but internal content that uses fixed pixel dimensions (SVG `viewBox`, canvas scale factors, etc.) must be told to re-measure.
+The key point: `flex-1` on the main content div adjusts its width by itself as the sidebar opens or closes. Content inside that uses fixed pixel sizes (SVG `viewBox`, canvas scale factors and the like) must be told to re-measure.
 
 **Icons:** The collapse button (in the sidebar header) uses `Minimize2`. The expand button (floating in main content) uses `Maximize2`. These form a natural pair — minimize to close, maximize to open.
 
@@ -213,7 +213,7 @@ The sidebar collapse button is an icon button in the sidebar header's button row
 
 **Behavior:** Only one section can be open at a time. Expanding a section automatically collapses all others. This keeps the sidebar focused and prevents excessive scrolling. Track the active section name in state and toggle on click.
 
-**Section heading font:** Each section title uses `font-header` (Tenor Sans) — the same display font used for the page title, but at the smaller `text-[15px]` size with `uppercase tracking-[0.1em]`. This creates a clear typographic hierarchy: Tenor Sans for structural headings, DM Sans for body content.
+**Section heading font:** Each section title uses `font-header` (Tenor Sans), the display font of the page title. It is smaller: `text-[15px]` with `uppercase tracking-[0.1em]`. This creates a clear typographic hierarchy: Tenor Sans for structural headings, DM Sans for body content.
 
 **Horizontal dividers:** Sections are separated by `border-b border-border` on each section container, with `last:border-0` to remove the divider after the final section. These thin 1px borders provide subtle visual separation without heavy styling.
 
@@ -222,7 +222,7 @@ The sidebar collapse button is an icon button in the sidebar header's button row
 - The chevron icon does the same: `group-hover:text-primary` (this is separate from the open-state `text-primary` / `rotate-180`)
 - The transition is smooth: `transition-colors` on both elements
 
-When the section is **open**, the title and chevron are already `text-primary` — hover has no visible additional effect, which is correct (the active state subsumes the hover state).
+When the section is **open**, the title and chevron are already `text-primary`, so hover shows no extra change. That is correct: the active state covers the hover state.
 
 **Content animation:** The section body uses a CSS Grid trick for smooth height animation. The content wrapper uses `grid` with `transition-all duration-300 ease-in-out`:
 - **Open:** `grid-rows-[1fr] opacity-100 pb-6` — content is fully visible with bottom padding

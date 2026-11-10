@@ -4,88 +4,87 @@ internal: true
 description: >-
   Process health check reports from consumer repos. Use when the user pastes
   a health check report, asks to diagnose a consumer repo integration, or
-  wants to review skills integration issues. Analyzes report data, identifies
+  wants to review skills integration issues. Analyzes report data, finds
   bugs in manage.sh or skills code, suggests improvements to the
-  health-check-prompt, and provides step-by-step next steps.
+  health-check-prompt, and gives step-by-step next steps.
 metadata:
-  version: "1.1"
+  version: "1.2.0"
 ---
 
-# Skill: Health Check Review
+# Health check review
 
-Process one or more health check reports pasted by the user from consumer repos. Diagnose issues, fix bugs in this repo, improve the health-check-prompt if needed, and deliver concrete next steps.
+**Turn pasted health reports into fixes in this repo and clear next steps for the consumer repo.** The goal is a clean
+report from the consumer repo: every section PASS, zero warnings, zero failures. Next steps exist only to close the gap
+between the current report and that goal.
 
-## Proactive Trigger
+Done means: every finding is classified, and bugs here are fixed and tested. The prompt is better where the reports
+showed a gap, and your reply ends with the summary in [Report](#report).
 
-Activate this skill when the user pastes text containing a Skills Health Report (look for "Skills Health Report", numbered sections like "Submodule Registration", "Discovery Directories", "manage.sh check", etc.) or mentions reviewing or analyzing a health check report. Reports arrive wrapped in a single fenced code block — parse the markdown content inside the fence.
+Start on your own when the owner pastes a Skills Health Report, or asks you to review or analyze one. Look for "Skills
+Health Report" and numbered sections like "Submodule Registration", "Discovery Directories" and "manage.sh check".
+Reports arrive in one fenced code block. Parse the markdown inside the fence.
 
-## Workflow
+## Where things are
 
-### Step 1: Parse Reports
+| What | Where |
+|---|---|
+| The prompt, commands, report template and diagnostic table | `skills/health-check-prompt/SKILL.md` |
+| The integration CLI, where most bugs live | `bin/manage.sh` |
 
-Extract from each report:
+## A run
 
-- **Agent type:** Claude or Codex
-- **Project name** (from the Project field)
-- **Submodule SHAs:** local (HEAD), remote (origin/main), recorded (git ls-tree)
-- **manage.sh version:** commit hash from section 7
-- **Section verdicts:** PASS / WARN / FAIL for each numbered section
-- **Discovery dir contents:** file listings and diff output
-- **manage.sh check output:** including any auto-fix messages
-- **Spec validation results:** pass/fail counts
+1. **Parse** each report. If there are several, note which agent wrote each. Pull out:
+   - **Agent type:** Claude or Codex
+   - **Project name** (from the Project field)
+   - **Submodule SHAs:** local (HEAD), remote (origin/main), recorded (git ls-tree)
+   - **manage.sh version:** the commit hash from section 7
+   - **Section verdicts:** PASS, WARN or FAIL for each numbered section
+   - **Discovery dir contents:** file listings and diff output
+   - **manage.sh check output:** including any auto-fix messages
+   - **Spec validation results:** pass and fail counts
+2. **Compare agents** when you have reports from more than one:
 
-If multiple reports are provided, note which agent produced each.
+   | Dimension | What to check |
+   |-----------|---------------|
+   | Submodule SHA | Same commit? If not, did Claude's SessionStart hook reset to the recorded pointer? Look for a `+` prefix in Codex's status line. |
+   | manage.sh version | Same commit in section 7? Version skew is the top cause of differences between agents. |
+   | Discovery dirs | Same files? Stale flat files (`.md` at top level) in one but not the other? Internal skills present? |
+   | check output | Did one auto-fix while the other only warned? Newer manage.sh versions added auto-sync. |
+   | Spec validation | Same pass count? Older versions run fewer tests. That is expected, not a bug. |
 
-### Step 2: Cross-Agent Comparison
+3. **Classify** each finding as one of these:
 
-When reports from multiple agents are available, compare:
+   | Classification | Meaning | Where to act |
+   |---------------|---------|--------------|
+   | **Bug** | Code defect in manage.sh or a skill file | Fix in this repo |
+   | **Version skew** | Old manage.sh lacks a feature or fix | Self-heals after the consumer runs `manage.sh sync` |
+   | **Consumer action** | Needs manual steps in the consumer repo | Put in next steps |
+   | **Prompt improvement** | Health-check-prompt should gather better data or give clearer orders | Edit `skills/health-check-prompt/SKILL.md` |
 
-| Dimension | What to check |
-|-----------|---------------|
-| Submodule SHA | Same commit? If not, did Claude's SessionStart hook reset to the recorded pointer? Look for `+` prefix in Codex's status line. |
-| manage.sh version | Same commit in section 7? Version skew is the #1 cause of discrepancies between agents. |
-| Discovery dirs | Same files? Stale flat files (`.md` at top level) in one but not the other? Internal skills present? |
-| check output | Did one auto-fix while the other just warned? Auto-sync was added in newer manage.sh versions. |
-| Spec validation | Same pass count? Older versions run fewer tests — this is expected, not a bug. |
+4. **Fix bugs.** For each **Bug**:
+   1. Read the relevant source (usually `bin/manage.sh`).
+   2. Find the root cause. Don't just patch the symptom.
+   3. Fix the code.
+   4. If the symptom isn't in the diagnostic table in `skills/health-check-prompt/SKILL.md`, add it.
+   5. Run `tests/test-identity.sh` and `python3 tests/test_skills_spec.py`.
+5. **Improve the prompt.** Judge the health-check-prompt against the reports, and edit
+   `skills/health-check-prompt/SKILL.md` with each fix:
+   - **Missing data:** Was anything needed for diagnosis not gathered by the commands? Add commands.
+   - **Unclear output:** Did agents read command output differently? Add notes that settle it.
+   - **Format drift:** Did agents format their reports differently? Tighten the format rules.
+   - **Table gaps:** Do the reports show symptoms the diagnostic table lacks? Add rows.
+   - **ANSI leaks:** Did raw escape codes appear in output? Make sure commands pipe through ANSI stripping.
+6. **Commit and push.**
+   1. Run `bin/manage.sh link` to refresh the discovery directories.
+   2. Run `tests/test-identity.sh` to verify AGENTS.md exists and no CLAUDE.md does.
+   3. Run `python3 tests/test_skills_spec.py` to verify spec compliance.
+   4. Commit with a message that says what changed.
+   5. Push to the working branch.
+7. **Report** (see [Report](#report)). Always end your reply with it.
 
-### Step 3: Classify Each Finding
+## Report
 
-For every issue, assign one classification:
-
-| Classification | Meaning | Where to act |
-|---------------|---------|--------------|
-| **Bug** | Code defect in manage.sh or a skill file | Fix in this repo |
-| **Version skew** | Old manage.sh lacks a feature or fix | Self-heals after consumer runs `manage.sh sync` |
-| **Consumer action** | Requires manual steps in the consumer repo | Document in next steps |
-| **Prompt improvement** | Health-check-prompt should gather better data or give clearer instructions | Edit `skills/health-check-prompt/SKILL.md` |
-
-### Step 4: Fix Bugs
-
-For each **Bug**:
-
-1. Read the relevant source (usually `bin/manage.sh`)
-2. Identify the root cause — don't just patch symptoms
-3. Fix the code
-4. If the symptom isn't already in the diagnostic table in `skills/health-check-prompt/SKILL.md`, add it
-5. Run `tests/test-identity.sh` and `python3 tests/test_skills_spec.py`
-
-### Step 5: Improve the Health Check Prompt
-
-After analyzing the reports, evaluate the health-check-prompt itself:
-
-- **Missing data:** Was any information needed for diagnosis not captured by the commands? Add new commands.
-- **Ambiguous output:** Did agents interpret command output differently? Add clarifying notes.
-- **Format drift:** Did the agents produce inconsistently formatted reports? Tighten the format rules.
-- **Diagnostic table gaps:** Are there symptoms in the reports not covered by the table? Add rows.
-- **ANSI leakage:** Did raw escape codes appear in output? Ensure commands pipe through ANSI stripping.
-
-Edit `skills/health-check-prompt/SKILL.md` with any improvements.
-
-### Step 6: Deliver Next Steps
-
-**Goal:** The consumer repo should produce a clean health report — every section PASS, zero warnings, zero failures. Next steps exist only to close the gap between the current report and that goal.
-
-Always end your response to the user with a structured summary using this format:
+End every reply with this summary:
 
 ```
 ## Health Check Review
@@ -111,19 +110,25 @@ Always end your response to the user with a structured summary using this format
 (or "None — all fixes committed and pushed.")
 
 ### Next Steps — Consumer Repo (<project name>)
+```
 
-If there are consumer repo actions, output them as a **single agent prompt** inside a fenced code block (quadruple backticks) that the user can copy-paste directly to an agent running in the consumer repo. The prompt must be self-contained — include all context, exact commands, and expected outcomes so the receiving agent can execute without further clarification.
+Under the last heading, put the consumer actions as **one agent prompt** in a fenced code block of four backticks. The
+owner pastes it to an agent in the consumer repo. It must stand alone: give all context, exact commands and expected
+results, so the agent can act without asking.
 
-**Ordering rules for the consumer prompt** — remediation steps must follow this sequence because each step depends on the previous one:
+**Order the steps like this.** Each step depends on the one before.
 
-1. `./skills/bin/manage.sh sync` — update the submodule first so all subsequent commands use the latest manage.sh
-2. `./skills/bin/manage.sh check` — auto-fix hooks, discovery dirs, and internal skill leaks using the updated code
-3. Stage and commit — persist all auto-fixes (`git add .claude .agents skills && git commit`)
-4. Manual fixes — anything `check` cannot auto-fix (e.g., AGENTS.md content, removing a CLAUDE.md with `git rm`, missing skills section)
-5. Stage and commit manual fixes
-6. **Verification re-run** — always end the prompt with the full health check diagnostic (commands, format rules, and report template) from `skills/health-check-prompt/SKILL.md` so the agent produces a new report proving all sections PASS
+1. `./skills/bin/manage.sh sync`. Update the submodule first, so every later command uses the latest manage.sh.
+2. `./skills/bin/manage.sh check`. Auto-fix hooks, discovery dirs and internal skill leaks with the updated code.
+3. Stage and commit, to keep every auto-fix (`git add .claude .agents skills && git commit`).
+4. Manual fixes: anything `check` can't auto-fix (e.g. AGENTS.md content, removing a CLAUDE.md with `git rm`, a
+   missing skills section).
+5. Stage and commit the manual fixes.
+6. **Verification re-run.** Always end the prompt with the full health check diagnostic from
+   `skills/health-check-prompt/SKILL.md`: commands, format rules and report template. The agent then makes a new report
+   that proves every section PASSes.
 
-**Template for the consumer prompt:**
+Use this template:
 
 ````
 <Context: what the health report found and what needs fixing>
@@ -151,42 +156,39 @@ git commit -m "chore: sync skills and apply auto-fixes"
 Every section should now show PASS.
 ````
 
-If the report was already clean (all PASS, no warnings), output:
+If the report was already clean (all PASS, no warnings), write this under the heading instead:
 
 ```
 None — report is clean. No consumer repo actions needed.
 ```
-```
 
-### Step 7: Commit and Push
+## Common patterns
 
-After making all changes:
-
-1. Run `bin/manage.sh link` to refresh discovery directories
-2. Run `tests/test-identity.sh` to verify AGENTS.md exists and no CLAUDE.md does
-3. Run `python3 tests/test_skills_spec.py` to verify spec compliance
-4. Commit with a descriptive message
-5. Push to the working branch
-
-## Common Patterns
-
-These recurring findings and their typical resolutions save diagnosis time:
+These findings recur. Their usual fixes save diagnosis time.
 
 | Pattern | Root cause | Resolution |
 |---------|-----------|------------|
-| Submodule `+` prefix in status | Consumer ran `sync`/`check` but didn't commit the pointer update | Consumer: `git add skills && git commit` |
-| Different SHAs across agents | Claude's SessionStart hook resets to recorded commit; Codex doesn't have this hook | Compare recorded vs actual — the hook explains the difference |
-| Stale flat files (e.g. `.claude/skills/design-system.md`) | Old flat-file format predating directory-based copies | Latest `manage.sh link` cleans these automatically |
-| Internal skills in discovery dirs | Old manage.sh copied before `internal: true` filtering | Latest `manage.sh check` removes them |
-| ANSI codes in command output | Agent didn't strip terminal color escapes | Health-check-prompt commands pipe through `sed` for stripping |
-| Different spec validation test counts | Older manage.sh versions run fewer tests | Expected — not a bug |
-| check auto-syncs on one agent but not another | Auto-sync was added in a newer manage.sh version | Sync first, then re-run check |
-| check reports PASS on stale discovery dirs | Old manage.sh has weaker content checks | Sync to get latest checks, then re-run |
+| Submodule `+` prefix in status | Consumer ran `sync` or `check` but didn't commit the pointer update | Consumer: `git add skills && git commit` |
+| Different SHAs across agents | Claude's SessionStart hook resets to the recorded commit. Codex has no such hook | Compare recorded and actual. The hook explains the difference |
+| Stale flat files (e.g. `.claude/skills/design-system.md`) | Old flat-file format, from before directory-based copies | The latest `manage.sh link` cleans these up |
+| Internal skills in discovery dirs | Old manage.sh copied them before `internal: true` filtering | The latest `manage.sh check` removes them |
+| ANSI codes in command output | Agent didn't strip terminal color escapes | Health-check-prompt commands pipe through `sed` to strip them |
+| Different spec validation test counts | Older manage.sh versions run fewer tests | Expected, not a bug |
+| check auto-syncs on one agent but not another | A newer manage.sh version added auto-sync | Sync first, then re-run check |
+| check reports PASS on stale discovery dirs | Old manage.sh has weaker content checks | Sync to get the latest checks, then re-run |
 
 ## Gotchas
 
-- **Circular fix dependencies.** A bug in manage.sh may cause `check` to produce bad output, which this skill then misdiagnoses. Always check the manage.sh version (section 7) before trusting `check` output — if it's old, the first recommendation should always be `manage.sh sync`.
-- **Version skew masquerading as bugs.** Most discrepancies between Claude and Codex reports are version skew, not bugs. Check section 7 (manage.sh version) in both reports before filing anything as a bug. If versions differ, sync first and re-diagnose.
-- **Consumer prompt must be self-contained.** The consumer agent does NOT have access to this skill or health-check-prompt. Every command, format rule, and template needed to produce a clean re-verification report must be inlined in the consumer prompt. Missing the report template is the most common omission.
-- **Auto-fix output changes between runs.** `manage.sh check` auto-fixes issues as a side effect, so running it twice produces different output. When comparing reports, note whether `check` was run before or after a sync — the output is only meaningful in context.
-- **Ephemeral Codex sessions.** Fixes applied in Codex sessions vanish unless committed. The consumer prompt must include explicit `git add` and `git commit` steps after every fix phase, not just at the end.
+- **Circular fix dependencies (2026-03-19).** A manage.sh bug can make `check` print bad output, which you then
+  misdiagnose. Check the manage.sh version (section 7) before you trust `check` output. If it is old, recommend
+  `manage.sh sync` first.
+- **Version skew looks like a bug (2026-03-19).** Most differences between Claude and Codex reports are version skew.
+  Check section 7 in both reports before you call anything a bug. If the versions differ, sync first and diagnose again.
+- **The consumer prompt must stand alone (2026-03-19).** The consumer agent can't see this skill or
+  health-check-prompt. Inline every command, format rule and template it needs for a clean re-verification report. The
+  report template is the part most often left out.
+- **Auto-fix output changes between runs (2026-03-19).** `manage.sh check` auto-fixes as a side effect, so a second run
+  prints different output. When you compare reports, note whether `check` ran before or after a sync. The output only
+  means something in that context.
+- **Codex sessions are ephemeral (2026-03-19).** Fixes made in a Codex session vanish unless committed. The consumer
+  prompt must have explicit `git add` and `git commit` steps after every fix phase, not just at the end.
