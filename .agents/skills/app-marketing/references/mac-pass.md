@@ -23,8 +23,10 @@ pre-1.7.0 caps, and three runs in a row worked three items and passed the rest o
 
 ## Steps
 
-Nothing waits for the owner: a blocked item first tries another way, then is logged `deferred` with a reason and a
-`retry_after`, and the run moves on. Never end by asking for anything.
+Nothing waits for the owner: a blocked item first tries another way, then is logged `deferred` with `blocked_by`, a
+reason and a `retry_after`, and the run moves on. Never end by asking for anything. Every issue the run finds, in or
+outside its items, is fixed in this run (SKILL.md, "Fix what you find"); only an `owner`, `store-gate`, `pacing` or
+`outside` blocker may leave one open, and the `end` event lists each in `left_open`.
 
 0. **Setup.** Read `skills/app-marketing/SKILL.md` and follow "A run" with runner `mac`, from
    `/Volumes/ssd/code/app-sites`. If that checkout is dirty, use a new worktree under
@@ -46,7 +48,8 @@ Nothing waits for the owner: a blocked item first tries another way, then is log
    skipped.
 4. **Record without the Simulator tool when it refuses.** The iOS Simulator tool refuses scheduled sessions. Use the
    unattended routes in `app-shorts/references/recording.md` ("When the Simulator tool refuses") before deferring a
-   Short, and name in the `deferred` event each route tried and why it failed.
+   Short, and name in the `deferred` event (`blocked_by: outside`) each route tried and why it failed. A route that
+   needs work, such as a missing `ShortsTakes` UI test, is work for this run, not a blocker.
 5. **Comment replies** follow `youtube-growth`: `yt-api.mjs unanswered`, then answer every real unanswered comment with
    `yt-api.mjs reply --parent ID --text "..." --confirm`. Skip spam, arguments and anything you cannot answer
    truthfully. Log one `finding` with the count and video IDs, never the comment text.

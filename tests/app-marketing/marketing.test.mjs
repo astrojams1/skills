@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, eventProblems, itemState, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, eventProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const DAY = 86400000;
 const NOW = Date.parse('2026-11-05T12:00:00Z');
@@ -171,4 +171,19 @@ test('Show HN is due once for a live developer tool, and never spammed', () => {
 
 test('the submit link is Hacker News\'s own pre-filled form', () => {
   assert.equal(hnSubmitLink('https://a.b/c?d=1', 'Show HN: A & B'), 'https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fa.b%2Fc%3Fd%3D1&t=Show%20HN%3A%20A%20%26%20B');
+});
+
+test('from 2026-11-11 a run cannot leave an issue open without naming what blocks it', () => {
+  const after = '2026-11-12T12:00:00Z';
+  assert.deepEqual(leftOpenProblems(event({ ts: ago(0), status: 'deferred' })), [], 'older events are not checked');
+  assert.ok(leftOpenProblems(event({ ts: after, status: 'deferred' })).length > 0, 'a deferral without a blocker is refused');
+  assert.ok(leftOpenProblems(event({ ts: after, status: 'skipped', blocked_by: 'later', reason: 'x' })).length > 0, 'an unknown blocker is refused');
+  assert.deepEqual(leftOpenProblems(event({ ts: after, status: 'failed', blocked_by: 'owner', reason: 'needs a sign-in' })), []);
+  assert.deepEqual(leftOpenProblems(event({ ts: after, status: 'ok' })), []);
+  assert.ok(leftOpenProblems(event({ ts: after, status: 'deferred', item: 'fud/shorts', blocked_by: 'pacing', reason: 'slots taken' })).length > 0, 'a taken slot never defers a Short');
+  assert.ok(leftOpenProblems(event({ ts: after, event: 'end' })).length > 0, 'an end must list what is left open');
+  assert.deepEqual(leftOpenProblems(event({ ts: after, event: 'end', left_open: [] })), []);
+  assert.ok(leftOpenProblems(event({ ts: after, event: 'end', left_open: [{ issue: 'x' }] })).length > 0);
+  assert.deepEqual(leftOpenProblems(event({ ts: after, event: 'end', left_open: [{ issue: 'Fud Short', blocked_by: 'owner', needs: 'App Store sign-in' }] })), []);
+  assert.ok(eventProblems(event({ ts: after, status: 'deferred' })).some(p => /blocked_by/.test(p)), 'eventProblems carries the rule');
 });

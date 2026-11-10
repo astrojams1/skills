@@ -1,8 +1,15 @@
 # App release skill ledger
 
-Skill version **2.21.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.22.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.22.0 (2026-11-10)
+
+- The daily review-submission Mac task's steps, approvals and Never list moved from its stored prompt into
+  `references/daily-review-run.md`; the prompt is now a pointer, so the two cannot drift.
+- A run fixes every gap it finds before submitting and defers only on a named gate; its summary lists what was left
+  open. An unclear materiality call is settled by building and comparing, not by deferring at once (James, 2026-11-10).
 
 ## Lessons incorporated into v2.21.0 (2026-11-07)
 
