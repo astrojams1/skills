@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.11.0"
+  version: "1.12.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -30,6 +30,7 @@ one. If a repository's own rule holds store listing text for the owner, change t
 | State | `marketing/` in `astrojams1/app-sites`: `apps/<id>.json`, `ledger.jsonl`, `metrics.jsonl`, generated `LEDGER.md` |
 | Tool | `scripts/marketing.mjs` (Node 22, no dependencies), run from the app-sites checkout; `scripts/gcal.mjs` for the owner's calendar |
 | Search content | `sites/<site>/src/data/guides/<app-slug>/<guide>.md`, built into `/<app-slug>/<guide>/` and `/llms.txt` |
+| ChatGPT business profiles | [Businesses in ChatGPT](references/chatgpt-business-hub.md): what the owner claims, what a run keeps current, and each business's status. Re-read OpenAI's pages there on the first run of each month |
 | Video | `app-shorts` makes and posts; `youtube-growth` reads and decides; registry at `/Volumes/ssd/projects/app-shorts/registry.json` |
 | Store submissions | `app-release`. This skill changes promotional text and prepares store data; it never submits or releases |
 | Project home | `/Volumes/ssd/projects/app-marketing/` |
