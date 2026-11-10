@@ -8,6 +8,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | version | date | change | why |
 |---|---|---|---|
 | 1.0.0 | 2026-11-07 | Initial skill: discovery buckets, saved decisions, triage rules, repository notes | The owner asked for the first manual cleanup (8 merged, 6 closed) to run every week |
+| 1.1.0 | 2026-11-10 | Discovery finds every open PR: `windowDays` is null, so PRs quiet for more than 30 days are no longer dropped | The owner asked that scheduled runs do all known work; the 30-day window hid the most abandoned PRs. The weekly task's stored prompt is now a pointer, written in the skill |
 
 ## Lessons
 

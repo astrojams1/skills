@@ -57,6 +57,18 @@ test('recurring work rests and returns', () => {
   assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(8) })], 'x', NOW).state, 'open');
 });
 
+test('daily work comes back on the next daily run, even one that starts a little early', () => {
+  const i = item({ repeat_days: 1 });
+  assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(0.98) })], 'x', NOW).state, 'open');
+  assert.equal(itemState(i, [event({ app: 'x', item: 'a', ts: ago(0.2) })], 'x', NOW).state, 'resting');
+});
+
+test('a rest longer than a day must say why', () => {
+  assert.deepEqual(profileProblems(profile({ backlog: [item({ repeat_days: 1 })] })), []);
+  assert.ok(profileProblems(profile({ backlog: [item({ repeat_days: 7 })] }))[0].includes('pace_reason'));
+  assert.deepEqual(profileProblems(profile({ backlog: [item({ repeat_days: 7, pace_reason: 'Shorts: the Mac pass makes every due Short' })] })), []);
+});
+
 test('rank filters by runner, stage and prerequisites, and favours the best ratio', () => {
   const p = profile({ stage: 'prelaunch', backlog: [
     item({ id: 'big', impact: 5, effort: 1 }), item({ id: 'small', impact: 1, effort: 5 }),

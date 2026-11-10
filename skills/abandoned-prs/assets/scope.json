@@ -2,7 +2,7 @@
   "owners": ["astrojams1"],
   "trustedAuthors": ["astrojams1", "claude", "copilot-swe-agent", "google-labs-jules", "chatgpt-codex-connector"],
   "excludedRepos": [],
-  "windowDays": 30,
+  "windowDays": null,
   "quietDays": 7,
   "recheckDays": 28,
   "maxWorkedPerRun": null,

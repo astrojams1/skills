@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { lastActivity, triage } from '../../skills/abandoned-prs/scripts/discover.mjs';
+import { lastActivity, searchQuery, triage } from '../../skills/abandoned-prs/scripts/discover.mjs';
 
 const script = fileURLToPath(new URL('../../skills/abandoned-prs/scripts/discover.mjs', import.meta.url));
 const scope = JSON.parse(readFileSync(new URL('../../skills/abandoned-prs/assets/scope.json', import.meta.url)));
@@ -97,4 +97,10 @@ test('record and forget edit the state file', () => {
   assert.throws(() => run('record', 'nonsense', '--decision', 'merged', '--head', 'abc', '--reason', 'x'), /usage/);
   run('forget', 'astrojams1/app#1');
   assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), {});
+});
+
+test('discovery searches every open PR, however long it has been quiet', () => {
+  assert.equal(scope.windowDays, null);
+  assert.equal(searchQuery('astrojams1', scope.windowDays, NOW), 'is:pr is:open archived:false user:astrojams1');
+  assert.match(searchQuery('astrojams1', 30, NOW), /updated:>=2026-10-09$/);
 });
