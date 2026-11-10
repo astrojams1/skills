@@ -126,9 +126,11 @@ item the same day, a different source). Only these may stay open, each logged wi
 - `pacing`: an outside rule that forbids the act today, such as Hacker News's limits. A Short's slot never qualifies.
 - `outside`: a service that is down, or data that does not exist yet, after another way was tried.
 
-The live store listing is the source of truth for store facts (price, in-app purchases, rating, version). When the
-catalog or a site says otherwise, change the catalog or site to match the listing in this run; never log the
-mismatch and leave it, as the 2026-11-10 cloud run did with Füd's "Free · In-app purchases".
+The live App Store product page is the source of truth for store facts (price, in-app purchases, rating, version).
+Apple's lookup API never lists in-app purchases, so read the product page before calling a price claim wrong. When
+the catalog, a site or a guide says otherwise, change it to match the page in this run; never log the mismatch and
+leave it. The 2026-11-10 cloud run did both wrong: it read the lookup API, called the catalog's correct
+"Free · In-app purchases" for Füd stale, and logged it instead of checking the page, which lists four plans.
 
 Issues a helper reports count as found by the run. A guide writer's "Unsure of" note, a check's warning, or a problem
 in a file outside the item's brief is the run's to fix before it ends; a helper's narrow brief limits the helper, not
