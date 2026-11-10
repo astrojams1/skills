@@ -2,7 +2,7 @@
 name: abandoned-prs
 description: Find abandoned GitHub pull requests in the owner's repositories, decide whether each should merge, close or wait, and see that through. Use for the weekly PR cleanup, or when asked to triage, clean up, finish or close stale, abandoned or forgotten PRs.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Abandoned PRs
@@ -23,7 +23,15 @@ only:
 - Repository rules and approval holds outrank this skill.
 
 An unattended run never waits for the owner. Anything that needs them is left
-open, recorded and reported.
+open, recorded and reported. Never end by asking for anything. Read `/Users/astro/AGENTS.md` and each repository's `AGENTS.md` before
+working in it.
+
+**Fix what you find (James, 2026-11-10).** Every issue the run sees, in a PR it works or beside it (a failing check, a
+merge conflict, a stale branch rule, a broken link in a doc it touches, a script bug in this skill), is fixed in this
+run. Thin evidence is work too: check out the branch, run its checks and read what it links before deciding. Recording
+an issue and leaving it is not a fix. Only a step that truly needs the owner (a sign-in, a payment, an approval a
+repository's rules reserve for them), a store or release gate, or a service that is down after another way was tried
+stays open, and the report lists each under "Left open" with what unblocks it, or says "nothing left open".
 
 ## The weekly task's prompt
 

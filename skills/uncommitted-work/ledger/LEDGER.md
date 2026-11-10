@@ -10,6 +10,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.0.0 | 2026-11-07 | Initial skill: repo-wide scan, backups, guarded close, triage rules | The owner asked for a weekly cleanup of uncommitted work to pair with `abandoned-prs` |
 | 1.0.1 | 2026-11-07 | `close` removes untracked files before resetting and sees junk inside untracked folders; Füd's repository is in scope | The first real run deleted a tracked file on one checkout (restored), and refused one scratch folder |
 | 1.1.0 | 2026-11-10 | The weekly task's stored prompt is a pointer, written here; a stale prompt is reported | Prompt copies on the Mac drifted from the skills before (app-marketing kept a three-item budget after the skill dropped it) |
+| 1.2.0 | 2026-11-10 | A run fixes what it finds; the report lists anything left open with its blocker. "Never end by asking" and reading `/Users/astro/AGENTS.md` moved here from the old prompt | James: a run that notes an issue and leaves it is being lazy |
 
 ## Lessons
 

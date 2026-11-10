@@ -31,6 +31,13 @@ export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'part
 export const STAGES = ['prelaunch', 'live'];
 export const RUNNERS = ['cloud', 'mac'];
 const REQUIRED = ['v', 'ts', 'run_id', 'skill', 'agent', 'event', 'status'];
+// The only reasons a run may leave something open (James, 2026-11-10: a run fixes every issue it finds). `owner` is a
+// step only the owner can take (a payment, a sign-in, an approval); `store-gate` is a store submission or review;
+// `pacing` is an outside rule that forbids the act itself today (Hacker News's limits); `outside` is a service that is
+// down or data that does not exist yet, after another way was tried. A Short's slot is never one: it sets publishAt.
+export const BLOCKERS = ['owner', 'store-gate', 'pacing', 'outside'];
+// Events from this time on must say what blocks anything they leave open; older lines are history.
+const FIX_RULE_FROM = Date.parse('2026-11-11T00:00:00Z');
 const MAX_LINE = 16 * 1024;
 // Text that must never reach a committed ledger: private keys, 1Password service tokens, bearer tokens, API secrets.
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY|ops_[A-Za-z0-9_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{20,}|\bsk-[A-Za-z0-9_-]{20,}|\bghp_[A-Za-z0-9]{20,}/;
@@ -47,6 +54,26 @@ export function parseLines(text, label = 'ledger') {
   return { records, problems };
 }
 
+// leftOpenProblems enforces "fix what you find": an action left deferred, failed or skipped names its blocker, and the
+// end event lists everything still open with its blocker and what the owner must do.
+export function leftOpenProblems(event) {
+  if (!event.ts || Date.parse(event.ts) < FIX_RULE_FROM) return [];
+  const problems = [];
+  const open = event.event === 'action' && ['deferred', 'failed', 'skipped'].includes(event.status) && !event.dropped;
+  if (open) {
+    if (!BLOCKERS.includes(event.blocked_by)) problems.push(`a ${event.status} action needs blocked_by, one of ${BLOCKERS.join(', ')}; anything else is fixed in this run`);
+    if (!event.reason) problems.push(`a ${event.status} action needs a reason naming the blocker and each way tried`);
+    if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and schedule it into the next free slot');
+  }
+  if (event.event === 'end') {
+    if (!Array.isArray(event.left_open)) problems.push('end needs left_open: every issue still open, or [] when the run fixed everything');
+    else event.left_open.forEach((o, i) => {
+      if (!o || !o.issue || !BLOCKERS.includes(o.blocked_by) || !o.needs) problems.push(`left_open ${i + 1} needs issue, blocked_by (${BLOCKERS.join(', ')}) and needs (what unblocks it)`);
+    });
+  }
+  return problems;
+}
+
 // eventProblems returns what is wrong with one ledger event.
 export function eventProblems(event) {
   const problems = REQUIRED.filter(key => event[key] === undefined || event[key] === '').map(key => `missing ${key}`);
@@ -55,6 +82,7 @@ export function eventProblems(event) {
   if (event.status && !STATUSES.includes(event.status)) problems.push(`unknown status ${event.status}`);
   if (event.ts && Number.isNaN(Date.parse(event.ts))) problems.push('ts is not a date');
   if (event.retry_after && Number.isNaN(Date.parse(event.retry_after))) problems.push('retry_after is not a date');
+  problems.push(...leftOpenProblems(event));
   const text = JSON.stringify(event);
   if (text.length > MAX_LINE) problems.push('event is over 16 KiB; refer to an artifact instead');
   if (SECRET.test(text)) problems.push('event looks like it contains a secret');
@@ -512,7 +540,7 @@ function cmdMirror(root) {
   const events = loadEvents(root);
   let sent = 0;
   for (const event of events.slice(done)) {
-    const { app, channel, item, retry_after, dropped, ...rest } = event;
+    const { app, channel, item, retry_after, dropped, blocked_by, left_open, ...rest } = event;
     const got = spawnSync('python3', [helper], { input: JSON.stringify({ ...rest, targets: [...(rest.targets || []), ...(app ? [`app:${app}`] : [])] }), encoding: 'utf8' });
     if (got.status !== 0) throw new Error('The shared ledger refused an event: ' + got.stderr.slice(0, 200));
     sent += 1;

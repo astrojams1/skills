@@ -198,6 +198,8 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
 
 ## Unattended review submissions
 
+The daily Mac task's own steps, approvals and Never list are in [the daily review run](daily-review-run.md).
+
 A scheduled run works every eligible app, not just the first, and takes each update to `WAITING_FOR_REVIEW` with
 `AFTER_APPROVAL`, so Apple publishes on approval with nothing further from the run. It closes the gaps a release has
 (standards, version, notes, listing, media, privacy) and then submits; an app's own hold is met first or defers the app. `review-sweep.mjs sweep` reads both
