@@ -1,5 +1,20 @@
 # Where each item goes
 
+## Item types
+
+| Type | What it is |
+|---|---|
+| `commitment` | Promised on the call, by either side |
+| `action` | Work the call created that nobody promised aloud |
+| `idea` | Something the product could do |
+| `validation` | Evidence that what exists is right. Record it: it stops good work being undone |
+| `marketing` | Audience, wording, channel, objection, how buying or adoption really happens |
+| `research` | A claim or name to check before relying on it |
+| `risk` | Legal, safety, privacy, or a limit on what can be claimed |
+| `relationship` | How to keep this person: what they want, what to ask next, when |
+
+## Destinations
+
 The product's own `AGENTS.md` and skills win over this table. A held change stays held.
 
 | Item | Destination | How far to take it |
@@ -26,12 +41,4 @@ Issues and commits are the first place a call could leak.
 
 ## Authority
 
-The owner's request to manage follow-ups end to end covers the steps that keep a promise made on the call, using
-existing accounts and tools. It doesn't cover:
-
-- sending anything to anyone,
-- a public release, a price or an account change,
-- a promise the owner did not make,
-- a change that a product's `AGENTS.md` holds for approval.
-
-Those become items for the owner, with the exact step spelled out.
+What the run may do without asking is in `SKILL.md`, under Authority.

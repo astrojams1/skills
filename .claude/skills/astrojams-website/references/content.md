@@ -1,7 +1,8 @@
 # Writing an app's entry
 
-Each app is one object in `sites/astrojams/src/data/apps.json` (in `/Volumes/ssd/code/app-sites`). The landing page, the home-page stage, the link-preview image and the
-structured data are all generated from it, so a good entry is the whole job.
+Each app is one object in `sites/astrojams/src/data/apps.json` (in `/Volumes/ssd/code/app-sites`). The site builds the
+landing page, the home-page stage, the link-preview image and the structured data from it. So a good entry is the
+whole job.
 
 ## Fields
 
@@ -29,32 +30,38 @@ structured data are all generated from it, so a good entry is the whole job.
 | `spotlight` | Optional `{ eyebrow, title, body: [paragraphs], note }` | A full-width band on the app's page, in its accent colour, for an idea that needs more room than a feature |
 | `lifestyle` | Optional `{ file, alt, caption }` | See [assets](assets.md) |
 
-`excluded` records `{ appStoreId, name, reason }` for App Store records the site deliberately leaves out. `site`
-(`name`, `url`, `tagline`, `description`, `company`, `brand`, `copy`), `developer` and `campaign` are site-wide;
-change them only when the owner asks or a fact changes. `site.brand` is the wordmark, brand colour, mark (SVG shapes
-on a 32×32 grid in `currentColor`) and this skill's name; `site.copy` holds the dozen lines that give the site its
-own voice on pages it shares with the other site (home title and headline, closing lines, the Get button, footer
-line, section headings, 404 text, with `{name}` for an app's name). The check applies Apple's wording rules to them. The home headline counts the apps itself ("Five small apps.").
-`campaign.providerToken` is the `pt=` value from any App Store Connect campaign link for the personal team; with it
-set, every App Store link carries a `ct=` per placement.
+## Site-wide fields
+
+- **`excluded`** records `{ appStoreId, name, reason }` for App Store records the site leaves out on purpose.
+- **`site`** (`name`, `url`, `tagline`, `description`, `company`, `brand`, `copy`), **`developer`** and
+  **`campaign`** are site-wide. Change them only when the owner asks or a fact changes.
+- **`site.brand`** is the wordmark, brand colour, mark (SVG shapes on a 32×32 grid in `currentColor`) and this skill's
+  name.
+- **`site.copy`** holds the dozen lines that give the site its own voice on pages it shares with the other site. They
+  are the home title and headline, closing lines, the Get button, footer line, section headings and 404 text. Use
+  `{name}` for an app's name. The check applies Apple's wording rules to them. The home headline counts the apps
+  itself ("Five small apps.").
+- **`campaign.providerToken`** is the `pt=` value from any App Store Connect campaign link for the personal team.
+  With it set, every App Store link carries a `ct=` per placement.
 
 ## Copy rules
 
 - **Message match.** The headline repeats the promise the App Store page or the app's title screen makes.
 - **Benefits first, specific always.** "Log only what's new" beats "Powerful importing".
-- **Nothing the sources do not support.** Every number, privacy claim, price and "free" must come from the app's
+- **Nothing the sources do not support.** Every number, privacy claim, price and "free" needs a source. Use the app's
   current listing, store data, privacy label, in-app purchase setup, README or its own website. An app still in
   development is labelled so in its `note` and FAQ, and its features describe the build being tested.
 - **Calm and plain.** Short sentences, no hype, no exclamation marks, no superlatives about Apple.
-- **Apple's wording** (the check enforces most of it): "on the App Store" or "available on the App Store", never
-  "Apple App Store" or "downloadable"; "for iPhone", not "iPhone app"; avoid "iOS"; lowercase-i iPhone and iPad.
+- **Apple's wording.** The check enforces most of it. Write "on the App Store" or "available on the App Store", never
+  "Apple App Store" or "downloadable". Write "for iPhone", not "iPhone app". Avoid "iOS". Write iPhone and iPad with a
+  lowercase i.
 - Health, money and safety claims keep the listing's own caveats (Importron is not medical advice; Newsworthy is not
   an emergency alert).
 
 ## Theme
 
-Sample the colours from the app's icon and its screenshots (the main background, its brand accent, a soft highlight)
-so the page feels like the app. Dark apps get dark pages. `sharp` is installed in the site repository for sampling.
+Sample the colours from the app's icon and its screenshots: the main background, its brand accent, a soft highlight.
+Then the page feels like the app. Dark apps get dark pages. `sharp` is installed in the site repository for sampling.
 
 | Key | Use | Must contrast with |
 |---|---|---|

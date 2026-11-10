@@ -1,18 +1,18 @@
 # Literature search protocol
 
-Goal: find the works a reviewer in the chosen audience would expect to see cited, the closest prior work
-(possibly one that already did what we claim), and the standard baselines. Bias toward finding the paper
+Goal: find three things. The works a reviewer in the chosen audience would expect to see cited. The closest prior
+work, possibly one that already did what we claim. And the standard baselines. Bias toward finding the paper
 that kills the claim: that is cheaper to find now than after submission.
 
 ## Sources (in order of reliability for resolving records)
 
-1. arXiv API — `https://export.arxiv.org/api/query?search_query=all:<terms>&max_results=25&sortBy=relevance`
+1. arXiv API: `https://export.arxiv.org/api/query?search_query=all:<terms>&max_results=25&sortBy=relevance`
    Returns Atom XML with id, title, authors, published, summary. Best for method-family queries.
-2. Semantic Scholar API — `https://api.semanticscholar.org/graph/v1/paper/search?query=<q>&limit=20&fields=title,year,authors,externalIds,citationCount,abstract`
+2. Semantic Scholar API: `https://api.semanticscholar.org/graph/v1/paper/search?query=<q>&limit=20&fields=title,year,authors,externalIds,citationCount,abstract`
    Best for citation counts and finding the canonical version (DOI) of a known paper. Rate-limited; back off.
-3. Web search (WebSearch tool) — for surveys, blog posts naming the standard baselines, and for very recent
+3. Web search (WebSearch tool): for surveys, blog posts naming the standard baselines, and for very recent
    work. Every web hit must then be resolved through 1 or 2 before it enters `refs.bib`.
-4. Crossref — `https://api.crossref.org/works?query=<q>&rows=10` for DOIs of venue papers.
+4. Crossref: `https://api.crossref.org/works?query=<q>&rows=10` for DOIs of venue papers.
 
 Use the skill's scripts: `arxiv_search.py` (queries → compact hits + raw Atom saved), `arxiv_bib.py` (ids →
 correct BibTeX + abstracts). For full text, `curl -sS https://arxiv.org/html/<id>` is the reliable route
@@ -37,14 +37,20 @@ Run them all; keep a table: query, source, hits, kept (count). Add follow-up que
 
 ## Selection
 
-Keep a hit if any of: it is a plausible closest work; it is a baseline the audience expects; it defines a
-term or metric used; it is a survey that scopes the field; it is directly contradicting or supporting a
-claim. Drop otherwise. Aim for a working list of 30-60, prune to the cited set in stage 15.
+Keep a hit if any of these is true. Drop it otherwise.
+
+- It is a plausible closest work.
+- It is a baseline the audience expects.
+- It defines a term or metric used.
+- It is a survey that scopes the field.
+- It directly contradicts or supports a claim.
+
+Aim for a working list of 30-60, prune to the cited set in stage 15.
 
 ## Annotating
 
-For each kept work: full title, first author, year, venue/arXiv id, one sentence on what it does, one
-sentence on the relation to ours (same/different/baseline/definition). Mark the 3-8 closest.
+For each kept work, give the full title, first author, year and venue or arXiv id. Add one sentence on what it
+does, and one on its relation to ours (same/different/baseline/definition). Mark the 3-8 closest.
 
 ## Bib hygiene
 

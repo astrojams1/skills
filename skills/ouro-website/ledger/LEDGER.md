@@ -11,6 +11,7 @@ owner's shared activity ledger; the site's history is its git log.
 | 1.0.1 | 2026-11-02 | Document optional `lifestyle` art separately from real screenshots, with visible generated/model disclosure, provenance and accurate UI references. | The site's owner-authorized Nametag lifestyle section shipped in ouro-apps PR #1; later updates must preserve its evidence boundaries without making lifestyle art mandatory. |
 | 1.1.0 | 2026-11-02 | The site moved to the minimal "colour stage" design; the skill documents it, the new `spotlight`, `humanSupport` and `links.website` fields, copy from the makers' own materials, and the in-browser stage scroll check. | The owner found the first design busy and chose the colour stage from three motion concepts; Jinjin asked the site to show how Moment to Meaning's AI and real people work together. |
 | 1.2.0 | 2026-11-03 | The site moved into `astrojams1/app-sites` as `sites/ouro`, built from the `packages/showcase` integration it shares with the astrojams site; paths, commands, the audit's default `--site` and the shared-change rule updated. Brand and voice lines now live in the catalog's `site.brand` and `site.copy`. | The owner wanted an update to either site to update the other; the two had been copies of one codebase with different brands. |
+| 1.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. Same structure and wording as its twin website skill wherever the two behave the same. | The owner asked that every skill read as one author wrote it, plainly. |
 
 ## Lessons
 

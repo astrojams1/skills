@@ -1,7 +1,8 @@
 # Icons, screenshots and optional lifestyle art
 
-Put images in `/Volumes/ssd/code/app-sites/sites/ouro/src/assets/apps/<slug>/`. Astro resizes and converts them at build time,
-so keep sources modest and real. Stage downloads and captures under `/Volumes/ssd/projects/ouro-apps/` first.
+Put images in `/Volumes/ssd/code/app-sites/sites/ouro/src/assets/apps/<slug>/`. Astro resizes and converts them at
+build time, so keep sources modest and real. Stage downloads and captures under `/Volumes/ssd/projects/ouro-apps/`
+first.
 
 ## Icon: `icon.png`, 1024×1024 PNG
 
@@ -15,7 +16,7 @@ Never use an icon template, a placeholder or a store "app-icon" file without loo
 
 ## Screenshots: `screen-1.jpg` … `screen-6.jpg`
 
-Use two to six, in the order that tells the story (first one is the hero and the preview card). Sources, best first:
+Use two to six, in the order that tells the story (the first is the hero and the preview card). Sources, best first:
 
 1. The app repository's store assets (`store/assets/apple/iphone*/`, or a manifest the store data names). These match
    the listing exactly; marketing frames with headlines are fine.
@@ -31,24 +32,38 @@ Convert each to a 1000px-wide JPEG so the repository stays small:
 sips -s format jpeg -s formatOptions 88 --resampleWidth 1000 SOURCE.png --out sites/ouro/src/assets/apps/<slug>/screen-1.jpg
 ```
 
-Look at every screenshot before committing it and write alt text that says what the screen shows. Apple's guidelines
-apply to device imagery: do not draw fake bezels, tilt or add reflections; plain screenshots with rounded corners
-are what the site uses.
+Look at every screenshot before committing it, and write alt text that says what the screen shows. Apple's
+guidelines apply to device imagery: no fake bezels, tilt or reflections. The site uses plain screenshots with rounded
+corners.
 
 ## Optional lifestyle art
 
-When the owner's direction calls for a model scene or generated lifestyle image,
-use the catalog's separate `lifestyle: { file, alt, caption }` field. Keep it out
-of `screenshots`; those remain genuine app captures. The visible caption and alt
-text must identify generated/model artwork, without implying a real customer,
-testimonial or endorsement. Keep generation and composition provenance in the
-site's media records, with original captures as the factual reference for any
-visible app UI. Preserve accurate UI and observe Apple's device/branding rules.
-Lifestyle art is optional; do not require it or add an approval gate beyond the
-owner's existing scope. Inspect its crop and disclosure at desktop and phone widths.
+A model scene or generated lifestyle image goes in the catalog's separate `lifestyle: { file, alt, caption }` field,
+only when the owner's direction calls for one. Never put it in `screenshots`: those stay genuine app captures.
+
+- **Disclose it.** The visible caption and alt text must say it is generated or model artwork. Never imply a real
+  customer, testimonial or endorsement.
+- **Keep provenance.** Record how it was generated and composed in the site's media records. Use original captures as
+  the factual reference for any app screen it shows.
+- **Keep the UI true.** Show the app's screens accurately, and follow Apple's device and branding rules.
+- **Don't require it.** Lifestyle art is optional. Add no approval gate beyond the owner's existing scope.
+- **Look at it.** Check its crop and disclosure at desktop and phone widths.
 
 ## Badge
 
 `sites/ouro/public/badges/download-on-the-app-store.svg` is Apple's unmodified black badge from
 `https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg`. Use it only for a live app, at
 40px tall or more, once per view, never recoloured or animated. Apple's credit line is in the footer.
+
+## Lessons
+
+- **Füd's icon file is a template (2026-11-02).** Füd's repository `store/assets/app-icon.png` is Apple's icon-grid
+  template, not the icon. Use the App Store artwork (`store.json` → `artworkUrl`).
+- **Build icons are small (2026-11-02).** App Store Connect build icons (`iconAssetToken`) are 120px at most. Take
+  icons from the app repository's `Assets.xcassets/AppIcon.appiconset` or, once live, the App Store artwork. Moment to
+  Meaning has no local repository. Its icon is a vector redraw (`iconNote`) until the live 1024px artwork can replace
+  it.
+- **Link-preview cards use Latin fonts (2026-11-02).** Satori draws them from `.woff` Latin fonts. Keep their text to
+  Latin characters, with no emoji or ★.
+- **Satori ignores padding on a fixed height (2026-11-02).** Give a padded card `height: 630 - top - bottom`, or its
+  last row falls off the preview image.

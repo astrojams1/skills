@@ -5,14 +5,14 @@ No mock-ups, no faked results: the number on screen is the number the app return
 
 ## The rig (iOS simulator)
 
-1. **A Release build against synthetic data.** Build the app's Release configuration for the simulator, pointed at a
+1. **A Release build against synthetic data.** Build the app's Release configuration for the simulator. Point it at a
    local or staging backend seeded with a believable synthetic household (Füd: `e2e-server.cjs` with
    `E2E_SHOWCASE=1`, a family of You, Leo and Maya). Never record a real person's data, and never the production
    account. Sign in by seeding the session (Füd's `seed-session.py`), not by typing credentials on camera.
-2. **A leased device from the shared pool.** Follow the owner's simulator rules: run the SSD mount script, lease
-   the exact UUID, record its prior state, `simctl status_bar override --time 9:41` with full battery and
-   signal, and restore everything (uninstall the build, clear the status bar, shut down, release the lease) at
-   the end, even after a failure.
+2. **A leased device from the shared pool.** Follow the owner's simulator rules. Run the SSD mount script, lease
+   the exact UUID, record its prior state, and run `simctl status_bar override --time 9:41` with full battery and
+   signal. At the end, even after a failure, restore everything: uninstall the build, clear the status bar, shut
+   down, release the lease.
 3. **Get the one-time prompts out of the way off camera** (consent dialogs, onboarding, permission sheets),
    unless the prompt is the point of the episode.
 4. **Record into `/Volumes/SharedSimulators/<app>-recordings/`** with `simctl io <udid> recordVideo
@@ -37,7 +37,7 @@ blocked route, not a blocked Short. Try these, in order, before deferring, and n
    `node <skills>/app-release/scripts/native-qa.mjs xcodebuild --device-set <leased set path> -- test -scheme <app>
    -destination id=<udid> -only-testing:<UITestTarget>/ShortsTakes/test_<episode>`. If the app has no
    `ShortsTakes` UI test yet, write one in the app's repository (its `AGENTS.md`, own branch, PR, merged when CI
-   passes): it launches against the synthetic data, waits about 1.5 s per screen, types the rehearsed input and holds
+   passes). It launches against the synthetic data, waits about 1.5 s per screen, types the rehearsed input and holds
    on the result. It changes no shipped code, so it is not a change to the app. Stop the recording with SIGINT once
    the test ends, then restore the device as step 2 says.
 3. **`simctl --set <leased set path>` alone** for a moment that needs no taps: a deep link (`simctl openurl`), a launch argument that opens
@@ -47,11 +47,11 @@ Defer only when all three fail, with the error from each, and still make every S
 
 ## Rehearse the inputs, then record
 
-For anything with variable output (AI features, search, scores, game outcomes), run candidate inputs through the
-real feature first (its API or a quick unrecorded pass) and keep the ones whose real result is surprising, funny or
-clear. Results vary between runs, so caption what the recorded take actually returned, not the rehearsal. Füd's
-"crusts" episode came back as "Pizza Crust · 220 cal · Estimated" on the take after the rehearsal said
-"2½ slices": the take, not the rehearsal, set the caption.
+Some features have variable output: AI features, search, scores, game outcomes. Run candidate inputs through the
+real feature first (its API or a quick unrecorded pass). Keep the ones whose real result is surprising, funny or
+clear. Results vary between runs, so caption what the recorded take actually returned, not the rehearsal. In Füd's
+"crusts" episode the rehearsal said "2½ slices", but the take returned "Pizza Crust · 220 cal · Estimated". The take,
+not the rehearsal, set the caption.
 
 Drop inputs whose result is wrong or embarrassing (a dish matched to the wrong food), not just dull. A Short that
 shows the app getting it wrong teaches viewers not to trust it.
@@ -59,7 +59,7 @@ shows the app getting it wrong teaches viewers not to trust it.
 ## Find the moments
 
 Draw contact sheets of each take (`app-preview.swift sheet <take> <out.png> 30`, then finer ones around each
-event) and write down the source times of: typing start and end, the tap, the wait, the result landing, the
+event). Write down the source times of: typing start and end, the tap, the wait, the result landing, the
 payoff row, the confirmation. The edit spec is built from those times.
 
 ## Games and ambient apps

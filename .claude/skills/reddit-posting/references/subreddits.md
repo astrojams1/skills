@@ -10,3 +10,5 @@ Update before relying on it; rules change.
 | r/TestersCommunity | Play closed-test swaps | Posts give an app description, the Play test link and the feedback wanted | Search results, 2026-10-15; rules not yet read directly |
 | r/androiddev | Developer discussion | Tester requests reported removed by moderators within hours | DEV Community post, 2026-10-15 |
 | google-play-test-users (Google Group) | Play closed-test swaps | Titles like `[Test for Test] <app> – <what it is> (14 days, I test yours back)`; most apps free, none of 20 recent posts paid | Read via web fetch, 2026-10-15 |
+
+Read-only Reddit mirrors (Redlib) are often down or block bots. Don't depend on them (2026-10-15).

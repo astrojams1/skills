@@ -8,33 +8,52 @@ description: >-
   systems, theming, visual styling, color palette, typography, dark mode, or
   when a project needs a cohesive visual identity applied from scratch.
 metadata:
-  version: "1.0"
+  version: "1.1.0"
 ---
 
-# Skill: Apply the Architectural Minimalist Design System
+# Design system
 
-Apply the **Architectural Minimalist** design system to the current project. Warm organic palette, sharp architectural geometry, precise yet inviting.
+**Apply the Architectural Minimalist design system to this project.** A warm organic palette and sharp geometry make
+it precise yet inviting.
 
-Reference implementation: https://pinch-pleat-simulator-731832823064.us-west1.run.app/
+Done means: every item in the [Checklist](#checklist) passes, in light and dark mode.
 
-## Core Principles
+## Where things are
 
-1. **Sharp geometry everywhere.** `rounded-none` on all buttons, inputs, cards, containers. Exception: icon-only buttons use `rounded-full`. Strip all `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-full` (except icon buttons) from the entire project.
-2. **Borders define structure, not shadows.** Thin 1px borders (`border border-border`). Shadows only on overlaying elements (sidebar, floating controls). Remove all `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl` from cards, sections, and containers.
-3. **Warm organic palette.** Sage green, terracotta, stone, parchment. No cool blues or saturated primaries. Both themes maintain warm undertones.
-4. **Warm neutrals dominate.** Background (`#F9F8F6`) and surface (`#FFFFFF`) should cover 85%+ of the visible area. Primary (sage) and accent (terracotta) are for buttons, links, active states, slider thumbs, and micro-accents only — never as large background fills for headers, banners, hero sections, or cards.
-5. **High information density** with clear hierarchy via typography scale, weight, and uppercase micro-labels.
+| What | Where |
+|---|---|
+| Principles, tokens, fonts, Tailwind config, checklist | This file |
+| Component HTML/CSS patterns, exact classes, code examples | [references/components.md](references/components.md) |
+| Layout patterns, global styles, interaction details | [references/layout.md](references/layout.md) |
+| Reference implementation | https://pinch-pleat-simulator-731832823064.us-west1.run.app/ |
 
-## Anti-patterns — Never Do These
+## Core principles
 
-- **Never use primary/accent as a header or banner background.** Headers use `bg-background` or `bg-surface` with a `border-b border-border`, not a colored fill.
-- **Never leave default framework colors.** Replace all Tailwind blue (`blue-500`, `indigo-600`, etc.), gray (`gray-*`), and other cool-toned defaults with the design system tokens.
-- **Never mix rounded and sharp corners.** Every element must use `rounded-none` (except icon-only buttons which use `rounded-full`). If the project uses a component library with rounded defaults, override them globally.
-- **Never use drop shadows for structure.** Cards, panels, and sections are bordered, not shadowed. Shadows are reserved exclusively for overlaying elements (sidebar overlay, floating control bar, active toggle).
-- **Never use `bg-primary` or `bg-accent` on containers, sections, or page regions.** These colors are strictly for interactive elements (buttons, links, active indicators, slider thumbs).
-- **Never skip the CSS custom properties.** Even if Tailwind classes are used, the `:root` / `.dark` variables must be defined so that all theme colors resolve correctly.
+1. **Sharp geometry everywhere.** Use `rounded-none` on all buttons, inputs, cards and containers. The one exception:
+   icon-only buttons use `rounded-full`. Strip every `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`,
+   `rounded-2xl` and `rounded-full` (except on icon buttons) from the whole project. Never mix rounded and sharp
+   corners. If a component library has rounded defaults, override them globally.
+2. **Borders define structure, not shadows.** Use thin 1px borders (`border border-border`). Put shadows only on
+   overlaying elements: the sidebar overlay, the floating control bar and the active toggle. Remove all `shadow-sm`,
+   `shadow-md`, `shadow-lg` and `shadow-xl` from cards, panels, sections and containers.
+3. **Warm organic palette.** Sage green, terracotta, stone, parchment. No cool blues or saturated primaries. Both
+   themes keep warm undertones.
+4. **Warm neutrals dominate.** Background (`#F9F8F6`) and surface (`#FFFFFF`) cover 85%+ of the visible area. Primary
+   (sage) and accent (terracotta) are for buttons, links, active states, slider thumbs and micro-accents only. Never
+   use `bg-primary` or `bg-accent` on headers, banners, hero sections, cards or page regions. Headers use
+   `bg-background` or `bg-surface` with `border-b border-border`.
+5. **High information density.** Show a clear hierarchy through the type scale, weight and uppercase micro-labels.
 
-## Step 1: Install Fonts
+## Anti-patterns
+
+- **Never leave default framework colors.** Replace Tailwind blue (`blue-500`, `indigo-600` and the like), gray
+  (`gray-*`) and other cool defaults with the design system tokens.
+- **Never skip the CSS custom properties.** Define the `:root` and `.dark` variables even when you use Tailwind
+  classes, so every theme color resolves.
+
+## A run
+
+### 1. Install the fonts
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,7 +61,7 @@ Reference implementation: https://pinch-pleat-simulator-731832823064.us-west1.ru
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Tenor+Sans&display=swap" rel="stylesheet">
 ```
 
-## Step 2: Color Palette (CSS Custom Properties)
+### 2. Set the color palette (CSS custom properties)
 
 ```css
 :root {
@@ -66,7 +85,7 @@ Reference implementation: https://pinch-pleat-simulator-731832823064.us-west1.ru
 
 Apply to `body`: `margin: 0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; background-color: var(--c-bg); color: var(--c-text-main); transition: background-color 0.3s ease, color 0.3s ease;`
 
-## Step 3: Tailwind CSS Config
+### 3. Configure Tailwind CSS
 
 ```js
 export default {
@@ -87,11 +106,12 @@ export default {
 }
 ```
 
-## Step 4: Icons
+### 4. Icons
 
-**Library:** [Lucide](https://lucide.dev/) (`lucide-react` for React, `lucide` for vanilla JS). All icons in this design system come from Lucide. Do not mix icon libraries.
+**Use [Lucide](https://lucide.dev/) only.** Use `lucide-react` for React and `lucide` for vanilla JS. Don't mix icon
+libraries.
 
-**Critical sizing rule — Lucide defaults to 24px, you must override:**
+**Set every icon's size.** Lucide defaults to 24px, so override it:
 
 | Context | Class | Size |
 |---------|-------|------|
@@ -99,13 +119,17 @@ export default {
 | Floating action buttons (`w-12 h-12`) | `w-5 h-5` | 20px |
 | Inline body icons | `w-4 h-4` | 16px |
 
-All icon buttons use a single consistent icon size (`w-5 h-5`). The button's padding and dimensions control the hit target, not the icon size.
+All icon buttons use one icon size (`w-5 h-5`). The button's padding and size set the hit target, not the icon size.
+Put `className="w-5 h-5"` (or `size={20}`) on every Lucide icon component. A missing size is this system's most
+common mistake: oversized icons break the sidebar header alignment.
 
-**Icon button styling:** Sidebar header icon buttons use `p-2.5 rounded-full text-text-muted hover:text-primary hover:bg-secondaryHover bg-transparent transition-all duration-200`. The `hover:text-primary` (sage green) is mandatory — do NOT use `hover:text-text-main` or other hover colors. The `w-5 h-5` icon size, `p-2.5` padding, and `items-start` on the parent flex container are a **tuned set** for optical alignment — the icon centers align with the title's cap-height. Changing any one value breaks the alignment. See `references/components.md` → Sidebar Header for the full explanation.
+**Style sidebar header icon buttons as a tuned set.** They use `p-2.5`, `rounded-full`, `text-text-muted`, and hover to
+`text-primary` (sage green) on `bg-secondaryHover`. The `hover:text-primary` is mandatory: never use
+`hover:text-text-main` or another hover color. The `w-5 h-5` icon, `p-2.5` padding and `items-start` on the parent
+flex row work together. They line the icon centers up with the title's cap-height, so changing one breaks the
+alignment. The full class string and the reasons are in `references/components.md`, Sidebar Header.
 
-**You MUST explicitly set `className="w-5 h-5"` (or `size={20}`) on every Lucide icon component.** Lucide React defaults to 24px — omitting the size class produces oversized icons that break sidebar header alignment. This is the most common styling mistake when applying this design system.
-
-**Specific icons:**
+**Use these icons:**
 
 | Function | Lucide Icon |
 |----------|-------------|
@@ -117,9 +141,11 @@ All icon buttons use a single consistent icon size (`w-5 h-5`). The button's pad
 | Dark mode (night) | `Moon` |
 | Section accordion chevron | `ChevronDown` (rotates 180° when open) |
 
-**How to pick icons:** Choose icons that are simple outlines (not filled) and represent the action, not the object. Prefer universally understood metaphors (chevron for expand, X for close). Browse [lucide.dev/icons](https://lucide.dev/icons) and pick the simplest option — if two icons are similar, choose the one with fewer strokes.
+**Pick new icons simply.** Choose simple outlines, not filled shapes. Show the action, not the object. Prefer
+metaphors everyone knows, like a chevron to expand or an X to close. Browse [lucide.dev/icons](https://lucide.dev/icons)
+and pick the simplest. If two are alike, pick the one with fewer strokes.
 
-## Step 5: Typography
+### 5. Typography
 
 | Role | Tailwind Classes | Min Size |
 |------|-----------------|----------|
@@ -132,72 +158,93 @@ All icon buttons use a single consistent icon size (`w-5 h-5`). The button's pad
 | **Inline action** | `text-[10px] font-bold uppercase tracking-widest text-accent` | 10px |
 | **Computed value** | `font-mono font-medium text-text-main` (uses body size context) | 14px |
 
-**Minimum font size rules:** No text in the UI should be smaller than `10px`. The `10px` size is reserved exclusively for inline action buttons (e.g., "Set to Floor"). Labels, helper text, and all readable content must be `11px` or larger. Micro-labels at `11px` are the smallest readable content tier — they compensate with `font-bold` and `uppercase tracking-[0.15em]`.
+**Minimum sizes.** No UI text is smaller than `10px`. Only inline action buttons (like "Set to Floor") use `10px`.
+Labels, helper text and all readable content are `11px` or larger. Micro-labels at `11px` are the smallest readable
+tier. They make up for it with `font-bold` and `uppercase tracking-[0.15em]`.
 
-## Step 6: Components
+### 6. Components
 
-The design system provides these component types. **See [references/components.md](references/components.md) for full HTML/CSS patterns, exact classes, and code examples.**
+Full HTML/CSS patterns, exact classes and code examples are in
+[references/components.md](references/components.md).
 
-**Buttons:** Primary (sage fill), Secondary (surface + border), Accent (terracotta fill), Ghost (transparent), Icon (only exception to `rounded-none` — uses `rounded-full`, must have `title` attribute), Floating Action (circular `w-12 h-12 rounded-full shadow-lg`, positioned in main content area, must have `title` attribute).
+- **Buttons:** Primary (sage fill), Secondary (surface + border), Accent (terracotta fill), Ghost (transparent).
+  Icon buttons are the only exception to `rounded-none`: they use `rounded-full` and must have a `title` attribute.
+  Floating Action buttons are circular (`w-12 h-12 rounded-full shadow-lg`), sit in the main content area and must
+  have a `title` attribute.
+- **Form controls:** Input (sharp corners, border-based, `font-mono` for number inputs). Toggle Group (a segmented
+  control: the active item is raised with surface bg + shadow, no colored fills). Slider (terracotta thumb, with a
+  `var(--c-surface)` thumb border for dark mode). Control Input (a labeled number input + synced range slider +
+  optional suffix, tip or action).
+- **Dropdown (Select Menu):** A custom select with sharp corners and a border-based trigger styled like an input. It
+  has a `ChevronDown` indicator (`w-4 h-4`, rotates 180° when open) and an overlay options panel (`shadow-lg`). The
+  selected option uses `text-primary bg-primary/5`. It supports grouped options with micro-label headings.
+- **Containers:** Card (`bg-surface border border-border rounded-none`). Computed Value display (`bg-secondary/30`
+  with a mono value).
+- **Unit suffix on number inputs:** Show it for measurement fields (`in`, `%`, `px`). Leave it off dimensionless
+  counts.
+- **SVG / canvas annotations:** Apps that draw measurements or dimension lines on a canvas or SVG use the terracotta
+  accent (`#C67D63`), never default black. This covers lines, end caps and value labels. The full SVG pattern and React helper
+  are in [references/components.md](references/components.md).
 
-**Form controls:** Input (sharp corners, border-based, `font-mono` for number inputs), Toggle Group (segmented control — active item elevated with surface bg + shadow, no colored fills), Slider (terracotta thumb, `var(--c-surface)` thumb border for dark mode), Control Input (compound: labeled number input + synced range slider + optional suffix/tip/action).
+### 7. Layout
 
-**Dropdown (Select Menu):** Custom select replacement with sharp corners, border-based trigger styled like an input, `ChevronDown` indicator (`w-4 h-4`, rotates 180° when open), overlay options panel (`shadow-lg`), selected state uses `text-primary bg-primary/5`. Supports grouped options with micro-label section headings.
+The design system has two main layouts. Full HTML patterns, class strings and interaction details are in
+[references/layout.md](references/layout.md).
 
-**Containers:** Card (`bg-surface border border-border rounded-none`), Computed Value display (`bg-secondary/30` with mono value).
+**Sidebar app shell.** This is the main layout. A collapsible sidebar (`w-[400px]`, `bg-background`, `shadow-2xl`)
+sits on the left. Its header holds the app title and icon buttons, and its body holds accordion sections. The main
+content area (`flex-1`, `bg-secondary`) sits on the right, with floating action buttons top-right and an optional
+floating bottom bar. The sidebar animates open and closed with `transition-all duration-300 ease-in-out`. The canvas
+or content must re-zoom when the sidebar opens or closes.
 
-**Unit suffix on number inputs:** Show for measurement fields (`in`, `%`, `px`), omit for dimensionless counts.
+- **Header:** The app title and action buttons (collapse, reset and so on) live **inside** the sidebar header.
+- **Accordions:** Only one section is open at a time. Titles use `font-header`, with `ChevronDown` rotation and a
+  grid-row animation.
+- **Width:** All sidebar controls are full width.
+- **Collapse and expand:** `Minimize2` in the sidebar header collapses it. A floating `Maximize2` button in the main
+  content expands it.
 
-## Step 6b: SVG / Canvas Annotations
+**Header-based layout.** Use it for apps with no sidebar. The header is `bg-background border-b border-border`: a
+neutral background, never a colored fill.
 
-Apps that overlay measurements or dimension lines on a canvas/SVG must use the terracotta accent color (`#C67D63`) for lines, end caps, and value labels — never default black. See [references/components.md](references/components.md) for the full SVG pattern and React helper.
+**Other patterns.** Card grid (border-based, no shadows). Floating bottom bar (backdrop-blur, border-t, shadow).
 
-## Step 7: Layout
+**Any other layout.** The look comes from the palette, the type, sharp geometry and border-based structure, not from
+one layout. Follow the core principles.
 
-The design system supports two primary layouts. **See [references/layout.md](references/layout.md) for full HTML patterns, class strings, and interaction details.**
+### 8. Global styles
 
-**Sidebar app shell** — The primary layout. Collapsible sidebar (`w-[400px]`, `bg-background`, `shadow-2xl`) on the left with app title + icon buttons in the header, accordion sections in the body. Main content area on the right (`flex-1`, `bg-secondary`) with floating action buttons (top-right) and optional floating bottom bar. Sidebar collapse/expand animated with `transition-all duration-300 ease-in-out`. Canvas/content must re-zoom when sidebar opens/closes.
+- **Selection:** `selection:bg-accent/20` on the outermost container.
+- **Scrollbars:** `scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`.
+- **Theme transition:** `transition-colors duration-300` on every element that changes color.
+- **Dark mode:** Toggle the `dark` class on the root container. All colors update through the CSS custom properties.
+  Add a circular floating action button (`w-12 h-12 rounded-full shadow-lg`) in the top-right corner of the main
+  content area. It shows a sun icon in light mode and a moon icon in dark mode.
 
-**Key sidebar rules:**
-- App title and action buttons (collapse, reset, etc.) live **inside** the sidebar header
-- Accordion sections: only one open at a time, `font-header` titles, `ChevronDown` rotation, grid-row animation
-- All sidebar controls are full width
-- Collapse: `Minimize2` in sidebar header; expand: `Maximize2` floating button in main content
+## Apply to an existing project
 
-**Header-based layout** — Alternative for non-sidebar apps. `bg-background border-b border-border` — neutral background, never colored fill.
+1. **Audit existing colors.** Search for every hardcoded color (`blue-`, `gray-`, `indigo-`, `#3B82F6` and the like).
+   Replace each with a design system token.
+2. **Strip all border-radius.** Remove every `rounded-*` class, except `rounded-full` on icon buttons. Add
+   `rounded-none` explicitly where needed.
+3. **Replace shadow-based structure with borders.** Remove `shadow-*` from cards, panels and other containers that
+   don't overlay. Add `border border-border` instead. **Keep shadows on overlaying elements:** the sidebar
+   (`shadow-2xl`), floating action buttons (`shadow-lg`), the floating bottom bar and the expand button (`shadow-lg`).
+4. **Check headers and navbars.** If a header has a colored background (`bg-blue-*`, `bg-primary`, `bg-accent`,
+   `bg-green-*` and the like), replace it with `bg-background border-b border-border`.
+5. **Install the fonts and CSS custom properties.** Both are mandatory.
 
-**Other patterns:** Card grid (border-based, no shadows), Floating bottom bar (backdrop-blur, border-t, shadow).
+## Contribute new patterns
 
-**Adapting to any layout:** The visual identity comes from the palette, typography, sharp geometry, and border-based structure — not from a specific layout. Keep warm neutral background dominant, use borders instead of shadows for structure, and restrict primary/accent to interactive elements.
+For a UI pattern this system doesn't cover yet, like a toast, data table, modal, progress bar or badge:
 
-## Step 8: Global Styles
-
-- **Selection:** `selection:bg-accent/20` on outermost container
-- **Scrollbars:** `scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
-- **Theme transition:** `transition-colors duration-300` on all color-changing elements
-- **Dark mode:** Toggle `dark` class on root container — all colors update via CSS custom properties. Provide a circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun icon (light mode) / moon icon (dark mode) in the main content area's top-right corner.
-
-## When Applying to an Existing Project
-
-1. **Audit existing colors.** Search for all hardcoded colors (`blue-`, `gray-`, `indigo-`, `#3B82F6`, etc.) and replace with design system tokens.
-2. **Strip all border-radius.** Find and remove all `rounded-*` classes (except `rounded-full` on icon buttons). Add `rounded-none` explicitly where needed.
-3. **Replace shadow-based structure with borders.** Remove `shadow-*` from cards, panels, and non-overlay containers. Add `border border-border` instead. **Keep shadows on overlay elements:** sidebar (`shadow-2xl`), floating action buttons (`shadow-lg`), floating bottom bar, and expand button (`shadow-lg`). These are overlaying elements — shadows are correct on them.
-4. **Check headers/navbars.** If any header uses a colored background (`bg-blue-*`, `bg-primary`, `bg-accent`, `bg-green-*`, etc.), replace with `bg-background border-b border-border`.
-5. **Install the fonts and CSS custom properties** — these are mandatory, not optional.
-
-## Contributing New Patterns
-
-When applying this design system to a project, you will encounter UI patterns not yet covered (e.g. toast notifications, data tables, modals, progress bars, badges). When this happens:
-
-1. **Ask the human for guidance** — propose how the component should look using the core principles (warm palette, sharp geometry, border-based structure, minimal color accents). Wait for approval.
-2. **Apply the approved pattern** consistently across all instances.
-3. **Contribute it back** to this skill so future projects benefit:
-   - New component patterns go in `references/components.md`
-   - New layout patterns go in `references/layout.md`
-   - New tokens or core concepts go in this file (`SKILL.md`)
-   - Include rationale and context with each addition
-
-The design system grows through real-world usage. Every novel pattern is an opportunity to make the system more complete.
+1. **Ask the human.** Propose a look that follows the core principles: warm palette, sharp geometry, border-based
+   structure, few color accents. Wait for approval.
+2. **Apply the approved pattern** the same way everywhere it appears.
+3. **Add it to this skill,** with the reasons and context, so future projects benefit:
+   - New component patterns go in `references/components.md`.
+   - New layout patterns go in `references/layout.md`.
+   - New tokens or core ideas go in this file (`SKILL.md`).
 
 ## Checklist
 
@@ -205,7 +252,7 @@ The design system grows through real-world usage. Every novel pattern is an oppo
 - [ ] DM Sans (body) and Tenor Sans (headings) are loading
 - [ ] CSS custom properties (`:root` and `.dark`) are defined
 - [ ] Light bg is #F9F8F6 (warm off-white), dark bg is #1A1918 (warm charcoal)
-- [ ] Terracotta accent #C67D63 is consistent across both themes
+- [ ] Terracotta accent #C67D63 is the same in both themes
 - [ ] Theme switches smoothly; no cool blues or default Tailwind colors leak through
 
 **Geometry and Structure:**
@@ -222,38 +269,38 @@ The design system grows through real-world usage. Every novel pattern is an oppo
 - [ ] No default Tailwind blue, indigo, or gray colors remain
 
 **Icons:**
-- [ ] Using Lucide icons exclusively (`lucide-react` or `lucide`)
-- [ ] All icon buttons use `w-5 h-5` icon size regardless of button dimensions
+- [ ] Using Lucide icons only (`lucide-react` or `lucide`)
+- [ ] All icon buttons use `w-5 h-5` icon size whatever the button's size
 - [ ] Sidebar header icon buttons use `hover:text-primary hover:bg-secondaryHover`, NOT `hover:text-text-main`
 - [ ] Sidebar collapse uses `Minimize2`; expand uses `Maximize2`
 - [ ] Section accordions use `ChevronDown` with `rotate-180` when open
 - [ ] Dark mode toggle uses `Sun` (day) / `Moon` (night) from Lucide
 
 **Layout and Interaction:**
-- [ ] Sidebar header: `flex justify-between items-start` — title and icon buttons top-aligned
-- [ ] Sidebar collapse/expand animates with `transition-all duration-300 ease-in-out`; circular expand button (`Maximize2`) appears when collapsed
-- [ ] App shell uses `overflow-hidden` — no transient horizontal scrollbar during sidebar transition
-- [ ] Canvas/content re-zooms to fill available space when sidebar opens or closes (resize observer or `transitionend`)
+- [ ] Sidebar header: `flex justify-between items-start`, so title and icon buttons are top-aligned
+- [ ] Sidebar collapse/expand animates with `transition-all duration-300 ease-in-out`; a circular expand button (`Maximize2`) appears when collapsed
+- [ ] App shell uses `overflow-hidden`, so no horizontal scrollbar flashes during the sidebar transition
+- [ ] Canvas/content re-zooms to fill the space when the sidebar opens or closes (resize observer or `transitionend`)
 - [ ] Sidebar sections are collapsible accordions with Tenor Sans (`font-header`) titles, `border-b border-border` dividers, and chevron rotation
-- [ ] Accordion section headers show `text-primary` on hover (both title and chevron, via `group-hover:text-primary`)
+- [ ] Accordion section headers show `text-primary` on hover (title and chevron, via `group-hover:text-primary`)
 - [ ] Accordion content animates with `grid transition-all duration-300 ease-in-out` between `grid-rows-[1fr]` and `grid-rows-[0fr]`
-- [ ] Only one accordion section is open at a time — expanding one collapses all others
-- [ ] All controls inside the sidebar are full width (`w-full`) — inputs, toggles, sliders stretch to fill the sidebar content area
-- [ ] Main content area uses `flex-1 flex flex-col h-full relative`; canvas region uses `flex-1 bg-secondary relative overflow-hidden` to fill all available space
-- [ ] Control inputs pair number input (conditional unit suffix) with synced range slider below
+- [ ] Only one accordion section is open at a time; opening one closes the others
+- [ ] All controls inside the sidebar are full width (`w-full`): inputs, toggles and sliders fill the sidebar content area
+- [ ] Main content area uses `flex-1 flex flex-col h-full relative`; the canvas region uses `flex-1 bg-secondary relative overflow-hidden` to fill all the space
+- [ ] Control inputs pair a number input (unit suffix when it applies) with a synced range slider below
 - [ ] Unit suffixes shown only on measurement fields (inches, %, px), not on dimensionless counts
 - [ ] All icon-only buttons and floating action buttons have a `title` attribute (native browser tooltip)
-- [ ] Dark mode toggle uses circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with sun/moon icon
-- [ ] Floating action buttons positioned `absolute top-4 right-4 z-10` in main content
+- [ ] Dark mode toggle is a circular floating action button (`w-12 h-12 rounded-full shadow-lg`) with a sun/moon icon
+- [ ] Floating action buttons sit at `absolute top-4 right-4 z-10` in the main content
 
 **SVG / Canvas Annotations:**
 - [ ] Measurement/dimension lines use terracotta accent (`#C67D63`), not default black
-- [ ] Dimension value labels use filled terracotta pill with white bold text
+- [ ] Dimension value labels use a filled terracotta pill with white bold text
 - [ ] End caps are perpendicular serif lines in terracotta
 - [ ] No default SVG colors (black strokes, black text) remain on annotation elements
 
 **Typography and Details:**
-- [ ] No text smaller than 10px; 10px reserved for inline action buttons only
+- [ ] No text smaller than 10px; 10px only for inline action buttons
 - [ ] Micro-labels at 11px are the smallest readable content tier
 - [ ] Micro-labels: `text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted`
 - [ ] Number inputs use `font-mono`

@@ -9,6 +9,7 @@ run. Maintained by `scripts/ledger.py` (runs table) and by hand (versions, issue
 |---|---|---|---|
 | 0.1.0 | 2026-09-05 | Initial skill: 20-stage pipeline, ledger with per-stage token accounting, reference resolver, strict build, review rubrics, arXiv checklist. | First paper: world-sim → "cheap world model without training". |
 | 0.2.0 | 2026-09-05 | Added `arxiv_search.py`, `arxiv_bib.py` (TeX-escaped titles), `bundle.sh` (clean-dir build + arXiv tarball); `check_refs.py` resolves DOIs via Crossref; rubric A items 12–15 (guard-set selection, evaluated commit, zero-contribution, constant provenance); stage 13/14 mandatory fresh test set + exact-commit re-run; 8 gotchas. | Run 1 issues: the scientific review found the "held-out" set was selected on and the released code differed from the evaluated code; a fresh test set moved the headline from 99.6 to 95.3. |
+| 0.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. Token accounting, issue logging and subagents moved under Records and Rules. | The owner asked that every skill read as one author wrote it, plainly. |
 
 ## Runs
 

@@ -17,7 +17,7 @@ by its owner (frame pixels, 1080×1920):
 | Action rail | x > 898, y > 1061 | Like, comment, save, share, remix, then the sound thumbnail at the bottom |
 | Bottom stack | y > 1534, x < 898 | Channel row (with Subscribe, or Analytics for the owner), the title, "Public · N views" and a "Share your video" button for the owner, then the progress bar at y 1913 |
 
-The player is aspect-fill above the tab bar: the frame's full height shows
+The player is aspect-fill above the tab bar. The frame's full height shows
 (scale 1.238 on that screen, 2,377 of the screenshot's 2,622 rows), so the
 sides are what give. A taller phone (20:9 and up, common on Android) crops
 more from the sides; a 16:9 phone crops none. The overlay is not part of the
@@ -37,10 +37,10 @@ title does not reach them.
 - **The top band is controls, not only the status bar.** Text at y 130–280
   sits under back, search and the menu. Start supers at y 288.
 - **The lower half loses its right edge.** Cards, screenshots and phone
-  mock-ups below y 1060 must end by x 864 or the rail covers them; a device's
+  mock-ups below y 1060 must end by x 864 or the rail covers them. A device's
   body should end by x 898, where the rail starts.
-- **The bottom fifth is the title.** Nothing readable below y 1440: the
-  owner's own view adds rows that viewers do not see, a long title takes two
+- **The bottom fifth is the title.** Nothing readable below y 1440. The
+  owner's own view adds rows that viewers do not see. A long title takes two
   lines, and a Related video link adds a row above the title.
 - **Backgrounds, motion and devices may bleed.** Only information is
   confined; colour, texture and movement should fill the frame so the crop
@@ -83,8 +83,8 @@ player, or the ledger has no measurement for a device that matters.
    YouTube's controls are white in `diff.png`.
 4. Read each control's box off the screenshot (in screenshot pixels) and pass
    them as `--mark x0,y0,x1,y1`. The output gives each in frame pixels, and
-   `visible` gives the side crop. Keep the marks: with `--preview new.png`
-   the same call lays those controls over any new frame, which is how to see
+   `visible` gives the side crop. Keep the marks. With `--preview new.png`
+   the same call lays those controls over any new frame. That is how to see
    a new cut as a viewer will before it is uploaded. Mark tightly; white video
    inside a mark comes along, and avatars and YouTube's glass pills are not
    carried over.

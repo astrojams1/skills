@@ -1,8 +1,16 @@
 # App release skill ledger
 
-Skill version **2.22.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.23.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.23.0 (2026-11-10)
+
+- Rewritten in the house style from `skill-writing`; no behavior change. The owner asked that every skill read as one
+  author wrote it, plainly. `SKILL.md` now follows the shared shape (A run, Authority, Rules, Report) and carries the
+  canonical Run rules block for the daily review run, whose reference keeps only its own detail. The full script and
+  command table moved to `references/scripts.md`, and the App Store Connect API boundary detail to `references/ios.md`.
+  The privacy and app types references were reworded the same way.
 
 ## Lessons incorporated into v2.22.0 (2026-11-10)
 

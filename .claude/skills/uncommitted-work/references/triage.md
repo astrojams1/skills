@@ -35,9 +35,9 @@ repository keeps that kind of record.
    `local/<short-description>`. Never use the old, stale base.
 2. Bring over only the files that passed triage. Re-create the change if the
    surrounding code has moved. Never paste an old file over a newer one.
-3. Read the whole diff, confirm there are no conflict markers
+3. Read the whole diff. Confirm there are no conflict markers
    (`git grep -nE '^(<<<<<<<|=======|>>>>>>>)( |$)'`) and that no secrets or personal
-   data came along, and run the repository's tests on its pinned runtime.
+   data came along. Run the repository's tests on its pinned runtime.
 4. Open a PR that says where the work came from and why it's still wanted. Follow
    the repository's `AGENTS.md`, attribution rules included.
 5. Merge only with every configured check green on the exact head, review

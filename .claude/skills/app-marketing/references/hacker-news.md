@@ -10,18 +10,18 @@ Read them again before each post; they change. When this page and theirs disagre
 
 ## Who posts
 
-The `app-marketing-show-hn` task posts the link from the owner's own Hacker News account, in the Chrome where they are
-already signed in, at a time the owner's calendar shows them free (see [Timing](#timing)).
-The owner decided this on 2026-11-07, knowing that Hacker News asks people not to automate posting: "I'm typically
-already signed in to hacker news so you should have no problem posting", then "Skill posts it itself". Their account
-and their sites carry the risk. So keep each post to what Hacker News asks of a person:
+The `app-marketing-show-hn` task posts the link from the owner's own Hacker News account. It uses the Chrome where
+they are already signed in, at a time the owner's calendar shows them free (see [Timing](#timing)).
+The owner decided this on 2026-11-07, knowing that Hacker News asks people not to automate posting. Their words: "I'm
+typically already signed in to hacker news so you should have no problem posting", then "Skill posts it itself". Their
+account and their sites carry the risk. So keep each post to what Hacker News asks of a person:
 
 - **A link and a title, nothing more.** Leave the text field empty, since Hacker News asks for no generated text in posts.
   Never comment, reply, vote or flag, in this thread or any other.
 - **The owner answers the thread.** A Show HN is from the maker, who is "around to discuss". The calendar event tells
   them a day ahead, and the thread link goes on the event and at the top of the run's report.
-- **Never sign in.** If the browser is not signed in to Hacker News, or no browser can be reached, log the item `deferred`
-  with a `retry_after` and move on. Never enter a password, never create an account, and never use any account but the
+- **Never sign in.** The browser may not be signed in to Hacker News, or no browser can be reached. Then log the item
+  `deferred` with a `retry_after` and move on. Never enter a password, never create an account, and never use any account but the
   owner's.
 
 ## Is the app a fit?
@@ -32,7 +32,8 @@ Give the profile a `hackerNews` block only when all of these are true:
   terminal or simulator tool, a local model runner, or a developer's utility for the Mac. An app that developers merely
   like is not one.
 - **People can try it now, without signing up.** A free download, a free trial or open source. A paid-only download,
-  a waitlist, a landing page or a signup wall does not qualify (Show HN: "make it easy for users to try your thing out").
+  a waitlist, a landing page or a signup wall does not qualify. Show HN says: "make it easy for users to try your thing
+  out".
 - **It is substantial.** Show HN asks for no "quickly-generated one-offs". A point release ("Foo 1.3.1 is out") is not a
   reason to post; a major overhaul can be.
 - **The owner made it.**
@@ -57,9 +58,9 @@ Add a backlog item for it: `{"id": "show-hn", "title": "Book a Show HN", "channe
 
 ## Timing
 
-The owner asked on 2026-11-07 that a Show HN goes up only when their calendar shows them free, with an event on their
-calendar as a heads-up. They chose weekdays 9:00 to 11:00 Pacific. `gcal.mjs` reads and writes the primary calendar of
-astrojams1@gmail.com. It needs the 1Password item `Google Calendar` (field `refresh token`) and reuses the OAuth client
+The owner asked on 2026-11-07 that a Show HN goes up only when their calendar shows them free. An event on their
+calendar is the heads-up. They chose weekdays 9:00 to 11:00 Pacific. `gcal.mjs` reads and writes the primary calendar of
+astrojams1@gmail.com. It needs the 1Password item `Google Calendar` (field `refresh token`). It reuses the OAuth client
 of `YouTube API` (Google Cloud project App Shorts, Calendar API enabled, consent screen in production).
 `node $R/gcal.mjs check` reports whether it works. If it does not, log the item `deferred` and never post without the
 check. To reconnect, run `gcal.mjs auth --token-file <iCloud Drive file>` and have the owner store the token. The service
@@ -71,13 +72,13 @@ All-day events count only when marked busy. Declined invitations and cancelled e
 ## Booking (Mac pass, the `show-hn` item)
 
 1. `node $R/marketing.mjs hn --app <id>`. This searches Hacker News (`hn.algolia.com`) for earlier stories with the app's
-   URL or a Show HN naming it, reads the ledger, and says `due` or `not due` with the reason.
+   URL or a Show HN naming it. It reads the ledger and says `due` or `not due` with the reason.
 2. **Not due:** log the item `skipped` with the reason as `reason`. When `hn` says it was already discussed or reposted,
    also set `dropped: true`; it is finished for good. Otherwise log `deferred` with a `retry_after`.
 3. **Due:** run `node $R/gcal.mjs slot --json`. It finds the first weekday 9:00 to 11:00 Pacific window at least 24 hours
    ahead, within 14 days, that is free. If there is none, log `deferred` with `retry_after` three days on.
-4. Write the event description to a file in the run folder. Include what will happen ("the skill posts this Show HN at
-   9:00; please be around until 11:00 to answer the thread"), the title, the URL, `tryIt` and the `notes`. Then run
+4. Write the event description to a file in the run folder. Include the title, the URL, `tryIt`, the `notes` and what
+   will happen: "the skill posts this Show HN at 9:00; please be around until 11:00 to answer the thread". Then run
    `node $R/gcal.mjs book --app <id> --start <slot start> --title "Show HN goes live: <App name>" --description-file F
    --confirm`. The event reminds by email and popup a day ahead and 15 minutes before. `book` refuses a second booking for
    the same app and a window that is no longer free.
@@ -86,7 +87,7 @@ All-day events count only when marked busy. Declined invitations and cancelled e
 
 ## Posting (the `app-marketing-show-hn` task, weekdays 9:00 Pacific)
 
-The task runs unattended. Its stored prompt only exports the skills and points here; every step, limit and "never"
+The task runs unattended. Its stored prompt only exports the skills and points here. Every step, limit and "never"
 lives in this file, so a change here reaches the next run without touching the task.
 
 0. **Setup.** Set `R` to `<folder>/skills/app-marketing/scripts`, where `<folder>` is the export the prompt made. Work
@@ -101,8 +102,8 @@ lives in this file, so a change here reaches the next run without touching the t
 3. **Still due?** Run `hn` again. If it is not due, cancel the event and log `skipped` as in Booking step 2.
 4. **Post.** In the owner's signed-in Chrome, open the `submit` link. It is Hacker News's own form, filled with the
    profile's title and URL. Check that both fields match the profile exactly and the text field is empty, then press
-   submit once. If Hacker News refuses the post (rate limit, duplicate, "you're posting too fast") or the page is
-   unexpected, do not retry and do not change the title to get past it. Run `gcal.mjs note --event <id> --text "Not
+   submit once. Hacker News may refuse the post (rate limit, duplicate, "you're posting too fast"), or the page may be
+   unexpected. Then do not retry, and do not change the title to get past it. Run `gcal.mjs note --event <id> --text "Not
    posted: <reason>" --confirm` and log `failed` with the message. If Chrome cannot be reached or is not signed in, cancel
    the event and log `deferred`.
 5. **Verify.** Open the new item, or find it with `hn`, and confirm the title, URL and the owner's username. Run

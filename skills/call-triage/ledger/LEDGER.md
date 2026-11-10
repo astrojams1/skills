@@ -8,6 +8,7 @@ folders and the owner's activity ledger, never here.
 | version | date | change | why |
 |---|---|---|---|
 | 1.0.0 | 2026-11-06 | Initial skill: on-device transcription, item register, privacy guard, routing, the page and the email draft | The owner will hold calls about many apps and services, and wants each one followed through without audio or transcripts in GitHub |
+| 1.1.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. Authority moved from `references/routing.md` into `SKILL.md` | The owner asked that every skill read as one author wrote it, plainly |
 
 ## Lessons
 

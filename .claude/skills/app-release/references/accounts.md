@@ -140,7 +140,7 @@ App-record creation is routine app setup through an authorized signed-in browser
 ([iOS onboarding](ios.md)); it is not an Account Holder certification. Public API creation being
 unavailable, or a browser tool failing, does not establish an owner-only account gate. Record tooling
 failures separately. Before asking for a demonstrated missing sign-in, unlock or role change, exhaust
-supported authorized alternatives and finish independent work ([autonomy](../SKILL.md#autonomy-and-approvals)).
+supported authorized alternatives and finish independent work ([authority](../SKILL.md#authority)).
 
 Record the project's actual monetization intent: free download, paid download,
 IAP, subscription, or other supported model; base currency/price; territories;

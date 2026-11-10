@@ -8,83 +8,92 @@ description: >-
   establish development standards, or when onboarding a new AI-assisted project
   that needs disciplined habits for complex tasks.
 metadata:
-  version: "1.1"
+  version: "1.2.0"
 ---
 
-# Skill: Workflow Orchestration
+# Workflow orchestration
 
-Apply structured workflow orchestration practices to guide AI agents through complex tasks reliably and autonomously.
+**Give an agent steady habits for complex work,** so it finishes hard tasks on its own.
+
+Done means: the target project's `AGENTS.md` carries the four sections below, and the project has no `CLAUDE.md`.
+
+## A run
+
+1. **Paste.** Copy the four sections below into the target project's `AGENTS.md`, its only agent instructions file.
 
 ## Workflow Orchestration
 
 ### 1. Plan Mode Default
 
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately — don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+- Enter plan mode for ANY non-trivial task: 3+ steps or any architectural decision.
+- If something goes sideways, STOP and re-plan at once. Don't keep pushing.
+- Use plan mode for verification steps, not just for building.
+- Write detailed specs up front to cut ambiguity.
 
 ### 2. Subagent Strategy
 
-- Use subagents liberally to keep main context window clean
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One task per subagent for focused execution
+- Use subagents freely to keep the main context window clean.
+- Hand research, exploration and parallel analysis to subagents.
+- For a complex problem, add compute through more subagents.
+- Give each subagent one task.
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update `tasks/lessons.md` with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project context
+- After ANY correction from the user, add the pattern to `tasks/lessons.md`.
+- Write rules for yourself that stop the same mistake.
+- Rework these lessons hard until the mistake rate drops.
+- Review the lessons at session start for project context.
 
 ### 4. Verification Before Done
 
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
+- Never mark a task complete without proving it works.
+- Diff behavior between main and your changes when it matters.
 - Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness
+- Run tests, check logs, and show that it is correct.
 
 ### 5. Demand Elegance (Balanced)
 
-- For non-trivial changes: pause and ask "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes — don't over-engineer
-- Challenge your own work before presenting it
+- For a non-trivial change, pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution."
+- Skip this for simple, obvious fixes. Don't over-engineer.
+- Challenge your own work before you present it.
 
 ### 6. Autonomous Bug Fixing
 
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests — then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
-- **Fix what you find.** If you encounter type errors, lint warnings, or failing tests during any task — fix them. Never dismiss issues as "pre-existing" or "not caused by my changes." Leave the codebase better than you found it
-- When you see errors like missing module declarations or type mismatches in test files, resolve them (install types, add declarations, fix imports) — don't just report them
+- Given a bug report, just fix it. Don't ask for hand-holding.
+- Point at logs, errors and failing tests, then resolve them.
+- The user should not have to switch context to help.
+- Fix failing CI tests without being told how.
+- **Fix what you find.** If you meet type errors, lint warnings or failing tests during any task, fix them. Never
+  dismiss an issue as "pre-existing" or "not caused by my changes". Leave the codebase better than you found it.
+- Resolve errors like missing module declarations or type mismatches in test files (install types, add declarations,
+  fix imports). Don't just report them.
 
 ## Task Management
 
-1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
-2. **Verify Plan**: Check in before starting implementation
-3. **Track Progress**: Mark items complete as you go
-4. **Explain Changes**: High-level summary at each step
-5. **Document Results**: Add review section to `tasks/todo.md`
-6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+1. **Plan First**: Write the plan to `tasks/todo.md` with checkable items.
+2. **Verify Plan**: Check in before you start building.
+3. **Track Progress**: Mark items complete as you go.
+4. **Explain Changes**: Give a high-level summary at each step.
+5. **Document Results**: Add a review section to `tasks/todo.md`.
+6. **Capture Lessons**: Update `tasks/lessons.md` after corrections.
 
 ## Core Principles
 
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- **Simplicity First**: Make every change as simple as possible. Touch as little code as you can.
+- **No Laziness**: Find root causes. No temporary fixes. Hold senior developer standards.
+- **Minimal Impact**: Change only what is needed. Avoid introducing bugs.
 
 ## Gotchas
 
-- **Plan mode is not optional for complex tasks.** The most common failure mode is skipping the plan and jumping straight to implementation. If a task has 3+ steps or any architectural decisions, plan first. Every time.
-- **"Fix what you find" does not mean refactor the world.** Fix type errors, lint warnings, and failing tests you encounter in files you're already touching. Don't go hunting for issues in unrelated files.
-- **Self-improvement only works if you actually read `tasks/lessons.md`.** Writing lessons is useless if you don't review them at session start. Make it the first thing you do.
-- **Verification means running the code, not just reading it.** "Looks correct" is not verification. Run tests, check logs, demonstrate the behavior. If you can't run it, explain why and what you checked instead.
-- **Subagent results need validation.** Subagents can hallucinate or miss context. Spot-check their findings before acting on them, especially for destructive operations.
-- **Don't re-plan in a loop.** If your plan fails twice, the problem is likely your understanding of the system, not the plan format. Step back and investigate the root cause before planning again.
-
-## How to Apply This Skill
-
-Paste the **Workflow Orchestration**, **Task Management**, **Core Principles**, and **Gotchas** sections above into the target project's `AGENTS.md` (the only agent instructions file; do not create `CLAUDE.md`). This equips the AI agent with disciplined, structured habits for tackling complex tasks.
+- **Plan mode is not optional for complex tasks.** The most common failure is skipping the plan and jumping straight
+  to building.
+- **"Fix what you find" does not mean refactor the world.** Fix the type errors, lint warnings and failing tests you
+  meet in files you already touch. Don't hunt for issues in unrelated files.
+- **Lessons only help if you read them.** Review `tasks/lessons.md` first thing at session start.
+- **Verification means running the code, not just reading it.** "Looks correct" is not verification. If you can't run
+  it, explain why and what you checked instead.
+- **Check subagent results.** Subagents can hallucinate or miss context. Spot-check their findings before you act on
+  them, above all before destructive operations.
+- **Don't re-plan in a loop.** If your plan fails twice, the problem is likely your grasp of the system, not the plan.
+  Step back and find the root cause before you plan again.

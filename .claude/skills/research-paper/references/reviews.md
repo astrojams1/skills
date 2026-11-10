@@ -66,8 +66,8 @@ Check each item; report a point for every failure, with the location.
 - [ ] All figures vector or ≥ 300 dpi; total source < 50 MB; no absolute paths; fonts embedded
       (`pdffonts build/main.pdf` shows no non-embedded fonts).
 - [ ] Source builds with pdflatex from a clean directory using only `main.tex`, `refs.bib`, `figures/`,
-      `tables/` (arXiv runs its own TeX; `.bbl` must be included since arXiv does not run BibTeX for
-      every submission — generate it and ship it).
+      `tables/`. arXiv runs its own TeX. Include `.bbl`, since arXiv does not run BibTeX for every submission:
+      generate it and ship it.
 - [ ] Code/data availability statement with the repository URL and commit hash.
 - [ ] AI-assistance disclosure paragraph present if AI tools were used.
 - [ ] Limitations section present and specific.

@@ -4,52 +4,67 @@ internal: true
 description: >-
   A diagnostic prompt for the skills repo author to give to Claude or Codex
   agents in consumer repos. The agent runs commands and inspects files, then
-  returns a structured health report covering every aspect of the skills
+  returns a structured health report covering every part of the skills
   integration. Use when you need to verify a consumer repo's integration or
   debug issues remotely.
 metadata:
-  version: "1.1"
+  version: "1.2.0"
 ---
 
-# Skill: Health Check Prompt
+# Health check prompt
 
-This skill provides a copy-paste prompt for diagnosing the skills integration in any consumer repo. Give the prompt to a Claude or Codex agent running in the consumer repo. The agent will gather data and return a structured report you can use to identify issues.
+**Hand the owner a prompt that makes an agent in a consumer repo report on its skills integration.** The report has a
+fixed shape, so it is quick to diagnose.
 
-## When to Use
+Done means: the whole prompt is on screen in one block the owner can copy.
 
-- After initial `manage.sh install` to verify everything is wired correctly
-- When a consumer repo reports skills not loading or being stale
-- At the start of a support session to get a baseline
-- After a `manage.sh sync` to confirm the update landed
+Use it after the first `manage.sh install`, and after `manage.sh sync` to confirm the update landed. Use it when a
+consumer repo says skills are missing or stale, and at the start of a support session for a baseline.
 
-## Agent Instructions
+## A run
 
-**Proactive trigger:** If the user mentions running a health check, diagnosing a consumer repo, or checking a skills integration — immediately output the full prompt below. Do NOT wait for them to explicitly ask for it. The whole point of this skill is to hand over the prompt quickly so the user can paste it into the consumer repo agent.
+1. **Output the prompt at once.** When the owner mentions running a health check, diagnosing a consumer repo or
+   checking a skills integration, print the full prompt. Don't wait to be asked. The point is to hand it over fast.
+2. **Use one block.** Print everything between `---START---` and `---END---` inside one fenced code block made of
+   **four backticks**. The owner then copies the whole prompt in one action, and the inner three-backtick fences still
+   render.
+3. **Read the report** with [Reading the report](#reading-the-report). For a full review and fixes, use
+   `health-check-review`.
 
-**Output rules:** Print everything between the `---START---` and `---END---` markers inside a single fenced code block using **quadruple backticks** (i.e., four backtick characters) so the user can copy the entire prompt in one action. The inner triple backticks will render correctly inside the quadruple-backtick fence. Do NOT tell the user to "copy from above" — the skill content is only in your context and is not visible to them.
+## Rules
 
-## The Prompt
+- **Never say "copy from above".** The skill is only in your context. The owner can't see it.
+
+## The prompt
 
 ---START---
 
-Run a full diagnostic of the skills integration in this repo and return a structured health report. Execute the commands below and collect their EXACT output. Do NOT paraphrase or summarize command output — include it verbatim. If a command fails, include the error message.
+Run a full diagnostic of the skills integration in this repo and return a structured health report. Run the commands
+below and collect their EXACT output. Do NOT paraphrase or summarize command output. Include it verbatim. If a command
+fails, include the error message.
 
-**CONSTRAINTS — read these before doing anything:**
-1. **Report only.** Do NOT commit, push, create PRs, or modify any files yourself.
-2. `manage.sh check` (command 13) auto-fixes some issues as a side effect — that is expected behavior, not something you should do. Report its output verbatim.
-3. After collecting all command output, return the structured report below and STOP.
+**CONSTRAINTS. Read these before you do anything:**
+1. **Report only.** Do NOT commit, push, create PRs or change any files yourself.
+2. `manage.sh check` (command 13) auto-fixes some issues as a side effect. That is expected, not something you should
+   do. Report its output verbatim.
+3. After you collect all command output, return the report below and STOP.
 
-**FORMAT RULES — follow these exactly when writing the report:**
-1. **Single block output:** Wrap the **entire** report in a single fenced code block (triple backticks with `markdown` language tag) so the user can copy it in one action.
-2. Inside the report use standard GitHub-flavored markdown: `**bold**` (not `__bold__`), `-` for list items.
-3. Use `##` for the report title and `###` for each numbered section — exactly as shown in the template.
-4. Use `- **Key:** value` for single-line data items.
-5. Indent multi-line command output by 4 spaces instead of using fenced code blocks (fenced code blocks cannot nest inside the outer fence).
-6. All command output must be verbatim after ANSI stripping — never paraphrase, summarize, or reformat.
-7. Commands 13 and 14 below already strip ANSI color codes. If you run any additional commands, strip them too: `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
-8. If `git submodule status` output starts with `+` before the SHA, note this explicitly — it means the checked-out commit differs from the recorded pointer in the parent repo.
-9. Copy the template structure exactly. Do not rename sections, reorder them, merge them, or add extra sections.
-10. In command 8 diff output, entries like `Only in skills/skills/: <name>` for skills that have `internal: true` in their SKILL.md frontmatter are **expected** — internal skills are intentionally not copied to discovery dirs. Do not count these as issues in the Discovery Directories verdict.
+**FORMAT RULES. Follow these exactly when you write the report:**
+1. **One block:** Wrap the **entire** report in one fenced code block, with triple backticks and the `markdown` tag.
+   The user can then copy it in one action.
+2. Inside the report, use GitHub-flavored markdown: `**bold**` (not `__bold__`), and `-` for list items.
+3. Use `##` for the report title and `###` for each numbered section, exactly as the template shows.
+4. Use `- **Key:** value` for one-line data items.
+5. Indent multi-line command output by 4 spaces. Don't use fenced code blocks: they can't nest inside the outer fence.
+6. All command output must be verbatim after ANSI stripping. Never paraphrase, summarize or reformat it.
+7. Commands 13 and 14 below already strip ANSI color codes. If you run any other command, strip it too:
+   `command 2>&1 | sed 's/\x1b\[[0-9;]*m//g'`
+8. If `git submodule status` output starts with `+` before the SHA, say so plainly. It means the checked-out commit
+   differs from the pointer recorded in the parent repo.
+9. Copy the template structure exactly. Do not rename, reorder or merge sections, and add no new ones.
+10. In command 8's diff output, lines like `Only in skills/skills/: <name>` are **expected** for skills with
+    `internal: true` in their SKILL.md frontmatter. Internal skills are never copied to discovery dirs. Don't count
+    these as issues in the Discovery Directories verdict.
 
 ### Commands to run (run each one and capture the output)
 
@@ -114,9 +129,11 @@ git log --oneline -10
 
 ### Report format
 
-Return the report using EXACTLY this structure. Copy the headers and bullet format character-for-character, only replacing `<...>` placeholders with actual data. Use `PASS`, `WARN`, or `FAIL` for each verdict.
+Return the report in EXACTLY this structure. Copy the headers and bullet format character for character. Replace only
+the `<...>` placeholders with real data. Use `PASS`, `WARN` or `FAIL` for each verdict.
 
-For items marked `<verbatim ...>`, include the raw command output indented by 4 spaces (NOT in fenced code blocks — the entire report is already inside a single fence). For single-value items, put the value on the same line after the colon.
+For items marked `<verbatim ...>`, include the raw command output indented by 4 spaces. Do NOT use fenced code blocks,
+since the whole report is already inside one fence. For one-value items, put the value on the same line after the colon.
 
 ```
 ## Skills Health Report
@@ -195,38 +212,47 @@ For items marked `<verbatim ...>`, include the raw command output indented by 4 
 
 ---END---
 
-## Reading the Report
+## Reading the report
 
-When the consumer agent returns the report, check for these common issues:
+When the consumer agent returns the report, check it against this table. `health-check-review` adds a row here for each
+new symptom it finds.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Submodule FAIL — not registered | `manage.sh install` was never run | Run `manage.sh install .` |
+| Submodule FAIL, not registered | `manage.sh install` was never run | Run `manage.sh install .` |
 | Commits behind > 0 | Submodule not synced recently | Run `manage.sh sync` |
 | Modified files in submodule | Someone edited skills locally | `git -C skills checkout .` |
-| Discovery dirs missing or not in VCS | `git add .claude .agents` was skipped | Run `manage.sh link` then commit |
+| Discovery dirs missing or not in VCS | `git add .claude .agents` was skipped | Run `manage.sh link`, then commit |
 | Content mismatch in discovery dirs | Stale copies after a sync | Run `manage.sh link` |
-| SessionStart hook missing/old format | Old install or manual settings edit | Run `manage.sh check` (auto-fixes) |
+| SessionStart hook missing or old format | Old install or manual settings edit | Run `manage.sh check` (auto-fixes) |
 | CLAUDE.md present alongside AGENTS.md | Project predates the AGENTS.md-only rule | Merge anything unique into AGENTS.md, then `git rm CLAUDE.md` |
 | CLAUDE.md exists but AGENTS.md missing | Project predates the AGENTS.md-only rule | `git mv CLAUDE.md AGENTS.md` |
-| No "Skills" section in AGENTS.md | Step 5 of skill-orchestrator was skipped | Add agent-instructions template |
+| No "Skills" section in AGENTS.md | Step 5 of skill-orchestrator was skipped | Add the agent-instructions template |
 | Spec validation fails | Corrupted submodule content | Run `manage.sh sync` or `reinstall` |
-| `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with flat path) | Submodule is far behind; running an old manage.sh that lacks auto-sync and directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |
-| Internal skill (e.g. health-check-prompt) in consumer discovery dirs | Old manage.sh copied it before `internal: true` filtering existed | Run `manage.sh check` (latest version removes internal skills automatically) |
-| Claude and Codex report different submodule SHAs on same checkout | Claude's SessionStart hook ran `git submodule update` before diagnostic, changing the submodule to the recorded commit | Compare "Recorded commit" (git ls-tree) with "Status line" — if they match, the hook already ran |
-| `manage.sh status` lists internal skills (e.g. health-check-prompt) as available | Old manage.sh lacked `internal: true` filtering in the status command | Run `manage.sh sync` to get the latest version, then re-run `status` |
-| manage.sh check behaves differently across agents | Agents are running different manage.sh versions because submodule is at different commits | Sync submodule first (`manage.sh sync`), then re-run diagnostic |
-| `manage.sh status` shows `>-` or `>- >-` instead of skill descriptions | Old manage.sh description extraction doesn't strip YAML block scalar indicators (`>-`, `|`) | Run `manage.sh sync` to get the fix |
-| `check` reports PASS on discovery dirs despite content mismatches in diff output | Old manage.sh used existence-only checks, not diff-based content verification | Run `manage.sh sync` to get the latest check logic, then re-run `check` |
-| `check` auto-fixes discovery dirs but submodule is behind (discovery dirs downgraded) | Old manage.sh lacks auto-sync; it detects stale discovery dirs and refreshes them from the outdated submodule, replacing newer committed content with older versions | Run `manage.sh sync` first to update the submodule, then re-run `check` |
-| Submodule `+` prefix and old manage.sh version despite recorded pointer being current | Ephemeral environment (e.g. Codex) started with submodule at wrong commit; old manage.sh can't auto-sync (chicken-and-egg) | Run `git submodule update --init --recursive` first, or sync to latest manage.sh which auto-resets to recorded pointer during `check` |
-| SessionStart hook initializes but doesn't auto-sync (hook command ends with `manage.sh link` without a fetch/update step) | Old hook format that only initializes to recorded pointer and refreshes skill files, but never checks for upstream updates | Run `manage.sh check` to auto-fix the hook, or `manage.sh sync` to update both the submodule and the hook |
-| Codex fix commands succeed but next session shows same issues | Codex sessions are ephemeral — working tree fixes don't persist unless committed; `git submodule update` fixes the working tree but produces no diff when the index already records the correct pointer | Update consumer AGENTS.md Codex instruction to `git submodule update --init --recursive && ./skills/bin/manage.sh check` (see agent-instructions template) |
+| `check` warns but doesn't auto-sync (or reports "Missing skill file .claude/skills/\<name\>.md" with a flat path) | Submodule is far behind. It runs an old manage.sh with no auto-sync and no directory-based checks | Run `manage.sh sync` first to get the latest tools, then re-run `check` |
+| Internal skill (e.g. health-check-prompt) in consumer discovery dirs | Old manage.sh copied it before `internal: true` filtering existed | Run `manage.sh check` (the latest version removes internal skills) |
+| Claude and Codex report different submodule SHAs on the same checkout | Claude's SessionStart hook ran `git submodule update` before the diagnostic, moving the submodule to the recorded commit | Compare "Recorded commit" (git ls-tree) with "Status line". If they match, the hook already ran |
+| `manage.sh status` lists internal skills (e.g. health-check-prompt) as available | Old manage.sh lacked `internal: true` filtering in `status` | Run `manage.sh sync` to get the latest version, then re-run `status` |
+| manage.sh check behaves differently across agents | Agents run different manage.sh versions because the submodule is at different commits | Sync the submodule first (`manage.sh sync`), then re-run the diagnostic |
+| `manage.sh status` shows `>-` or `>- >-` instead of skill descriptions | Old manage.sh doesn't strip YAML block scalar markers (`>-`, `\|`) from descriptions | Run `manage.sh sync` to get the fix |
+| `check` reports PASS on discovery dirs despite content mismatches in the diff output | Old manage.sh only checked that files exist, not that content matches | Run `manage.sh sync` to get the latest check logic, then re-run `check` |
+| `check` auto-fixes discovery dirs but the submodule is behind (discovery dirs downgraded) | Old manage.sh lacks auto-sync. It sees stale discovery dirs and refreshes them from the old submodule, replacing newer committed content with older versions | Run `manage.sh sync` first to update the submodule, then re-run `check` |
+| Submodule `+` prefix and old manage.sh version, though the recorded pointer is current | An ephemeral environment (e.g. Codex) started with the submodule at the wrong commit. Old manage.sh can't auto-sync (chicken and egg) | Run `git submodule update --init --recursive` first, or sync to the latest manage.sh, which resets to the recorded pointer during `check` |
+| SessionStart hook initializes but doesn't auto-sync (hook command ends with `manage.sh link` and has no fetch or update step) | Old hook format. It initializes to the recorded pointer and refreshes skill files, but never checks for upstream updates | Run `manage.sh check` to auto-fix the hook, or `manage.sh sync` to update both the submodule and the hook |
+| Codex fix commands succeed but the next session shows the same issues | Codex sessions are ephemeral, so working tree fixes vanish unless committed. `git submodule update` fixes the working tree but makes no diff when the index already records the right pointer | Change the consumer AGENTS.md Codex line to `git submodule update --init --recursive && ./skills/bin/manage.sh check` (see the agent-instructions template) |
 
 ## Gotchas
 
-- **Agents paraphrase command output.** The prompt says "verbatim" but agents still summarize. If reports arrive with missing data, check whether the agent omitted output it considered unimportant. The format rules emphasize verbatim output — reinforce this if editing the prompt.
-- **ANSI codes leak through despite stripping.** Commands 13 and 14 strip ANSI, but agents sometimes run additional commands without stripping. Any new commands added to the prompt must include `2>&1 | sed 's/\x1b\[[0-9;]*m//g'`.
-- **Agents merge or rename report sections.** The prompt says "copy the template structure exactly" but agents sometimes combine sections or change headings, making automated parsing harder. Compare section headers character-for-character when reviewing reports.
-- **Internal skills flagged as issues.** `diff -rq` output shows `Only in skills/skills/: <name>` for internal skills. Format rule 10 says these are expected, but agents (and reviewers) still flag them. The diagnostic table should be checked first before escalating.
-- **Submodule `+` prefix misunderstood.** Agents see the `+` prefix in `git submodule status` and report FAIL, but it just means the checked-out commit differs from the recorded pointer — often because a sync happened but wasn't committed. Format rule 8 covers this but is easy to overlook.
+- **Agents paraphrase command output (2026-03-19).** The prompt says "verbatim", but agents still summarize. If a
+  report is missing data, check whether the agent left out output it thought unimportant. Keep the stress on verbatim
+  output when you edit the prompt.
+- **ANSI codes leak through (2026-03-19).** Commands 13 and 14 strip ANSI, but agents sometimes run extra commands
+  without stripping. Any command you add to the prompt must end with `2>&1 | sed 's/\x1b\[[0-9;]*m//g'`.
+- **Agents merge or rename report sections (2026-03-19).** This makes reports harder to parse. Compare section headers
+  character for character when you review a report.
+- **Internal skills get flagged as issues (2026-03-19).** `diff -rq` shows `Only in skills/skills/: <name>` for
+  internal skills. Format rule 10 says these are expected, but agents and reviewers still flag them. Check the table
+  above before you escalate.
+- **The submodule `+` prefix is misread (2026-03-19).** Agents see `+` in `git submodule status` and report FAIL. It
+  only means the checked-out commit differs from the recorded pointer, often because a sync wasn't committed. Format
+  rule 8 covers this, but it is easy to miss.

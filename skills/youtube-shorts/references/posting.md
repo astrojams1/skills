@@ -1,7 +1,7 @@
 # Posting a Short
 
 The upload package and the settings that matter, as checked on 2026-10-21.
-YouTube changes these often: re-check a fact against its source before
+YouTube changes these often. Re-check a fact against its source before
 relying on it for a decision, and date what you find in the ledger.
 
 ## The file
@@ -30,8 +30,8 @@ relying on it for a decision, and date what you find in the ledger.
 - **Links do not click.** Since 31 August 2023 links in Shorts descriptions
   and comments are plain text, the creator's own included
   ([Tubefilter](https://tubefilter.com/2023/08/10/youtube-shorts-comments-spam/)).
-  Give a search phrase in the description, put the link in the channel's
-  links, which do click, and use Related video (below) for your own videos.
+  Give a search phrase in the description. Put the link in the channel's
+  links, which do click. Use Related video (below) for your own videos.
 - **Hashtags.** The first three show above the title; more than 60 and all of
   them are ignored ([YouTube Help](https://support.google.com/youtube/answer/6390658)).
 - **Related video.** In Studio → Content → the Short → Related video, link a
