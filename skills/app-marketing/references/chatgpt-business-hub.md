@@ -45,6 +45,13 @@ openai.com and help.openai.com refuse plain fetches (403). Read them in a browse
    in an allowed industry. It answers from the product and policy information the business gives it and links to the
    website; it cannot take orders or bookings. It is published separately, after a preview.
 
+**Adding the DNS record.** ChatGPT asks for a TXT record named `openai-business-claim.<website host>`, valid for 24
+hours. `cleanstreets.io`'s DNS is at Squarespace Domains (the former Google Domains account), which has no API and
+whose connector has no DNS tools, so the owner adds it in the website. Squarespace's Name field takes only the part
+before the domain: enter `openai-business-claim.www`, not the full name, or the domain is added twice. Check it with
+`dig +short TXT openai-business-claim.www.cleanstreets.io` before pressing Verify, and if ChatGPT looked first, wait
+five minutes: it remembers the earlier "no such record" answer for that long.
+
 Each brand is its own profile; there is no shared management across brands. The person who claimed it can add
 teammates, each with their own ChatGPT account. Claiming does not raise how often ChatGPT recommends the business.
 There is no API: everything is done in Business Hub.
@@ -74,7 +81,8 @@ the exact step, once, and does not repeat it every day.
 
 ## Our businesses
 
-Status on 2026-11-10: nothing is claimed yet. Every claim waits on the owner.
+Status on 2026-11-10: Clean Streets' claim is started and its domain is verified; OpenAI's decision and the Persona
+identity check are still to come. The other three are not claimed yet. Every claim waits on the owner.
 
 | Business | Website | Kind | How it can verify | Feed or agent | Facts come from |
 |---|---|---|---|---|---|
@@ -97,3 +105,4 @@ Add a row for each claim, verification result, published change, feed or agent. 
 | Date | Business | What happened |
 |---|---|---|
 | 2026-11-10 | all | Feature announced. Nothing claimed. Owner given the steps to claim each business |
+| 2026-11-10 | Clean Streets | Owner started the claim for `www.cleanstreets.io` and verified the domain with a TXT record at `openai-business-claim.www.cleanstreets.io`. Next: OpenAI's decision by email, then the Persona identity check |
