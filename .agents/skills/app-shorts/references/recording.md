@@ -23,6 +23,25 @@ No mock-ups, no faked results: the number on screen is the number the app return
    opening a screen before typing, or the first characters land before the field exists. Screenshots lag by about
    one frame: take two before acting on what you see.
 
+## When the Simulator tool refuses
+
+The iOS Simulator tool refuses scheduled (unattended) sessions, so step 5 fails in the daily Mac pass. That is a
+blocked route, not a blocked Short. Try these, in order, before deferring, and name each one tried in the event:
+
+1. **A web build, if the app has one.** Space Worms records its real 1.0.1 game from the web export in headless
+   Chromium (sw-challenge-02, 2026-11-10). Same rules: the shipped build, a real result, nothing edited.
+2. **The app's own UI test as the driver.** Keep steps 1 to 4 (Release build, leased device, status bar,
+   `simctl io <udid> recordVideo`), and drive the take with `xcodebuild test -scheme <app> -destination
+   id=<udid> -only-testing:<UITestTarget>/ShortsTakes/test_<episode>` instead of the tool. If the app has no
+   `ShortsTakes` UI test yet, write one in the app's repository (its `AGENTS.md`, own branch, PR, merged when CI
+   passes): it launches against the synthetic data, waits about 1.5 s per screen, types the rehearsed input and holds
+   on the result. It changes no shipped code, so it is not a change to the app. Stop the recording with SIGINT once
+   the test ends, then restore the device as step 2 says.
+3. **`simctl` alone** for a moment that needs no taps: a deep link (`simctl openurl`), a launch argument that opens
+   the screen, or an ambient loop recorded as it plays.
+
+Defer only when all three fail, with the error from each, and still make every Short that a working route allows.
+
 ## Rehearse the inputs, then record
 
 For anything with variable output (AI features, search, scores, game outcomes), run candidate inputs through the

@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works the highest-value open item every day, measures what it did from App Store and YouTube numbers, and records everything in an append-only ledger. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.8.0"
+  version: "1.9.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -65,8 +65,9 @@ The cloud has no access to the vault: no `op`, no service-account token. Every b
 - **`cloud`, daily routine:** reads the state, writes guides and site changes, ships them, records public numbers.
 - **`mac`, daily scheduled task `app-marketing-mac` (about 05:34 Pacific):** runs before the cloud, reads App Store and
   YouTube numbers and does whatever needs a credential: promotional text, reviews, Shorts, store data. It also mirrors
-  the ledger into the shared activity ledger. Its instructions are in [the Mac pass](references/mac-pass.md). It runs
-  only while the Claude app is open and the SSD is mounted; a missed run happens at the next launch.
+  the ledger into the shared activity ledger. Its steps are in [the Mac pass](references/mac-pass.md); the task's
+  stored prompt only points there. It runs only while the Claude app is open and the SSD is mounted; a missed run
+  happens at the next launch.
 
 Each run does only its own items and never waits for the other. If the Mac's last run is over three days old, the cloud
 logs one `finding` and carries on.
@@ -74,6 +75,9 @@ logs one `finding` and carries on.
 ## A run
 
 Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and work from the app-sites checkout.
+
+The prompt that starts a run only names this skill. If it states a budget, a cap or a step that differs from this file
+or the Mac pass, it is out of date: follow the skill, and log one `finding` quoting the stale words.
 
 1. **Start.** In both the skills and app-sites checkouts, `git checkout main && git pull --ff-only`. Read
    [channels](references/channels.md) and [content](references/content.md) in full. In app-sites, `npm ci`, then a
@@ -87,7 +91,9 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    lowered, with the numbers in a `finding`.
 4. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner, best first. Do
    them all, best first, each to the content bar. The only pacing limits are the ones that protect the channel: one
-   Short every two days across apps (`app-shorts`) and the Show HN limits (`hn`). Log anything passed over and why.
+   Short every two days across apps (`app-shorts`) and the Show HN limits (`hn`). Pacing sets when a Short goes
+   public, never whether it is made: make every due Short now and schedule it into the next free slot (the Mac pass,
+   step 3). A taken slot is never a reason to defer a Short. Log anything passed over and why.
    Nothing open for this runner: think of a better idea, add it to that app's backlog with honest scores, and log that.
 5. **Do.** Follow the item's `how` and [content](references/content.md). Log an `action` with `app`, `item`, `channel`,
    `operation` (one line), `evidence` and `status`. `status: ok` finishes the item; `deferred` parks it.

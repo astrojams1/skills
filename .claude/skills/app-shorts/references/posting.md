@@ -47,7 +47,7 @@ live. Captions cost 400 quota units through the API; burned-in text usually make
 
 ## Cadence
 
-One Short every two days across the channel (three or four a week) is a pace distinct ideas can sustain; `shorts.mjs plan --gap 2` builds that calendar, rotating apps by cadence. More is not rewarded for its own sake (`youtube-growth/references/metrics.md`). Post in
+One Short every two days across the channel (three or four a week) is a pace distinct ideas can sustain; `shorts.mjs plan --gap 2` builds that calendar, rotating apps by cadence. The pace decides when a Short goes public, not when it is made: record and schedule each app's next Short as soon as it is due, into the next free slot up to 14 days ahead, so the queue never runs dry. More is not rewarded for its own sake (`youtube-growth/references/metrics.md`). Post in
 the late afternoon or evening in the audience's time zone (the owner's US audience: about 5 PM Pacific), then let
 `youtube-growth` adjust the time from the channel's own "when your viewers are on YouTube" data.
 
