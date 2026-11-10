@@ -12,6 +12,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.1.0 | 2026-11-10 | The weekly task's stored prompt is a pointer, written here; a stale prompt is reported | Prompt copies on the Mac drifted from the skills before (app-marketing kept a three-item budget after the skill dropped it) |
 | 1.2.0 | 2026-11-10 | A run fixes what it finds; the report lists anything left open with its blocker. "Never end by asking" and reading `/Users/astro/AGENTS.md` moved here from the old prompt | James: a run that notes an issue and leaves it is being lazy |
 | 1.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. The run rules block replaces the skill's own copies of those rules, and the report names what is left open. Same structure as its pair skill | The owner asked that every skill read as one author wrote it, plainly |
+| 1.3.1 | 2026-11-10 | Move Node and export setup into the weekly entry point. | Keep the task prompt to a pointer. |
 
 ## Lessons
 

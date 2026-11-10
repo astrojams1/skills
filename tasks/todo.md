@@ -4,6 +4,18 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## Move Mac-only skills into the skills repository
+
+- [x] Show the local skill and scheduled task inventory before making changes.
+- [x] Copy the Mac maintenance skill and check its rewrite against the original.
+- [x] Move the six active task launch procedures into their skills and back up the local prompts.
+- [x] Refresh discovery, run all checks and verify the ledger through its old path.
+- [x] Publish a single PR and leave it open.
+
+Review: 356 Node tests, 76 management checks and 336 skill spec checks passed. All Python suites,
+identity, readability and the cap scan passed. Six task launch procedures passed in test checkouts.
+The original ledger path recorded an event and the paused prompt matched its backup.
+
 ## app-release 2.18.1: independently guarded native QA cleanup
 
 - [x] Document persisted pre-mutation state and independently guarded cleanup.

@@ -1,8 +1,13 @@
 # App release skill ledger
 
-Skill version **2.23.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.23.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.23.1 (2026-11-10)
+
+- The daily review task points to its reference. That reference now sets up Node 22 and exports the skills
+  with the same run ID used for review and logging.
 
 ## Lessons incorporated into v2.23.0 (2026-11-10)
 
