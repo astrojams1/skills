@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mac RAM & Storage Maintenance"
+  short_description: "Reclaim RAM and disk space; fix recurring shortages"
+  default_prompt: "Use $mac-memory-maintenance to reclaim RAM and storage safely, diagnose recurring shortages, and verify lasting fixes."

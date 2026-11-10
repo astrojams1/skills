@@ -45,6 +45,14 @@ skills/                                    # Skill definitions (Agent Skills spe
     references/{apps,ledger,cloud}.md       # App profiles, durable state and hosted scheduling
     assets/pipsqueak.json                  # Inactive app profile; live deployment stays private
     scripts/activity_ledger.py             # Shared locked activity JSONL writer
+  mac-memory-maintenance/
+    SKILL.md                               # Nightly RAM and disk maintenance for the owner's Mac
+    references/{measurements,remediation,organization}.md
+    scripts/{ledger,resources}.py          # Shared JSONL ledger writer and macOS resource tools
+    ledger/LEDGER.md                       # Versions and lessons
+  vegas-microworks-marketing/
+    SKILL.md                               # Start the site's weekly marketing run from a fresh worktree
+    ledger/LEDGER.md                       # Versions and lessons
   research-paper/
     SKILL.md                               # Repo -> arXiv-ready paper, 20 staged artifacts
     references/{stages,literature,decisions,reviews}.md  # Stage playbook, lit search, decision menus, review rubrics
@@ -155,18 +163,22 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 - **A scheduled run clears its known work.** Each run works through every open item it can safely do together (every backlog idea, every app pending release, every due thread), not one item a run. Skip only what is blocked, with the reason, so no backlog builds up between runs, above all for skills that run rarely (James, 2026-11-08).
 - **A run fixes what it finds.** Every issue a scheduled run sees, inside or outside the item it was working on (a wrong fact on a site, a broken link, a failing check, a stale prompt, a script bug), is fixed in that run, shipped and verified. Logging it, noting it or "leaving it alone" is not a fix. Only a step that truly needs James (a payment, a sign-in, an approval), a store submission or review gate, an outside rule that forbids the act today, or an outside service that is down after another way was tried may stay open, and the run's summary names each with what unblocks it. A skill's ledger should refuse an open item without its blocker, as `app-marketing`'s does (James, 2026-11-10).
 - **A throttle is a cap, wherever it lives.** A limit on how much a run does is a cap whether it sits in `SKILL.md`, a reference ("one good guide a week per app"), a script default (`windowDays`) or a data file (`repeat_days` over 1). Pacing may decide *when* finished work goes public (a Short's `publishAt`), never whether the work is done this run. A cap stays only with a reason James gave or a rule a third party sets (Hacker News's limits), written in `cap-allowlist.txt`. `python3 bin/check_caps.py . skills` fails on any other, and `tests/test_no_hidden_caps.py` runs it; consumer repos with a skill-improver run the same check (James, 2026-11-10).
-- **Every scheduled task is listed below, with where its prompt lives.** Cloud routines show up in the routine list; tasks on James's Mac (Cowork or Codex) don't, so an audit that reads only the routine list misses them, as the 2026-11-08 audit missed `app-marketing-mac`. Each Mac task's stored prompt is a pointer, written in its skill, and a skill that finds a stale prompt follows itself and reports the stale words. When a Mac task's prompt must change, give James the exact new text to paste, because no agent can edit it.
+- **Every scheduled task is listed below, with where its prompt lives.** Cloud routines show up in the routine list; tasks on James's Mac (Cowork or Codex) don't, so an audit that reads only the routine list misses them, as the 2026-11-08 audit missed `app-marketing-mac`. Each Mac task's stored prompt is a pointer, written in its skill, and a skill that finds a stale prompt follows itself and reports the stale words. When a prompt must change, use its stored task file where available. For a task that can only be edited by the owner, give James the exact pointer to paste.
 - **Done means seen in a run.** A change to how a scheduled skill paces or caps its work is done when the next run's ledger shows the new behaviour, not when the PR merges.
 
 | Mac scheduled task | When | Stored prompt (pointer) |
 |---|---|---|
-| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md` |
-| `app-marketing-show-hn` | Weekdays 09:00 Pacific | `skills/app-marketing/references/hacker-news.md`, "The task's stored prompt" |
-| `abandoned-prs` | Weekly | `skills/abandoned-prs/SKILL.md`, "The weekly task's prompt" |
-| `uncommitted-work` | Weekly | `skills/uncommitted-work/SKILL.md`, "The weekly task's prompt" |
-| `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "The daily task's prompt" |
-| `vegas-microworks-marketing` | Wednesdays 07:04 Pacific | `astrojams1/vegas-microworks` `docs/marketing.md`, "The weekly task's prompt" |
+| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task" |
+| `app-marketing-show-hn` | Weekdays 09:00 Pacific | `skills/app-marketing/references/hacker-news.md`, "Start the Show HN task" |
+| `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task" |
+| `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task" |
+| `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task" |
+| `vegas-microworks-marketing` | Wednesdays 07:04 Pacific | `skills/vegas-microworks-marketing/SKILL.md` |
+| `mac-memory-maintenance` | Daily 03:00 Pacific | Codex invokes `$mac-memory-maintenance` through its installed symlink |
 | `money-coaching-lead-gen` | Paused; the cloud routine "Money coaching lead gen (daily)" replaced it | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md`, "The Mac task's prompt" |
+
+The Mac uses `/Volumes/ssd/code/skills-mac-maintenance` for these task pointers and the maintenance symlink.
+Keep that checkout available while the Mac points to it.
 
 ## Available Skills
 
@@ -403,7 +415,22 @@ submodule can point a thin repo skill at this one.
 
 ## Internal Skills
 
-These skills are internal to the skills repository and are NOT distributed to consumer repos. They have `internal: true` in their SKILL.md frontmatter, which causes `manage.sh` to skip them during `link`, `install`, `sync`, and `check`.
+These skills use `internal: true` in their SKILL.md frontmatter. Consumer repositories skip them during `link`, `install`, `sync` and `check`. A standalone `link` still refreshes their discovery copies here.
+
+### Mac RAM and Storage Maintenance
+
+**Skill:** `skills/mac-memory-maintenance/SKILL.md`
+
+Samples RAM and disk use on the owner's Mac, makes safe fixes, and records before and after checks. The global
+install points to this skill so callers can keep using
+`/Users/astro/.codex/skills/mac-memory-maintenance/scripts/ledger.py`.
+
+### Vegas Microworks Marketing
+
+**Skill:** `skills/vegas-microworks-marketing/SKILL.md`
+
+Sets up Node 22 and a fresh worktree for the weekly Mac task. The site repo's `docs/marketing.md` owns the
+marketing steps and limits.
 
 ### Call Triage — From a Recorded Call to Finished Follow-Through
 

@@ -2,7 +2,7 @@
 name: abandoned-prs
 description: Find abandoned GitHub pull requests in the owner's repositories, decide whether each should merge, close or wait, and see that through. Use for the weekly PR cleanup, or when asked to triage, clean up, finish or close stale, abandoned or forgotten PRs.
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # Abandoned PRs
@@ -25,16 +25,29 @@ without asking first. It covers PR cleanup only:
 
 Repository rules and approval holds outrank this skill.
 
-## The weekly task's prompt
+## Start the weekly task
 
-The scheduled task on the owner's Mac stores only this pointer. Every step, limit and "never" lives in this file.
+The stored prompt is:
 
-> Run the abandoned-prs skill's weekly PR cleanup, unattended: nobody is watching. Use Node 22
-> (`PATH=/opt/homebrew/opt/node@22/bin:$PATH`). If `/Volumes/ssd` is not mounted, stop and report exactly that. Export
-> the current skills to a new folder under `/Volumes/ssd/projects/abandoned-prs/run/`
-> (`git -C /Volumes/ssd/code/skills fetch -q origin`, then
-> `git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C <folder>`), read
-> `<folder>/skills/abandoned-prs/SKILL.md` and follow "A run", running its scripts from `<folder>/skills/abandoned-prs/`.
+> Read `/Volumes/ssd/code/skills-mac-maintenance/skills/abandoned-prs/SKILL.md` and follow "Start the weekly task" unattended.
+
+Check that `/Volumes/ssd` is mounted. If it is absent, stop and report exactly that.
+Use Node 22. Make a new export folder under `/Volumes/ssd/projects/abandoned-prs/run/`:
+
+```sh
+set -e -o pipefail
+export PATH=/opt/homebrew/opt/node@22/bin:$PATH
+mkdir -p /Volumes/ssd/projects/abandoned-prs/run
+folder=$(mktemp -d /Volumes/ssd/projects/abandoned-prs/run/run.XXXXXXXX)
+git -C /Volumes/ssd/code/skills fetch -q origin
+git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C "$folder"
+printf '%s\n' "$folder"
+```
+
+Stop and report if a setup command fails.
+
+Read `<folder>/skills/abandoned-prs/SKILL.md` and follow "A run" there.
+Run its scripts from `<folder>/skills/abandoned-prs/`.
 
 ## A run
 

@@ -4,17 +4,28 @@ The steps for the `mac` runner. The owner approved this as a daily scheduled tas
 about 05:34 Pacific), Shorts posting included. On 2026-11-06 the owner made that standing for every released app on
 both teams, so a new app's Shorts need no go-ahead.
 
-## The stored prompt only points here
+## Start the Mac task
 
-The scheduled task's prompt says only what this skill cannot know (AGENTS.md, "Skills Run by Routines"). Every step,
-limit and pacing rule lives below, so a change here reaches the next run without touching the task. The prompt is:
+The stored prompt is:
 
-> Run the app-marketing skill's Mac pass, unattended: nobody is watching. Use Node 22
-> (`PATH=/opt/homebrew/opt/node@22/bin:$PATH`). If `/Volumes/ssd` is not mounted, stop and report exactly that. Export
-> the current skills to a new folder under `/Volumes/ssd/projects/app-marketing/run/`
-> (`git -C /Volumes/ssd/code/skills fetch -q origin`, then
-> `git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C <folder>`), read
-> `<folder>/skills/app-marketing/references/mac-pass.md` and follow it.
+> Read `/Volumes/ssd/code/skills-mac-maintenance/skills/app-marketing/references/mac-pass.md` and follow "Start the Mac task" unattended.
+
+Check that `/Volumes/ssd` is mounted. If it is absent, stop and report exactly that.
+Use Node 22. Make a new export folder under `/Volumes/ssd/projects/app-marketing/run/`:
+
+```sh
+set -e -o pipefail
+export PATH=/opt/homebrew/opt/node@22/bin:$PATH
+mkdir -p /Volumes/ssd/projects/app-marketing/run
+folder=$(mktemp -d /Volumes/ssd/projects/app-marketing/run/run.XXXXXXXX)
+git -C /Volumes/ssd/code/skills fetch -q origin
+git -C /Volumes/ssd/code/skills archive origin/main skills | tar -x -C "$folder"
+printf '%s\n' "$folder"
+```
+
+Stop and report if a setup command fails.
+
+Read `<folder>/skills/app-marketing/references/mac-pass.md` and follow "Steps" there.
 
 **If the prompt that started this run says anything else** (a budget such as "at most one Short and three small
 items", a reply cap, a step that differs from this file), it is out of date. Follow this file. Log one `finding` that
