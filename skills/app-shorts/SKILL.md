@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series — one registry for both App Store teams (Ouro and the personal James Thompson team), a series format per app, fresh recordings of the real app with rehearsed inputs, a 10–20 s edit with a hook, a real payoff and sound, posting and scheduling on the owner's channel through YouTube Studio (or the API once connected), and links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode. Pair with youtube-growth for the follow-up.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -20,7 +20,7 @@ that connects them for every app.
 |---|---|
 | `scripts/shorts.mjs` | The registry (`/Volumes/ssd/projects/app-shorts/registry.json`): `roster`, `sync`, `record`, `plan`, `due`, `link`, `status` |
 | `references/formats.md` | Series shapes that work for apps, a seed format per app, the rules every episode follows |
-| `references/recording.md` | The real-app recording rig (simulator lease, synthetic data, rehearsal, staging path, cleanup) |
+| `references/recording.md` | The real-app recording rig (simulator lease, synthetic data, rehearsal, staging path, cleanup), and unattended routes when the Simulator tool refuses |
 | `references/posting.md` | Posting and scheduling through Studio in Chrome, step by step with its traps; the API route; cadence |
 | `references/coordination.md` | Releases, App Store attribution links, promotional text, the marketing websites, channel settings |
 | `ledger/LEDGER.md` | Versions and lessons. Read before a run |
@@ -48,7 +48,8 @@ that connects them for every app.
    and "Search '<App>' on the App Store"), three hashtags, a JPEG cover and the pinned comment. Write it in the
    episode's upload notes.
 7. **Post or schedule** (`references/posting.md`): one Short every two days across the
-   channel, rotating apps, at the plan's slot, through Studio or `yt-api.mjs upload`. `record` the episode with `videoId`, `status` and `postedAt` or
+   channel, rotating apps, at the plan's slot, through Studio or `yt-api.mjs upload`. Make and schedule every due
+   episode now, into the next free slot up to 14 days out; a taken slot never defers production. `record` the episode with `videoId`, `status` and `postedAt` or
    `publishAt` immediately.
 8. **Hand over to `youtube-growth`:** it reads metrics at 3, 7 and 28 days, pins comments on Shorts that have gone
    live, and decides what the next episode should change.
