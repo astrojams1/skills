@@ -777,3 +777,12 @@ with the repository's `bin/manage.sh link` after changing the source skill, and 
 ### 2026-11-03 — Importron PDF / File Provider QA
 
 Version2.12.2 documents simulator-side bookmark diagnostics and a narrowly validated Debug-only document-open lane that preserves actual reader/parser, StoreKit, Health handoff and clinical queries. Files resolution errors and incomplete materialization must be distinguished from extraction errors. Failed selector/profile retries remain evidence; the alternate lane must not be presented as successful standard selection. Distribution excludes its entrypoint; manual release still waits for exact-build physical QA. Importron verifies its private report independently and uses only invented fixtures in Health and Git. No source medical records or account contacts are included in this lesson.
+
+### 2026-11-10 — Plenty 4.1(a): names of the services a companion app works with
+
+Version 2.23.2 adds a pre-submission checklist for apps that must name another company's service. Plenty 1.0 was
+rejected under Guideline 4.1(a) for metadata that "resembles" Codex, ChatGPT and Claude; the names were in the
+description and on the app's own screens in every screenshot, with no logos. The earlier guidance said only never to
+name another trademark, which such an app cannot do. The owner chose to contest after a store search found dozens of
+approved trackers naming the same services; the reply and notes were sent and the outcome is pending in Plenty's
+ledger. Adoption: Plenty's notes already carry the explanation; no other current app names a third-party service.
