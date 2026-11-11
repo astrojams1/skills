@@ -439,6 +439,16 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   mainland was a storefront. Leave China out with `pricing.excludeTerritories: ["CHN"]` and `pricing`, or remove the
   names and the functionality from the China version and say so in the review notes. `submit` reads the live
   availability and refuses before any write when the listing names one of `AI_SERVICE_NAMES` and China is on sale.
+- **Companion apps that must name another service (Guideline 4.1(a)).** An app that only works with someone else's
+  service (a usage widget, a remote, a status tracker) cannot follow the bullet above to the letter: its copy and
+  its own screens name that service. Apple rejected Plenty on 2026-11-10 because its metadata "resembles" Codex,
+  ChatGPT and Claude, attaching all seven screenshots. Before the first submission of such an app: keep the names
+  out of the app name, subtitle, keywords and icon; show no logo or artwork of the service anywhere; put a
+  not-affiliated line and trademark credit in the description; and say all of this in `review.notes` up front, with
+  why the names are needed. If rejected anyway, the owner chooses between removing the names (new screenshots and
+  preview, and neutral sample labels if the app's own screens show them) and contesting in the submission's
+  Messages; check the store for comparable approved listings first and record them. Whether contesting works is
+  recorded in the app's ledger, not assumed here.
 - **Guideline 5.1.1(i)** needs the privacy policy linked inside the app as well as in the listing; App
   Review also expects contact details in the app.
 - **User-generated content** (visible nicknames, chat) means `userGeneratedContent: true` in the age rating
