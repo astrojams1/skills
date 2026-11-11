@@ -113,6 +113,15 @@ test('in-app links pass on the listing URL or a route, and a heading alone or a 
   assert.deepEqual([status(marked, 'privacy-link').status, status(marked, 'support-link').status], ['pass', 'pass']);
 });
 
+test('a privacy policy URL that is only the marketing or support page does not count', t => {
+  const files = { 'App/About.swift': 'let a = "https://example.test/app/"\n' };
+  const same = auditApp(repo(t, { store: { listing: { privacyPolicyUrl: 'https://example.test/app/', marketingUrl: 'https://Example.test/app', supportUrl: 'https://example.test/app/' } }, files }).config());
+  assert.equal(status(same, 'privacy-link').status, 'missing');
+  assert.match(status(same, 'privacy-link').problems.join(' '), /same page as the marketing or support URL/);
+  const own = auditApp(repo(t, { store: { listing: { privacyPolicyUrl: 'https://example.test/app/privacy', marketingUrl: 'https://example.test/app/', supportUrl: 'https://example.test/app/' } }, files: { 'App/About.swift': 'let a = "https://example.test/app/privacy"\n' } }).config());
+  assert.equal(status(own, 'privacy-link').status, 'pass');
+});
+
 test('a Kids Category app needs the control behind its parental gate', t => {
   const store = { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } };
   const exposed = auditApp(repo(t, { store, files: native() }).config());
