@@ -41,9 +41,11 @@
         { "type": "source", "in": "app", "literalsFromStore": ["listing.privacyPolicyUrl"],
           "anyOf": ["app-standard: privacy-link", "https?://[^\\s\"'`]*privacy", "/privacy(?:[-_]policy)?(?:\\.html)?/?[\"'`]", "\\bprivacy[ _-]?(?:policy|url|link)\\b", "URL_PRIVACY"],
           "flags": "i",
-          "problem": "no link to the privacy policy found in the app source" }
+          "problem": "no link to the privacy policy found in the app source" },
+        { "type": "distinctStore", "path": "listing.privacyPolicyUrl", "from": ["listing.marketingUrl", "listing.supportUrl"],
+          "problem": "listing.privacyPolicyUrl is the same page as the marketing or support URL; App Review needs a page that is the privacy policy" }
       ],
-      "fix": "Link the privacy policy (the store data's listing.privacyPolicyUrl) from the settings or about screen, behind the parental gate in a Kids Category app. Where the app builds the URL in a way the audit cannot see, add the comment `app-standard: privacy-link` beside it.",
+      "fix": "Publish the privacy policy (the store data's listing.privacyPolicyUrl) as its own page, not the marketing or support page, and link it from the settings or about screen, behind the parental gate in a Kids Category app. Where the app builds the URL in a way the audit cannot see, add the comment `app-standard: privacy-link` beside it.",
       "verify": "On a simulator or device, open the link from inside the app and see the live policy."
     },
     {

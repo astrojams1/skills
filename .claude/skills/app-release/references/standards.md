@@ -99,6 +99,10 @@ The audit passes on the store data's URL in the source, on a URL or route naming
 as `privacyURL`. A heading called "Privacy" with no link does not pass. Where an app builds the URL in a way the audit
 cannot see, put the comment `app-standard: privacy-link` or `app-standard: support-link` beside it.
 
+The privacy policy must be its own page: the audit fails when `listing.privacyPolicyUrl` is the marketing or support
+URL, which once let an app with only a marketing page pass (Hanzi Cards, 2026-11-10). The support page must show a
+contact address.
+
 **Check it.** Open each link from inside the app and see the live page.
 
 ## Adding a standard
@@ -113,6 +117,7 @@ no script change. An entry has `id`, `title`, `doc`, `fix`, `verify` and `checks
 | `source` | In the marked file (`in: "marker"`) or any source (`in: "app"`), an `anyOf` pattern matches (with optional `flags`) or a value named by `literalsFromConfig` or `literalsFromStore` appears |
 | `wired` | Each of `names` the marked file defines is used in another source file |
 | `kidsGate` | In a Kids Category app, the file using the control shows one of `anyOf` in its path or text |
+| `distinctStore` | The store data value at `path` is set and differs from each of `from` (case and trailing slash ignored), or is unset |
 
 Then check every app (`audit --all`) before merging, because a new standard stops each app's next build until it is
 met: that is the point, so ship it with a `fix` an agent can follow without asking.

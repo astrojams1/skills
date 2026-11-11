@@ -1,8 +1,17 @@
 # App release skill ledger
 
-Skill version **2.23.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.24.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.24.0 (2026-11-11)
+
+- Hanzi Cards reached its first App Store run with its listing's privacy, support and marketing URLs, and its in-app
+  privacy and support links, all pointing at one marketing page that had neither a policy nor a contact address. The
+  privacy-link standard passed because the URL appeared in the source. The audit now fails when
+  `listing.privacyPolicyUrl` equals the marketing or support URL (new `distinctStore` check). The run published the
+  app's own privacy and support pages, repointed the links and shipped them in build 6. `audit --all` passes for every
+  current app.
 
 ## Lessons incorporated into v2.23.1 (2026-11-10)
 

@@ -96,6 +96,14 @@ const CHECKS = {
     }
     return null;
   },
+  // A store data URL must be its own page, not one of the others: a privacy "policy" that is just the marketing page
+  // passed every other check (Hanzi Cards, 2026-11-10). Trailing slashes and case are ignored.
+  distinctStore(check, context) {
+    const norm = value => typeof value === 'string' && value.trim() ? value.trim().replace(/\/+$/, '').toLowerCase() : null;
+    const value = norm(valueAt(context.store, check.path));
+    if (!value) return null;
+    return check.from.some(path => norm(valueAt(context.store, path)) === value) ? check.problem : null;
+  },
   // Links out of a Kids Category app sit behind a parental gate, so the screen holding the control should show one.
   kidsGate(check, context) {
     if (!valueAt(context.store, 'ageRating.kidsAgeBand') || !context.marked.length) return null;
