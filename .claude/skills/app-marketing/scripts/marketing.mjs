@@ -952,8 +952,9 @@ export function listingTestResults(tests = [], days, discovery, lookups = []) {
 }
 
 // funnelItem is the backlog item for the weak stage: the next listing change to try, scored first among listing work.
+// It comes back daily, because learn re-reads the stage every run and a queued test can wait for its version.
 export function funnelItem(f) {
-  return { id: `funnel-${f.stage}`, title: `Funnel: lift ${f.stage} (${f.next.field})`, channel: 'app-store', runner: 'mac', impact: 5, effort: 2,
+  return { id: `funnel-${f.stage}`, title: `Funnel: lift ${f.stage} (${f.next.field})`, channel: 'app-store', runner: 'mac', impact: 5, effort: 2, repeat_days: 1,
     how: `learn names ${f.stage} the weakest stage (${f.why}, ${f.from} to ${f.to}). ${f.next.change}. Live ${f.next.live}. One change per stage; record it in listingTests with the before snapshot.` };
 }
 
