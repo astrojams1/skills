@@ -7,15 +7,18 @@
 //   node shorts.mjs roster [--code DIR]            apps found from app-release.config.json files (main checkouts first)
 //   node shorts.mjs sync [--code DIR]              add newly found apps to the registry; never removes or edits any
 //   node shorts.mjs record <episode.json>          add or update one episode (matched by id); refuses a made episode with
-//                                                  no searchPhrase, or whose description's first line lacks it
+//                                                  no searchPhrase, or whose description's first line lacks it, and any
+//                                                  episode past "idea" (except "held") for an app not on sale
 //   node shorts.mjs phrase <app> [--try "a|b"]      the search phrase that finds the app on the App Store: the profile's,
 //                                                  else the first candidate the store's search ranks first
 //   node shorts.mjs views                          per app: Shorts views on public Shorts only, and whether a live or
 //                                                  scheduled Short exists (what app-marketing reads)
 //   node shorts.mjs rules <app>                    the reviewer pack's rules: this skill's, the app's or business's own,
 //                                                  and the owner's recorded verdicts (exits 1 if a source is missing)
-//   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first
-//   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days) and scheduled ones now live
+//   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first;
+//                                                  apps not on sale get no slot and are listed as notOnSale
+//   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
+//                                                  scheduled ones to hold (app not on sale) and held ones to re-check
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
 //   node shorts.mjs status                         per app: episodes by status, last post, next due
 //
@@ -30,15 +33,19 @@ export const READS = [3, 7, 28];
 // What each status means on the channel:
 //   idea, recorded, rendered   not on YouTube yet
 //   scheduled                  on YouTube, private, goes public at publishAt
+//   held                       on YouTube, private, no publish time: made for an app that is not on sale, kept until
+//                              it is, then re-checked against the current rules before it is scheduled
 //   live                       public
 //   retired                    still public, but its series stopped
 //   pulled                     taken back to private (by the owner or a run); never counts as a Short
 //   superseded                 replaced by a remake before it was ever uploaded
-export const STATUSES = ['idea', 'recorded', 'rendered', 'scheduled', 'live', 'retired', 'pulled', 'superseded'];
+export const STATUSES = ['idea', 'recorded', 'rendered', 'scheduled', 'held', 'live', 'retired', 'pulled', 'superseded'];
 export const PUBLIC = ['live', 'retired'];
 export const ON_CHANNEL = ['scheduled', ...PUBLIC];
 // A made episode is one a viewer could see: it needs a search phrase before it is recorded at these statuses.
 const MADE = ['rendered', 'scheduled', 'live', 'retired'];
+// Statuses that mean a Short is being made or is on its way to viewers. An app not on sale gets none of them.
+const MAKING = ['recorded', ...MADE];
 const DAY = 86400000;
 const SKILL = fileURLToPath(new URL('..', import.meta.url));
 export const PROFILES = '/Volumes/ssd/code/app-sites/marketing/apps';
@@ -81,12 +88,25 @@ export function sync(registry, apps) {
   return added;
 }
 
-// Why a made episode cannot be recorded as it stands, or null. Links in Shorts do not click, so a viewer finds the
-// app only by searching: the phrase must exist and lead the description. An app not yet on sale (its marketing
-// profile's stage is not "live") has nothing to find yet and is exempt.
-export function findable(episode, { profile = null } = {}) {
-  if (!MADE.includes(episode.status) || episode.legacy) return null;
-  if (profile && profile.stage && profile.stage !== 'live') return null;
+// Whether a viewer can get the app today, so a Short may be made or published for it (James, 2026-11-12: "why have
+// we been creating giraffe stretch youtube shorts if the app is not even released in the app store yet?"). Yes when
+// its marketing profile's stage is "live" (app-marketing flips it when Apple's lookup finds the app), or the profile's
+// `preorder` names a live pre-order page. An App Store app with no profile is unconfirmed, so no. An entry with no App
+// Store record at all (no team, no ascAppId), such as a local business, is not an app and this rule does not hold it.
+export function onSale(app, profile) {
+  if (profile) return profile.stage === 'live' || /^https:\/\//.test(profile.preorder ?? '');
+  return !(app?.team || app?.ascAppId);
+}
+
+// Why an episode cannot be recorded as it stands, or null. Shorts exist to win downloads, so an app not on sale gets
+// no Short: nothing past "idea" except "held". Links in Shorts do not click, so a viewer finds the app only by
+// searching: a made episode's phrase must exist and lead the description. Legacy Shorts predate both rules.
+export function findable(episode, { profile = null, app = null } = {}) {
+  if (episode.legacy) return null;
+  if (MAKING.includes(episode.status) && !onSale(app, profile)) {
+    return `${episode.id}: ${episode.app} is not on sale, so it gets no Short. Keep it as "idea", or "held" (private, no publish time) if it is on YouTube, until its marketing profile's stage is live`;
+  }
+  if (!MADE.includes(episode.status)) return null;
   const phrase = (episode.searchPhrase ?? '').trim();
   if (!phrase) return `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`;
   const first = (episode.description ?? '').split('\n')[0].toLowerCase();
@@ -101,7 +121,7 @@ export function record(registry, episode, { recent = 6, profile = null } = {}) {
   if (episode.status && !STATUSES.includes(episode.status)) throw new Error(`Unknown status "${episode.status}"`);
   const index = registry.episodes.findIndex(e => e.id === episode.id);
   const merged = index < 0 ? { status: 'idea', metrics: [], ...episode } : { ...registry.episodes[index], ...episode };
-  const refused = findable(merged, { profile });
+  const refused = findable(merged, { profile, app: registry.apps[merged.app] ?? null });
   if (refused) throw new Error(refused);
   if (index < 0) registry.episodes.push(merged);
   else registry.episodes[index] = merged;
@@ -117,8 +137,10 @@ export function record(registry, episode, { recent = 6, profile = null } = {}) {
 
 // A calendar of `days` days from `now`: one Short every `gap` days across the channel (2 gives three or four a
 // week, a pace distinct ideas can sustain). Each slot goes to the active app most overdue against its cadence
-// that has a rendered episode ready; due apps with nothing ready are listed as needing production.
-export function plan(registry, { now = new Date(), days = 14, gap = 2 } = {}) {
+// that has a rendered episode ready; due apps with nothing ready are listed as needing production. An app not on
+// sale gets no slot and is never listed as needing production, only as notOnSale.
+export function plan(registry, { now = new Date(), days = 14, gap = 2, profiles = [] } = {}) {
+  const selling = slug => onSale(registry.apps[slug], profileFor(profiles, slug));
   const last = {};
   for (const e of registry.episodes) {
     const at = postedAt(e);
@@ -133,7 +155,7 @@ export function plan(registry, { now = new Date(), days = 14, gap = 2 } = {}) {
     const day = new Date(start.getTime() + d * DAY), key = day.toISOString().slice(0, 10);
     if (posts.some(p => Math.abs(Math.floor(p / DAY) - Math.floor(day / DAY)) < gap)) continue;
     const due = Object.entries(registry.apps)
-      .filter(([, a]) => a.active !== false)
+      .filter(([slug, a]) => a.active !== false && selling(slug))
       .map(([slug, a]) => ({ slug, overdue: last[slug] ? (day - new Date(last[slug])) / DAY - (a.cadenceDays ?? 7) : Infinity }))
       .filter(a => a.overdue >= 0)
       .sort((a, b) => b.overdue - a.overdue || a.slug.localeCompare(b.slug));
@@ -145,14 +167,20 @@ export function plan(registry, { now = new Date(), days = 14, gap = 2 } = {}) {
     last[pick.slug] = day.toISOString();
     posts.push(day);
   }
-  return { slots, needsProduction: [...needs].sort() };
+  const notOnSale = Object.entries(registry.apps).filter(([slug, a]) => a.active !== false && !selling(slug)).map(([slug]) => slug).sort();
+  return { slots, needsProduction: [...needs].sort(), notOnSale };
 }
 
-// What a run should do now: scheduled Shorts whose time has passed (mark live, pin the comment) and live Shorts that
-// have reached a read age (2, 7, 28 days) without a snapshot taken at or after it.
-export function due(registry, { now = new Date() } = {}) {
-  const live = [], reads = [];
+// What a run should do now: scheduled Shorts whose time has passed (mark live) and live Shorts that have reached a
+// read age (3, 7, 28 days) without a snapshot taken at or after it. A scheduled Short for an app not on sale is
+// listed to hold instead (`yt-api.mjs unschedule --hold`), and a held one whose app is now on sale to re-check
+// against the current rules before it is given a publish time.
+export function due(registry, { now = new Date(), profiles = [] } = {}) {
+  const live = [], reads = [], hold = [], recheck = [];
+  const selling = slug => onSale(registry.apps[slug], profileFor(profiles, slug));
   for (const e of registry.episodes) {
+    if (e.status === 'held' && selling(e.app)) recheck.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null });
+    if (e.status === 'scheduled' && !e.legacy && !selling(e.app)) { hold.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null, publishAt: e.publishAt ?? null }); continue; }
     const at = postedAt(e);
     if (!at) continue;
     const age = (now - new Date(at)) / DAY;
@@ -164,7 +192,7 @@ export function due(registry, { now = new Date() } = {}) {
       if (!done) { reads.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null, read: `${read}d`, age: Math.floor(age) }); break; }
     }
   }
-  return { live, reads };
+  return { live, reads, hold, recheck };
 }
 
 // An App Store link that App Store Connect can attribute: pt is the team's provider token, ct the campaign (both
@@ -181,14 +209,15 @@ export function link(registry, slug, campaign) {
   return { url: url.toString(), attributed: Boolean(pt) };
 }
 
-export function status(registry, { now = new Date() } = {}) {
+export function status(registry, { now = new Date(), profiles = [] } = {}) {
   return Object.entries(registry.apps).map(([slug, a]) => {
+    const selling = onSale(a, profileFor(profiles, slug));
     const mine = registry.episodes.filter(e => e.app === slug);
     const counts = Object.fromEntries(STATUSES.map(s => [s, mine.filter(e => e.status === s).length]).filter(([, n]) => n));
     const posted = mine.filter(onChannel).map(postedAt).filter(Boolean).sort().pop() ?? null;
     const next = posted ? new Date(new Date(posted).getTime() + (a.cadenceDays ?? 7) * DAY).toISOString().slice(0, 10) : 'now';
-    return { app: slug, active: a.active !== false, formats: a.formats?.length ?? 0, ...counts, liveOrScheduled: mine.some(onChannel),
-      lastPost: posted, nextDue: a.active === false ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
+    return { app: slug, active: a.active !== false, onSale: selling, formats: a.formats?.length ?? 0, ...counts, liveOrScheduled: mine.some(onChannel),
+      lastPost: posted, nextDue: a.active === false || !selling ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
   });
 }
 
@@ -204,7 +233,7 @@ export function views(registry, { profiles = [] } = {}) {
     return { app: slug, marketingId: profiles.find(p => (p.shortsSlug ?? p.id) === slug)?.id ?? null,
       shortsViews: pub.reduce((sum, e) => sum + latestViews(e), 0), publicShorts: pub.length, scheduledShorts: scheduled.length,
       liveOrScheduled: pub.length + scheduled.length > 0, nextPublic: scheduled[0] ?? null,
-      excluded: mine.filter(e => ['pulled', 'superseded'].includes(e.status)).length };
+      held: mine.filter(e => e.status === 'held').length, excluded: mine.filter(e => ['pulled', 'superseded'].includes(e.status)).length };
   });
 }
 
@@ -245,7 +274,7 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
   const profile = profileFor(profiles, slug);
   const fromProfile = typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : profile?.searchPhrase?.phrase;
   const name = (profile?.name ?? app.name ?? '').trim();
-  if (profile && profile.stage && profile.stage !== 'live') return { app: slug, phrase: fromProfile ?? name, rank: null, source: 'not on sale yet', checked: [] };
+  if (profile && !onSale(app, profile)) return { app: slug, phrase: null, rank: null, source: 'not on sale: no Short until it is', checked: [] };
   const store = await storeName(app.ascAppId, { fetcher }) ?? name;
   const plain = n => n.replace(/[:|–—-]/g, ' ').replace(/\s+/g, ' ');
   const candidates = [...new Set([fromProfile, ...tries, store, store.split(':')[0], plain(store), name, app.name].map(c => c?.trim()).filter(Boolean))];
@@ -331,10 +360,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'phrase': print(await phrase(registry, rest[0], { profiles, tries })); break;
     case 'views': print(views(registry, { profiles })); break;
     case 'rules': { const r = rules(rest[0], { profiles }); console.log(r.text); if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exit(1); } break; }
-    case 'plan': print(plan(registry, { now, days, gap })); break;
-    case 'due': print(due(registry, { now })); break;
+    case 'plan': print(plan(registry, { now, days, gap, profiles })); break;
+    case 'due': print(due(registry, { now, profiles })); break;
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
-    case 'status': print(status(registry, { now })); break;
+    case 'status': print(status(registry, { now, profiles })); break;
     default:
       console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|views|rules <app>|plan|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
       process.exit(2);

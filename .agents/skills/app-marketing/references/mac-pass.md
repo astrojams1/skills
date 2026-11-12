@@ -64,7 +64,8 @@ SKILL.md's Rules hold here, "Fix what you find" included. In short:
    upload) or move its `publishAt` until it is fixed. Never let one go public unchecked.
 3. **Do every open item.** `marketing.mjs next --runner mac`, then work every item it lists, best first, and every app.
    There is no item budget: a run stops only when the list is done or every remaining item is blocked or paced. Read
-   the app's profile first; its rules and decisions win.
+   the app's profile first; its rules and decisions win. An app whose profile stage is not `live` gets no Short, and
+   any Short scheduled for it is held (`app-shorts`, Rules).
 4. **Make every due Short now and post it when ready.** There is no posting cap (`app-shorts`, "Cadence", since 2.6.0): post
    each Short as soon as it passes review, several a day when several are ready, at the hour `youtube-growth` reports.
    - **Which apps.** `next` lists a Shorts item for each app whose last Short is not live or scheduled in the registry

@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -170,6 +170,23 @@ test('double-down needs lifted downloads; on views alone it is provisional, and 
 test('a pulled Short does not keep an app off the produce list', () => {
   const registry = { apps: { fud: {} }, episodes: [{ id: 'p', app: 'fud', status: 'pulled', postedAt: '2026-11-28T00:00:00Z' }] };
   assert.deepEqual(evaluate(registry, rules, { now: NOW }).actions.filter(a => a.kind === 'produce').map(a => a.why), ['no live or scheduled Short']);
+});
+
+test('an app not on sale gets no produce action, whatever its registry says', () => {
+  const registry = { apps: { giraffe: { team: 'T', ascAppId: '1' }, fud: { team: 'T' }, lob: { team: 'T' } }, episodes: [] };
+  const profiles = [{ id: 'g', shortsSlug: 'giraffe', stage: 'prelaunch' }, { id: 'fud', stage: 'live' }];
+  assert.deepEqual(evaluate(registry, rules, { now: NOW, profiles }).actions.filter(a => a.kind === 'produce').map(a => a.app), ['fud'],
+    'giraffe is prelaunch; lob has no profile, so it is unconfirmed');
+});
+
+test('heldOrPulled takes an episode off the schedule as held or pulled and keeps its first publish time', () => {
+  const now = new Date('2026-11-12T19:00:00Z');
+  const scheduled = { id: 'soon', status: 'scheduled', publishAt: '2026-11-13T01:00:00Z' };
+  assert.deepEqual(heldOrPulled(scheduled, { hold: true, reason: 'app not on sale', now }),
+    { status: 'held', heldAt: '2026-11-12T19:00:00.000Z', wasPublishAt: '2026-11-13T01:00:00Z', wasStatus: 'scheduled', publishAt: null, heldReason: 'app not on sale' });
+  const again = heldOrPulled({ ...scheduled, ...heldOrPulled(scheduled, { hold: true, now }) }, { hold: true, now: new Date('2026-11-20T00:00:00Z') });
+  assert.deepEqual([again.heldAt, again.wasPublishAt, again.wasStatus], ['2026-11-12T19:00:00.000Z', '2026-11-13T01:00:00Z', 'scheduled']);
+  assert.equal(heldOrPulled(scheduled, { now }).status, 'pulled');
 });
 
 test('updatedSnippet replaces the description and sends the title, category, tags and languages back', () => {

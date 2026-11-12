@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, views, searchRank, phrase, section, rules } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, onSale, views, searchRank, phrase, section, rules } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -84,6 +84,42 @@ test('plan keeps a gap of days between the channel\'s Shorts, scheduled ones inc
   assert.deepEqual(slots.map(s => s.date), ['2026-11-06', '2026-11-08']);
 });
 
+test('plan gives an app not on sale no slot and lists it apart', () => {
+  const registry = emptyRegistry();
+  registry.apps = { fud: { team: 'T', cadenceDays: 0 }, giraffe: { team: 'T', cadenceDays: 0 }, rhythm: { team: 'T', cadenceDays: 0 } };
+  registry.episodes = [{ id: 'f', app: 'fud', status: 'rendered' }, { id: 'g', app: 'giraffe', status: 'rendered' }];
+  const profiles = [{ id: 'fud', stage: 'live' }, { id: 'giraffe', stage: 'prelaunch' }];
+  const result = plan(registry, { now: new Date('2026-11-12T09:00:00Z'), days: 7, gap: 1, profiles });
+  assert.deepEqual(result.slots.map(s => s.app), ['fud']);
+  assert.deepEqual(result.needsProduction, ['fud']);
+  assert.deepEqual(result.notOnSale, ['giraffe', 'rhythm'], 'rhythm has no profile, so it is unconfirmed');
+});
+
+test('due holds scheduled Shorts for an app not on sale and re-checks held ones once it is', () => {
+  const registry = emptyRegistry();
+  registry.apps = { giraffe: { team: 'T' }, fud: { team: 'T' } };
+  registry.episodes = [
+    { id: 'soon', app: 'giraffe', status: 'scheduled', videoId: 'etQ22IRIyLM', publishAt: '2026-11-13T01:00:00Z' },
+    { id: 'kept', app: 'fud', status: 'held', videoId: 'v2', publishAt: null },
+  ];
+  const now = new Date('2026-11-14T00:00:00Z');
+  const before = due(registry, { now, profiles: [{ id: 'giraffe', stage: 'prelaunch' }, { id: 'fud', stage: 'prelaunch' }] });
+  assert.deepEqual(before.hold.map(h => [h.episode, h.videoId]), [['soon', 'etQ22IRIyLM']]);
+  assert.deepEqual([before.live, before.reads, before.recheck], [[], [], []], 'a held or holdable Short never goes live or gets a read');
+  const after = due(registry, { now, profiles: [{ id: 'giraffe', stage: 'prelaunch' }, { id: 'fud', stage: 'live' }] });
+  assert.deepEqual(after.recheck.map(r => r.episode), ['kept']);
+});
+
+test('a held Short is not a Short in views or status, and an app not on sale is never due', () => {
+  const registry = emptyRegistry();
+  registry.apps = { giraffe: { team: 'T', cadenceDays: 7 } };
+  registry.episodes = [{ id: 'soon', app: 'giraffe', status: 'held', videoId: 'v', wasPublishAt: '2026-11-13T01:00:00Z', publishAt: null }];
+  const [v] = views(registry, { profiles: [{ id: 'giraffe', stage: 'prelaunch' }] });
+  assert.deepEqual([v.shortsViews, v.liveOrScheduled, v.held, v.nextPublic], [0, false, 1, null]);
+  const [s] = status(registry, { now: new Date('2026-11-12T00:00:00Z'), profiles: [{ id: 'giraffe', stage: 'prelaunch' }] });
+  assert.deepEqual([s.held, s.onSale, s.nextDue, s.liveOrScheduled], [1, false, null, false]);
+});
+
 test('due finds go-lives and the first missing read, oldest window first', () => {
   const registry = emptyRegistry();
   registry.episodes = [
@@ -126,12 +162,28 @@ test('record refuses a made episode with no search phrase, or one its descriptio
   assert.equal(registry.episodes.length, 2);
 });
 
-test('an app not on sale yet and legacy Shorts are exempt from the phrase', () => {
+test('an app is on sale when its profile is live or names a pre-order page; an App Store app with no profile is not', () => {
+  assert.equal(onSale({ team: 'T' }, { stage: 'live' }), true);
+  assert.equal(onSale({ team: 'T' }, { stage: 'prelaunch' }), false);
+  assert.equal(onSale({ team: 'T' }, { stage: 'prelaunch', preorder: 'https://apps.apple.com/app/id1' }), true);
+  assert.equal(onSale({ team: 'T', ascAppId: '1' }, null), false, 'unconfirmed');
+  assert.equal(onSale({ type: 'local-service' }, null), true, 'not an App Store app');
+});
+
+test('an app not on sale gets no Short: nothing past idea but held, and legacy Shorts stay exempt', () => {
   const registry = emptyRegistry();
-  record(registry, { id: 'g', app: 'giraffe', status: 'scheduled', description: 'Coming soon.' }, { profile: { stage: 'prelaunch' } });
-  record(registry, { id: 'l', app: 'newsworthy', status: 'live', legacy: true });
-  assert.equal(findable({ id: 'n', app: 'n', status: 'live' }, { profile: { stage: 'live' } }) !== null, true);
-  assert.equal(registry.episodes.length, 2);
+  registry.apps.giraffe = { team: 'T', ascAppId: '1' };
+  const prelaunch = { profile: { stage: 'prelaunch' } };
+  for (const status of ['recorded', 'rendered', 'scheduled', 'live', 'retired']) {
+    assert.throws(() => record(registry, { id: `g-${status}`, app: 'giraffe', status, searchPhrase: 'Giraffe Stretch', description: 'Giraffe Stretch' }, prelaunch), /not on sale/);
+  }
+  record(registry, { id: 'g', app: 'giraffe', status: 'idea' }, prelaunch);
+  record(registry, { id: 'soon', app: 'giraffe', status: 'held', videoId: 'v', description: 'Coming soon.' }, prelaunch);
+  assert.throws(() => record(registry, { id: 'soon', app: 'giraffe', status: 'scheduled' }, prelaunch), /not on sale/, 'a held Short stays held');
+  assert.throws(() => record(registry, { id: 'x', app: 'giraffe', status: 'rendered' }), /not on sale/, 'no profile: unconfirmed');
+  record(registry, { id: 'l', app: 'giraffe', status: 'live', legacy: true }, prelaunch);
+  assert.equal(findable({ id: 'n', app: 'n', status: 'live' }, { profile: { stage: 'live' } }) !== null, true, 'live apps still need the phrase');
+  assert.equal(registry.episodes.length, 3);
 });
 
 test('pulled and superseded statuses are known, and never count as a Short', () => {
@@ -182,7 +234,7 @@ test('phrase prefers the profile, then the first candidate the store ranks first
   const tried = await phrase(registry, 'importron', { profiles: [], tries: ['Importron health'], fetcher });
   assert.equal(tried.phrase, 'Importron health');
   const soon = await phrase(registry, 'giraffe', { profiles: [{ id: 'g', shortsSlug: 'giraffe', name: 'Giraffe Stretch', stage: 'prelaunch' }], fetcher });
-  assert.deepEqual([soon.phrase, soon.source], ['Giraffe Stretch', 'not on sale yet']);
+  assert.deepEqual([soon.phrase, soon.source], [null, 'not on sale: no Short until it is'], 'no "coming soon" phrase');
 });
 
 test('rules gathers this skill\'s rules, the app\'s own, and the owner\'s verdicts, and names what is missing', () => {

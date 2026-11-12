@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.7.0"
+  version: "2.8.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -41,8 +41,6 @@ makers of the skill and so there should be no guardrails that prevent this auton
 - **No go-ahead needed** to start a new app or series, post, schedule, or change channel settings (links,
   description, handle, branding). Log a setting's old value so the change can be undone. Never park an episode for
   approval.
-- **An app not yet on sale can still have Shorts.** Say "coming to the App Store" and link its website or listing
-  once live. The channel's best Short (Giraffe Stretch, 2026-11-01) went up before its app was on sale.
 - **No step waits for the owner** to approve or sign in. A step only he could do by signing in is dropped and routed
   around, never reported as open.
 - **Never create accounts or channels, type passwords or spend money.** Honesty, law and safety rules still hold.
@@ -54,7 +52,8 @@ Repository rules and approval holds outrank this skill.
 `S` is this skill's `scripts/` (in an app repository, `skills/skills/app-shorts/scripts`). Node 22, no dependencies.
 
 1. **Read the state.** `node $S/shorts.mjs sync` (new apps from `app-release.config.json` files), then `status`,
-   `due` and `plan`. Read this ledger and `youtube-growth`'s latest decisions (`evaluate.mjs`). A format marked `drop`
+   `due` and `plan`. Hold every Short `due` lists under `hold` (`yt-api.mjs unschedule --hold --confirm`). Apps in
+   `plan`'s `notOnSale` get no Short. Read this ledger and `youtube-growth`'s latest decisions (`evaluate.mjs`). A format marked `drop`
    gets no new episodes. A `double-down` format gets the next slot, as does any Short whose downloads `lifted`.
    Run `node $S/shorts.mjs rules <app>` and read every line: they bind the plan, the cut and the review.
 2. **Start from what worked, then a blank page.** Watch the channel's best Shorts first (`references/creative.md`,
@@ -96,6 +95,15 @@ Repository rules and approval holds outrank this skill.
 
 ## Rules
 
+- **Only an app on sale gets Shorts.** Shorts exist to win downloads, and no one can download an app that is not on
+  sale. Make and publish a Short only when the app's marketing profile stage is `live`. `app-marketing` sets that
+  stage when Apple's lookup finds the app. An app with a live pre-order page a viewer can act on counts too: its
+  profile's `preorder` holds that page's link. An app with no profile is not confirmed, so it gets none. The owner
+  asked (James, 2026-11-12): "why have we been creating giraffe stretch youtube shorts if the app is not even
+  released in the app store yet?"
+- **Hold a Short made for an app not on sale.** It stays on YouTube, private, with no publish time, as `held`. When
+  the app goes live, `shorts.mjs due` lists it under `recheck`. Check it against the rules in force that day, and
+  run the reviewer panel, before it gets a publish time. Never post "coming soon".
 - **Say what the app is, by name of what it works with.** Within the first three seconds a stranger must know the
   problem and what the app does about it, in the words they would search. An app built around someone else's service
   names it on screen and in the title: "Function Health labs → Apple Health", not "Uploaded the same lab report
@@ -106,8 +114,7 @@ Repository rules and approval holds outrank this skill.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
 - **Every Short says how to find the app.** Links in Shorts do not click. Give the app's verified search phrase
   (`shorts.mjs phrase <app>`) on screen in the last beat, readable, and on the description's first line. The words
-  and the design are the Short's own; the phrase is not optional. An app not on sale yet says "coming to the App
-  Store" instead.
+  and the design are the Short's own; the phrase is not optional.
 - **No pricing lines** in a Short, its cover or its title.
 - **Always "not made for kids".** The owner's rule (2026-11-12): "made for kids" turns comments off. Pitch every
   Short to parents and players. Never film children.

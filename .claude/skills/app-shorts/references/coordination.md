@@ -4,6 +4,8 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 
 ## With app-release
 
+- **A first release unlocks the app's Shorts.** Until then it gets none (`SKILL.md`, Rules). On release, `app-marketing`
+  flips the profile's stage to `live`, and `shorts.mjs due` lists any `held` Short to re-check.
 - **A release is an episode.** When `app-release` ships a feature (What's New names something people can see),
   add an `idea` episode for it in the registry. Record it from the release build once it is live. The app
   preview's take is real footage of the same build. Reuse its moments for a Short's B-roll, but cut the Short for
@@ -22,10 +24,15 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
   (`posting.md`, "Find the app"). The phrase comes from the app's marketing profile (`searchPhrase`, checked daily by
   `app-marketing`) or `shorts.mjs phrase`, so the search lands.
 - **What app-marketing reads:** `shorts.mjs views` gives, per app, `shortsViews` (summed over public Shorts only;
-  `pulled` and `superseded` ones never count), `liveOrScheduled` (a live or scheduled Short exists now) and
-  `nextPublic`, keyed by the registry slug with the profile's `marketingId`. The registry's `status` field means:
-  `scheduled` private until `publishAt`, `live` and `retired` public, `pulled` taken back to private, `superseded`
-  never uploaded (see the top of `scripts/shorts.mjs`).
+  `pulled`, `held` and `superseded` ones never count), `liveOrScheduled` (a live or scheduled Short exists now),
+  `held` and `nextPublic`, keyed by the registry slug with the profile's `marketingId`. The registry's `status` field
+  means: `scheduled` private until `publishAt`, `held` private with no publish time until its app is on sale, `live`
+  and `retired` public, `pulled` taken back to private, `superseded` never uploaded (see the top of
+  `scripts/shorts.mjs`).
+- **Which apps get Shorts:** only apps on sale, read from the profile's `stage` (`live`) or `preorder` link. An
+  app not yet live has `requires: live` on its profile's Shorts item, so `marketing.mjs next` lists the item only
+  once the app is live. `shorts.mjs plan` lists apps not on sale as `notOnSale`, and `evaluate.mjs` gives them no
+  `produce` action.
 - **Downloads:** `youtube-growth`'s `evaluate.mjs` reads `app-marketing`'s `asc-analytics` rows to judge each Short on
   first-time downloads from search and browse in its first 72 hours.
 - **Promotional text** can echo a running series ("As seen on our Shorts: …"); it changes without App Review
