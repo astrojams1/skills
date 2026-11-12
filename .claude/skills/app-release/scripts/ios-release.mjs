@@ -527,12 +527,22 @@ export async function testers(build, io) {
   const now = io ? io.now : Date.now;
   const log = io ? io.log : console.log;
   let found = null;
+  let checkedOtherVersion = false;
   const deadline = io ? io.deadline : now() + WAIT_MS;
   while (now() < deadline) {
     const { data } = await read('/v1/builds?filter[app]=' + config.ascAppId + '&filter[version]=' + build +
       '&filter[preReleaseVersion.version]=' + encodeURIComponent(version) + '&filter[preReleaseVersion.platform]=IOS&fields[builds]=version,processingState');
     if (data.length > 1) throw new Error('Expected one iOS build ' + version + '/' + build + ', found ' + data.length);
     found = data.find(item => String(item.attributes.version) === String(build)) || null;
+    if (!found && !checkedOtherVersion) {
+      // A build number under another version means the store data names the wrong version, which no wait fixes.
+      checkedOtherVersion = true;
+      const other = await read('/v1/builds?filter[app]=' + config.ascAppId + '&filter[version]=' + build +
+        '&filter[preReleaseVersion.platform]=IOS&include=preReleaseVersion&fields[builds]=version&fields[preReleaseVersions]=version');
+      const versions = (other.included || []).map(item => item.attributes.version).filter(item => item !== version);
+      if (versions.length) throw new Error('Build ' + build + ' is version ' + versions.join(', ') + ' on App Store Connect, but the store data says ' +
+        version + '. Set the store data\'s version to the version that was built.');
+    }
     const state = found ? found.attributes.processingState : null;
     if (state === 'VALID') break;
     if (state === 'FAILED' || state === 'INVALID') throw new Error('Build ' + build + ' is ' + state);

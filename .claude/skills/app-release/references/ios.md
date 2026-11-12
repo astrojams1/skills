@@ -428,6 +428,10 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   before diagnosing a stall or retrying an upload. Advanced build/testability evidence does not establish
   that the upload resource itself reached `COMPLETE`; preserve both observed states and stop only the
   status-monitor process you own when appropriate. Do not reupload merely to clear a lagging status.
+- **Approval closes a version's build train.** Once a version is approved, Apple's validation refuses any new build
+  of it ("The train version … is closed"); internal TestFlight builds move to the next version. Raise the version in
+  the store data and the native projects together: the scripts find a build by the store data's version, and
+  `testers` stops if the build was uploaded under another one (Data Center, 2026-11-12).
 - **Build numbers only rise.** Apple holds every number it accepted, including uploads still processing, so
   the scripts read both. A locally generated simulator bundle may carry another number than the store build
   of the same source; never relabel it.

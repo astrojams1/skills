@@ -40,8 +40,9 @@ line of the bar. All are kept in their folders for the owner to judge.
 | fud-one-day | one family's day in six real entries, cold-opened on the 11:47 PM Snickers confession | escalation montage over time | DIN Condensed and Iowan, the sky through a day | Disco Funk "Boogie Right" building per beat, tape-stop to pizzicato | 4 6 6 6 7 5 7 5 |
 | nametag-whats-her-name | a sideline scoreboard counts the chats without knowing #7's mom's name; her badge and the board light up together | problem first, borrowed visual language | hand-drawn 5x7 LED face on black | Disco Funk "Boogie Right", arena buzzer | 6 7 7 6 6 5 7 5 (dropped after 7 rounds) |
 | vegas-jackpot-01 | app bills as a slot machine; the guarantee is the jackpot | motion graphics, no footage | Futura Condensed, casino red and gold | Disco Funk "Boogie Right", synthesised casino foley | 6 8 6 8 7 5 8 5 (dropped) |
+| importron-easy-v3 | a real iPhone (rendered titanium body, the device's own screen mask) does the shortest real path: Function results PDF → Share → Importron → Add → Apple's Add to Health, counted "four taps", cold-opened on Health's Lab Results | Apple-style product demo with a visible tap count; first Short gated by the three-reviewer panel | system face (SF Pro Display) on studio white, one Health red, numbered step pill | Chillwave "Chill Melody" (E major, 100 bpm) + "Pastel Colors" beats, layers entering on each tap, drop then full band and a chime on "Record Added" | viewer 6 8 5 7 7 5 8 6 7 / editor 5 8 4 6 6 4 8 4 7 / skeptic 6 8 6 7 7 6 6 6 8 (dropped after 4 panel rounds) |
 
-What the five taught (read before the next plan):
+What the five taught (read before the next plan; importron-easy-v3 added below):
 
 - **The middle is where they all lose.** Every reviewer marked down the stretch where the real app plays as a
   framed screen recording under a caption: small UI, holds, the same shape beat after beat. Openings and endings
@@ -49,6 +50,10 @@ What the five taught (read before the next plan):
   character inside the app, or one hero result held big, never a small phone of tiny rows.
 - **Disco Funk was picked three times out of five.** Genre choice converged; choose the genre last and differently.
 - **No numbers yet.** None has been posted, so nothing here is evidence of what the audience likes.
+- **importron-easy-v3 (panel-gated).** Clear and true from frame 0 ("says what it is" 8 from all three) and plainly an
+  iPhone, but every reviewer called the step-pill-plus-device-mockup-plus-stock-loop format a template, and the payoff
+  (a Health list) earned no share. Softening an app's own small print in post was itself flagged by the skeptic. Next:
+  a payoff only Health can show (a trend from two dated imports), one unbroken camera, sound with character.
 
 ## Since 2026-11-11
 
