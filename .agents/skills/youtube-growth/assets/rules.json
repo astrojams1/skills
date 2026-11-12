@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewed": "2026-11-04",
+  "reviewed": "2026-11-12",
   "minAgeDays": 3,
   "comparison": {
     "minSample": 8,
@@ -38,5 +38,18 @@
     "why": "No published decision rules exist; judging a format on 5–8 Shorts against the channel's own median avoids killing it on one unlucky post.",
     "source": "Research summary 2026-11-04 (proposal, not sourced practice)"
   },
-  "idleAppDays": 21
+  "idleAppDays": 21,
+  "downloads": {
+    "metric": "first-time downloads from App Store search and browse (app-marketing's asc-analytics rows in app-sites marketing/metrics.jsonl)",
+    "windowHours": 72,
+    "baselineDays": 7,
+    "minBaselineDays": 3,
+    "sources": ["App Store search", "App Store browse"],
+    "minViews": 500,
+    "minExtra": 3,
+    "z": 2,
+    "formatLifted": 2,
+    "why": "The goal is downloads, not views (James, 2026-11-12: Shorts must be judged on downloads). A Short's views come mostly in its first days, and a viewer who wants the app searches its phrase, so search and browse carry its effect. The 72 hours after it goes public are compared with the app's own mean daily downloads over the 7 days before (at least 3 days known); 'lifted' means at least minExtra more than expected and 2 Poisson standard deviations (z) above it. Under minViews public views a Short is inconclusive: at the low view-to-download rates app marketers report, it cannot add 3 downloads. Two lifted Shorts in a format double it down.",
+    "source": "Proposal 2026-11-12, low confidence: no published study links Shorts views to App Store downloads. Tune minViews and z once 5+ Shorts have download verdicts."
+  }
 }

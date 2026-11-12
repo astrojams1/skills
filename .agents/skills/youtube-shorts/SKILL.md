@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -34,7 +34,7 @@ still have its headline under the search icon.
 | `scripts/legibility.swift` | Finds every caption word in the frames with Vision and fails any under 4.5:1 contrast against what is behind it. `swift legibility.swift <video> --every 0.5` |
 | `scripts/fit-screenshot.py` | Maps a phone screenshot of a playing Short onto the frame's pixels, to measure the zones again, and with `--preview` lays its YouTube controls over new frames. numpy and Pillow |
 | `references/safe-zone.md` | The measurement, layout rules, the published (ad) figures and how to re-measure |
-| `references/posting.md` | The upload package: file, title, description, hashtags, related video, cover, captions, settings, after upload |
+| `references/posting.md` | The upload package: file, title, description, hashtags, cover, captions, settings, after upload |
 | `ledger/LEDGER.md` | Versions, measurements, runs and open issues. Read before starting |
 
 **For apps, use `app-shorts` and `youtube-growth`.** For an app the owner ships, `app-shorts` runs the whole pipeline
@@ -56,7 +56,7 @@ both lean on: framing, checks, sound.
    - Anything readable in red, or crossing the green line, gets moved and re-rendered.
    - Check the cover the same way.
    - Look at the busiest beats under the real overlay (`--preview`) and judge them as a viewer would.
-4. **Package the upload** with `references/posting.md`: title, description, hashtags, related video, cover, captions
+4. **Package the upload** with `references/posting.md`: title, description, hashtags, cover, captions
    and settings.
 5. **After posting, watch it on a phone** as the owner and as a viewer. Screenshot the busiest frames. If anything is
    covered, measure it with `scripts/fit-screenshot.py` (steps in `references/safe-zone.md`).

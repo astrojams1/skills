@@ -20,6 +20,7 @@ and **Open issues** before every run.
 | 0.7.0 | 2026-11-11 | Say what the product is, by name of what it works with, within three seconds. | Importron's Short never said Function Health or Apple Health. |
 | 1.0.0 | 2026-11-11 | `legibility.swift`: Vision finds every caption word and fails any under 4.5:1 contrast. `soundtrack.mjs` refuses its synth music (effects only). "Make it worth watching" points to `app-shorts/references/creative.md` instead of prescribing one template. | Captions were the colour of their backgrounds (Füd's purple \"248\" at 1.9:1 on lavender, Space Worms' \"lasted\" at 1.1:1), and the owner rejected the synth bed and the shared look. |
 | 1.1.0 | 2026-11-12 | Payoffs may be staged; no "never fake a result" or "caption what the take returned" rules. | The owner removed the footage-authenticity guardrails. |
+| 1.2.0 | 2026-11-12 | Related video is not used: no API sets it and Studio needs the owner's sign-in. Links-do-not-click points to app-shorts' "Find the app" (the search phrase on screen and on the description's first line). | The owner's rule that marketing runs without his go-aheads or sign-ins (2026-11-12); an audit found no Short had a working route to the App Store. |
 
 ## Measurements
 

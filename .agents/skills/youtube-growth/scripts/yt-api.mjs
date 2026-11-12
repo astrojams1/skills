@@ -11,20 +11,24 @@
 //                                               browser tab. --token-file writes the token to a private file for the owner
 //                                               to add to 1Password, for a read-only service account
 //   node yt-api.mjs pull [--registry PATH]      analytics for every Short the registry says is due a read (or --videos a,b)
+//   node yt-api.mjs show --episode ID           what YouTube holds for an episode now: title, description, privacy, publish time
 //   node yt-api.mjs comments --video ID         newest comment threads on one video, as JSON
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
-//   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt)
-//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--confirm]   change a posted or scheduled
-//                                               Short's publish time or set it "not made for kids", keeping its other
-//                                               settings; the registry follows
+//   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt);
+//                                               refuses one with no search phrase on its description's first line
+//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--description-file F [--search-phrase P]]
+//                                               [--confirm]   change a posted or scheduled Short's publish time, set it
+//                                               "not made for kids", or replace its description (whose first line must
+//                                               give the search phrase), keeping its other settings; the registry
+//                                               follows and keeps the old description as wasDescription
 //   node yt-api.mjs unschedule --episode ID [--live] [--confirm]   cancel a scheduled episode (or, with --live, take a
 //                                               live one down): the video stays on the channel, private with no publish
 //                                               time, and the registry marks it "pulled"
 //
 // Scopes: youtube.readonly and yt-analytics.readonly (analytics needs both), youtube.force-ssl (comments) and
 // youtube.upload. Since 2026-11-02 uploads from unaudited API projects are no longer forced private. "Related
-// video" and pinned comments have no API: set them in Studio.
+// video" and pinned comments have no API, so the pipeline does not use them.
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync, chmodSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -32,7 +36,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { due } from '../../app-shorts/scripts/shorts.mjs';
+import { due, findable, loadProfiles, profileFor } from '../../app-shorts/scripts/shorts.mjs';
 
 const ITEM = 'YouTube API', VAULT = 'API Tokens';
 const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly', 'https://www.googleapis.com/auth/yt-analytics.readonly',
@@ -219,6 +223,36 @@ export function updatedStatus(status, { publishAt, notForKids } = {}) {
   return next;
 }
 
+// The snippet for a video whose description changes. videos.update replaces the whole snippet part, so the title,
+// category, tags and languages are sent back as they are; read-only fields are left out.
+export function updatedSnippet(snippet, { description }) {
+  const { title, categoryId, tags, defaultLanguage, defaultAudioLanguage } = snippet ?? {};
+  if (!title || !categoryId) throw new Error('The video has no title or category to keep');
+  return { title, categoryId, description, ...(tags ? { tags } : {}), ...(defaultLanguage ? { defaultLanguage } : {}),
+    ...(defaultAudioLanguage ? { defaultAudioLanguage } : {}) };
+}
+
+async function updateDescription(token, videoId, description) {
+  const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(videoId)}`)).items?.[0];
+  const video = await read();
+  if (!video) throw new Error(`No video "${videoId}" on the channel`);
+  const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', { method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ id: videoId, snippet: updatedSnippet(video.snippet, { description }) }) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Description update failed: ${body.error?.message ?? res.status}`);
+  // A read straight after the update can still return the old text (seen 2026-11-12), so read back a few times.
+  let after = {};
+  for (let i = 0; i < 5; i += 1) {
+    after = (await read())?.snippet ?? {};
+    if (after.description === description) break;
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  if (after.description !== description) throw new Error(`${videoId} does not read back the new description; check with show, then run update again`);
+  if (after.title !== video.snippet.title) throw new Error(`${videoId}'s title changed during the update; check it in Studio`);
+  return { was: video.snippet.description, now: after.description };
+}
+
 async function updateVideo(token, videoId, changes) {
   const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`)).items?.[0];
   const video = await read();
@@ -288,6 +322,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode) throw new Error(`No episode "${id}" in the registry`);
       if (episode.videoId) throw new Error(`${id} is already on YouTube (${episode.videoId})`);
+      const refused = findable({ ...episode, status: 'scheduled' }, { profile: profileFor(loadProfiles(), episode.app) });
+      if (refused) throw new Error(refused);
       const request = uploadRequest(episode);
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
       const result = await upload(await accessToken(), episode);
@@ -297,12 +333,28 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log(JSON.stringify(result));
     } else if (command === 'update') {
       const id = option('--episode', null), publishAt = option('--publish-at', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');
+      const descriptionFile = option('--description-file', null), searchPhrase = option('--search-phrase', null);
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
-      if (!publishAt && !notForKids) throw new Error('Nothing to change: pass --publish-at and/or --not-for-kids');
-      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids })); process.exit(0); }
-      const result = await updateVideo(await accessToken(), episode.videoId, { publishAt, notForKids });
+      if (!publishAt && !notForKids && !descriptionFile) throw new Error('Nothing to change: pass --publish-at, --not-for-kids and/or --description-file');
+      const description = descriptionFile ? readFileSync(descriptionFile, 'utf8').replace(/\s+$/, '') : null;
+      if (description) {
+        const refused = findable({ ...episode, description, searchPhrase: searchPhrase ?? episode.searchPhrase, status: 'scheduled', legacy: false },
+          { profile: profileFor(loadProfiles(), episode.app) });
+        if (refused) throw new Error(refused);
+      }
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids, searchPhrase, description })); process.exit(0); }
+      const token = await accessToken();
+      const result = { videoId: episode.videoId };
+      if (publishAt || notForKids) Object.assign(result, await updateVideo(token, episode.videoId, { publishAt, notForKids }));
+      if (description) {
+        const changed = await updateDescription(token, episode.videoId, description);
+        episode.wasDescription ??= changed.was;
+        episode.description = changed.now;
+        if (searchPhrase) episode.searchPhrase = searchPhrase;
+        result.description = changed;
+      }
       if (publishAt) episode.publishAt = new Date(publishAt).toISOString().replace('.000Z', 'Z');
       if (notForKids) episode.madeForKids = false;
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
@@ -320,6 +372,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ...(reason ? { pulledReason: reason } : {}) });
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'show') {
+      const id = option('--episode', null);
+      const episode = JSON.parse(readFileSync(registryPath, 'utf8')).episodes.find(e => e.id === id);
+      if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
+      const video = (await api(await accessToken(), `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id=${encodeURIComponent(episode.videoId)}`)).items?.[0];
+      if (!video) throw new Error(`No video "${episode.videoId}" on the channel`);
+      console.log(JSON.stringify({ videoId: video.id, title: video.snippet.title, description: video.snippet.description,
+        privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt ?? null, madeForKids: video.status.madeForKids }, null, 2));
     } else if (command === 'unanswered') {
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const token = await accessToken(), owner = await ownChannelId(token), found = [], skipped = [];
@@ -347,7 +407,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {

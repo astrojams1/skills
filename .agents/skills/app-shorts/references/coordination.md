@@ -13,12 +13,21 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 
 ## With the App Store
 
-- **Attribution:** links from YouTube use `shorts.mjs link <app> <campaign>`. That covers channel links, long-video
-  descriptions, and pinned comments where links are allowed. It adds the team's provider token (`pt`) and a campaign
+- **Attribution:** links from YouTube use `shorts.mjs link <app> <campaign>`. That covers channel links and long-video
+  descriptions, the places where links click. It adds the team's provider token (`pt`) and a campaign
   token (`ct`, e.g. `yt-fud-crusts`). App Store Connect → Analytics then reports product page views, downloads and
   proceeds per campaign. Record each team's provider token in the registry's `teams` (App Store Connect →
   Analytics → Campaigns shows it). Without it the link works but is unattributed.
-- **Search:** Shorts say "Search '<App name>' on the App Store". Use the store name exactly, so the search lands.
+- **Search:** every Short gives the app's search phrase on screen and on the description's first line
+  (`posting.md`, "Find the app"). The phrase comes from the app's marketing profile (`searchPhrase`, checked daily by
+  `app-marketing`) or `shorts.mjs phrase`, so the search lands.
+- **What app-marketing reads:** `shorts.mjs views` gives, per app, `shortsViews` (summed over public Shorts only;
+  `pulled` and `superseded` ones never count), `liveOrScheduled` (a live or scheduled Short exists now) and
+  `nextPublic`, keyed by the registry slug with the profile's `marketingId`. The registry's `status` field means:
+  `scheduled` private until `publishAt`, `live` and `retired` public, `pulled` taken back to private, `superseded`
+  never uploaded (see the top of `scripts/shorts.mjs`).
+- **Downloads:** `youtube-growth`'s `evaluate.mjs` reads `app-marketing`'s `asc-analytics` rows to judge each Short on
+  first-time downloads from search and browse in its first 72 hours.
 - **Promotional text** can echo a running series ("As seen on our Shorts: …"); it changes without App Review
   (`asc.mjs listing`).
 

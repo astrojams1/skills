@@ -43,3 +43,24 @@ first frame; Partner Program now uses "qualified Shorts views"); developers.goog
 Twelve app Shorts posted 21 Oct to 1 Nov: median about 61 views. Outliers: a 7 s calm alphabet loop (1,259 views,
 207% average viewed at day 3) and a plain "Search Newsworthy in the App Store" clip (1,144). Feature demos and
 "coming soon" clips: 1–88. The registry holds these as `legacy` episodes, counted in the baseline and not judged.
+
+## Downloads: what a Short is for (2026-11-12)
+
+A view is not the goal; a download is. The owner's audit on 2026-11-12 found no evidence any Short had produced a
+download. Apple does not say which download came from which video, so `evaluate.mjs` compares time windows:
+
+- **The window:** the three days starting the day the Short went public (UTC), 72 hours.
+- **The baseline:** the app's mean daily first-time downloads over the 7 days before, counting only days Apple
+  reported (at least 3).
+- **The sources:** App Store search and App Store browse, from `days[<date>].sources` in `app-marketing`'s
+  `asc-analytics` rows. A viewer who wants the app types its search phrase, so search is where a Short shows up.
+  Older rows have no per-day sources; then all first-time downloads count, and the verdict says so.
+- **The verdict:** `lifted` when the window beats the expected count by at least 3 downloads and 2 Poisson standard
+  deviations. `no-effect` when it does not, after at least 500 views. Otherwise `inconclusive`: too few views, the
+  window not over, or Apple's days not in yet. Two Shorts that go public close together share the window; the
+  verdict lists them as `overlaps`.
+- **What it cannot see:** a download days later, a viewer who found the app another way, or downloads Apple
+  withholds when counts are very small. A `lifted` is evidence, not proof; a format needs two before it doubles down.
+
+The numbers are proposals with low confidence. No published study ties Shorts views to App Store downloads. Tune
+`minViews` and `z` once five or more Shorts have download verdicts.

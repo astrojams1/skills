@@ -10,9 +10,44 @@ Newsworthy, Giraffe Stretch, Pipsqueak and Füd Shorts. Check the signed-in chan
 the first upload of a run. Channel settings (links, handle, branding) may change without asking; log the old value first
 so a change can be undone. Never create channels.
 
-## Through YouTube Studio in Chrome (works today)
+## Find the app: the search phrase
 
-The built-in browser cannot attach files; use Claude in Chrome (`file_upload`).
+Links in Shorts do not click, the creator's own included. A viewer finds the app only by typing its name into the
+App Store, so every Short gives a phrase that is known to find it (James, 2026-11-12: Shorts must lead to downloads).
+
+1. **Get the phrase.** `node $S/shorts.mjs phrase <app>`. It returns the profile's `searchPhrase` when
+   `app-marketing` has set one (it checks daily that the phrase finds the app). Otherwise it tries the store name and
+   any `--try "a|b"` candidates on the App Store's own search and returns the first one ranked first. A `rank: null`
+   means the store found none today; use the store name and say so in the run notes.
+2. **Show it on screen in the last beat.** Every viewer who reaches the end sees it, and the loop shows it again.
+   It is the only place a viewer sees it without tapping. Draw it in the Short's own type and look, inside the safe
+   box, for at least 1.5 s. "Search 'Importron health'", the phrase typed into a search bar, or the app icon beside
+   it all work. The words are the Short's choice; the exact phrase is not. This keeps the 2.0 rule against stock
+   template lines: what is fixed is that the viewer can find the app, not a sentence.
+3. **Lead the description with it.** The first line names the app and what it does, then "Search '<phrase>' on the
+   App Store." It is the first thing a viewer reads after tapping the title. `record` checks this line.
+4. **Put the app's name early in the title** when it fits the searcher's words. The player shows about the first 40
+   characters over the Short.
+
+An app not on sale yet says "coming to the App Store" instead, and needs no phrase. A plain-text App Store link may
+follow lower in the description for desktop viewers, never in place of the phrase.
+
+## Through the YouTube Data API (the default)
+
+`youtube-growth/scripts/yt-api.mjs upload --episode <id>` prints the request (dry run); add `--confirm` to upload.
+A future `publishAt` schedules it (uploaded private, made public at that time); otherwise it goes public. It sets
+the cover with `thumbnails.set` and records the `videoId` in the registry. Since 2026-11-02 unaudited API projects
+may publish publicly. Captions cost 400 quota units through the API; burned-in text usually makes them unnecessary.
+`yt-api.mjs update --episode <id> --description-file F --search-phrase P --confirm` replaces a posted or scheduled
+Short's description and keeps the old one in the registry as `wasDescription`.
+
+**Not operable (2026-11-12):** the API cannot pin a comment or set a Related video, and Studio needs the owner's
+sign-in. The pipeline does not use either, and a run does not log them as skipped or open.
+
+## Through YouTube Studio in Chrome (only if the API is down)
+
+The built-in browser cannot attach files; use Claude in Chrome (`file_upload`). Use it only in a browser that is
+already signed in to the channel; never sign in.
 
 1. **Files must be readable by the session.** `file_upload` refuses paths outside the session's folders: copy the
    MP4, `.srt` and a JPEG cover (under 2 MB; `sips -s format jpeg`) into the session scratchpad first.
@@ -30,20 +65,9 @@ The built-in browser cannot attach files; use Claude in Chrome (`file_upload`).
    its list and click the option (`find` "5:00 PM option"). The time zone defaults to the account's local zone;
    check it and leave it.
 6. Read the share dialog for the `youtube.com/shorts/<id>` link and record it.
-7. **Pinned comment** (a comment prompt that feeds the series): open `youtube.com/watch?v=<id>`, add the comment,
-   then ⋮ → Pin → Pin. A scheduled Short cannot be commented on until it is live, so `shorts.mjs due` lists it
-   under `live` when its time passes.
 
 Studio's checks (copyright, ad suitability) run during upload; wait for "Checks complete. No issues found." before
 publishing.
-
-## Through the YouTube Data API (once the owner has connected it)
-
-`youtube-growth/scripts/yt-api.mjs upload --episode <id>` prints the request (dry run); add `--confirm` to upload.
-A future `publishAt` schedules it (uploaded private, made public at that time); otherwise it goes public. It sets
-the cover with `thumbnails.set` and records the `videoId` in the registry. Since 2026-11-02 unaudited API projects
-may publish publicly. The API cannot set **Related video** or **pin a comment**: do those in Studio after it is
-live. Captions cost 400 quota units through the API; burned-in text usually makes them unnecessary.
 
 ## Cadence
 
@@ -63,5 +87,7 @@ Pacific. Then let `youtube-growth` adjust the time from the channel's own "when 
   Otherwise make it match the burned-in text exactly and accept the duplication for accessibility. The first Füd series
   uploaded duplicates.
 - **Shorts description links don't click.** Put the App Store link (with a campaign token, `shorts.mjs link`) in
-  the channel's links and in any long video's description. In a Short, write "Search 'Füd' on the App Store".
+  the channel's links and in any long video's description. In a Short, give the search phrase ("Find the app"
+  above). The Shorts scheduled for 2026-11-13 (Importron) and 2026-11-15 (Data Center) were uploaded with only a dead link;
+  their descriptions were fixed through the API on 2026-11-12.
 - **A corrected Short is a new video.** Its views start from zero; fix it before posting.

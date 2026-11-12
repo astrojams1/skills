@@ -5,8 +5,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { evaluate, quantile, cutoffs, RULES } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics } from '../../skills/youtube-growth/scripts/evaluate.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -107,4 +107,74 @@ test('updatedStatus sets not-for-kids and a new publish time, keeping other sett
     selfDeclaredMadeForKids: true, embeddable: true, license: 'youtube' };
   assert.deepEqual(updatedStatus(status, { notForKids: true, publishAt: '2026-11-13T01:00:00Z' }),
     { privacyStatus: 'private', publishAt: '2026-11-13T01:00:00.000Z', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' });
+});
+
+const fixture = name => new URL(`./fixtures/${name}`, import.meta.url).pathname;
+const metrics = readMetrics(fixture('metrics.jsonl'));
+const profiles = JSON.parse(readFileSync(fixture('profiles.json'), 'utf8'));
+const AFTER = new Date('2026-11-12T00:00:00Z');
+const pub = (id, app, at, views, extra = {}) => ({ id, app, status: 'live', postedAt: at, videoId: id, format: 'f',
+  metrics: views === null ? [] : [{ at: '2026-11-11T12:00:00Z', views }], ...extra });
+
+test('download days keep the newest value of each day, never a sum', () => {
+  const days = downloadDays(metrics);
+  assert.deepEqual(days.fud.days['2026-11-01'], { first: 6, re: 0, sources: { 'App Store search': 1, 'App Store browse': 0, 'Web referrer': 5 } });
+  assert.equal(days.fud.through, '2026-11-10');
+  assert.ok(!days['space-worms'].days['2026-11-11'], 'a day no row reported is unknown, not zero');
+  assert.deepEqual(Object.keys(downloadsBySlug(metrics, profiles)).sort(), ['fud', 'nametag', 'space-worms-2']);
+});
+
+test('a Short is lifted, no-effect or inconclusive on search and browse downloads in its 72 hours', () => {
+  const data = downloadsBySlug(metrics, profiles), rule = rules.downloads;
+  const lifted = downloadVerdict(pub('a', 'fud', '2026-11-08T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 });
+  assert.equal(lifted.label, 'lifted');
+  assert.deepEqual([lifted.window.downloads, lifted.expected, lifted.baseline.perDay], [10, 3, 1], 'web referrer downloads are left out');
+  const flat = downloadVerdict(pub('b', 'space-worms-2', '2026-11-08T01:00:00Z'), data['space-worms-2'], rule, { now: AFTER, views: 800 });
+  assert.equal(flat.label, 'no-effect');
+  const few = downloadVerdict(pub('c', 'fud', '2026-11-08T01:00:00Z'), data.fud, rule, { now: AFTER, views: 120 });
+  assert.equal(few.label, 'inconclusive');
+  assert.match(few.why, /too few/);
+  assert.equal(downloadVerdict(pub('d', 'fud', '2026-11-08T01:00:00Z'), data.fud, rule, { now: AFTER, views: null }).why, 'no views read yet');
+  assert.match(downloadVerdict(pub('e', 'fud', '2026-11-10T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 }).why, /not over/);
+  assert.match(downloadVerdict(pub('f', 'fud', '2026-11-09T01:00:00Z'), data.fud, rule, { now: new Date('2026-11-13T00:00:00Z'), views: 900 }).why, /not in yet for 2026-11-11/);
+  assert.match(downloadVerdict(pub('g', 'fud', '2026-10-20T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 }).why, /starts 2026-11-01/);
+  assert.match(downloadVerdict(pub('h', 'fud', '2026-11-02T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 }).why, /baseline has 1 of 7/);
+  assert.match(downloadVerdict(pub('i', 'rhythm', '2026-11-02T01:00:00Z'), undefined, rule, { now: AFTER, views: 900 }).why, /no download data/);
+  const all = downloadVerdict(pub('j', 'nametag', '2026-11-05T01:00:00Z'), data.nametag, rule, { now: AFTER, views: 900 });
+  assert.match(all.basis, /all first-time/);
+  assert.equal(all.label, 'no-effect');
+});
+
+test('double-down needs lifted downloads; on views alone it is provisional, and views without downloads iterate', () => {
+  const downloads = downloadsBySlug(metrics, profiles);
+  const now = new Date('2026-11-30T00:00:00Z');
+  const ep = (id, app, format, day, views) => ({ id, app, format, status: 'live', postedAt: `2026-11-${String(day).padStart(2, '0')}T01:00:00Z`,
+    metrics: [{ at: `2026-11-${String(day + 7).padStart(2, '0')}T02:00:00Z`, views, engagedViews: views }] });
+  const filler = Array.from({ length: 12 }, (_, i) => ep(`q${i}`, 'rhythm', 'quiet', 1 + i, 50));
+  const strongNoData = Array.from({ length: 5 }, (_, i) => ep(`s${i}`, 'rhythm', 'loop', 1 + i, 900));
+  const strongFlat = Array.from({ length: 5 }, (_, i) => ep(`w${i}`, 'space-worms-2', 'raw', 4 + i % 2, 900));
+  const lifted = [ep('l1', 'fud', 'calm', 8, 900), ep('l2', 'fud', 'calm', 8, 600)];
+  const result = evaluate({ apps: {}, episodes: [...filler, ...strongNoData, ...strongFlat, ...lifted] }, rules, { now, downloads });
+  const by = Object.fromEntries(result.formats.map(f => [f.format, f]));
+  assert.equal(by.calm.decision, 'double-down', 'two lifted Shorts double a format down even before five episodes');
+  assert.ok(!by.calm.provisional);
+  assert.equal(by.loop.decision, 'double-down');
+  assert.equal(by.loop.provisional, true);
+  assert.equal(by.raw.decision, 'iterate');
+  assert.ok(result.actions.some(a => a.kind === 'format-double-down' && a.format === 'loop' && a.provisional));
+  assert.ok(result.actions.some(a => a.kind === 'make-next-episode' && /l1: lifted downloads/.test(a.why)));
+  assert.ok(result.actions.some(a => a.kind === 'point-to-the-app' && a.app === 'space-worms-2'));
+  assert.ok(result.downloads.find(d => d.episode === 'w0').overlaps.includes('w1'));
+});
+
+test('a pulled Short does not keep an app off the produce list', () => {
+  const registry = { apps: { fud: {} }, episodes: [{ id: 'p', app: 'fud', status: 'pulled', postedAt: '2026-11-28T00:00:00Z' }] };
+  assert.deepEqual(evaluate(registry, rules, { now: NOW }).actions.filter(a => a.kind === 'produce').map(a => a.why), ['no live or scheduled Short']);
+});
+
+test('updatedSnippet replaces the description and sends the title, category, tags and languages back', () => {
+  const snippet = { title: 'T', categoryId: '28', description: 'old', tags: ['a'], defaultLanguage: 'en', defaultAudioLanguage: 'en',
+    publishedAt: 'x', channelId: 'c', thumbnails: {}, localized: {} };
+  assert.deepEqual(updatedSnippet(snippet, { description: 'new' }), { title: 'T', categoryId: '28', description: 'new', tags: ['a'], defaultLanguage: 'en', defaultAudioLanguage: 'en' });
+  assert.throws(() => updatedSnippet({ description: 'x' }, { description: 'y' }), /title or category/);
 });
