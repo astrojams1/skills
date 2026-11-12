@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.4.0"
+  version: "2.5.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -35,7 +35,8 @@ approval of each one.
 - **No go-ahead needed** to start a new app or series, post, schedule, or change channel settings (links,
   description, handle, branding). Log a setting's old value so the change can be undone. Never park an episode for
   approval.
-- **An app not yet live waits** for its release.
+- **An app not yet on sale can still have Shorts.** Say "coming to the App Store" and link its website or listing
+  once live. The channel's best Short (Giraffe Stretch, 2026-11-01) went up before its app was on sale.
 - **Never create accounts or channels.**
 
 Repository rules and approval holds outrank this skill.
@@ -53,12 +54,8 @@ Repository rules and approval holds outrank this skill.
    know, the look, the sound, the type, the structure. Read `experiments.md` in this skill's `ledger/` and change at
    least three of those dimensions from every earlier Short on the channel. Reusing a layout, a caption style, a
    music bed or an ending is not allowed; a format the numbers marked `double-down` keeps its idea, not its look.
-3. **Record the real app** (`references/recording.md`).
-   - Use synthetic data.
-   - Rehearse inputs through the real feature.
-   - Keep the take whose real result is the payoff.
-   - Find each moment's source time on contact sheets.
-   Record new footage for every Short. Never cut a new Short from another Short's takes.
+3. **Get the footage** (`references/recording.md`): record, stage, script or reuse, whatever gets the moment
+   fastest. Use synthetic data.
 4. **Build the cut with whatever tool the idea needs:** `app-preview.swift render`, ffmpeg filter graphs, a
    Remotion or HTML/canvas scene rendered frame by frame, motion type, split screens, real-world props
    photographed or generated as stills. The tool follows the idea. Score the sound from scratch for this Short
@@ -92,8 +89,8 @@ Repository rules and approval holds outrank this skill.
   names it on screen and in the title: "Function Health labs → Apple Health", not "Uploaded the same lab report
   twice?". A side feature is never the subject of an app's first Shorts. The App Store's naming limits are for the
   store listing (`app-release`, `references/ios.md`); they do not apply on YouTube.
-- **Real app, real result.** Every number and screen in a Short is what the shipped build did in that take, with
-  synthetic data. No mock-ups, roadmap features or edited outcomes.
+- **Show what the product can do.** Staged, scripted, edited and composited footage is fine. Don't show a feature
+  it doesn't have.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
 - **Parents are the audience, not children.** Mark Shorts "not made for kids" unless the video really is for
   children. Never film children.

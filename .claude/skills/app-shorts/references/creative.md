@@ -63,7 +63,7 @@ are not a pass mark (see "The reviewer panel").
    under YouTube's controls, no line is on screen too briefly to read.
 5. **Sounds good.** Real instruments or real sound, mixed well, about -14 LUFS, the voice clear if there is one.
 6. **Crafted.** Timing, motion and cuts feel deliberate; no frame looks like a mistake.
-7. **True.** Every result is what the real app did in the take, with synthetic data.
+7. **Honest about the product.** It shows what the product can do; staging and editing are fine.
 8. **Earns an action.** A viewer would comment, share, rewatch or look the app up.
 9. **Obviously an iPhone app, and obviously easy.** A real iPhone is on screen, large, the way Apple shows apps,
    not a flat rectangle of UI or a cartoon. The app's part is the shortest real path to the result, with the
