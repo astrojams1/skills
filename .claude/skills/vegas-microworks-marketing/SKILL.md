@@ -1,9 +1,9 @@
 ---
 name: vegas-microworks-marketing
-description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. Use when the Mac task runs or when asked to run the weekly Vegas Microworks marketing pass.
+description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. The app-marketing Mac pass starts it each week. Use when that pass carries it or when asked to run the weekly Vegas Microworks marketing pass.
 internal: true
 metadata:
-  version: "1.3.1"
+  version: "1.4.0"
 ---
 
 # Vegas Microworks marketing
@@ -12,6 +12,12 @@ metadata:
 
 Done means: the site's playbook ran, changes were checked live, and the run left a report.
 
+**The app-marketing Mac pass starts it (2026-11-12).** `app-marketing-mac` runs every day in Auto permission mode.
+After its app work ships, it starts this pass on a Wednesday, or on any day when the last completed weekly pass is
+more than 7 days old. It reads this file from its own export of `origin/main`. Its run id starts `vmw-weekly-`. See
+`skills/app-marketing/references/mac-pass.md`, "Other Mac jobs this task carries". This pass keeps its own run id,
+ledger events and report, and its failure never changes the app pass's result.
+
 ## Where things are
 
 | What | Where |
@@ -19,12 +25,13 @@ Done means: the site's playbook ran, changes were checked live, and the run left
 | Site checkout | `/Volumes/ssd/code/vegas-microworks` |
 | Run folders | `/Volumes/ssd/projects/vegas-microworks/run/` |
 | Playbook | `docs/marketing.md` in the new site worktree |
-| Skills checkout the prompt reads | `/Volumes/ssd/code/skills`, always at `origin/main` through `git show` |
+| Skills copy | The Mac pass's export of `origin/main`, `<folder>/skills/` under `/Volumes/ssd/projects/app-marketing/run/` |
+| Who starts it | `app-marketing-mac`, through `skills/app-marketing/references/mac-pass.md` |
 | Shared activity ledger | `~/Library/Application Support/AgentActivityLedger/events.jsonl` |
 
 ## Authority
 
-The owner approved the weekly task on 2026-11-07. Follow the scope and rules in the site's marketing playbook.
+The owner approved the weekly pass on 2026-11-07. Follow the scope and rules in the site's marketing playbook.
 
 James, 2026-11-12: "every marketing skill needs to be able to run autonomously (i.e. without me giving go-aheads or
 signing in to things). The skills are the owners and decisions makers of the skill and so there should be no
@@ -86,11 +93,14 @@ Shorts. It doesn't send outreach.
 - **The prompt only points here.** If it says more, follow this file and quote the stale words in the report.
 - **Done means seen** in a page, tool or run.
 
-The stored prompt is:
+**The old weekly task is paused.** The Mac task `vegas-microworks-marketing` (Wednesdays 7:04 Pacific) is paused,
+and the app-marketing Mac pass replaced it (2026-11-12). Do not re-enable it, or the pass runs twice. Its stored
+prompt is:
 
 > Run `git -C /Volumes/ssd/code/skills fetch -q origin`, then read the skill with `git -C /Volumes/ssd/code/skills show origin/main:skills/vegas-microworks-marketing/SKILL.md` and follow "A run" in it unattended.
 
-The site's `docs/marketing.md` quotes the same words. Change both together.
+If that paused task starts a run anyway, reply only "Paused: the app-marketing Mac pass runs this now" and stop. The
+site's `docs/marketing.md` quotes the same words. Change both together.
 
 ## Report
 
@@ -98,16 +108,16 @@ Use the report format in the playbook's "Each weekly run" section.
 
 ## Gotchas
 
-- **The task needs Auto permission mode (2026-11-12).** Its only run, on 2026-11-11, sat 48 minutes on a permission
-  prompt at its first file read and was then marked succeeded. The task has no permission mode set, so it runs in
-  the default mode, in a scratch folder. There, any read or command outside that folder waits for a click.
-  `app-marketing-mac` runs in Auto mode and never prompts. Only the owner can set the mode, in the task's settings in
-  the Claude app.
+- **A default-mode scheduled task stalls on prompts (2026-11-12).** A task with no permission mode set runs in the
+  default mode, in a scratch folder. Any read or command outside that folder waits for a click that never comes. The
+  weekly task's only run, on 2026-11-11, sat 48 minutes on its first file read and was then marked succeeded. Only
+  the owner can pick a task's mode in the Claude app, and the app refused a mode saved from an agent's session. So
+  the weekly pass runs inside `app-marketing-mac`, which runs in Auto mode.
 - **"Run now" from another session proves nothing about the schedule (2026-11-12).** A run started with
   `run_scheduled_task` took the launching session's bypass mode and never prompted. A cron run uses the task's own
   mode. Only a cron run, or the app's own Run now button, shows whether the setting works.
-- **Read the skill from `origin/main` (2026-11-12).** The old prompt read a side checkout stuck at 1.0.0, which had
-  no gambling rule. The prompt now fetches and reads `origin/main`, so it can't go stale.
+- **Read the skill from `origin/main` (2026-11-12).** An old prompt read a side checkout stuck at 1.0.0, which had
+  no gambling rule. The Mac pass reads this file from a fresh export of `origin/main`, so it can't go stale.
 
 ## Ledger
 

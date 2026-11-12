@@ -11,15 +11,17 @@ test('Pacific wall-clock times survive daylight saving', () => {
   assert.equal(localDay(Date.parse('2026-11-08T06:00:00Z')), '2026-11-07'); // 22:00 the evening before
 });
 
-test('windows are weekday mornings at least a day ahead', () => {
-  // Saturday 2026-11-07 05:34 Pacific: the first window is Monday 9:00, and no weekend appears
+test('windows are weekday mornings at the Mac pass\'s hour, at least a day ahead', () => {
+  assert.equal(iso(zoned('2026-11-10', 5.5)), '2026-11-10T13:30:00.000Z');  // 5:30 PST
+  assert.equal(iso(zoned('2026-07-15', 5.5)), '2026-07-15T12:30:00.000Z');  // 5:30 PDT
+  // Saturday 2026-11-07 05:34 Pacific: the first window is Monday 5:30 to 8:30, and no weekend appears
   const now = Date.parse('2026-11-07T13:34:00Z');
   const list = windows(now);
-  assert.equal(iso(list[0].start), '2026-11-09T17:00:00.000Z');
-  assert.equal(list[0].end - list[0].start, 2 * 3600000);
+  assert.equal(iso(list[0].start), '2026-11-09T13:30:00.000Z');
+  assert.equal(list[0].end - list[0].start, 3 * 3600000);
   assert.ok(list.every(w => ![0, 6].includes(new Date(w.start - 8 * 3600000).getUTCDay())));
-  // Monday 05:34: Monday 9:00 is under 24 hours away, so Tuesday is first
-  assert.equal(iso(windows(Date.parse('2026-11-09T13:34:00Z'))[0].start), '2026-11-10T17:00:00.000Z');
+  // Monday 05:34: Tuesday 5:30 is under 24 hours away, so Wednesday is first, and its reminder a day ahead still fires
+  assert.equal(iso(windows(Date.parse('2026-11-09T13:34:00Z'))[0].start), '2026-11-11T13:30:00.000Z');
 });
 
 test('free time ignores our own, cancelled, declined and free all-day events, but not timed events marked free', () => {

@@ -9,7 +9,7 @@
 //   node gcal.mjs check                          which fields exist (no values), whether they work, which calendar
 //   node gcal.mjs auth [--print-url] [--token-file PATH]   one-time consent; stores the refresh token in 1Password,
 //                                                or, when the service account is read-only, writes it to --token-file for the owner
-//   node gcal.mjs slot [--json]                  the first free weekday window (9-11 Pacific, 24+ hours ahead, 14 days)
+//   node gcal.mjs slot [--json]                  the first free weekday window (5:30-8:30 Pacific, 24+ hours ahead, 14 days)
 //   node gcal.mjs booked [--day YYYY-MM-DD]      Show HN events on that Pacific day (default today), and whether the
 //                                                owner is still free around them
 //   node gcal.mjs book --app ID --start ISO --title T --description-file F [--confirm]   add the heads-up event
@@ -30,9 +30,11 @@ const ITEM = 'Google Calendar', CLIENT_ITEM = 'YouTube API', VAULT = 'API Tokens
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 const API = 'https://www.googleapis.com/calendar/v3/calendars/primary';
 export const TZ = 'America/Los_Angeles';
-export const WINDOW = { hour: 9, hours: 2, leadHours: 24, days: 14 };
+// The Mac pass starts about 5:34 Pacific and posts by 7:00, so the window is its own (references/hacker-news.md, Timing).
+export const WINDOW = { hour: 5.5, hours: 3, leadHours: 24, days: 14 };
 export const TAG = { appMarketing: 'show-hn' };
 const HOUR = 3600000, DAY = 24 * HOUR;
+const clock = h => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
 
 // ---- time ----
 
@@ -43,10 +45,11 @@ function offset(t, tz) {
   return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - t;
 }
 
-// zoned returns the instant of a wall-clock time (date YYYY-MM-DD, hour) in a time zone, across daylight saving.
+// zoned returns the instant of a wall-clock time (date YYYY-MM-DD, hour, which may be fractional: 5.5 is 5:30) in a
+// time zone, across daylight saving.
 export function zoned(ymd, hour, tz = TZ) {
   const [y, m, d] = ymd.split('-').map(Number);
-  const guess = Date.UTC(y, m - 1, d, hour);
+  const guess = Date.UTC(y, m - 1, d) + hour * HOUR;
   const first = guess - offset(guess, tz);
   return guess - offset(first, tz);
 }
@@ -215,7 +218,7 @@ async function main(args) {
     const intervals = busy(await events(token, now, list.length ? list[list.length - 1].end : now + DAY));
     const slot = firstFree(list, intervals);
     const out = slot ? { free: true, start: new Date(slot.start).toISOString(), end: new Date(slot.end).toISOString(), local: pt(slot.start) }
-      : { free: false, reason: `no free weekday ${WINDOW.hour}:00 window in the next ${WINDOW.days} days` };
+      : { free: false, reason: `no free weekday ${clock(WINDOW.hour)} window in the next ${WINDOW.days} days` };
     return console.log(args.includes('--json') ? JSON.stringify(out) : (slot ? `free: ${out.local} Pacific (${out.start})` : out.reason));
   }
   if (command === 'booked') {
