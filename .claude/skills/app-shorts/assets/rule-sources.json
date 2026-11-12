@@ -1,15 +1,55 @@
 {
   "why": "The owner's written rules a reviewer must check every Short against (James, 2026-11-12: reviewers never saw them, and passed work he then rejected). `shorts.mjs rules <app>` prints them with each app's marketing-profile rules. Paths are relative to the app-shorts folder unless absolute.",
   "always": [
-    { "file": "SKILL.md", "section": "Rules", "title": "Every Short (app-shorts rules)" }
+    {
+      "file": "SKILL.md",
+      "section": "Rules",
+      "title": "Every Short (app-shorts rules)"
+    }
   ],
   "apps": {
     "vegas-microworks": [
-      { "file": "../vegas-microworks-marketing/SKILL.md", "section": "Rules", "title": "Vegas Microworks: rules from its marketing skill" },
-      { "file": "/Volumes/ssd/code/vegas-microworks/docs/marketing.md", "section": "Never", "title": "Vegas Microworks: the playbook's Never list (docs/marketing.md)" }
+      {
+        "file": "../vegas-microworks-marketing/SKILL.md",
+        "section": "Rules",
+        "title": "Vegas Microworks: rules from its marketing skill"
+      },
+      {
+        "file": "/Volumes/ssd/code/vegas-microworks/docs/marketing.md",
+        "section": "Never",
+        "title": "Vegas Microworks: the playbook's Never list (docs/marketing.md)"
+      }
     ]
   },
   "verdicts": [
-    { "file": "ledger/verdicts.md", "title": "The owner's verdicts on past Shorts" }
-  ]
+    {
+      "file": "ledger/verdicts.md",
+      "title": "The owner's verdicts on past Shorts"
+    }
+  ],
+  "banned": {
+    "vegas-microworks": [
+      "slot machine",
+      "slot machines",
+      "slots",
+      "jackpot",
+      "jackpots",
+      "casino",
+      "casinos",
+      "roulette",
+      "poker",
+      "blackjack",
+      "bet",
+      "bets",
+      "betting",
+      "odds",
+      "wager",
+      "gamble",
+      "gambling",
+      "win big",
+      "roll the dice",
+      "dice"
+    ]
+  },
+  "why_banned": "Words a business's written rules forbid, checked mechanically by `shorts.mjs check` in every scheduled Short's title, description, tags and captions (Vegas Microworks: no gambling language, vegas-microworks-marketing Rules and docs/marketing.md Never). Images are checked on the rules checklist."
 }

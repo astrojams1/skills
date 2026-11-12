@@ -24,6 +24,8 @@
 //                                                   addresses) to metrics.jsonl
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
+//   node marketing.mjs youtube [--write]            one `youtube` snapshot per app from `shorts.mjs views` (public Shorts
+//                                                   only): shortsViews, publicShorts, scheduledShorts
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
@@ -38,7 +40,7 @@ import { gunzipSync } from 'node:zlib';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ON_CHANNEL } from '../../app-shorts/scripts/shorts.mjs';
+import { ON_CHANNEL, views } from '../../app-shorts/scripts/shorts.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
@@ -460,7 +462,11 @@ export function endProblems(event, profiles, events, { now = Date.now(), registr
   if (event.event !== 'end' || Date.parse(event.ts) < AUTONOMY_FROM) return [];
   const runner = runnerOf(event);
   if (!runner) return [];
-  const due = rank(profiles, events, { runner, now, registry });
+  // The Mac pass ends twice: its core stage (mkt-mac-...) before Shorts are made, and the Shorts stage
+  // (mkt-mac-shorts-...), so a slow or failed Short never holds up the rest. Each answers for its own items.
+  const shortsStage = /^mkt-mac-shorts-/.test(event.run_id || '');
+  const due = rank(profiles, events, { runner, now, registry })
+    .filter(i => runner !== 'mac' || (i.channel === 'youtube-shorts') === shortsStage);
   return due.length ? [`end leaves ${due.length} due ${runner} item(s) undone: ${due.map(i => `${i.app}/${i.id}`).join(', ')}. Do each, or log it as an action with blocked_by`] : [];
 }
 
@@ -560,6 +566,21 @@ async function cmdPublic(root, args) {
   }
   if (args.write) out.forEach(m => appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(m) + '\n'));
   console.log(JSON.stringify(out, null, 1));
+}
+
+// youtubeSnapshots turns `shorts.mjs views` into one metrics line per app with a profile. Views count public Shorts
+// only, so a pulled or superseded Short never adds to an app's total.
+export function youtubeSnapshots(registry, profiles, at = new Date().toISOString()) {
+  return views(registry, { profiles }).filter(v => v.marketingId)
+    .map(v => ({ at, app: v.marketingId, source: 'youtube', values: { shortsViews: v.shortsViews, publicShorts: v.publicShorts, scheduledShorts: v.scheduledShorts } }));
+}
+
+function cmdYoutube(root, args) {
+  const registry = loadRegistry(args);
+  if (!registry) throw new Error('No app-shorts registry on this machine (pass --registry PATH)');
+  const lines = youtubeSnapshots(registry, loadProfiles(root));
+  if (args.write) lines.forEach(m => appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(m) + '\n'));
+  console.log(JSON.stringify(lines, null, 1));
 }
 
 // ---- App Store Connect (Mac only: the key never leaves 1Password and this process) ----
@@ -1085,7 +1106,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();

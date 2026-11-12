@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, onSale, titleNamesApp, views, searchRank, phrase, section, rules } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -52,10 +52,10 @@ test('record warns when a music bed or hook repeats one of the recent Shorts', (
   const registry = emptyRegistry();
   const phrase = { searchPhrase: 'Füd family' };
   record(registry, { id: 'a', app: 'fud', status: 'live', postedAt: '2026-11-01T00:00:00Z', music: '112-F-p0-m0-f0', hook: 'Do your kids’ crusts count?', ...phrase });
-  const same = record(registry, { id: 'b', app: 'fud', status: 'rendered', music: '112-F-p0-m0-f0', hook: 'One dinner. Three people.', ...phrase });
+  const same = record(registry, { id: 'b', app: 'fud', status: 'rendered', music: '112-F-p0-m0-f0', musicClaimedAt: '2026-11-02T00:00:00Z', hook: 'One dinner. Three people.', ...phrase });
   assert.equal(same.warnings.length, 1);
   assert.match(same.warnings[0], /music bed as a/);
-  const fresh = record(registry, { id: 'c', app: 'fud', status: 'rendered', music: '96-C-p2-m1-f1', hook: 'Parent lunch', ...phrase });
+  const fresh = record(registry, { id: 'c', app: 'fud', status: 'rendered', music: '96-C-p2-m1-f1', musicClaimedAt: '2026-11-02T00:00:00Z', hook: 'Parent lunch', ...phrase });
   assert.deepEqual(fresh.warnings, []);
 });
 
@@ -294,4 +294,84 @@ test('phrase waits out a rate limit and records a refused query instead of stopp
   const none = await phrase(registry, 'dc', { fetcher: async url => url.includes('itunes') ? { ok: true, json: async () => ({ results: [] }) } : { ok: false, status: 429 }, waits: [0], sleep: async () => {} });
   assert.equal(none.rank, null);
   assert.match(none.checked[0].error, /429/);
+});
+
+test('a Short ends on the profile phrase: a search line when the store finds the app, else the store name on the App Store', () => {
+  const found = { id: 'i', name: 'Importron', stage: 'live', searchPhrase: { phrase: 'Importron health', rank: 1, checked: '2026-11-12' } };
+  const missing = { id: 'd', name: 'Data Center: AI Frontier', stage: 'live', searchPhrase: { phrase: 'Data Center: AI Frontier', rank: null, checked: '2026-11-12' } };
+  const ep = extra => ({ id: 'e', app: 'i', status: 'scheduled', title: 'Importron: labs in Apple Health', ...extra });
+  assert.equal(findable(ep({ searchPhrase: 'Importron health', description: "Search 'Importron health' on the App Store." }), { profile: found }), null);
+  assert.match(findable(ep({ searchPhrase: 'Importron', description: 'Importron on the App Store.' }), { profile: found }), /profile's phrase is "Importron health"/);
+  const dc = extra => ({ id: 'd1', app: 'd', status: 'scheduled', title: 'Data Center: AI Frontier | 9 protesters', searchPhrase: 'Data Center: AI Frontier', ...extra });
+  assert.equal(findable(dc({ description: 'Data Center: AI Frontier, on the App Store.' }), { profile: missing }), null);
+  assert.match(findable(dc({ description: 'Data Center: AI Frontier is a game.' }), { profile: missing }), /is on the App Store/);
+  assert.equal(endCard('Importron health', 1), "Search 'Importron health' on the App Store.");
+  assert.equal(endCard('Hanzi Cards: Learn Mandarin', null), 'Hanzi Cards: Learn Mandarin, on the App Store.');
+});
+
+test('phrase falls back to the exact store name with ending "name" when no phrase finds the app', async () => {
+  const registry = { apps: { d: { name: 'Data Center', ascAppId: '6827325155', team: 'T' } }, episodes: [] };
+  const fetcher = async url => (url.includes('lookup')
+    ? { ok: true, json: async () => ({ results: [{ trackName: 'Data Center: AI Frontier' }] }) }
+    : { ok: true, text: async () => '<a href="/app/x/id1111111">' });
+  const got = await phrase(registry, 'd', { profiles: [{ id: 'data-center', shortsSlug: 'd', stage: 'live', name: 'Data Center: AI Frontier' }], fetcher });
+  assert.equal(got.phrase, 'Data Center: AI Frontier');
+  assert.equal(got.ending, 'name');
+  assert.equal(got.endCard, 'Data Center: AI Frontier, on the App Store.');
+});
+
+test('a business with no profile is checked by its own name', () => {
+  const app = { name: 'Vegas Microworks' };
+  const ep = { id: 'v', app: 'vegas-microworks', status: 'scheduled', description: 'A free tool from Vegas Microworks.' };
+  assert.match(findable({ ...ep, title: 'Missed call cost calculator for small businesses' }, { app }), /Vegas Microworks/);
+  assert.deepEqual(findability({ ...ep, title: 'Vegas Microworks: missed call calculator' }, { app }), []);
+});
+
+test('the rules checklist covers every rule, and a fail or an unmarked rule blocks', () => {
+  const text = '# Rules\n\n## A\n\n- **One.** First rule\n  goes on.\n- Two.\n\n## What worked\n\n| a | b |\n|---|---|\n| x | y |\n\n## What he rejected\n\n| Date | Rule |\n|---|---|\n| 2026 | No slots |\n';
+  assert.deepEqual(ruleItems(text), ['**One.** First rule goes on.', 'Two.', '| 2026 | No slots |']);
+  const list = checklistTemplate('x', 'e', text);
+  assert.equal(list.checks.length, 3);
+  const files = {};
+  const io = { read: p => files[p], exists: p => p in files };
+  const ep = { id: 'e', app: 'x', rulesChecklist: '/c.json' };
+  assert.match(checklistProblems({ id: 'e', app: 'x' }, text, io)[0], /no rules checklist/);
+  files['/c.json'] = list;
+  assert.equal(checklistProblems(ep, text, io).length, 3);
+  files['/c.json'] = { checks: list.checks.map(c => ({ ...c, result: 'pass', evidence: '12.5 s caption' })) };
+  assert.deepEqual(checklistProblems(ep, text, io), []);
+  files['/c.json'].checks[1] = { rule: 'Two.', result: 'fail', evidence: '4 s: results without "not medical advice"' };
+  assert.match(checklistProblems(ep, text, io)[0], /breaks a written rule/);
+  assert.match(checklistProblems(ep, `${text}- Three.\n`, io).at(-1), /not on its checklist/);
+});
+
+test('record refuses a rendered episode whose checklist fails, or whose music was not claimed', () => {
+  const registry = emptyRegistry();
+  const base = { id: 'a', app: 'fud', status: 'rendered', searchPhrase: 'Füd family' };
+  assert.throws(() => record(registry, base, { checkRules: () => ['a: breaks a written rule'] }), /breaks a written rule/);
+  assert.throws(() => record(registry, { ...base, music: 'Loop' }, { checkRules: () => [] }), /claim its music first/);
+  assert.equal(record(registry, { ...base, music: 'Loop', musicClaimedAt: '2026-11-12T00:00:00Z' }, { checkRules: () => [] }).episode.id, 'a');
+});
+
+test('a music claim refuses a bed public or going public within 14 days', () => {
+  const registry = emptyRegistry();
+  registry.episodes = [
+    { id: 'old', app: 'x', status: 'live', postedAt: '2026-10-01T00:00:00Z', music: 'Apple Loops: Silver and Gold Piano' },
+    { id: 'soon', app: 'y', status: 'scheduled', publishAt: '2026-11-15T01:00:00Z', music: 'Apple Loops: Northern Hills Bass, Hourglass Synth' },
+    { id: 'gone', app: 'y', status: 'pulled', publishAt: '2026-11-14T01:00:00Z', music: 'Raindrops Ping' }];
+  const now = new Date('2026-11-12T12:00:00Z');
+  assert.throws(() => claimMusic(registry, { id: 'n', app: 'z', music: 'Hourglass Synth|Other', now }), /Hourglass Synth.*soon/);
+  assert.deepEqual(claimMusic(registry, { id: 'n', app: 'z', music: 'Silver and Gold Piano|Raindrops Ping', now }).claimed, ['Silver and Gold Piano', 'Raindrops Ping']);
+  assert.throws(() => claimMusic(registry, { id: 'm', app: 'z', music: 'Raindrops Ping', now }), /\(n, idea/, 'a claim holds the bed for the next maker');
+});
+
+test('check covers every scheduled Short, with or without a profile, and flags banned words', () => {
+  const registry = { apps: { 'vegas-microworks': { name: 'Vegas Microworks' } }, episodes: [
+    { id: 'v1', app: 'vegas-microworks', status: 'scheduled', publishAt: '2026-11-17T01:00:00Z', title: 'Vegas Microworks: beat the odds on missed calls', description: 'A free tool from Vegas Microworks.', tags: ['jackpot'] },
+    { id: 'v2', app: 'vegas-microworks', status: 'live', title: 'x' }] };
+  const out = check(registry, { sources: { banned: { 'vegas-microworks': ['odds', 'jackpot', 'dice'] } }, rulesFor: () => ({ text: '- A rule.', missing: [] }), checklist: () => [] });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].ok, false);
+  assert.match(out[0].problems.join('\n'), /forbid: odds, jackpot/);
+  assert.match(out[0].profile, /business rules/);
 });

@@ -16,8 +16,9 @@
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt);
-//                                               refuses one for an app not on sale, or with no search phrase on its
-//                                               description's first line
+//                                               refuses one for an app not on sale, with no search phrase on its
+//                                               description's first line, or without a rules checklist that passes
+//                                               every written rule (shorts.mjs rules <app> --checklist)
 //   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--title T] [--description-file F
 //                                               [--search-phrase P]] [--confirm]   change a posted or scheduled Short's
 //                                               publish time, set it "not made for kids", or replace its title (which must
@@ -41,7 +42,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { due, findable, loadProfiles, profileFor } from '../../app-shorts/scripts/shorts.mjs';
+import { due, findable, loadProfiles, profileFor, rules, checklistProblems } from '../../app-shorts/scripts/shorts.mjs';
 
 const ITEM = 'YouTube API', VAULT = 'API Tokens';
 const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly', 'https://www.googleapis.com/auth/yt-analytics.readonly',
@@ -345,14 +346,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode) throw new Error(`No episode "${id}" in the registry`);
       if (episode.videoId) throw new Error(`${id} is already on YouTube (${episode.videoId})`);
-      const refused = findable({ ...episode, status: 'scheduled' }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
+      const profiles = loadProfiles();
+      const refused = findable({ ...episode, status: 'scheduled' }, { profile: profileFor(profiles, episode.app), app: registry.apps?.[episode.app] });
       if (refused) throw new Error(refused);
+      const unmet = checklistProblems(episode, rules(episode.app, { profiles }).text);
+      if (unmet.length) throw new Error(unmet.join('\n'));
       const request = uploadRequest(episode);
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
       const result = await upload(await accessToken(), episode);
-      Object.assign(episode, { videoId: result.videoId, status: result.publishAt ? 'scheduled' : 'live',
+      // Other makers write the registry while a video uploads, so read it again and change only this episode.
+      const fresh = JSON.parse(readFileSync(registryPath, 'utf8'));
+      Object.assign(fresh.episodes.find(e => e.id === id), { videoId: result.videoId, status: result.publishAt ? 'scheduled' : 'live',
         ...(result.publishAt ? {} : { postedAt: new Date().toISOString() }) });
-      writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
+      writeFileSync(registryPath, JSON.stringify(fresh, null, 2) + '\n');
       console.log(JSON.stringify(result));
     } else if (command === 'update') {
       const id = option('--episode', null), publishAt = option('--publish-at', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');

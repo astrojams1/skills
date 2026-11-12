@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.17.0"
+  version: "1.18.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -106,7 +106,7 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`. Log a `start` event. Merge or close any
    `marketing-run/` PR left open by an earlier run.
 2. **Measure.** `node $R/marketing.mjs public --write`. On the Mac also `pull --write`, then `yt-api.mjs pull` and
-   `shorts.mjs views` as a `youtube` snapshot. Compare with the last run. Log a `finding` with `metrics_before` and
+   `marketing.mjs youtube --write` (one `youtube` snapshot per app from `shorts.mjs views`). Compare with the last run. Log a `finding` with `metrics_before` and
    `metrics_after`. Numbers come from a tool; never type or estimate one. Downloads are summed over unique days: Apple
    repeats a date in later report instances, and the newest instance wins it.
 3. **Learn.** `node $R/marketing.mjs learn --write` judges every channel on first-time downloads
@@ -127,7 +127,7 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    [Fix what you find](#fix-what-you-find). If nothing is open for this runner, add a better idea to that app's backlog
    with honest scores, and log that.
    - **Only Hacker News's limits pace anything** (`hn`). Shorts have no posting cap (`app-shorts`, since 2.6.0): every
-     due Short is made and posted as soon as it passes review (the Mac pass, step 4).
+     due Short is made and posted as soon as it passes review (the Mac pass's Shorts stage, step 9).
    - **A Shorts item is done only while its Short is on the channel.** On the Mac, `next` reads the registry. A
      pulled, superseded or never-uploaded Short reopens the item at once. It then rests for the app's `cadenceDays`
      in the registry, which `youtube-growth` sets from downloads, never for a `repeat_days` of its own.
@@ -145,6 +145,8 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
      ever waits on the owner.
    - `log` refuses an `end` while `next` still lists an item for this runner, and an `end` that says work was "not
      reached" or "not blocked". Do the item, or log it with a blocker.
+   - The Mac pass ends twice: its core stage (`mkt-mac-...`) answers for every item but Shorts, and its Shorts stage
+     (`mkt-mac-shorts-...`) for the Shorts items, so a slow Short never holds up the rest.
    - `next` holds only items with a future `retry_after` or a pacing date.
    - Then [report](#report).
 

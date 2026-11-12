@@ -2,7 +2,7 @@
 name: youtube-growth
 description: Follow up on every Short the owner posts and grow the channel: read metrics at 3, 7 and 28 days, judge each Short on the App Store downloads in its first 72 hours, decide per format whether to double down, iterate or retire, turn comments into episodes, and stay clear of YouTube's spam and inauthentic-content policies. Use when the owner asks how the Shorts or the channel are doing, how to get more views or subscribers, or about YouTube analytics; when app-shorts' `due` lists reads or go-lives; weekly for the channel review; and to connect the YouTube APIs.
 metadata:
-  version: "1.8.1"
+  version: "1.9.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -20,7 +20,7 @@ in each episode's `metrics`. A new finding changes a number in `assets/rules.jso
 
 | File | What it is |
 |---|---|
-| `scripts/yt-api.mjs` | `check`, `auth` (one-time OAuth into 1Password), `pull` (analytics snapshots for due Shorts), `comments`, `unanswered`, `reply`, `upload`, `update`, `unschedule` |
+| `scripts/yt-api.mjs` | `check`, `auth` (one-time OAuth into 1Password), `pull` (analytics snapshots for due Shorts), `comments`, `unanswered`, `reply`, `upload` (refuses a Short without a passing rules checklist), `update`, `unschedule` |
 | `scripts/evaluate.mjs` | Decisions from the registry's snapshots and the app's downloads (`/Volumes/ssd/code/app-sites/marketing/metrics.jsonl`, written by `app-marketing`) |
 | `assets/rules.json` | Thresholds with sources: channel quantiles once there are 8+ Shorts, low-confidence fallbacks before |
 | `references/api.md` | Connecting the APIs, quotas, gaps, and the Studio route |

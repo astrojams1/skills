@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -262,6 +262,23 @@ test('an end that leaves due work undone is refused', () => {
   assert.deepEqual(endProblems(end({ run_id: 'mkt-cloud-1' }), [p], [], { now: nowEnd }), [], 'another runner\'s item');
   assert.deepEqual(endProblems(end({ ts: '2026-11-12T14:25:00Z' }), [p], [], { now: nowEnd }), [], 'history is not re-judged');
   assert.ok(eventProblems(end({ operation: 'Not reached this run, and not blocked: two Shorts' })).some(x => /undone/.test(x)));
+});
+
+test('the Mac pass core stage and Shorts stage each answer for their own items', () => {
+  const p = profile({ backlog: [item({ runner: 'mac' }), item({ id: 's', runner: 'mac', channel: 'youtube-shorts' })] });
+  const end = run_id => ({ v: 1, ts: AFTER, run_id, skill: 'app-marketing', agent: 't', event: 'end', status: 'ok', left_open: [] });
+  const nowEnd = Date.parse(AFTER);
+  assert.deepEqual(endProblems(end('mkt-mac-20261113T133500Z'), [p], [], { now: nowEnd }).map(x => /x\/a/.test(x) && !/x\/s/.test(x)), [true]);
+  assert.deepEqual(endProblems(end('mkt-mac-shorts-20261113T150000Z'), [p], [], { now: nowEnd }).map(x => /x\/s/.test(x) && !/x\/a/.test(x)), [true]);
+});
+
+test('youtube snapshots come from shorts.mjs views: public Shorts only, one line per app with a profile', () => {
+  const registry = { apps: { 'x-2': {}, orphan: {} }, episodes: [
+    { id: 'a', app: 'x-2', status: 'live', metrics: [{ at: '2026-11-10T00:00:00Z', views: 40 }] },
+    { id: 'b', app: 'x-2', status: 'pulled', metrics: [{ at: '2026-11-10T00:00:00Z', views: 900 }] },
+    { id: 'c', app: 'x-2', status: 'scheduled', publishAt: '2026-11-20T00:00:00Z' }] };
+  const lines = youtubeSnapshots(registry, [profile({ shortsSlug: 'x-2' })], 'T');
+  assert.deepEqual(lines, [{ at: 'T', app: 'x', source: 'youtube', values: { shortsViews: 40, publicShorts: 1, scheduledShorts: 1 } }]);
 });
 
 test('from 2026-11-12 nothing waits on the owner: owner-only work is dropped, not left open', () => {
