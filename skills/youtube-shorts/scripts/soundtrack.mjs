@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // soundtrack.mjs
-// Gives a silent Short a soundtrack: a light synthesised music bed plus sound effects on cue (typing, taps, pops, a
+// Gives a Short its sound effects on cue. The synthesised music bed below is retired and the CLI refuses it: score
+// music from scratch for each Short (app-shorts/references/creative.md). Originally: a light synthesised bed plus effects on cue (typing, taps, pops, a
 // whoosh, a ding), all generated here so nothing needs a licence, mixed under the video and normalised for YouTube
 // (about -14 LUFS, true peak -1.5 dBTP). Node 22; ffmpeg only for the final mux.
 //
@@ -179,6 +180,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const spec = JSON.parse(readFileSync(specPath, 'utf8'));
   const at = p => resolve(dirname(resolve(specPath)), p);
   const duration = spec.duration ?? videoDuration(at(spec.video));
+  if (spec.music) {
+    console.error('The synth music bed is retired (owner review, 2026-11-11). Score the music from scratch for this Short '
+      + '(app-shorts/references/creative.md, "Sound") and use this script for sound effects only: remove "music" from the spec.');
+    process.exit(2);
+  }
   if (spec.music) spec.music = { seed: String(spec.output ?? specPath).split('/').pop(), ...(spec.music === true ? {} : spec.music) };
   const audio = wav(soundtrack(spec, duration));
   if (flag === '--wav') { writeFileSync(wavOut, audio); console.log(`wrote ${wavOut}: ${duration.toFixed(2)} s`); process.exit(0); }
