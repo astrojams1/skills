@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -79,6 +79,11 @@ Repository rules and approval holds outrank this skill.
 
 ## Rules
 
+- **Say what the app is, by name of what it works with.** Within the first three seconds a stranger must know the
+  problem and what the app does about it, in the words they would search. An app built around someone else's service
+  names it on screen and in the title: "Function Health labs → Apple Health", not "Uploaded the same lab report
+  twice?". A side feature is never the subject of an app's first Shorts. The App Store's naming limits are for the
+  store listing (`app-release`, `references/ios.md`); they do not apply on YouTube.
 - **Real app, real result.** Every number and screen in a Short is what the shipped build did in that take, with
   synthetic data. No mock-ups, roadmap features or edited outcomes.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.

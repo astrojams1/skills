@@ -15,6 +15,8 @@
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt)
+//   node yt-api.mjs unschedule --episode ID [--confirm]   cancel a scheduled episode: the video stays on the channel,
+//                                               private with no publish time, and the registry marks it "pulled"
 //
 // Scopes: youtube.readonly and yt-analytics.readonly (analytics needs both), youtube.force-ssl (comments) and
 // youtube.upload. Since 2026-11-02 uploads from unaudited API projects are no longer forced private. "Related
@@ -197,6 +199,26 @@ async function authFlow({ printUrl, tokenFile }) {
   const me = await api(body.access_token, 'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true');
   console.log(JSON.stringify({ connected: true, channel: me.items?.[0]?.snippet?.title ?? null, channelId: me.items?.[0]?.id ?? null }));
 }
+// The status for a scheduled video taken back: private, no publish time, every other status field kept as it was
+// (videos.update replaces the whole status part, so a field left out would reset, made-for-kids among them).
+export function unscheduleStatus(status) {
+  const { publishAt, uploadStatus, failureReason, rejectionReason, privacyStatus, ...kept } = status ?? {};
+  return { ...kept, privacyStatus: 'private' };
+}
+
+async function unschedule(token, videoId) {
+  const found = await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`);
+  const video = found.items?.[0];
+  if (!video) throw new Error(`No video "${videoId}" on the channel`);
+  if (video.status.privacyStatus === 'public') throw new Error(`${videoId} is already public; unschedule only takes back scheduled videos`);
+  const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', { method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ id: videoId, status: unscheduleStatus(video.status) }) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Unschedule failed: ${body.error?.message ?? res.status}`);
+  return { videoId, was: { privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt ?? null },
+    now: { privacyStatus: body.status?.privacyStatus, publishAt: body.status?.publishAt ?? null } };
+}
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
@@ -243,6 +265,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ...(result.publishAt ? {} : { postedAt: new Date().toISOString() }) });
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'unschedule') {
+      const id = option('--episode', null), confirm = args.includes('--confirm'), reason = option('--reason', null);
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const episode = registry.episodes.find(e => e.id === id);
+      if (!episode) throw new Error(`No episode "${id}" in the registry`);
+      if (!episode.videoId) throw new Error(`${id} has no video on YouTube`);
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt: episode.publishAt })); process.exit(0); }
+      const result = await unschedule(await accessToken(), episode.videoId);
+      Object.assign(episode, { status: 'pulled', pulledAt: new Date().toISOString(), wasPublishAt: episode.publishAt, publishAt: null,
+        ...(reason ? { pulledReason: reason } : {}) });
+      writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
+      console.log(JSON.stringify(result));
     } else if (command === 'unanswered') {
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const token = await accessToken(), owner = await ownChannelId(token), found = [], skipped = [];
@@ -270,7 +304,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|unschedule --episode ID [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {

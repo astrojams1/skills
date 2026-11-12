@@ -13,6 +13,7 @@ app's repository; each run in the owner's activity ledger.
 | 1.2.0 | 2026-11-06 | Channel settings (links, description, handle, branding) need no go-ahead; the old value is logged. | The owner removed this last approval. |
 | 1.3.0 | 2026-11-10 | Pacing sets `publishAt`, not production: every due episode is made and scheduled into the next free slot up to 14 days out. When the iOS Simulator tool refuses a scheduled session, record through a web build, the app's own `ShortsTakes` UI test under `xcodebuild test`, or `simctl` alone before deferring. | The unattended Mac pass deferred Nametag, Füd, Newsworthy and Importron Shorts from 2026-11-06 to 2026-11-10 because the Simulator tool refuses scheduled sessions or the next slot was taken; only Space Worms, recorded in a browser, got a new episode. |
 | 1.4.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. The run rules block applies when a scheduled pass runs this skill | The owner asked that every skill read as one author wrote it, plainly |
+| 1.5.0 | 2026-11-11 | Every Short says what the app is in the first three seconds and names the service it works with (Function Health, Apple Health). App Store naming limits stay on the store listing. | Importron's Short opened on a duplicate-import feature and never said Function Health or Apple Health. It followed app-release's "never name another app or trademark" rule, which the owner removed. |
 
 ## Runs
 

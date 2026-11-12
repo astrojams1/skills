@@ -433,15 +433,17 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   <device> screenshot` reads the screen without a grant.
 - **`whatsNew` is refused on an app's first version**; `listing` sends it only once a version is live, and refuses an update whose `whatsNew` is empty.
 - **Pick categories from the API** (`GET /v1/appCategories/GAMES/subcategories`); Apple retires some.
-- **Never name another app or trademark** in keywords or copy (guideline 2.3.7).
 - **AI services and China mainland (Guideline 5).** Generative AI services such as ChatGPT need a licence to operate
   in China mainland. Apple rejected Plenty on 2026-11-07 because its listing named ChatGPT and OpenAI while China
   mainland was a storefront. Leave China out with `pricing.excludeTerritories: ["CHN"]` and `pricing`, or remove the
   names and the functionality from the China version and say so in the review notes. `submit` reads the live
   availability and refuses before any write when the listing names one of `AI_SERVICE_NAMES` and China is on sale.
+- **Name the service an app works with.** If an app imports from, extends or tracks someone else's service
+  (Importron reads Function Health lab PDFs into Apple Health), say so plainly in the description, the screenshots,
+  the website and every video. People search for the service, not for us. Do it the way Apple accepts, below.
 - **Companion apps that must name another service (Guideline 4.1(a)).** An app that only works with someone else's
-  service (a usage widget, a remote, a status tracker) cannot follow the bullet above to the letter: its copy and
-  its own screens name that service. Apple rejected Plenty on 2026-11-10 because its metadata "resembles" Codex,
+  service (a usage widget, a remote, a status tracker, an importer) names that service in its copy and its own
+  screens. Apple rejected Plenty on 2026-11-10 because its metadata "resembles" Codex,
   ChatGPT and Claude, attaching all seven screenshots. Before the first submission of such an app: keep the names
   out of the app name, subtitle, keywords and icon; show no logo or artwork of the service anywhere; put a
   not-affiliated line and trademark credit in the description; and say all of this in `review.notes` up front, with
