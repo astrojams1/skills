@@ -56,7 +56,8 @@ before relying on a figure: they were checked on 2026-11-12.
   clearly weak stage is named.
 - **One change per stage per app,** so its effect can be read. Record it in the profile's `listingTests`:
   `{ stage, field, from, to, prepared, version or live, before }`, where `before` is the window's numbers and the
-  listing text. `learn` finds the live date in the public lookup once `version` ships. It reads the stage 7 days after
+  listing text (with the live version). `learn` finds the live date in the public lookup once `version` ships;
+  `version: "next"` means whichever version follows the one in `before`. It reads the stage 7 days after
   against the 7 before, from 8 days after it went live; a fuller read comes at 14.
 - **What changes today.** Promotional text is the only listing text that changes without a version, and it shows only
   on the product page. So only a conversion weakness gets a same-day change. Keywords, subtitle, description and

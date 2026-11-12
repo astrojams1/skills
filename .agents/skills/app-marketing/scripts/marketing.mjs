@@ -924,7 +924,9 @@ export function funnelStage(days, discovery, ref = FUNNEL_REF) {
 // liveDate is when a listing test went live: its own `live` date, or the first public lookup that shows its version.
 function liveDate(test, lookups) {
   if (test.live) return test.live.slice(0, 10);
-  const seen = lookups.find(m => test.version && m.values?.version === test.version);
+  // version 'next' is whichever version follows the one live when it was prepared (before.listing.version).
+  const shipped = v => test.version === 'next' ? v && v !== test.before?.listing?.version : v === test.version;
+  const seen = lookups.find(m => m.at?.slice(0, 10) >= String(test.prepared).slice(0, 10) && shipped(m.values?.version));
   return seen ? seen.at.slice(0, 10) : null;
 }
 

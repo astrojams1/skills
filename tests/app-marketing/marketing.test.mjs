@@ -481,3 +481,9 @@ test('listingTests in a profile need a date, a snapshot and a live date or versi
   assert.ok(profileProblems(profile({ listingTests: [{ stage: 'reach', field: 'keywords' }] })).some(p => p.includes('listingTests[0]')));
   assert.deepEqual(profileProblems(profile({ listingTests: [{ stage: 'impressions', field: 'keywords', prepared: '2026-11-12', version: '1.3.1', before: { impressions: 1 } }] })), []);
 });
+
+test('a listing test for the next version goes live with the first lookup showing a newer version', () => {
+  const t = { stage: 'impressions', field: 'keywords', prepared: '2026-11-12', version: 'next', before: { listing: { version: '1.3.0' } } };
+  const lookups = [['2026-11-11', '1.4.0'], ['2026-11-12', '1.3.0'], ['2026-11-15', '1.3.1']].map(([d, v]) => ({ at: `${d}T05:00:00Z`, values: { version: v } }));
+  assert.equal(listingTestResults([t], {}, {}, lookups)[0].live, '2026-11-15');
+});
