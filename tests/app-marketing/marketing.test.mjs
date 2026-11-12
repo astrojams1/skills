@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const DAY = 86400000;
 const NOW = Date.parse('2026-11-05T12:00:00Z');
@@ -341,4 +341,41 @@ test('a Shorts item rests for the registry\'s cadence, which youtube-growth owns
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: live, cadenceDays: 7 }).state, 'resting');
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: live, cadenceDays: 2 }).state, 'open', 'a doubled-down app comes back sooner');
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: [], cadenceDays: 7 }).state, 'open');
+});
+
+test('a pitch approach with 30 sent and no positive reply is retired; one positive keeps it working', () => {
+  const queue = [{ type: 'approach', id: 'a1' }, { type: 'approach', id: 'a2' }];
+  const snapshot = [];
+  for (let i = 0; i < 30; i += 1) {
+    queue.push({ type: 'pitch', id: `p${i}`, app: 'x', approach: 'a1' }, { type: 'pitch', id: `q${i}`, app: 'x', approach: 'a2' });
+    snapshot.push({ id: `p${i}`, first: { status: 'sent' }, replies: i === 0 ? [{ kind: 'no' }] : [], visits: 1 });
+    snapshot.push({ id: `q${i}`, first: { status: i < 29 ? 'sent' : 'failed' }, replies: [], visits: 0 });
+  }
+  const [a1, a2] = approachResults(queue, snapshot);
+  assert.deepEqual([a1.verdict, a1.sent, a1.optOuts, a1.visits], ['retire', 30, 1, 30]);
+  assert.deepEqual([a2.verdict, a2.sent], ['keep', 29]);
+  queue.push({ type: 'outcome', pitch: 'p3', kind: 'positive' });
+  assert.equal(approachResults(queue, snapshot)[0].verdict, 'working');
+  queue.push({ type: 'retire', approach: 'a2' });
+  assert.equal(approachResults(queue, snapshot)[1].verdict, 'retired');
+});
+
+test('coverage is judged on web-referrer downloads and on search and browse against the week before', () => {
+  const days = {};
+  for (let d = 1; d <= 30; d += 1) days[`2026-11-${String(d).padStart(2, '0')}`] = { first: 1, sources: { 'App Store search': 1 } };
+  const flat = coverageResults([{ pitch: 'p', kind: 'coverage', at: '2026-11-10T12:00:00Z', url: 'https://x' }], days)[0];
+  assert.deepEqual([flat.judged, flat.effect, flat.web], [true, false, 0]);
+  days['2026-11-12'].sources['Web referrer'] = 1;
+  assert.equal(coverageResults([{ pitch: 'p', kind: 'coverage', at: '2026-11-10T12:00:00Z' }], days)[0].effect, true);
+  assert.equal(coverageResults([{ pitch: 'p', kind: 'coverage', ts: '2026-11-28T00:00:00Z' }], days)[0].judged, false);
+});
+
+test('a pitch snapshot keeps states and counts per app, never text', () => {
+  const lines = pitchSnapshot({ pitches: [
+    { id: 'p1', app: 'fud', approach: 'a', first: { status: 'sent', at: 't' }, followUp: null, replies: [{ id: 'r', kind: 'other', at: 't', answered: false, body: 'secret words', fromDomain: 'x.example' }], visits: 2 },
+    { id: 'p2', app: 'space-worms', approach: 'a', first: { status: 'refused', at: null, error: 'refused: x' }, followUp: null, replies: [], visits: 0 }] }, 'now');
+  assert.equal(lines.length, 2);
+  assert.deepEqual(lines[0].values, { pitchesSent: 1, pitchFollowUps: 0, pitchReplies: 1, pitchOptOuts: 0, pitchVisits: 2 });
+  assert.doesNotMatch(JSON.stringify(lines), /secret words|x\.example/);
+  assert.equal(latestPitches([...lines, { source: 'pitches', pitches: [{ id: 'p1', first: { status: 'sent' }, replies: [], visits: 5 }] }]).find(p => p.id === 'p1').visits, 5);
 });

@@ -18,6 +18,7 @@ Shorts registry and the ledger. Use what has moved downloads; a channel with no 
 |---|---|---|---|
 | YouTube Shorts | The app's App Store search and browse first-time downloads in the 72 hours after a Short goes public, against the app's daily rate over the 7 days before. A download from the YouTube app (Detailed report referrer) counts too | One Short, or Shorts for the same app inside each other's 72 hours (a burst, at most a week) | Apple's data covers the whole window (two to three days after it closes) |
 | Search guides, site pages, directories | Web-referrer first-time downloads (Standard report source type). The Detailed report names the site (`ouro-apps.vercel.app`) when Apple shows the row | Each 4-week block, from 8 weeks after the app's first guide | The block is in Apple's data |
+| Pitch emails | Per approach: 30 first emails with no positive reply retire it. Per piece of coverage: web-referrer first-time downloads in the 7 days after it, or search and browse downloads against the 7 days before | One piece of coverage | Apple's data covers its 7 days |
 | Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it | One change | 8 days after the change |
 
 **An effect** is at least 2 more downloads than expected, and at least half again as many. For Shorts, one YouTube
@@ -47,6 +48,7 @@ Never round a result up, and never judge a window Apple has not finished.
 | Businesses in ChatGPT | cloud and mac | Runs keep the websites, `llms.txt` and schema.org data true, which ChatGPT cites. Claiming a profile is owner-only by OpenAI's rules, so it is never open work. See [the reference](chatgpt-business-hub.md) |
 | Press page | cloud | Inbound: makes it easy for anyone who finds the app to write about it |
 | Directories and review sites | mac | See [below](#directories-and-review-sites) |
+| Pitch emails | cloud | Individually written emails about one app to journalists, newsletter writers, bloggers, site owners and creators whose published address invites them, sent from the owner's Gmail by the site. No postal address: the owner's decision of 2026-11-12. See [Pitch emails](pitches.md) |
 | Show HN (developer tools only) | mac | Opened by the owner on 2026-11-07: "for any apps that were marketing which are developer tools that might be interesting to a hacker news audience, we should post a link to hacker news", and "Skill posts it itself". `marketing.mjs hn` enforces Hacker News's limits. See [Hacker News](hacker-news.md) |
 
 ### Directories and review sites
@@ -75,7 +77,6 @@ Each needs a thing that does not exist today. No run waits on these, and none go
 
 | Channel | The missing thing |
 |---|---|
-| Press and creator pitches by email | A postal address published for the business. US law (CAN-SPAM) requires one in every promotional email, and neither app site nor any app's support page publishes one. When one exists, a pitch must be truthful, written for that one person, name the sender and carry a working opt-out |
 | Reddit | A route for agent tools: Reddit blocks the built-in browser, Claude in Chrome and web fetch (since 2026-10-15, `reddit-posting`). Posting would need the owner |
 | TikTok | A connected account: the TikTok connector lists none, and connecting one is a sign-in |
 | Instagram, X, Discord, Product Hunt | A connected account or API credential named in any skill. Each needs a sign-in, and Product Hunt also a maker account |
