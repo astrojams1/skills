@@ -19,12 +19,12 @@ download to the own sites or the own channel, and every known download came from
 | Piece | Where |
 |---|---|
 | The queue | `marketing/pitches.jsonl` in app-sites, append-only. Approaches, pitches, answers to replies, outcomes and retirements. Runs write it; a PR merges it; `npm test` checks every line with `packages/pitches/rules.mjs` |
-| The sender | `GET https://astrojams-apps.vercel.app/api/pitches` (`packages/pitches/`). It sends only what is merged, from the owner's Gmail, only in production. It sends due follow-ups, copies replies in, suppresses opt-outs and bounces, and counts page visits. One message at a time, 1.5 s apart |
+| The sender | `GET https://astrojams-apps.vercel.app/api/pitches` (`packages/pitches/`). It sends only what is merged, from the owner's Gmail, only in production. It sends due follow-ups, copies replies in, suppresses opt-outs and bounces, and counts page visits. One cold email per call, at least 4 minutes after the mailbox's last cold email from any sender, within a shared mailbox ceiling (30 a day on 2026-11-13, +5 a day to 50; pitches take 35%) |
 | What calls it | The app-sites Pitches workflow (`.github/workflows/pitches.yml`): on a merge that changes the queue, it waits until production serves that commit, then calls the sender until no first email is left to send. A Vercel cron calls it daily at 17:00 UTC as the backstop. Both carry the send secret (`CRON_SECRET` in Vercel, `PITCHES_CRON_SECRET` in GitHub); a call without it gets status only. A run never calls it to send |
 | Results | Neon store `app-pitches` (project `raspy-smoke-79457210`): message status, replies (redacted), suppressed addresses as hashes, visits. Never in Git |
 | Reading results | `node $R/marketing.mjs pitches [--replies] [--write]`. It only reads (`?dry=1`). It proves it can read app-sites with the digest of the deployed queue, taken from the app-sites clone, so it needs no token and works in the cloud; a GitHub token (`GH_TOKEN`, or `gh auth token`) is the fallback. `--replies` prints the text of replies to answer. `--write` appends a snapshot (states and counts, no text) to `metrics.jsonl` |
 | Credentials | `DATABASE_URL` from the Neon store, connected to astrojams-apps. `GMAIL_*` from 1Password through `node packages/pitches/scripts/vercel-env.mjs` on the Mac; `--cron-secret` makes a new send secret and sets it in Vercel and GitHub. Never in Git, the ledger or output |
-| Measuring | Each pitch links the app's page with `?p=<pitch id>`; the page reports the visit. Outcomes and coverage go in the queue; `learn` judges them |
+| Measuring | Replies first. A first email carries no `?p=` link (see "Links by arm"); replies and follow-ups may, and the page reports the visit. Outcomes and coverage go in the queue; `learn` judges them |
 
 Who does what: the `cloud` run researches, writes, queues and merges; the workflow sends; the next run reads replies
 and answers them. Any runner with an app-sites clone does the whole item. If `pitches` still answers 401, the clone
@@ -41,8 +41,17 @@ lacks the deployed commit: `git fetch origin main` and run it again.
   anywhere else.
 - **Written from what they published.** Name the piece, the episode or the beat, and link it in `published`.
 - **What the app is, in one sentence.** Then why their readers would care, in their terms.
-- **Two links:** the App Store link (`https://apps.apple.com/app/id<appStoreId>`) and the app's page with
-  `?p=<pitch id>`. The press page (`/press/<slug>/`) may follow.
+- **Links by arm (from 2026-11-13).** The address's arm is `none` when the first hex digit of
+  md5(lower(trim(address))) is 0 to 7, else `one`. `none`: no link at all, and one line saying you'll send the App
+  Store link and press kit on a reply. `one`: exactly one link, the plain App Store link
+  (`https://apps.apple.com/app/id<appStoreId>`), no query string. The `?p=` page link and the press page go in the
+  reply or the follow-up, never the first email; the signature has no URL. The sender refuses a pitch that breaks its
+  arm. Why: on 2026-11-12 three senders shared the owner's personal Gmail and sent about 62 cold emails in bursts, each
+  with 3 or 4 links on shared `*.vercel.app` hosts with tracking parameters; one was refused as spam and no link was
+  opened. Links, tracking parameters and shared-host URLs are what spam filters weigh most in mail from a consumer
+  account, and authentication (SPF, DKIM, DMARC for gmail.com) already passes. Replies decide the split on 2026-11-20:
+  more positive replies per send wins; with none in either arm, `none` stays. A custom domain is the long-term fix, and
+  needs the owner.
 - **An offer that is true:** answers, screenshots, the press kit. Offer a promo code only for a paid app, and only once
   the run can actually make one. No tool makes one today.
 - **Plain text, under about 120 words** (the check stops at 130), no hype, no ranking claim, nothing a competitor
