@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
 const NOW = Date.parse('2026-11-05T12:00:00Z');
@@ -378,4 +379,13 @@ test('a pitch snapshot keeps states and counts per app, never text', () => {
   assert.deepEqual(lines[0].values, { pitchesSent: 1, pitchFollowUps: 0, pitchReplies: 1, pitchOptOuts: 0, pitchVisits: 2 });
   assert.doesNotMatch(JSON.stringify(lines), /secret words|x\.example/);
   assert.equal(latestPitches([...lines, { source: 'pitches', pitches: [{ id: 'p1', first: { status: 'sent' }, replies: [], visits: 5 }] }]).find(p => p.id === 'p1').visits, 5);
+});
+
+test('pitches only reads, and proves access with the deployed queue digest, which needs no token', () => {
+  assert.equal(queueProof(Buffer.from('abc')), 'Queue ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  const src = readFileSync(new URL('../../skills/app-marketing/scripts/marketing.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /args\.send/, 'no flag makes a run send');
+  const calls = [...src.matchAll(/fetch\(`\$\{base\}\?[^`]*`|const url = `\$\{base\}\?[^`]*`/g)].map(m => m[0]);
+  assert.ok(calls.length >= 2);
+  for (const c of calls) assert.match(c, /dry=1/, c);
 });

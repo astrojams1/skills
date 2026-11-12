@@ -15,10 +15,13 @@
 //                                                   instance Apple still holds and appends corrected totals
 //   node marketing.mjs learn [--app ID] [--json] [--write]   each channel's results judged on downloads, and the kill
 //                                                   verdicts; also pitch approaches (--write retires a dead one)
-//   node marketing.mjs pitches [--write] [--replies] [--json]   pitch emails: each pitch's state from /api/pitches
-//                                                   (needs a GitHub token that reads app-sites: GH_TOKEN or `gh auth
-//                                                   token`); --replies prints replies' text to answer, --write appends
-//                                                   a snapshot (no text, no addresses) to metrics.jsonl
+//   node marketing.mjs pitches [--write] [--replies] [--json]   pitch emails: each pitch's state from /api/pitches.
+//                                                   Only reads (?dry=1): the app-sites Pitches workflow and the cron
+//                                                   send. Proves it can read app-sites with the deployed queue's digest
+//                                                   from this clone (no token needed, so it works in the cloud), else a
+//                                                   GitHub token (GH_TOKEN or `gh auth token`); --replies prints
+//                                                   replies' text to answer, --write appends a snapshot (no text, no
+//                                                   addresses) to metrics.jsonl
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
@@ -29,7 +32,7 @@
 // cloud, where Shorts items are the Mac's anyway).
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { createPrivateKey, sign } from 'node:crypto';
+import { createHash, createPrivateKey, sign } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
 import { homedir } from 'node:os';
@@ -940,14 +943,30 @@ function githubToken() {
   return got.stdout.trim();
 }
 
+// queueProof is `Queue <sha256 of marketing/pitches.jsonl at the deployed commit>`, read from this clone. The endpoint
+// takes it as proof the caller can read the private repository, so a run needs no GitHub token for its own results.
+export const queueProof = bytes => `Queue ${createHash('sha256').update(bytes).digest('hex')}`;
+function deployedQueue(root, commit) {
+  if (!/^[0-9a-f]{7,40}$/.test(commit || '')) return null;
+  const show = () => spawnSync('git', ['-C', root, 'show', `${commit}:marketing/pitches.jsonl`], { maxBuffer: 64 << 20 });
+  let got = show();
+  if (got.status !== 0) { spawnSync('git', ['-C', root, 'fetch', '-q', 'origin', 'main']); got = show(); }
+  return got.status === 0 ? got.stdout : null;
+}
+
+// Marketing runs only read: every call carries dry=1. Sending is the Pitches workflow's and the cron's (app-sites).
 async function cmdPitches(root, args) {
-  const url = `${args.url || PITCHES_URL}?${args.replies ? 'replies' : 'detail'}=1${args.send ? '' : '&dry=1'}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${githubToken()}` } });
+  const base = args.url || PITCHES_URL;
+  const url = `${base}?${args.replies ? 'replies' : 'detail'}=1&dry=1`;
+  const open = await fetch(`${base}?dry=1`).then(r => r.json()).catch(() => ({}));
+  const queue = deployedQueue(root, open.commit);
+  let res = await fetch(url, { headers: { Authorization: queue ? queueProof(queue) : `Bearer ${githubToken()}` } });
+  if (res.status === 401 && queue) res = await fetch(url, { headers: { Authorization: `Bearer ${githubToken()}` } });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`/api/pitches answered ${res.status}: ${body.error || 'no detail'}`);
   if (args.write) for (const line of pitchSnapshot(body)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
   if (args.json) return console.log(JSON.stringify(body, null, 2));
-  console.log(`ready: ${JSON.stringify(body.ready)}${body.paused ? ' (paused)' : ''}; counts: ${JSON.stringify(body.counts)}`);
+  console.log(`ready: ${JSON.stringify(body.ready)}${body.paused ? ' (paused)' : ''}; deployed ${String(body.commit || 'unknown').slice(0, 7)}; counts: ${JSON.stringify(body.counts)}`);
   for (const p of body.pitches || []) {
     console.log(`${p.app}/${p.id} [${p.approach}] first ${p.first?.status || 'not yet'}${p.first?.error ? ` (${p.first.error})` : ''}, follow-up ${p.followUp?.status || 'not yet'}, ${p.visits} visits`);
     for (const r of p.replies) {
