@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -100,4 +100,11 @@ test('unscheduleStatus makes a scheduled video private with no publish time and 
     selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube', publicStatsViewable: true };
   assert.deepEqual(unscheduleStatus(status), { selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube',
     publicStatsViewable: true, privacyStatus: 'private' });
+});
+
+test('updatedStatus sets not-for-kids and a new publish time, keeping other settings', () => {
+  const status = { privacyStatus: 'private', publishAt: '2026-11-15T01:00:00Z', uploadStatus: 'processed', madeForKids: true,
+    selfDeclaredMadeForKids: true, embeddable: true, license: 'youtube' };
+  assert.deepEqual(updatedStatus(status, { notForKids: true, publishAt: '2026-11-13T01:00:00Z' }),
+    { privacyStatus: 'private', publishAt: '2026-11-13T01:00:00.000Z', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' });
 });

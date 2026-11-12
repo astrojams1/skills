@@ -47,9 +47,9 @@ live. Captions cost 400 quota units through the API; burned-in text usually make
 
 ## Cadence
 
-There is no calendar. A Short goes up when it clears the bar in `creative.md`, at most one a day on the channel.
-The old rule of one every two days had no data behind it (owner review, 2026-11-11), and a fixed slot pushed weak
-cuts out to fill it. Quality per Short is what YouTube rewards: each one is judged on whether viewers keep watching
+There is no calendar and no cap. Post every Short as soon as it is ready, several a day when several are ready. The
+owner (2026-11-12): "I have way too many apps to be so reserved." The old caps (one every two days, then one a day)
+had no data behind them. Quality per Short is what YouTube rewards: each one is judged on whether viewers keep watching
 and act on it, not on how many the channel posts (`youtube-growth/references/metrics.md`).
 `shorts.mjs plan` still lists which apps have gone longest without a Short; use it to choose, not to schedule.
 

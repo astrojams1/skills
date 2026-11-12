@@ -15,6 +15,9 @@
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt)
+//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--confirm]   change a posted or scheduled
+//                                               Short's publish time or set it "not made for kids", keeping its other
+//                                               settings; the registry follows
 //   node yt-api.mjs unschedule --episode ID [--live] [--confirm]   cancel a scheduled episode (or, with --live, take a
 //                                               live one down): the video stays on the channel, private with no publish
 //                                               time, and the registry marks it "pulled"
@@ -207,6 +210,29 @@ export function unscheduleStatus(status) {
   return { ...kept, privacyStatus: 'private' };
 }
 
+// The status for a video whose publish time or audience changes, every other field kept.
+export function updatedStatus(status, { publishAt, notForKids } = {}) {
+  const { uploadStatus, failureReason, rejectionReason, madeForKids, ...kept } = status ?? {};
+  const next = { ...kept };
+  if (notForKids) next.selfDeclaredMadeForKids = false;
+  if (publishAt) { next.privacyStatus = 'private'; next.publishAt = new Date(publishAt).toISOString(); }
+  return next;
+}
+
+async function updateVideo(token, videoId, changes) {
+  const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`)).items?.[0];
+  const video = await read();
+  if (!video) throw new Error(`No video "${videoId}" on the channel`);
+  if (changes.publishAt && video.status.privacyStatus === 'public') throw new Error(`${videoId} is already public; its publish time cannot change`);
+  const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', { method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ id: videoId, status: updatedStatus(video.status, changes) }) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Update failed: ${body.error?.message ?? res.status}`);
+  const after = (await read())?.status ?? {};
+  return { videoId, now: { privacyStatus: after.privacyStatus, publishAt: after.publishAt ?? null, madeForKids: after.madeForKids, selfDeclaredMadeForKids: after.selfDeclaredMadeForKids } };
+}
+
 async function unschedule(token, videoId, { live = false } = {}) {
   const found = await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`);
   const video = found.items?.[0];
@@ -269,6 +295,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         ...(result.publishAt ? {} : { postedAt: new Date().toISOString() }) });
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'update') {
+      const id = option('--episode', null), publishAt = option('--publish-at', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const episode = registry.episodes.find(e => e.id === id);
+      if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
+      if (!publishAt && !notForKids) throw new Error('Nothing to change: pass --publish-at and/or --not-for-kids');
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids })); process.exit(0); }
+      const result = await updateVideo(await accessToken(), episode.videoId, { publishAt, notForKids });
+      if (publishAt) episode.publishAt = new Date(publishAt).toISOString().replace('.000Z', 'Z');
+      if (notForKids) episode.madeForKids = false;
+      writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
+      console.log(JSON.stringify(result));
     } else if (command === 'unschedule') {
       const id = option('--episode', null), confirm = args.includes('--confirm'), reason = option('--reason', null), live = args.includes('--live');
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
@@ -309,7 +347,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {
