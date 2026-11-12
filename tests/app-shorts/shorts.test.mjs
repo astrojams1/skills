@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { retiredFromShorts, roster, sync, record, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -57,42 +57,6 @@ test('record warns when a music bed or hook repeats one of the recent Shorts', (
   assert.match(same.warnings[0], /music bed as a/);
   const fresh = record(registry, { id: 'c', app: 'fud', status: 'rendered', music: '96-C-p2-m1-f1', musicClaimedAt: '2026-11-02T00:00:00Z', hook: 'Parent lunch', ...phrase });
   assert.deepEqual(fresh.warnings, []);
-});
-
-test('plan gives each slot to the most overdue app with a ready episode and flags the rest', () => {
-  const registry = emptyRegistry();
-  registry.apps = { fud: { cadenceDays: 2 }, rhythm: { cadenceDays: 7 }, nametag: { cadenceDays: 7, active: false } };
-  registry.episodes = [
-    { id: 'f1', app: 'fud', status: 'live', postedAt: '2026-11-01T17:00:00Z' },
-    { id: 'f2', app: 'fud', status: 'rendered', title: 'Dinner' },
-    { id: 'f3', app: 'fud', status: 'rendered', title: 'Leftovers' },
-  ];
-  const { slots, needsProduction } = plan(registry, { now: new Date('2026-11-04T09:00:00Z'), days: 4, gap: 1 });
-  assert.deepEqual(slots.map(s => [s.date, s.episode]), [['2026-11-04', 'f2'], ['2026-11-06', 'f3']]);
-  assert.deepEqual(needsProduction, ['rhythm'], 'rhythm has never posted and has nothing ready; nametag is inactive');
-});
-
-test('plan keeps a gap of days between the channel\'s Shorts, scheduled ones included', () => {
-  const registry = emptyRegistry();
-  registry.apps = { fud: { cadenceDays: 0 }, rhythm: { cadenceDays: 0 } };
-  registry.episodes = [
-    { id: 's', app: 'fud', status: 'scheduled', publishAt: '2026-11-04T17:00:00Z' },
-    { id: 'r1', app: 'fud', status: 'rendered' },
-    { id: 'r2', app: 'rhythm', status: 'rendered' },
-  ];
-  const { slots } = plan(registry, { now: new Date('2026-11-04T09:00:00Z'), days: 7, gap: 2 });
-  assert.deepEqual(slots.map(s => s.date), ['2026-11-06', '2026-11-08']);
-});
-
-test('plan gives an app not on sale no slot and lists it apart', () => {
-  const registry = emptyRegistry();
-  registry.apps = { fud: { team: 'T', cadenceDays: 0 }, giraffe: { team: 'T', cadenceDays: 0 }, rhythm: { team: 'T', cadenceDays: 0 } };
-  registry.episodes = [{ id: 'f', app: 'fud', status: 'rendered' }, { id: 'g', app: 'giraffe', status: 'rendered' }];
-  const profiles = [{ id: 'fud', stage: 'live' }, { id: 'giraffe', stage: 'prelaunch' }];
-  const result = plan(registry, { now: new Date('2026-11-12T09:00:00Z'), days: 7, gap: 1, profiles });
-  assert.deepEqual(result.slots.map(s => s.app), ['fud']);
-  assert.deepEqual(result.needsProduction, ['fud']);
-  assert.deepEqual(result.notOnSale, ['giraffe', 'rhythm'], 'rhythm has no profile, so it is unconfirmed');
 });
 
 test('due holds scheduled Shorts for an app not on sale and re-checks held ones once it is', () => {
@@ -362,11 +326,11 @@ test('record refuses a rendered episode whose checklist fails, or whose music wa
   assert.equal(record(registry, { ...base, music: 'Loop', musicClaimedAt: '2026-11-12T00:00:00Z' }, { checkRules: () => [] }).episode.id, 'a');
 });
 
-test('a music claim refuses a bed public or going public within 14 days', () => {
+test('a music claim refuses a bed public or claimed within 14 days', () => {
   const registry = emptyRegistry();
   registry.episodes = [
     { id: 'old', app: 'x', status: 'live', postedAt: '2026-10-01T00:00:00Z', music: 'Apple Loops: Silver and Gold Piano' },
-    { id: 'soon', app: 'y', status: 'scheduled', publishAt: '2026-11-15T01:00:00Z', music: 'Apple Loops: Northern Hills Bass, Hourglass Synth' },
+    { id: 'soon', app: 'y', status: 'live', postedAt: '2026-11-12T01:00:00Z', music: 'Apple Loops: Northern Hills Bass, Hourglass Synth' },
     { id: 'gone', app: 'y', status: 'pulled', publishAt: '2026-11-14T01:00:00Z', music: 'Raindrops Ping' }];
   const now = new Date('2026-11-12T12:00:00Z');
   assert.throws(() => claimMusic(registry, { id: 'n', app: 'z', music: 'Hourglass Synth|Other', now }), /Hourglass Synth.*soon/);
@@ -383,4 +347,23 @@ test('check covers every scheduled Short, with or without a profile, and flags b
   assert.equal(out[0].ok, false);
   assert.match(out[0].problems.join('\n'), /forbid: odds, jackpot/);
   assert.match(out[0].profile, /business rules/);
+});
+
+test('check flags a Short scheduled more than an hour ahead as a defect; within the hour it passes', () => {
+  const ep = (id, publishAt) => ({ id, app: 'vegas-microworks', status: 'scheduled', publishAt, title: 'Vegas Microworks: missed calls', description: 'A free tool from Vegas Microworks.' });
+  const registry = { apps: { 'vegas-microworks': { name: 'Vegas Microworks' } }, episodes: [ep('soon', '2026-11-12T12:30:00Z'), ep('later', '2026-11-17T01:00:00Z')] };
+  const out = check(registry, { sources: { banned: {} }, rulesFor: () => ({ text: '- A rule.', missing: [] }), checklist: () => [], now: new Date('2026-11-12T12:00:00Z') });
+  assert.deepEqual(out.map(r => [r.episode, r.ok]), [['soon', true], ['later', false]]);
+  assert.match(out[1].problems.join('\n'), /more than an hour ahead: a defect/);
+});
+
+test('an app retired from Shorts has no next due date until a later return is recorded', () => {
+  const registry = emptyRegistry();
+  registry.apps = { fud: { cadenceDays: 7, shortsRetired: { at: '2026-11-20T00:00:00Z', why: 'fud retired from Shorts: last 3 judged Shorts had no effect' } } };
+  const [fud] = status(registry, { now: new Date('2026-11-25T00:00:00Z') });
+  assert.equal(fud.nextDue, null);
+  assert.match(fud.retired, /no effect/);
+  assert.equal(retiredFromShorts(registry.apps.fud), true);
+  registry.apps.fud.shortsReturn = { at: '2026-11-24T00:00:00Z', why: 'version 2.0 shipped' };
+  assert.equal(status(registry, { now: new Date('2026-11-25T00:00:00Z') })[0].nextDue, 'now');
 });

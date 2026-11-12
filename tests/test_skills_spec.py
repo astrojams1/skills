@@ -321,6 +321,8 @@ class SpecValidator:
             # Skip URLs and anchors
             if target.startswith(("http://", "https://", "#")):
                 continue
+            # A link may point at a heading inside the file (references/x.md#heading); check the file.
+            target = target.split("#", 1)[0]
             ref_path = os.path.join(skill_dir, target)
             if os.path.isfile(ref_path):
                 self.passed(f"Referenced file exists: {target}")

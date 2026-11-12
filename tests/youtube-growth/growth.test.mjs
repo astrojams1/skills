@@ -5,8 +5,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics, siteDays, siteVerdict, decommission } from '../../skills/youtube-growth/scripts/evaluate.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -65,16 +65,23 @@ test('analytics queries and rows map to registry snapshots', () => {
   assert.deepEqual(snaps, [{ videoId: 'a', snapshot: { at: '2026-11-07T00:00:00Z', source: 'analytics-api', views: 120, engagedViews: 80 } }]);
 });
 
-test('upload requests schedule future episodes privately and always state kids and synthetic media', () => {
+test('uploads go public now, never scheduled, and always state kids and synthetic media', () => {
   const base = { id: 'e', title: 'T', description: 'D', file: '/x.mp4' };
-  const now = new Date('2026-11-04T00:00:00Z');
-  const scheduled = uploadRequest({ ...base, publishAt: '2026-11-06T01:00:00Z' }, now);
-  assert.equal(scheduled.status.privacyStatus, 'private');
-  assert.equal(scheduled.status.publishAt, '2026-11-06T01:00:00.000Z');
-  assert.equal(scheduled.status.selfDeclaredMadeForKids, false);
-  assert.equal(scheduled.status.containsSyntheticMedia, false);
-  assert.equal(uploadRequest(base, now).status.privacyStatus, 'public');
+  const request = uploadRequest({ ...base, publishAt: '2026-11-06T01:00:00Z' });
+  assert.equal(request.status.privacyStatus, 'public');
+  assert.ok(!('publishAt' in request.status), 'a stale publishAt in the registry never schedules');
+  assert.equal(request.status.selfDeclaredMadeForKids, false);
+  assert.equal(request.status.containsSyntheticMedia, false);
   assert.throws(() => uploadRequest({ id: 'x' }), /no title/);
+});
+
+test('publishNowStatus makes a scheduled video public with no publish time and keeps its other settings', () => {
+  const status = { privacyStatus: 'private', publishAt: '2026-11-17T01:00:00Z', uploadStatus: 'processed', madeForKids: false,
+    selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube', containsSyntheticMedia: false };
+  assert.deepEqual(publishNowStatus(status), { privacyStatus: 'public', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube', containsSyntheticMedia: false });
+  const at = '2026-11-12T22:05:41.066Z';
+  assert.deepEqual(publishedNow({ id: 'a', status: 'scheduled', publishAt: '2026-11-17T01:00:00Z' }, at),
+    { status: 'live', postedAt: at, wasPublishAt: '2026-11-17T01:00:00Z', publishAt: null }, 'the verdict clock starts when it really went public');
 });
 
 test('unansweredThreads keeps only viewers\' comments the channel has not answered', () => {
@@ -102,11 +109,10 @@ test('unscheduleStatus makes a scheduled video private with no publish time and 
     publicStatsViewable: true, privacyStatus: 'private' });
 });
 
-test('updatedStatus sets not-for-kids and a new publish time, keeping other settings', () => {
-  const status = { privacyStatus: 'private', publishAt: '2026-11-15T01:00:00Z', uploadStatus: 'processed', madeForKids: true,
-    selfDeclaredMadeForKids: true, embeddable: true, license: 'youtube' };
+test('updatedStatus sets not-for-kids and never sets a publish time, keeping other settings', () => {
+  const status = { privacyStatus: 'public', uploadStatus: 'processed', madeForKids: true, selfDeclaredMadeForKids: true, embeddable: true, license: 'youtube' };
   assert.deepEqual(updatedStatus(status, { notForKids: true, publishAt: '2026-11-13T01:00:00Z' }),
-    { privacyStatus: 'private', publishAt: '2026-11-13T01:00:00.000Z', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' });
+    { privacyStatus: 'public', selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube' });
 });
 
 const fixture = name => new URL(`./fixtures/${name}`, import.meta.url).pathname;
@@ -139,7 +145,7 @@ test('a Short is lifted, no-effect or inconclusive on search and browse download
   assert.match(downloadVerdict(pub('f', 'fud', '2026-11-09T01:00:00Z'), data.fud, rule, { now: new Date('2026-11-13T00:00:00Z'), views: 900 }).why, /not in yet for 2026-11-11/);
   assert.match(downloadVerdict(pub('g', 'fud', '2026-10-20T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 }).why, /starts 2026-11-01/);
   assert.match(downloadVerdict(pub('h', 'fud', '2026-11-02T01:00:00Z'), data.fud, rule, { now: AFTER, views: 900 }).why, /baseline has 1 of 7/);
-  assert.match(downloadVerdict(pub('i', 'rhythm', '2026-11-02T01:00:00Z'), undefined, rule, { now: AFTER, views: 900 }).why, /no download data/);
+  assert.match(downloadVerdict(pub('i', 'rhythm', '2026-11-02T01:00:00Z'), undefined, rule, { now: AFTER, views: 900 }).why, /no Apple first-time downloads data/);
   const all = downloadVerdict(pub('j', 'nametag', '2026-11-05T01:00:00Z'), data.nametag, rule, { now: AFTER, views: 900 });
   assert.match(all.basis, /all first-time/);
   assert.equal(all.label, 'no-effect');
@@ -202,4 +208,74 @@ test('updatedSnippet can replace the title, keep the description, and refuses an
   assert.deepEqual(updatedSnippet(snippet, { title: 'New', description: 'd' }), { title: 'New', categoryId: '28', description: 'd', tags: ['a'] });
   assert.throws(() => updatedSnippet(snippet, { title: ' ' }), /1 to 100/);
   assert.throws(() => updatedSnippet(snippet, { title: 'x'.repeat(101) }), /1 to 100/);
+});
+
+// Decommissioning (James, 2026-11-12). Fixtures: decommission-metrics.jsonl gives a flat app ("flat"), an app that
+// lifts once ("mixed"), and site visits and leads for a business ("vmw").
+const dmetrics = readMetrics(fixture('decommission-metrics.jsonl'));
+const dprofiles = [{ id: 'flat', stage: 'live' }, { id: 'mixed', stage: 'live' }, { id: 'nodata', stage: 'live' }];
+const DNOW = new Date('2026-11-30T00:00:00Z');
+const at = day => `2026-11-${String(day).padStart(2, '0')}T01:00:00Z`;
+const judgedShort = (id, app, format, day, views = 900) => ({ id, app, format, status: 'live', postedAt: at(day), videoId: id, metrics: [{ at: '2026-11-29T00:00:00Z', views }] });
+const dregistry = (episodes, apps = {}) => ({ apps: { flat: { team: 'T', ascAppId: '1' }, mixed: { team: 'T', ascAppId: '2' }, nodata: { team: 'T', ascAppId: '3' }, vmw: { name: 'Vegas Microworks' }, ...apps }, episodes });
+const run = (registry, extra = {}) => evaluate(registry, rules, { now: DNOW, downloads: downloadsBySlug(dmetrics, dprofiles), sites: siteDays(dmetrics), profiles: dprofiles, ...extra });
+
+test('an app whose last 3 judged Shorts are all no-effect is retired, with its reason, and gets no produce action', () => {
+  const result = run(dregistry([judgedShort('f1', 'flat', 'demo', 10), judgedShort('f2', 'flat', 'demo', 14), judgedShort('f3', 'flat', 'demo', 18)]));
+  assert.deepEqual(result.downloads.map(v => v.label), ['no-effect', 'no-effect', 'no-effect']);
+  assert.deepEqual(result.retired.apps.map(r => r.app), ['flat']);
+  assert.match(result.retired.apps[0].why, /last 3 judged Shorts had no effect \(f1, f2, f3\)/);
+  assert.ok(result.actions.some(a => a.kind === 'retire-app' && a.app === 'flat'));
+  assert.ok(!result.actions.some(a => a.kind === 'produce' && a.app === 'flat'), 'a retired app is not listed to produce');
+  assert.ok(result.actions.some(a => a.kind === 'produce' && a.app === 'mixed'));
+});
+
+test('two strikes, a lift in between, or Shorts sharing one window do not retire an app', () => {
+  const two = run(dregistry([judgedShort('f1', 'flat', 'demo', 10), judgedShort('f2', 'flat', 'demo', 14)]));
+  assert.deepEqual(two.retired.apps, []);
+  assert.equal(two.retired.standing.flat.noEffectInARow, 2);
+  const lifted = run(dregistry([judgedShort('m1', 'mixed', 'demo', 10), judgedShort('m2', 'mixed', 'demo', 14), judgedShort('m3', 'mixed', 'demo', 18), judgedShort('m4', 'mixed', 'demo', 22)]));
+  assert.deepEqual(lifted.downloads.map(v => v.label), ['no-effect', 'lifted', 'no-effect', 'no-effect']);
+  assert.deepEqual(lifted.retired.apps, [], 'the lift on day 14 resets the count');
+  const batch = run(dregistry([judgedShort('b1', 'flat', 'demo', 10), judgedShort('b2', 'flat', 'demo', 10), judgedShort('b3', 'flat', 'demo', 11)]));
+  assert.equal(batch.retired.standing.flat.judged, 1, 'three Shorts public within one 72-hour window are one judgement');
+  assert.deepEqual(batch.retired.apps, []);
+});
+
+test('inconclusive verdicts from missing Apple data are not strikes and say what data is missing', () => {
+  const result = run(dregistry([judgedShort('n1', 'nodata', 'demo', 10), judgedShort('n2', 'nodata', 'demo', 14), judgedShort('n3', 'nodata', 'demo', 18)]));
+  assert.deepEqual(result.downloads.map(v => v.label), ['inconclusive', 'inconclusive', 'inconclusive']);
+  assert.match(result.downloads[0].missing, /Apple first-time downloads for nodata/);
+  assert.deepEqual(result.retired.apps, []);
+  const pending = run(dregistry([judgedShort('p1', 'flat', 'demo', 28)]));
+  assert.equal(pending.downloads[0].dueAt, '2026-12-01T01:00:00.000Z', 'a Short still in its window says when its verdict is due');
+});
+
+test('a format with 3 no-effects across apps is retired; a recorded return lets an app count again', () => {
+  const result = run(dregistry([judgedShort('f1', 'flat', 'talk', 10), judgedShort('m1', 'mixed', 'talk', 10), judgedShort('f2', 'flat', 'other', 18)]));
+  assert.deepEqual(result.retired.formats.map(r => r.format), []);
+  const three = run(dregistry([judgedShort('f1', 'flat', 'talk', 10), judgedShort('m1', 'mixed', 'talk', 10), judgedShort('m3', 'mixed', 'talk', 18)]));
+  assert.deepEqual(three.retired.formats.map(r => r.format), ['talk']);
+  assert.ok(three.actions.some(a => a.kind === 'retire-format' && a.format === 'talk'));
+  const back = run(dregistry([judgedShort('f1', 'flat', 'demo', 10), judgedShort('f2', 'flat', 'demo', 14), judgedShort('f3', 'flat', 'demo', 18)],
+    { flat: { team: 'T', ascAppId: '1', shortsRetired: { at: '2026-11-22T00:00:00Z', why: 'x' }, shortsReturn: { at: '2026-11-23T00:00:00Z', why: 'version 2.0 shipped' } } }));
+  assert.deepEqual(back.retired.apps, [], 'only Shorts public after the return count');
+  assert.ok(!back.actions.some(a => a.kind === 'retire-app'));
+  const idleBack = run(dregistry([], { flat: { team: 'T', ascAppId: '1', shortsRetired: { at: '2026-11-01T00:00:00Z', why: 'x' }, shortsReturn: { at: '2026-11-02T00:00:00Z', why: 'version 2.0 shipped' } } }));
+  assert.ok(idleBack.actions.some(a => a.kind === 'produce' && a.app === 'flat'), 'a returned app is listed to produce again');
+  const recorded = run(dregistry([], { flat: { team: 'T', ascAppId: '1', shortsRetired: { at: '2026-11-22T00:00:00Z', why: 'x' } } }));
+  assert.ok(!recorded.actions.some(a => a.kind === 'produce' && a.app === 'flat'), 'a recorded retirement holds with no return');
+});
+
+test('Vegas Microworks Shorts are judged on site visits and leads, with the same three strikes', () => {
+  const data = siteDays(dmetrics).vmw, rule = rules.downloads;
+  assert.equal(siteVerdict(judgedShort('v1', 'vmw', 'tip', 10), data, rule, { now: DNOW, views: 900 }).label, 'no-effect');
+  const lead = siteVerdict(judgedShort('v2', 'vmw', 'tip', 22), data, rule, { now: DNOW, views: 900 });
+  assert.equal(lead.label, 'lifted');
+  assert.equal(lead.basis, 'site leads');
+  assert.match(siteVerdict(judgedShort('v3', 'vmw', 'tip', 10), undefined, rule, { now: DNOW, views: 900 }).missing, /site visits and leads/);
+  const result = run(dregistry([judgedShort('v1', 'vmw', 'tip', 10), judgedShort('v4', 'vmw', 'tip', 14), judgedShort('v5', 'vmw', 'tip', 18)]));
+  assert.equal(result.retired.standing.vmw.basis, 'site visits and leads');
+  assert.deepEqual(result.retired.apps.map(r => r.app), ['vmw']);
+  assert.deepEqual(decommission([], { apps: {} }, { ...rules.decommission, windowHours: 72 }).apps, []);
 });

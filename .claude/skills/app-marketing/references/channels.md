@@ -68,7 +68,7 @@ before relying on a figure: they were checked on 2026-11-12.
 
 | Channel | Runner | How |
 |---|---|---|
-| YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, with no posting cap (app-shorts, since 2.6.0). Judged as above. Nothing is proven yet: both Shorts past 1,000 views (Giraffe Stretch and Newsworthy) are legacy posts from before the campaign, and no download has been traced to a Short |
+| YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, public the moment each passes review (never scheduled), with no posting cap. Judged as above; an app or format with 3 no-effect Shorts in a row is retired (`youtube-growth`). Shorts work: the Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, best 1,145) were followed by downloads and purchases while no other marketing ran, per the owner (James, 2026-11-12); start from that format |
 | App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords ride the next version; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
 | Featuring nominations | mac | Free, and indie apps are eligible. Three weeks' notice, for real updates only |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |

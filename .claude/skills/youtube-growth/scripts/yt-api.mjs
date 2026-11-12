@@ -15,18 +15,19 @@
 //   node yt-api.mjs comments --video ID         newest comment threads on one video, as JSON
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
-//   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt);
+//   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode, always public at once (never scheduled);
 //                                               refuses one for an app not on sale, with no search phrase on its
 //                                               description's first line, or without a rules checklist that passes
 //                                               every written rule (shorts.mjs rules <app> --checklist)
-//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--title T] [--description-file F
-//                                               [--search-phrase P]] [--confirm]   change a posted or scheduled Short's
-//                                               publish time, set it "not made for kids", or replace its title (which must
-//                                               name the app in its first 40 characters) or description (whose first line
-//                                               must give the search phrase), keeping its other settings; the registry
-//                                               follows and keeps the old text as wasTitle and wasDescription. A publish
-//                                               time is refused for an app not on sale, and gives a held Short back
-//                                               its "scheduled" status once it passes the same checks as an upload
+//   node yt-api.mjs publish --episode ID [--confirm]   make a scheduled Short public now: privacy public, publishAt
+//                                               cleared, read back until YouTube shows it; the registry marks it live
+//                                               with postedAt at that moment. Refuses what upload refuses
+//   node yt-api.mjs update --episode ID [--not-for-kids] [--title T] [--description-file F [--search-phrase P]]
+//                                               [--confirm]   set a posted Short "not made for kids", or replace its
+//                                               title (which must name the app in its first 40 characters) or
+//                                               description (whose first line must give the search phrase), keeping
+//                                               its other settings; the registry keeps the old text as wasTitle and
+//                                               wasDescription. --publish-at is refused: Shorts are never scheduled
 //   node yt-api.mjs unschedule --episode ID [--live] [--hold] [--confirm]   cancel a scheduled episode (or, with --live,
 //                                               take a live one down): the video stays on the channel, private with no
 //                                               publish time, and the registry marks it "pulled", or "held" with
@@ -117,16 +118,14 @@ export function rowsToSnapshots(report, at = new Date().toISOString()) {
   });
 }
 
-// The upload request for an episode: private plus publishAt to schedule, public otherwise; the made-for-kids and
-// synthetic-media answers are always stated, never left to defaults.
-export function uploadRequest(episode, now = new Date()) {
+// The upload request for an episode: always public now, never scheduled (James, 2026-11-12: a Short held for a later
+// slot cannot show its effect until then). The made-for-kids and synthetic-media answers are always stated.
+export function uploadRequest(episode) {
   for (const f of ['title', 'description', 'file']) if (!episode[f]) throw new Error(`Episode ${episode.id} has no ${f}`);
-  const scheduled = episode.publishAt && new Date(episode.publishAt) > now;
   return {
     snippet: { title: episode.title.slice(0, 100), description: episode.description, tags: episode.tags ?? [],
       categoryId: episode.categoryId ?? '28', defaultLanguage: 'en', defaultAudioLanguage: 'en' },
-    status: { privacyStatus: scheduled ? 'private' : 'public', ...(scheduled ? { publishAt: new Date(episode.publishAt).toISOString() } : {}),
-      selfDeclaredMadeForKids: episode.madeForKids === true, containsSyntheticMedia: episode.syntheticMedia === true, embeddable: true },
+    status: { privacyStatus: 'public', selfDeclaredMadeForKids: episode.madeForKids === true, containsSyntheticMedia: episode.syntheticMedia === true, embeddable: true },
   };
 }
 
@@ -228,12 +227,23 @@ export function heldOrPulled(episode, { hold = false, reason = null, now = new D
     wasStatus: episode.wasStatus ?? episode.status, publishAt: null, ...(reason ? { [hold ? 'heldReason' : 'pulledReason']: reason } : {}) };
 }
 
-// The status for a video whose publish time or audience changes, every other field kept.
-export function updatedStatus(status, { publishAt, notForKids } = {}) {
+// The status for a private or scheduled video made public now: public, no publish time, every other field kept.
+// A Short goes public the moment it passes the rule gate and review, never at a later time (James, 2026-11-12).
+export function publishNowStatus(status) {
+  const { publishAt, uploadStatus, failureReason, rejectionReason, madeForKids, privacyStatus, ...kept } = status ?? {};
+  return { ...kept, privacyStatus: 'public' };
+}
+
+// The registry fields for an episode made public now: live from `at`, its old publish time kept as wasPublishAt.
+export function publishedNow(episode, at = new Date()) {
+  return { status: 'live', postedAt: new Date(at).toISOString(), wasPublishAt: episode.wasPublishAt ?? episode.publishAt ?? null, publishAt: null };
+}
+
+// The status for a video whose audience changes, every other field kept.
+export function updatedStatus(status, { notForKids } = {}) {
   const { uploadStatus, failureReason, rejectionReason, madeForKids, ...kept } = status ?? {};
   const next = { ...kept };
   if (notForKids) next.selfDeclaredMadeForKids = false;
-  if (publishAt) { next.privacyStatus = 'private'; next.publishAt = new Date(publishAt).toISOString(); }
   return next;
 }
 
@@ -275,7 +285,6 @@ async function updateVideo(token, videoId, changes) {
   const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`)).items?.[0];
   const video = await read();
   if (!video) throw new Error(`No video "${videoId}" on the channel`);
-  if (changes.publishAt && video.status.privacyStatus === 'public') throw new Error(`${videoId} is already public; its publish time cannot change`);
   const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', { method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
     body: JSON.stringify({ id: videoId, status: updatedStatus(video.status, changes) }) });
@@ -283,6 +292,27 @@ async function updateVideo(token, videoId, changes) {
   if (!res.ok) throw new Error(`Update failed: ${body.error?.message ?? res.status}`);
   const after = (await read())?.status ?? {};
   return { videoId, now: { privacyStatus: after.privacyStatus, publishAt: after.publishAt ?? null, madeForKids: after.madeForKids, selfDeclaredMadeForKids: after.selfDeclaredMadeForKids } };
+}
+
+async function publishNow(token, videoId) {
+  const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id=${encodeURIComponent(videoId)}`)).items?.[0];
+  const video = await read();
+  if (!video) throw new Error(`No video "${videoId}" on the channel`);
+  const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', { method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ id: videoId, status: publishNowStatus(video.status) }) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Publish failed: ${body.error?.message ?? res.status}`);
+  // A read straight after an update can echo the old state (seen 2026-11-12), so read back a few times.
+  let after = {};
+  for (let i = 0; i < 6; i += 1) {
+    after = await read() ?? {};
+    if (after.status?.privacyStatus === 'public' && !after.status?.publishAt) break;
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  if (after.status?.privacyStatus !== 'public' || after.status?.publishAt) throw new Error(`${videoId} still reads ${after.status?.privacyStatus} at ${after.status?.publishAt ?? 'no time'}; check with show, then run publish again`);
+  return { videoId, was: { privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt ?? null },
+    now: { privacyStatus: after.status.privacyStatus, publishAt: null, publishedAt: after.snippet?.publishedAt ?? null }, confirmedAt: new Date().toISOString() };
 }
 
 async function unschedule(token, videoId, { live = false } = {}) {
@@ -356,29 +386,46 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const result = await upload(await accessToken(), episode);
       // Other makers write the registry while a video uploads, so read it again and change only this episode.
       const fresh = JSON.parse(readFileSync(registryPath, 'utf8'));
-      Object.assign(fresh.episodes.find(e => e.id === id), { videoId: result.videoId, status: result.publishAt ? 'scheduled' : 'live',
-        ...(result.publishAt ? {} : { postedAt: new Date().toISOString() }) });
+      Object.assign(fresh.episodes.find(e => e.id === id), { videoId: result.videoId, status: 'live', postedAt: new Date().toISOString(), publishAt: null });
       writeFileSync(registryPath, JSON.stringify(fresh, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'publish') {
+      const id = option('--episode', null), confirm = args.includes('--confirm');
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const episode = registry.episodes.find(e => e.id === id);
+      if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
+      if (episode.status !== 'scheduled') throw new Error(`${id} is ${episode.status}; only a scheduled Short is made public here (a held one waits for its app or rule)`);
+      const refused = findable({ ...episode, legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
+      if (refused) throw new Error(refused);
+      const unmet = checklistProblems({ ...episode, legacy: false }, rules(episode.app, { profiles: loadProfiles() }).text);
+      if (unmet.length) throw new Error(unmet.join('\n'));
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt: episode.publishAt ?? null, becomes: 'public now' })); process.exit(0); }
+      const result = await publishNow(await accessToken(), episode.videoId);
+      // Other makers write the registry meanwhile, so read it again and change only this episode.
+      const fresh = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const mine = fresh.episodes.find(e => e.id === id);
+      Object.assign(mine, publishedNow(mine, result.confirmedAt));
+      writeFileSync(registryPath, JSON.stringify(fresh, null, 2) + '\n');
+      console.log(JSON.stringify({ episode: id, ...result }));
     } else if (command === 'update') {
-      const id = option('--episode', null), publishAt = option('--publish-at', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');
+      const id = option('--episode', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');
       const descriptionFile = option('--description-file', null), searchPhrase = option('--search-phrase', null), title = option('--title', null);
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
-      if (!publishAt && !notForKids && !descriptionFile && !title) throw new Error('Nothing to change: pass --publish-at, --not-for-kids, --title and/or --description-file');
+      if (args.includes('--publish-at')) throw new Error('Shorts are never scheduled: a Short that passes the gate goes public now (yt-api.mjs publish --episode ID)');
+      if (!notForKids && !descriptionFile && !title) throw new Error('Nothing to change: pass --not-for-kids, --title and/or --description-file');
       const description = descriptionFile ? readFileSync(descriptionFile, 'utf8').replace(/\s+$/, '') : null;
-      // A new description must give the phrase; a new publish time must also be for an app on sale (a held Short
-      // goes out only after these checks and a fresh review against the current rules).
-      if (description || publishAt || title) {
+      // A new description or title must give the phrase and name the app.
+      if (description || title) {
         const refused = findable({ ...episode, description: description ?? episode.description, title: title ?? episode.title, searchPhrase: searchPhrase ?? episode.searchPhrase,
           status: 'scheduled', legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
         if (refused) throw new Error(refused);
       }
-      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids, title, searchPhrase, description })); process.exit(0); }
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, notForKids, title, searchPhrase, description })); process.exit(0); }
       const token = await accessToken();
       const result = { videoId: episode.videoId };
-      if (publishAt || notForKids) Object.assign(result, await updateVideo(token, episode.videoId, { publishAt, notForKids }));
+      if (notForKids) Object.assign(result, await updateVideo(token, episode.videoId, { notForKids }));
       if (description || title) {
         const changed = await updateSnippet(token, episode.videoId, { description, title });
         if (description) { episode.wasDescription ??= changed.was.description; episode.description = changed.now.description; }
@@ -386,8 +433,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         if (searchPhrase) episode.searchPhrase = searchPhrase;
         result.snippet = changed;
       }
-      if (publishAt) episode.publishAt = new Date(publishAt).toISOString().replace('.000Z', 'Z');
-      if (publishAt && episode.status === 'held') episode.status = 'scheduled';
       if (notForKids) episode.madeForKids = false;
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
@@ -437,7 +482,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--title T] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|publish --episode ID [--confirm]|update --episode ID [--not-for-kids] [--title T] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {

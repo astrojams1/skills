@@ -1,4 +1,4 @@
-# Posting and scheduling
+# Posting
 
 Posting publishes under the owner's channel. Every app live on the App Store is already authorized (the standing
 instruction in `SKILL.md`). Post without asking, and record every post in the registry the same minute.
@@ -31,28 +31,36 @@ App Store, so every Short gives a phrase that is known to find it (James, 2026-1
 
 A plain-text App Store link may follow lower in the description for desktop viewers, never in place of the phrase.
 
+## Public at once, never scheduled
+
+A Short that passes the rule gate (`shorts.mjs check`, the rules checklist) and review goes public the moment it is
+uploaded. Never give it a future time, a slot or a "best hour". The owner (James, 2026-11-12): "you're spending lots
+of time SCHEDULING shorts so by your own design you're not going to see their impact for a long time ... if you
+wanted to test a short you should have released it right away." `check` fails any Short scheduled more than an hour
+ahead. Fix it with `yt-api.mjs publish --episode ID --confirm`, or hold it if it fails a rule.
+
 ## Only for apps on sale
 
-A Short is posted or scheduled only for an app on sale: its marketing profile's stage is `live`, or its `preorder`
-names a live pre-order page (`SKILL.md`, Rules). There is no "coming soon" Short. `yt-api.mjs upload`, and `update
---publish-at`, refuse an app not on sale, and `shorts.mjs phrase` gives it no phrase.
+A Short is posted only for an app on sale: its marketing profile's stage is `live`, or its `preorder` names a live
+pre-order page (`SKILL.md`, Rules). There is no "coming soon" Short. `yt-api.mjs upload` and `publish` refuse an app
+not on sale, and `shorts.mjs phrase` gives it no phrase.
 
-- **A Short already scheduled for one is held.** `shorts.mjs due` lists it under `hold`. Run `yt-api.mjs unschedule
+- **A Short made for one is held.** `shorts.mjs due` lists it under `hold`. Run `yt-api.mjs unschedule
   --episode ID --hold --confirm` (add `--live` if it already went public). The video stays on the channel, private,
   with no publish time, and the registry marks it `held`, keeping `wasPublishAt`.
 - **When the app goes live,** `due` lists the held Short under `recheck`. Judge it as a new Short: the rules in force
   that day, the reviewer panel, the phrase on screen and in the first line. A held Short that says "coming soon"
-  fails. Remake it, or set its new time with `yt-api.mjs update --episode ID --publish-at T --confirm`, which checks
-  the app is on sale and the phrase leads the description, then marks it `scheduled`.
+  fails. Remake it, or mark it `scheduled` again with `record` and make it public with `yt-api.mjs publish`, which
+  checks the app is on sale, the phrase leads the description and the rules checklist passes.
 
 ## Through the YouTube Data API (the default)
 
 `youtube-growth/scripts/yt-api.mjs upload --episode <id>` prints the request (dry run); add `--confirm` to upload.
-A future `publishAt` schedules it (uploaded private, made public at that time); otherwise it goes public. It sets
-the cover with `thumbnails.set` and records the `videoId` in the registry. Since 2026-11-02 unaudited API projects
-may publish publicly. Captions cost 400 quota units through the API; burned-in text usually makes them unnecessary.
-`yt-api.mjs update --episode <id> --description-file F --search-phrase P --confirm` replaces a posted or scheduled
-Short's description and keeps the old one in the registry as `wasDescription`.
+It always uploads public, whatever the registry's `publishAt` says. It sets the cover with `thumbnails.set` and
+records the `videoId`, `live` and `postedAt` in the registry. Since 2026-11-02 unaudited API projects may publish
+publicly. Captions cost 400 quota units through the API; burned-in text usually makes them unnecessary.
+`yt-api.mjs update --episode <id> --description-file F --search-phrase P --confirm` replaces a posted Short's
+description and keeps the old one in the registry as `wasDescription`.
 
 **Not operable (2026-11-12):** the API cannot pin a comment or set a Related video, and Studio needs the owner's
 sign-in. The pipeline does not use either, and a run does not log them as skipped or open.
@@ -74,9 +82,7 @@ already signed in to the channel; never sign in.
    suggestion list: click a heading to close it, not Escape.
 4. **Video elements → Subtitles → Upload file → With timing:** `file_upload` the `.srt` straight onto the hidden
    captions input without clicking Continue, then Done.
-5. **Visibility:** Public, or Schedule. The date picker takes clicks. **The time field ignores typed text:** open
-   its list and click the option (`find` "5:00 PM option"). The time zone defaults to the account's local zone;
-   check it and leave it.
+5. **Visibility:** Public. Never Schedule.
 6. Read the share dialog for the `youtube.com/shorts/<id>` link and record it.
 
 Studio's checks (copyright, ad suitability) run during upload; wait for "Checks complete. No issues found." before
@@ -84,14 +90,12 @@ publishing.
 
 ## Cadence
 
-There is no calendar and no cap. Post every Short as soon as it is ready, several a day when several are ready. The
+There is no calendar, no slot and no cap. Post every Short as soon as it is ready, several a day when several are ready. The
 owner (2026-11-12): "I have way too many apps to be so reserved." The old caps (one every two days, then one a day)
 had no data behind them. Quality per Short is what YouTube rewards: each one is judged on whether viewers keep watching
 and act on it, not on how many the channel posts (`youtube-growth/references/metrics.md`).
-`shorts.mjs plan` still lists which apps have gone longest without a Short; use it to choose, not to schedule.
-
-Post in the late afternoon or evening in the audience's time zone. For the owner's US audience, that is about 5 PM
-Pacific. Then let `youtube-growth` adjust the time from the channel's own "when your viewers are on YouTube" data.
+`youtube-growth`'s `evaluate.mjs` lists the apps to produce for, and leaves out apps and formats retired after three
+no-effect Shorts. Post the moment a Short is ready; never hold one for a better hour.
 
 ## Gotchas
 
@@ -101,6 +105,6 @@ Pacific. Then let `youtube-growth` adjust the time from the channel's own "when 
   uploaded duplicates.
 - **Shorts description links don't click.** Put the App Store link (with a campaign token, `shorts.mjs link`) in
   the channel's links and in any long video's description. In a Short, give the search phrase ("Find the app"
-  above). The Shorts scheduled for 2026-11-13 (Importron) and 2026-11-15 (Data Center) were uploaded with only a dead link;
+  above). The Importron and Data Center Shorts uploaded in early November had only a dead link;
   their descriptions were fixed through the API on 2026-11-12.
 - **A corrected Short is a new video.** Its views start from zero; fix it before posting.

@@ -26,12 +26,12 @@ Shorts are one surface of each app's marketing. Keep them in step with the other
 - **What app-marketing reads:** `shorts.mjs views` gives, per app, `shortsViews` (summed over public Shorts only;
   `pulled`, `held` and `superseded` ones never count), `liveOrScheduled` (a live or scheduled Short exists now),
   `held` and `nextPublic`, keyed by the registry slug with the profile's `marketingId`. The registry's `status` field
-  means: `scheduled` private until `publishAt`, `held` private with no publish time until its app is on sale, `live`
+  means: `scheduled` private until `publishAt` (a defect since 2026-11-12: make it public at once), `held` private with no publish time until its app is on sale, `live`
   and `retired` public, `pulled` taken back to private, `superseded` never uploaded (see the top of
   `scripts/shorts.mjs`).
 - **Which apps get Shorts:** only apps on sale, read from the profile's `stage` (`live`) or `preorder` link. An
   app not yet live has `requires: live` on its profile's Shorts item, so `marketing.mjs next` lists the item only
-  once the app is live. `shorts.mjs plan` lists apps not on sale as `notOnSale`, and `evaluate.mjs` gives them no
+  once the app is live. `evaluate.mjs` gives apps not on sale no
   `produce` action.
 - **Downloads:** `youtube-growth`'s `evaluate.mjs` reads `app-marketing`'s `asc-analytics` rows to judge each Short on
   first-time downloads from search and browse in its first 72 hours.

@@ -1,8 +1,8 @@
 ---
 name: app-shorts
-description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
+description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.9.1"
+  version: "2.10.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -11,8 +11,10 @@ metadata:
 **Give every app a steady drip of Shorts on the owner's one channel.** Each Short is a moment from the real app that a
 parent, a player or a reader would stop scrolling for. A feature tour is an ad and gets swiped.
 
-Done means: every due episode is recorded, checked, posted or scheduled, and in the registry. Every Short tells the
-viewer how to find the app, and is judged on the downloads that follow.
+Done means: every due episode is recorded, checked, public and in the registry. Nothing is scheduled into the future:
+a Short that passes the rule gate and review goes public at once, so its effect shows within days (James,
+2026-11-12). Every Short tells the viewer how to find the app, and is judged on the downloads that follow. An app
+or format whose Shorts do not lift downloads is retired from Short-making ("Retire what does not work" below).
 
 The craft is in `youtube-shorts`. The follow-up is in `youtube-growth`.
 
@@ -20,7 +22,7 @@ The craft is in `youtube-shorts`. The follow-up is in `youtube-growth`.
 
 | File | What it is |
 |---|---|
-| `scripts/shorts.mjs` | The registry (`/Volumes/ssd/projects/app-shorts/registry.json`): `roster`, `sync`, `record`, `phrase`, `claim`, `check`, `views`, `rules`, `plan`, `due`, `link`, `status` |
+| `scripts/shorts.mjs` | The registry (`/Volumes/ssd/projects/app-shorts/registry.json`): `roster`, `sync`, `record`, `phrase`, `claim`, `check`, `views`, `rules`, `due`, `link`, `status` |
 | `assets/rule-sources.json` | Where each app's or business's written rules live, for `shorts.mjs rules` |
 | `ledger/verdicts.md` | The owner's verdicts on past Shorts: what he rejected and why, what worked |
 | App profiles | `/Volumes/ssd/code/app-sites/marketing/apps/<id>.json` (owned by `app-marketing`): stage, `searchPhrase`, `rules` |
@@ -28,7 +30,7 @@ The craft is in `youtube-shorts`. The follow-up is in `youtube-growth`.
 | `references/formats.md` | Idea starters per app; never a template |
 | `ledger/experiments.md` | Every Short's idea, look, sound and result, so no experiment repeats |
 | `references/recording.md` | The real-app recording rig, and unattended routes when the Simulator tool refuses |
-| `references/posting.md` | Posting and scheduling through Studio or the API, with its traps; cadence |
+| `references/posting.md` | Posting through the API or Studio, public at once, with its traps |
 | `references/coordination.md` | Releases, App Store links, promotional text, the marketing websites, channel settings |
 
 ## Authority
@@ -38,7 +40,7 @@ approval of each one. His standing rule (James, 2026-11-12): "every marketing sk
 autonomously (i.e. without me giving go-aheads or signing in to things). The skills are the owners and decisions
 makers of the skill and so there should be no guardrails that prevent this autonomy."
 
-- **No go-ahead needed** to start a new app or series, post, schedule, or change channel settings (links,
+- **No go-ahead needed** to start a new app or series, post, or change channel settings (links,
   description, handle, branding). Log a setting's old value so the change can be undone. Never park an episode for
   approval.
 - **No step waits for the owner** to approve or sign in. A step only he could do by signing in is dropped and routed
@@ -52,9 +54,11 @@ Repository rules and approval holds outrank this skill.
 `S` is this skill's `scripts/` (in an app repository, `skills/skills/app-shorts/scripts`). Node 22, no dependencies.
 
 1. **Read the state.** `node $S/shorts.mjs sync` (new apps from `app-release.config.json` files), then `status`,
-   `due` and `plan`. Hold every Short `due` lists under `hold` (`yt-api.mjs unschedule --hold --confirm`). Apps in
-   `plan`'s `notOnSale` get no Short. Read this ledger and `youtube-growth`'s latest decisions (`evaluate.mjs`). A format marked `drop`
-   gets no new episodes. A `double-down` format gets the next slot, as does any Short whose downloads `lifted`.
+   `due` and `check`. Hold every Short `due` lists under `hold` (`yt-api.mjs unschedule --hold --confirm`). Make
+   every other scheduled Short that passes `check` public now (`yt-api.mjs publish --episode ID --confirm`): a
+   future publish time is a defect. An app not on sale gets no Short. Read this ledger and `youtube-growth`'s
+   latest decisions (`evaluate.mjs`): make Shorts for the apps it lists to `produce`, never for a retired app or
+   format. A `double-down` format goes first, as does any app whose Shorts `lifted` downloads.
    Run `node $S/shorts.mjs rules <app>` and read every line: they bind the plan, the cut and the review.
 2. **Start from what worked, then a blank page.** Watch the channel's best Shorts first (`references/creative.md`,
    "Start from what already worked"). Read the app's listing and website, then write the episode's creative plan
@@ -90,9 +94,9 @@ Repository rules and approval holds outrank this skill.
    first line names the app, what it does and the service it works with, and gives the search phrase ("Search
    'Importron health' on the App Store."); three hashtags; a JPEG cover made for the cover, not a frame grab. See
    "Find the app" in `references/posting.md`.
-7. **Post after the rounds, without asking.** There is no fixed calendar. Post every Short as soon as it is ready, as many a day as
-   are ready, at the hour `youtube-growth` reports the audience is most active. `record` the episode with
-   `videoId`, `status`, `searchPhrase` and `postedAt` or `publishAt` immediately, and add its row to
+7. **Post after the rounds, without asking.** Upload it public at once (`yt-api.mjs upload --episode ID --confirm`
+   never schedules), as many a day as are ready. Never give it a future time or wait for a slot or an hour.
+   `record` the episode with `videoId`, `status`, `searchPhrase` and `postedAt` immediately, and add its row to
    `ledger/experiments.md`. `record` refuses a made episode whose phrase is not the profile's, or whose
    description's first line lacks it. It also refuses a rendered or scheduled one whose music was not claimed, or
    whose rules checklist has a rule failed, unmarked or missing. `yt-api.mjs upload` refuses the same checklist.
@@ -110,7 +114,23 @@ Repository rules and approval holds outrank this skill.
   released in the app store yet?"
 - **Hold a Short made for an app not on sale.** It stays on YouTube, private, with no publish time, as `held`. When
   the app goes live, `shorts.mjs due` lists it under `recheck`. Check it against the rules in force that day, and
-  run the reviewer panel, before it gets a publish time. Never post "coming soon".
+  run the reviewer panel, then make it public at once (`yt-api.mjs publish`). Never post "coming soon".
+- **Never schedule a Short.** A finished Short that passes the rule gate and review goes public now. The owner
+  (James, 2026-11-12): "you're spending lots of time SCHEDULING shorts so by your own design you're not going to see
+  their impact for a long time ... if you wanted to test a short you should have released it right away."
+  `shorts.mjs check` fails any Short scheduled more than an hour ahead.
+- **Retire what does not work.** Each public Short gets a verdict 72 hours after it went public: `lifted`,
+  `no-effect` or `inconclusive` (`youtube-growth`). An app whose last 3 judged Shorts are all `no-effect` is retired
+  from Short-making. So is a format with 3 `no-effect` verdicts in a row across apps. Vegas Microworks has no app,
+  so its Shorts are judged on site visits and leads, with the same 3 strikes. Shorts of one app that went public
+  within the same 72 hours count as one verdict. `inconclusive` (missing Apple data, too few views) is never a
+  strike. `evaluate.mjs --record` writes the reason to the registry, and a retired app gets no `produce`. It comes
+  back only when something changes that could plausibly change the result: a new version, or a format that lifted
+  elsewhere. Record that as `shortsReturn: { at, why }` on the app. The owner (2026-11-12): "I hope that we
+  decommission shorts that are not proving working."
+- **Start from the format that worked.** The Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, the best
+  1,145) were followed by downloads and purchases while no other marketing ran (James, 2026-11-12: "we DO have
+  evidence they work"). Begin each app's next Short from that format (`ledger/verdicts.md`).
 - **Say what the app is, by name of what it works with.** Within the first three seconds a stranger must know the
   problem and what the app does about it, in the words they would search. An app built around someone else's service
   names it on screen and in the title: "Function Health labs → Apple Health", not "Uploaded the same lab report

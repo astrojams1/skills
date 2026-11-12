@@ -49,7 +49,7 @@ SKILL.md's Rules hold here, "Fix what you find" included. In short:
   `log` refuses an `end` while `next --runner mac` still lists an item.
 
 The pass runs in two logged stages. **The core stage** (steps 0 to 8) measures, learns, does every item but Shorts,
-checks every scheduled Short, ships and logs its `end`, then starts the carried jobs. **The Shorts stage** (step 9)
+makes every scheduled Short that passes `check` public, ships and logs its `end`, then starts the carried jobs. **The Shorts stage** (step 9)
 makes Shorts after that, as its own run. Making Shorts took most of the 2026-11-12 pass (over two hours), and
 everything else waited behind it. Now a slow or failed Short leaves the rest already shipped.
 
@@ -61,7 +61,7 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
    public Shorts only. Never total the registry by hand. Run `evaluate.mjs` and read its decisions. Then
    `marketing.mjs learn --write` (SKILL.md, Learn).
-2. **Check the search phrase, then every scheduled Short.** The `search-phrase` item runs `shorts.mjs phrase <app>`
+2. **Check the search phrase, then publish every scheduled Short.** The `search-phrase` item runs `shorts.mjs phrase <app>`
    for every live app and writes the result to the profile as `searchPhrase: { phrase, rank, checked }`. When no
    phrase finds the app, `phrase` returns the exact store name with `rank: null`; write that. Then run
    `shorts.mjs check`. It reads every `scheduled` Short in the registry, with or without a marketing profile, before
@@ -69,7 +69,9 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    description's first line, a rules checklist that passes today's rules, and no word its business's rules forbid. A
    Short with no profile (Vegas Microworks) is checked against its business's rules and name. Fix one that fails:
    make or top up its checklist (`app-shorts`, A run, step 5), re-title it with `yt-api.mjs update --title`, or
-   re-render and replace the upload. Or move its `publishAt` until it is fixed. Never let one go public unchecked.
+   re-render and replace the upload, or hold it (`yt-api.mjs unschedule --hold`) until it is fixed. Make every Short
+   that passes public now (`yt-api.mjs publish --episode ID --confirm`): Shorts are never scheduled, and `check`
+   fails one scheduled more than an hour ahead (James, 2026-11-12). Never let one go public unchecked.
 3. **Do every open item but Shorts.** `marketing.mjs next --runner mac`, then work every item it lists, best first,
    and every app, except `youtube-shorts` items: those are step 9's. There is no item budget: the stage stops only
    when the list is done or every remaining item is blocked or paced. Read the app's profile first; its rules and
@@ -91,16 +93,19 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    is made, and never wait for the Shorts stage.
 9. **The Shorts stage.** Its own run: `RUN_ID=mkt-mac-shorts-<UTC time>`, its own `start` and `end` events. Its `end`
    answers only for the `youtube-shorts` items `next --runner mac` lists. Make every due Short now and post it when
-   ready. There is no posting cap (`app-shorts`, "Cadence", since 2.6.0): post each Short as soon as it passes
-   review, several a day when several are ready, at the hour `youtube-growth` reports.
+   ready. There is no posting cap (`app-shorts`, "Cadence", since 2.6.0): each Short goes public the moment it
+   passes review, several a day when several are ready. Never schedule one or wait for an hour or a slot.
    - **Which apps.** `next` lists a Shorts item for each app whose last Short is not live or scheduled in the registry
-     (pulled, superseded or never uploaded), or whose registry `cadenceDays` have passed since its last Short.
+     (pulled, superseded or never uploaded), or whose registry `cadenceDays` have passed since its last Short. Skip
+     an app or format `evaluate.mjs` retired (3 no-effect Shorts in a row; `retire-app`, `retire-format`) and run
+     `evaluate.mjs --record` so the reason is in the registry.
      `youtube-growth` owns that cadence and raises it when Shorts lift downloads. Make one for each. An app whose
      profile stage is not `live` gets no Short, and any Short scheduled for it is held (`app-shorts`, Rules).
-     `shorts.mjs plan` only orders them, most overdue first; ignore its slot dates. Its slots space Shorts `gap` days
-     apart, which would hold finished Shorts back for days. So several Shorts may go public at the same minute on the
-     one channel (five did on 2026-11-13 at 01:00 UTC). That is intended: no posting cap.
-   - **Formats.** Give `evaluate.mjs`'s `double-down` formats first place. Apps with no Short yet come next. An app
+     Several Shorts may go public at the same minute on the one channel. That is intended: no posting cap. Shorts
+     of one app that go public within 72 hours share one verdict.
+   - **Formats.** Start from the Newsworthy format (`app-shorts/ledger/verdicts.md`, "What worked"): its Shorts were
+     followed by downloads and purchases. Give `evaluate.mjs`'s `double-down` formats first place. Apps with no
+     Short yet come next. An app
      whose profile `stopped` holds `youtube-shorts` gets none (the kill rule).
    - **Skip only stale content.** Skip a format whose content would be stale by the time it is public.
    - **Make them in parallel safely.** Each maker claims its music beds at plan time (`shorts.mjs claim`), so two
@@ -114,7 +119,7 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
      deferring a Short, use the unattended routes in `app-shorts/references/recording.md` ("When the Simulator tool
      refuses"). Name each route tried and why it failed in the `deferred` event (`blocked_by: outside`). A route that
      needs work, such as a missing `ShortsTakes` UI test, is work for this run, not a blocker.
-   - **Ship the stage.** Run `shorts.mjs check` again for the Shorts just scheduled, then step 7's `board`, `mirror`
+   - **Ship the stage.** Run `shorts.mjs check` again (it must list no Short scheduled ahead), then step 7's `board`, `mirror`
      and PR for this stage's events, and log its `end`.
 
 Use only the credentials named in the app profiles and the skills' scripts. Never list a vault or print a value.
