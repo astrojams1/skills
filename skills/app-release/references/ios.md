@@ -438,6 +438,10 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
 - **Simulator control:** the Simulator panel drives only devices the owner has granted; `xcrun simctl io
   <device> screenshot` reads the screen without a grant.
 - **`whatsNew` is refused on an app's first version**; `listing` sends it only once a version is live, and refuses an update whose `whatsNew` is empty.
+- **Promotional text on a live version.** `asc.mjs listing` writes only to an editable version and refuses when
+  there is none, but Apple lets promotional text change on the live version with no review: PATCH the live
+  version's `appStoreVersionLocalizations/{id}` `promotionalText` with `api()` and read it back (Importron,
+  2026-11-12). Do it straight away; don't leave it for a new version.
 - **Pick categories from the API** (`GET /v1/appCategories/GAMES/subcategories`); Apple retires some.
 - **AI services and China mainland (Guideline 5).** Generative AI services such as ChatGPT need a licence to operate
   in China mainland. Apple rejected Plenty on 2026-11-07 because its listing named ChatGPT and OpenAI while China
