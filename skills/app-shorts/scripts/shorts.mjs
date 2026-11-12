@@ -6,16 +6,25 @@
 //
 //   node shorts.mjs roster [--code DIR]            apps found from app-release.config.json files (main checkouts first)
 //   node shorts.mjs sync [--code DIR]              add newly found apps to the registry; never removes or edits any
-//   node shorts.mjs record <episode.json>          add or update one episode (matched by id); refuses a made episode with
-//                                                  no searchPhrase, whose description's first line lacks it, or whose
-//                                                  title hides the app's name past 40 characters, and any
-//                                                  episode past "idea" (except "held") for an app not on sale
-//   node shorts.mjs phrase <app> [--try "a|b"]      the search phrase that finds the app on the App Store: the profile's,
-//                                                  else the first candidate the store's search ranks first
+//   node shorts.mjs record <episode.json>          add or update one episode (matched by id); refuses a made episode
+//                                                  whose phrase is not the profile's, whose description's first line
+//                                                  lacks it, or whose title hides the app's name past 40 characters;
+//                                                  any episode past "idea" (except "held") for an app not on sale; and a
+//                                                  rendered or scheduled one without a passing rules checklist, or whose
+//                                                  music was not claimed first
+//   node shorts.mjs phrase <app> [--try "a|b"]      how a Short ends: the search phrase the App Store's search finds the
+//                                                  app with ("search"), or, when none does yet, its exact store name
+//                                                  ("name": the end card says it is on the App Store)
+//   node shorts.mjs claim <episode> --app A --music "loop|loop" [--publish-at T]   claim the music beds at plan time;
+//                                                  refuses a bed used by a Short public or going public within 14 days
+//   node shorts.mjs check                          the pre-publish check of every scheduled Short: on sale, title,
+//                                                  phrase, rules checklist and the business's banned words
 //   node shorts.mjs views                          per app: Shorts views on public Shorts only, and whether a live or
 //                                                  scheduled Short exists (what app-marketing reads)
-//   node shorts.mjs rules <app>                    the reviewer pack's rules: this skill's, the app's or business's own,
-//                                                  and the owner's recorded verdicts (exits 1 if a source is missing)
+//   node shorts.mjs rules <app> [--checklist FILE --episode ID]   the reviewer pack's rules: this skill's, the app's
+//                                                  or business's own, and the owner's recorded verdicts (exits 1 if a
+//                                                  source is missing); --checklist writes (or tops up) the per-rule
+//                                                  checklist each rule is marked pass or fail in, with its evidence
 //   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first;
 //                                                  apps not on sale get no slot and are listed as notOnSale
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
@@ -25,7 +34,7 @@
 //
 // --registry PATH, --profiles DIR and --now ISO-TIME work with every command (the last for tests and dry runs).
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -113,30 +122,119 @@ export function titleNamesApp(title, names) {
   return !wanted.length || !title || wanted.some(n => shown.includes(n));
 }
 
-export function findable(episode, { profile = null, app = null } = {}) {
-  if (episode.legacy) return null;
+// The phrase a profile says a Short ends on, and its rank on the App Store's search (null: no phrase finds the app
+// yet, so the phrase is the exact store name and the end card says it is on the App Store).
+export function profilePhrase(profile) {
+  const sp = profile?.searchPhrase;
+  if (typeof sp === 'string') return { phrase: sp, rank: 1 };
+  return sp?.phrase ? { phrase: sp.phrase, rank: sp.rank ?? null } : null;
+}
+
+// Every reason a made episode cannot be found or should not exist. For a business with no App Store record and no
+// profile (Vegas Microworks), its registry name is the name and the phrase.
+export function findability(episode, { profile = null, app = null } = {}) {
+  if (episode.legacy) return [];
   if (MAKING.includes(episode.status) && !onSale(app, profile)) {
-    return `${episode.id}: ${episode.app} is not on sale, so it gets no Short. Keep it as "idea", or "held" (private, no publish time) if it is on YouTube, until its marketing profile's stage is live`;
+    return [`${episode.id}: ${episode.app} is not on sale, so it gets no Short. Keep it as "idea", or "held" (private, no publish time) if it is on YouTube, until its marketing profile's stage is live`];
   }
-  if (!MADE.includes(episode.status)) return null;
-  const names = [profile?.name, profile?.searchPhrase?.phrase ?? (typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : null)].filter(Boolean);
-  if (profile?.name && !titleNamesApp(episode.title, names)) return `${episode.id}: the title must name "${names.join('" or "')}" within its first ${TITLE_VISIBLE} characters (the player hides the rest)`;
-  const phrase = (episode.searchPhrase ?? '').trim();
-  if (!phrase) return `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`;
+  if (!MADE.includes(episode.status)) return [];
+  const business = !profile && app && !(app.team || app.ascAppId) ? app.name : null;
+  const wanted = profilePhrase(profile);
+  const names = [profile?.name ?? business, wanted?.phrase].filter(Boolean);
+  const out = [];
+  if (names.length && !titleNamesApp(episode.title, names)) out.push(`${episode.id}: the title must name "${names.join('" or "')}" within its first ${TITLE_VISIBLE} characters (the player hides the rest)`);
+  const phrase = (episode.searchPhrase ?? business ?? '').trim();
+  if (!phrase) return [...out, `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`];
+  if (wanted && phrase.toLowerCase() !== wanted.phrase.trim().toLowerCase()) {
+    out.push(`${episode.id} ends on "${phrase}", but the profile's phrase is "${wanted.phrase}" (${wanted.rank ? `the store's search finds the app with it, rank ${wanted.rank}` : 'no phrase finds the app yet, so the end card gives this exact store name'})`);
+  }
   const first = (episode.description ?? '').split('\n')[0].toLowerCase();
-  if (episode.description && !first.includes(phrase.toLowerCase())) return `${episode.id}: the description's first line must give the search phrase "${phrase}"`;
-  return null;
+  if (episode.description && !first.includes(phrase.toLowerCase())) out.push(`${episode.id}: the description's first line must give the search phrase "${phrase}"`);
+  else if (episode.description && wanted && !wanted.rank && !first.includes('app store')) out.push(`${episode.id}: no phrase finds the app yet, so the description's first line must say "${phrase}" is on the App Store`);
+  return out;
+}
+export const findable = (episode, context) => findability(episode, context)[0] ?? null;
+
+// The written rules as a checklist: each bullet, and each row of a rules table (not the "what worked" table).
+export function ruleItems(text) {
+  const items = [];
+  let heading = '', current = null, header = false;
+  for (const line of String(text).split('\n')) {
+    if (/^#+\s/.test(line)) { heading = line.toLowerCase(); current = null; continue; }
+    if (/^- /.test(line)) { current = line.slice(2).trim(); items.push(current); continue; }
+    if (current !== null && /^\s+\S/.test(line)) { items[items.length - 1] = `${items.at(-1)} ${line.trim()}`; continue; }
+    current = null;
+    if (/^\|/.test(line) && !heading.includes('worked')) {
+      if (/^\|[\s|:-]+\|$/.test(line.trim())) { header = false; items.pop(); continue; }
+      items.push(line.trim());
+    }
+  }
+  return [...new Set(items)];
+}
+
+// A rules checklist (a JSON file the episode names in `rulesChecklist`): every written rule, marked pass, n/a or
+// fail, each with the frame or caption that shows it. A Short that fails a rule, or leaves one unmarked, is fixed
+// before the taste review, and `record` and `yt-api.mjs upload` refuse it.
+export function checklistTemplate(slug, episodeId, text, prior = null) {
+  const marked = new Map((prior?.checks ?? []).map(c => [c.rule, c]));
+  return { app: slug, episode: episodeId, how: 'Mark each rule "pass", "n/a" or "fail", and give the frame (seconds) or caption that shows it. Fix every fail before the reviewer panel.',
+    checks: ruleItems(text).map(rule => marked.get(rule) ?? { rule, result: null, evidence: null }) };
+}
+export function checklistProblems(episode, text, { read = p => JSON.parse(readFileSync(p, 'utf8')), exists = existsSync } = {}) {
+  if (episode.legacy) return [];
+  const file = episode.rulesChecklist;
+  if (!file) return [`${episode.id} has no rules checklist: run "shorts.mjs rules ${episode.app} --checklist FILE --episode ${episode.id}", mark every rule, and set rulesChecklist`];
+  if (!exists(file)) return [`${episode.id}: its rules checklist ${file} is missing`];
+  const checks = new Map((read(file).checks ?? []).map(c => [c.rule, c]));
+  const out = [];
+  for (const rule of ruleItems(text)) {
+    const c = checks.get(rule), short = rule.length > 90 ? `${rule.slice(0, 90)}…` : rule;
+    if (!c) out.push(`${episode.id}: rule not on its checklist (the rules changed; top it up): ${short}`);
+    else if (c.result === 'fail') out.push(`${episode.id} breaks a written rule (${c.evidence ?? 'no evidence'}): ${short}`);
+    else if (!['pass', 'n/a'].includes(c.result) || !String(c.evidence ?? '').trim()) out.push(`${episode.id}: rule not marked pass or n/a with the frame or caption that shows it: ${short}`);
+  }
+  return out;
+}
+
+// Music beds are claimed when the episode is planned, so Shorts made in parallel never share one. A bed is taken
+// while a Short using it is public or going public within this many days of the new one.
+export const MUSIC_DAYS = 14;
+const GONE = ['pulled', 'superseded'];
+export function claimMusic(registry, { id, app, music, publishAt = null, now = new Date() }) {
+  if (!id || !app) throw new Error('A claim needs an episode id and --app');
+  const loops = [music ?? ''].flat().join('|').split('|').map(l => l.trim()).filter(Boolean);
+  if (!loops.length) throw new Error('Name the music beds: --music "loop|loop"');
+  const at = new Date(publishAt ?? now);
+  const taken = [];
+  for (const e of registry.episodes) {
+    if (e.id === id || GONE.includes(e.status) || !e.music) continue;
+    const when = postedAt(e) ?? e.musicClaimedAt;
+    if (!when || Math.abs(new Date(when) - at) > MUSIC_DAYS * DAY) continue;
+    for (const loop of loops) if (e.music.toLowerCase().includes(loop.toLowerCase())) taken.push(`"${loop}" (${e.id}, ${e.status}, ${when})`);
+  }
+  if (taken.length) throw new Error(`Music already used by a Short public or going public within ${MUSIC_DAYS} days: ${taken.join('; ')}. Pick other beds`);
+  const index = registry.episodes.findIndex(e => e.id === id);
+  const claim = { music: loops.join(', '), musicClaimedAt: new Date(now).toISOString(), ...(publishAt ? { publishAt } : {}) };
+  if (index < 0) registry.episodes.push({ id, app, status: 'idea', metrics: [], ...claim });
+  else registry.episodes[index] = { ...registry.episodes[index], ...claim };
+  return { episode: id, claimed: loops };
 }
 
 // Adds or merges an episode. Warnings flag what makes a channel look mass-produced: the same music bed or the
 // same hook as one of the channel's last few Shorts.
-export function record(registry, episode, { recent = 6, profile = null } = {}) {
+// `checkRules` (the CLI passes one) returns what a rendered or scheduled episode's rules checklist lacks.
+export function record(registry, episode, { recent = 6, profile = null, checkRules = null } = {}) {
   if (!episode.id || !episode.app) throw new Error('An episode needs an id and an app');
   if (episode.status && !STATUSES.includes(episode.status)) throw new Error(`Unknown status "${episode.status}"`);
   const index = registry.episodes.findIndex(e => e.id === episode.id);
   const merged = index < 0 ? { status: 'idea', metrics: [], ...episode } : { ...registry.episodes[index], ...episode };
   const refused = findable(merged, { profile, app: registry.apps[merged.app] ?? null });
   if (refused) throw new Error(refused);
+  if (!merged.legacy && ['rendered', 'scheduled'].includes(merged.status)) {
+    if (merged.music && !merged.musicClaimedAt) throw new Error(`${merged.id}: claim its music first (node shorts.mjs claim ${merged.id} --app ${merged.app} --music "loop|loop")`);
+    const missing = checkRules?.(merged) ?? [];
+    if (missing.length) throw new Error(missing.join('\n'));
+  }
   if (index < 0) registry.episodes.push(merged);
   else registry.episodes[index] = merged;
   const saved = merged;
@@ -283,6 +381,10 @@ export async function storeName(appId, { fetcher = fetch } = {}) {
   return (await res.json()).results?.[0]?.trackName ?? null;
 }
 
+// How a Short ends (app-shorts, Rules, "Every Short says how to find the app"): a phrase the store's search finds
+// the app with, or, when none does yet, the exact store name and that it is on the App Store.
+export const endCard = (text, rank) => (rank ? `Search '${text}' on the App Store.` : `${text}, on the App Store.`);
+
 // The phrase a Short gives: the profile's searchPhrase when app-marketing has set one (it checks it daily), else the
 // first candidate the store ranks first, else the best-ranked one. Candidates: --try, the store name, its part
 // before a colon, the store name without punctuation, the registry and profile names.
@@ -302,11 +404,28 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
     let rank = null, error;
     try { rank = app.ascAppId ? await checkPhrase(candidate, app.ascAppId, { fetcher, waits, sleep }) : null; } catch (e) { error = e.message; }
     checked.push({ phrase: candidate, rank, ...(error ? { error } : {}) });
-    if (rank === 1) return { app: slug, phrase: candidate, rank, source: candidate === fromProfile ? 'profile' : 'checked', checked };
+    if (rank === 1) return { app: slug, phrase: candidate, rank, ending: 'search', endCard: endCard(candidate, rank), source: candidate === fromProfile ? 'profile' : 'checked', checked };
   }
   const best = checked.filter(c => c.rank).sort((a, b) => a.rank - b.rank)[0];
-  if (best) return { app: slug, phrase: best.phrase, rank: best.rank, source: 'checked', checked };
-  return { app: slug, phrase: fromProfile ?? name, rank: null, source: fromProfile ? 'profile, not found by the store today' : 'store name, not found by the store today', checked };
+  if (best) return { app: slug, phrase: best.phrase, rank: best.rank, ending: 'search', endCard: endCard(best.phrase, best.rank), source: 'checked', checked };
+  return { app: slug, phrase: store, rank: null, ending: 'name', endCard: endCard(store, null), source: 'store name: no phrase finds the app today', checked };
+}
+
+// The pre-publish check of every scheduled Short in the registry, whether or not it has a marketing profile: on
+// sale, title, phrase, a passing rules checklist against today's rules, and the business's banned words in its
+// title, description, tags and captions.
+export function check(registry, { profiles = [], sources = null, rulesFor = slug => rules(slug, { profiles, sources }), checklist = checklistProblems } = {}) {
+  const config = sources ?? JSON.parse(readFileSync(join(SKILL, 'assets', 'rule-sources.json'), 'utf8'));
+  return registry.episodes.filter(e => e.status === 'scheduled').sort((a, b) => String(a.publishAt).localeCompare(String(b.publishAt))).map(e => {
+    const profile = profileFor(profiles, e.app), pack = rulesFor(e.app);
+    const words = config.banned?.[e.app] ?? [];
+    const text = [e.title, e.description, ...(e.tags ?? []), ...[e.captions ?? []].flat().map(c => (typeof c === 'string' ? c : c?.text))].filter(Boolean).join('\n');
+    const hits = words.filter(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
+    const problems = [...findability({ ...e, legacy: false }, { profile, app: registry.apps[e.app] ?? null }),
+      ...pack.missing.map(m => `${e.id}: missing rule source: ${m}`), ...checklist({ ...e, legacy: false }, pack.text),
+      ...(hits.length ? [`${e.id} uses words its business's rules forbid: ${hits.join(', ')}`] : [])];
+    return { episode: e.id, app: e.app, publishAt: e.publishAt ?? null, profile: profile ? profile.id : 'none: checked against its business rules', ok: !problems.length, problems };
+  });
 }
 
 // A section of a Markdown file: from its "## <name>" heading to the next "## " heading, without a skill's copied
@@ -350,6 +469,18 @@ function load(path) {
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : emptyRegistry();
 }
 
+// One writer at a time: makers run in parallel, so a write command holds this lock from read to write.
+function lock(path, { waitMs = 60000 } = {}) {
+  const file = `${path}.lock`, until = Date.now() + waitMs;
+  mkdirSync(dirname(path), { recursive: true });
+  for (;;) {
+    try { closeSync(openSync(file, 'wx')); return () => { try { unlinkSync(file); } catch {} }; } catch (e) { if (e.code !== 'EEXIST') throw e; }
+    try { if (Date.now() - statSync(file).mtimeMs > 120000) { unlinkSync(file); continue; } } catch {}
+    if (Date.now() > until) throw new Error(`The registry is locked (${file}); another maker is writing`);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+  }
+}
+
 function save(path, registry) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path + '.tmp', JSON.stringify(registry, null, 2) + '\n');
@@ -365,9 +496,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const days = Number(option('--days', 14)), gap = Number(option('--gap', 2));
   const profiles = loadProfiles(option('--profiles', PROFILES));
   const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
+  const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
+  const claimApp = option('--app', null), music = option('--music', null), publishAt = option('--publish-at', null);
   const [command, ...rest] = args;
+  const unlock = ['sync', 'record', 'claim'].includes(command) ? lock(path) : () => {};
   const registry = load(path);
   const print = value => console.log(JSON.stringify(value, null, 2));
+  const checkRules = episode => checklistProblems(episode, rules(episode.app, { profiles }).text);
   try {
   switch (command) {
     case 'roster': print(roster(code)); break;
@@ -375,21 +510,42 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'record': {
       const episode = JSON.parse(readFileSync(rest[0], 'utf8'));
       const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
-      const result = record(registry, episode, { profile: profileFor(profiles, app) }); save(path, registry); print(result); break;
+      const result = record(registry, episode, { profile: profileFor(profiles, app), checkRules }); save(path, registry); print(result); break;
+    }
+    case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, publishAt, now }); save(path, registry); print(result); break; }
+    case 'check': {
+      const results = check(registry, { profiles });
+      print(results);
+      const bad = results.filter(r => !r.ok);
+      console.error(`${results.length} scheduled Shorts checked: ${results.length - bad.length} pass, ${bad.length} fail${bad.length ? ` (${bad.map(r => r.episode).join(', ')})` : ''}`);
+      if (bad.length) process.exitCode = 1;
+      break;
     }
     case 'phrase': print(await phrase(registry, rest[0], { profiles, tries })); break;
     case 'views': print(views(registry, { profiles })); break;
-    case 'rules': { const r = rules(rest[0], { profiles }); console.log(r.text); if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exit(1); } break; }
+    case 'rules': {
+      const r = rules(rest[0], { profiles });
+      if (checklistFile) {
+        const prior = existsSync(checklistFile) ? JSON.parse(readFileSync(checklistFile, 'utf8')) : null;
+        const list = checklistTemplate(rest[0], episodeId ?? prior?.episode ?? null, r.text, prior);
+        writeFileSync(checklistFile, JSON.stringify(list, null, 2) + '\n');
+        console.log(`wrote ${list.checks.length} rules to ${checklistFile} (${list.checks.filter(c => !c.result).length} unmarked)`);
+      } else console.log(r.text);
+      if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exitCode = 1; }
+      break;
+    }
     case 'plan': print(plan(registry, { now, days, gap, profiles })); break;
     case 'due': print(due(registry, { now, profiles })); break;
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
     case 'status': print(status(registry, { now, profiles })); break;
     default:
-      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|views|rules <app>|plan|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
-      process.exit(2);
+      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|plan|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
+      process.exitCode = 2;
   }
   } catch (error) {
     console.error(error.message);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    unlock();
   }
 }

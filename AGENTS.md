@@ -98,7 +98,7 @@ skills/                                    # Skill definitions (Agent Skills spe
   app-shorts/
     SKILL.md                               # Make, post and schedule YouTube Shorts series for every app the owner ships
     references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
-    scripts/shorts.mjs                     # Registry: roster, calendar, due reads, attributed links, search phrase, views per app, rules pack for reviewers (Node 22, no deps)
+    scripts/shorts.mjs                     # Registry: roster, calendar, due reads, attributed links, search phrase, views per app, rules pack and checklist, music claims, pre-publish check (Node 22, no deps)
     assets/rule-sources.json               # Where each app's or business's written rules live, for the reviewer pack
     ledger/verdicts.md                     # The owner's verdicts on past Shorts, loaded by every review
     ledger/LEDGER.md                       # Versions and lessons
@@ -170,7 +170,7 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 
 | Mac scheduled task | When | Stored prompt (pointer) |
 |---|---|---|
-| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12; each run fast-forwards it). Runs in Auto permission mode. After the app work it carries the Show HN post and the Vegas Microworks weekly pass ("Other Mac jobs this task carries") |
+| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12; each run fast-forwards it). Runs in Auto permission mode. After its core stage ships it carries the Show HN post and the Vegas Microworks weekly pass ("Other Mac jobs this task carries"), then makes Shorts last, as their own logged stage |
 | `app-marketing-show-hn` | Paused; `app-marketing-mac` carries it on a booked weekday (2026-11-12) | `skills/app-marketing/references/hacker-news.md`, "Start the Show HN task", which now stops at once |
 | `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task" |
 | `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task" |

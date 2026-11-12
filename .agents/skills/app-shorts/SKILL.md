@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.8.1"
+  version: "2.9.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -20,7 +20,7 @@ The craft is in `youtube-shorts`. The follow-up is in `youtube-growth`.
 
 | File | What it is |
 |---|---|
-| `scripts/shorts.mjs` | The registry (`/Volumes/ssd/projects/app-shorts/registry.json`): `roster`, `sync`, `record`, `phrase`, `views`, `rules`, `plan`, `due`, `link`, `status` |
+| `scripts/shorts.mjs` | The registry (`/Volumes/ssd/projects/app-shorts/registry.json`): `roster`, `sync`, `record`, `phrase`, `claim`, `check`, `views`, `rules`, `plan`, `due`, `link`, `status` |
 | `assets/rule-sources.json` | Where each app's or business's written rules live, for `shorts.mjs rules` |
 | `ledger/verdicts.md` | The owner's verdicts on past Shorts: what he rejected and why, what worked |
 | App profiles | `/Volumes/ssd/code/app-sites/marketing/apps/<id>.json` (owned by `app-marketing`): stage, `searchPhrase`, `rules` |
@@ -62,6 +62,8 @@ Repository rules and approval holds outrank this skill.
    know, the look, the sound, the type, the structure, and how the ending shows the search phrase. Read `experiments.md` in this skill's `ledger/` and change at
    least three of those dimensions from every earlier Short on the channel. Reusing a layout, a caption style, a
    music bed or an ending is not allowed; a format the numbers marked `double-down` keeps its idea, not its look.
+   Claim the music beds now: `node $S/shorts.mjs claim <episode> --app <app> --music "loop|loop"`. It refuses a bed
+   used by a Short that is public or goes public within 14 days, so makers working in parallel never share one.
 3. **Get the footage** (`references/recording.md`): record, stage, script or reuse, whatever gets the moment
    fastest. Use synthetic data.
 4. **Build the cut with whatever tool the idea needs:** `app-preview.swift render`, ffmpeg filter graphs, a
@@ -75,6 +77,10 @@ Repository rules and approval holds outrank this skill.
    - Check the audio: loudness about -14 LUFS, no clipping, the music under any voice (`ffmpeg -af ebur128`), and
      a spectrogram (`showspectrumpic`) to see that the bed has real instruments, not sine tones.
    - Score it against `references/creative.md`, "The bar". Write down what is weakest and change it.
+   - Fill the rules checklist before any review: `node $S/shorts.mjs rules <app> --checklist <file> --episode <id>`.
+     Mark every rule `pass`, `n/a` or `fail`, each with the frame (in seconds) or caption that shows it, and set the
+     episode's `rulesChecklist` to the file. A failed rule is fixed, and marked again, before the taste review
+     starts.
    - Run the reviewer panel (`references/creative.md`, "The reviewer panel"): three fresh subagents (the viewer,
      the editor, the skeptic) who never see your plan. Each gets the `rules` output. Fix what they find.
    At most three rounds, each driven by the panel's feedback. Then fix every concrete fault it named and post. A
@@ -87,8 +93,9 @@ Repository rules and approval holds outrank this skill.
 7. **Post after the rounds, without asking.** There is no fixed calendar. Post every Short as soon as it is ready, as many a day as
    are ready, at the hour `youtube-growth` reports the audience is most active. `record` the episode with
    `videoId`, `status`, `searchPhrase` and `postedAt` or `publishAt` immediately, and add its row to
-   `ledger/experiments.md`. `record` refuses a made episode with no `searchPhrase`, or whose description's first
-   line lacks it.
+   `ledger/experiments.md`. `record` refuses a made episode whose phrase is not the profile's, or whose
+   description's first line lacks it. It also refuses a rendered or scheduled one whose music was not claimed, or
+   whose rules checklist has a rule failed, unmarked or missing. `yt-api.mjs upload` refuses the same checklist.
 8. **Hand over to `youtube-growth`.** It reads views at 3, 7 and 28 days and downloads in the 72 hours after a Short
    goes public, and decides what the next episode changes.
 9. **Log** to the app repository's run notes, the activity ledger, and this ledger for anything reusable.
@@ -112,9 +119,14 @@ Repository rules and approval holds outrank this skill.
 - **Show what the product can do.** Staged, scripted, edited and composited footage is fine. Don't show a feature
   it doesn't have.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
-- **Every Short says how to find the app.** Links in Shorts do not click. Give the app's verified search phrase
-  (`shorts.mjs phrase <app>`) on screen in the last beat, readable, and on the description's first line. The words
-  and the design are the Short's own; the phrase is not optional.
+- **Every Short says how to find the app.** Links in Shorts do not click, so the last beat says it on screen,
+  readable, and so does the description's first line. When the App Store's search finds the app with its verified
+  phrase, the Short ends on that phrase: "Search 'Importron health' on the App Store." When no phrase finds it yet,
+  the end card gives the exact store name and says it is on the App Store: "Hanzi Cards: Learn Mandarin, on the App
+  Store." `shorts.mjs phrase <app>` gives the one to use (`ending`, `endCard`), and the profile's `searchPhrase`
+  holds it (a `rank`, or `null` for the store name). `app-marketing`'s daily phrase check owns finding a phrase.
+  The words and the design are the Short's own; the ending is not optional. This rule lives only here; profiles
+  point to it.
 - **No pricing lines** in a Short, its cover or its title.
 - **Always "not made for kids".** The owner's rule (2026-11-12): "made for kids" turns comments off. Pitch every
   Short to parents and players. Never film children.
@@ -141,8 +153,12 @@ When a scheduled pass runs this skill (the `app-marketing` Mac pass), the run ru
 - **Pinning a comment and setting a Related video are not possible (2026-11-12).** The API has neither, and Studio
   needs the owner's sign-in. The pipeline does not use them. Do not log them as skipped or open.
 - **The store's search can miss a new app for days (2026-11-12).** Data Center went on sale 2026-11-11, and the next
-  day no phrase found it. `phrase` then returns the store name with `rank: null`. Use it, and let `app-marketing`'s
-  daily check replace it.
+  day no phrase found it. `phrase` then returns the exact store name with `rank: null` and `ending: "name"`. End on
+  that name, and let `app-marketing`'s daily check replace it.
+- **Makers run in parallel (2026-11-12).** Two Shorts made side by side picked the same music loop. Claim the beds
+  with `claim` at plan time. Write commands lock the registry, and `upload` re-reads it before it writes.
+- **Reviewers missed written rules twice (2026-11-12).** The panel passed an Importron Short whose results screens
+  lacked "not medical advice". The rules checklist is the gate now; the panel judges taste only.
 - **The owner's taste lives in `ledger/verdicts.md`.** Add his words there the day he gives them, or the next panel
   passes the same mistake.
 
