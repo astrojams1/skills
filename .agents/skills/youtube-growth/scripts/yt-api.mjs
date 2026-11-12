@@ -18,11 +18,12 @@
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt);
 //                                               refuses one for an app not on sale, or with no search phrase on its
 //                                               description's first line
-//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--description-file F [--search-phrase P]]
-//                                               [--confirm]   change a posted or scheduled Short's publish time, set it
-//                                               "not made for kids", or replace its description (whose first line must
-//                                               give the search phrase), keeping its other settings; the registry
-//                                               follows and keeps the old description as wasDescription. A publish
+//   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--title T] [--description-file F
+//                                               [--search-phrase P]] [--confirm]   change a posted or scheduled Short's
+//                                               publish time, set it "not made for kids", or replace its title (which must
+//                                               name the app in its first 40 characters) or description (whose first line
+//                                               must give the search phrase), keeping its other settings; the registry
+//                                               follows and keeps the old text as wasTitle and wasDescription. A publish
 //                                               time is refused for an app not on sale, and gives a held Short back
 //                                               its "scheduled" status once it passes the same checks as an upload
 //   node yt-api.mjs unschedule --episode ID [--live] [--hold] [--confirm]   cancel a scheduled episode (or, with --live,
@@ -237,32 +238,36 @@ export function updatedStatus(status, { publishAt, notForKids } = {}) {
 
 // The snippet for a video whose description changes. videos.update replaces the whole snippet part, so the title,
 // category, tags and languages are sent back as they are; read-only fields are left out.
-export function updatedSnippet(snippet, { description }) {
-  const { title, categoryId, tags, defaultLanguage, defaultAudioLanguage } = snippet ?? {};
-  if (!title || !categoryId) throw new Error('The video has no title or category to keep');
-  return { title, categoryId, description, ...(tags ? { tags } : {}), ...(defaultLanguage ? { defaultLanguage } : {}),
+export function updatedSnippet(snippet, { description, title: newTitle } = {}) {
+  const { title: oldTitle, categoryId, tags, defaultLanguage, defaultAudioLanguage, description: oldDescription } = snippet ?? {};
+  if (!oldTitle || !categoryId) throw new Error('The video has no title or category to keep');
+  if (newTitle !== undefined && newTitle !== null && (!String(newTitle).trim() || String(newTitle).length > 100)) throw new Error('A title is 1 to 100 characters');
+  const title = newTitle ?? oldTitle;
+  return { title, categoryId, description: description ?? oldDescription ?? '', ...(tags ? { tags } : {}), ...(defaultLanguage ? { defaultLanguage } : {}),
     ...(defaultAudioLanguage ? { defaultAudioLanguage } : {}) };
 }
 
-async function updateDescription(token, videoId, description) {
+// Replaces a video's description and/or title (null keeps it), then reads both back.
+async function updateSnippet(token, videoId, { description = null, title = null }) {
   const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(videoId)}`)).items?.[0];
   const video = await read();
   if (!video) throw new Error(`No video "${videoId}" on the channel`);
+  const sent = updatedSnippet(video.snippet, { description: description ?? undefined, title: title ?? undefined });
   const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet', { method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
-    body: JSON.stringify({ id: videoId, snippet: updatedSnippet(video.snippet, { description }) }) });
+    body: JSON.stringify({ id: videoId, snippet: sent }) });
   const body = await res.json();
-  if (!res.ok) throw new Error(`Description update failed: ${body.error?.message ?? res.status}`);
+  if (!res.ok) throw new Error(`Snippet update failed: ${body.error?.message ?? res.status}`);
   // A read straight after the update can still return the old text (seen 2026-11-12), so read back a few times.
   let after = {};
   for (let i = 0; i < 5; i += 1) {
     after = (await read())?.snippet ?? {};
-    if (after.description === description) break;
+    if (after.description === sent.description && after.title === sent.title) break;
     await new Promise(r => setTimeout(r, 3000));
   }
-  if (after.description !== description) throw new Error(`${videoId} does not read back the new description; check with show, then run update again`);
-  if (after.title !== video.snippet.title) throw new Error(`${videoId}'s title changed during the update; check it in Studio`);
-  return { was: video.snippet.description, now: after.description };
+  if (after.description !== sent.description) throw new Error(`${videoId} does not read back the new description; check with show, then run update again`);
+  if (after.title !== sent.title) throw new Error(`${videoId} does not read back the expected title; check with show, then run update again`);
+  return { was: { title: video.snippet.title, description: video.snippet.description }, now: { title: after.title, description: after.description } };
 }
 
 async function updateVideo(token, videoId, changes) {
@@ -289,8 +294,14 @@ async function unschedule(token, videoId, { live = false } = {}) {
     body: JSON.stringify({ id: videoId, status: unscheduleStatus(video.status) }) });
   const body = await res.json();
   if (!res.ok) throw new Error(`Unschedule failed: ${body.error?.message ?? res.status}`);
-  // The update's own response can echo the old publish time; read the video back to know what YouTube now holds.
-  const after = (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`)).items?.[0]?.status ?? {};
+  // The update's own response can echo the old publish time, and a read straight after it can too (all five reads
+  // on 2026-11-12 did, then cleared within seconds), so read back a few times before calling it failed.
+  let after = {};
+  for (let i = 0; i < 6; i += 1) {
+    after = (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(videoId)}`)).items?.[0]?.status ?? {};
+    if (after.privacyStatus === 'private' && !after.publishAt) break;
+    await new Promise(r => setTimeout(r, 3000));
+  }
   if (after.privacyStatus !== 'private' || after.publishAt) throw new Error(`${videoId} still reads ${after.privacyStatus} at ${after.publishAt ?? 'no time'}; run unschedule again`);
   return { videoId, was: { privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt ?? null },
     now: { privacyStatus: after.privacyStatus, publishAt: after.publishAt ?? null } };
@@ -345,29 +356,29 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log(JSON.stringify(result));
     } else if (command === 'update') {
       const id = option('--episode', null), publishAt = option('--publish-at', null), confirm = args.includes('--confirm'), notForKids = args.includes('--not-for-kids');
-      const descriptionFile = option('--description-file', null), searchPhrase = option('--search-phrase', null);
+      const descriptionFile = option('--description-file', null), searchPhrase = option('--search-phrase', null), title = option('--title', null);
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
-      if (!publishAt && !notForKids && !descriptionFile) throw new Error('Nothing to change: pass --publish-at, --not-for-kids and/or --description-file');
+      if (!publishAt && !notForKids && !descriptionFile && !title) throw new Error('Nothing to change: pass --publish-at, --not-for-kids, --title and/or --description-file');
       const description = descriptionFile ? readFileSync(descriptionFile, 'utf8').replace(/\s+$/, '') : null;
       // A new description must give the phrase; a new publish time must also be for an app on sale (a held Short
       // goes out only after these checks and a fresh review against the current rules).
-      if (description || publishAt) {
-        const refused = findable({ ...episode, description: description ?? episode.description, searchPhrase: searchPhrase ?? episode.searchPhrase,
+      if (description || publishAt || title) {
+        const refused = findable({ ...episode, description: description ?? episode.description, title: title ?? episode.title, searchPhrase: searchPhrase ?? episode.searchPhrase,
           status: 'scheduled', legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
         if (refused) throw new Error(refused);
       }
-      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids, searchPhrase, description })); process.exit(0); }
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids, title, searchPhrase, description })); process.exit(0); }
       const token = await accessToken();
       const result = { videoId: episode.videoId };
       if (publishAt || notForKids) Object.assign(result, await updateVideo(token, episode.videoId, { publishAt, notForKids }));
-      if (description) {
-        const changed = await updateDescription(token, episode.videoId, description);
-        episode.wasDescription ??= changed.was;
-        episode.description = changed.now;
+      if (description || title) {
+        const changed = await updateSnippet(token, episode.videoId, { description, title });
+        if (description) { episode.wasDescription ??= changed.was.description; episode.description = changed.now.description; }
+        if (title) { episode.wasTitle ??= changed.was.title; episode.title = changed.now.title; }
         if (searchPhrase) episode.searchPhrase = searchPhrase;
-        result.description = changed;
+        result.snippet = changed;
       }
       if (publishAt) episode.publishAt = new Date(publishAt).toISOString().replace('.000Z', 'Z');
       if (publishAt && episode.status === 'held') episode.status = 'scheduled';
@@ -420,7 +431,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|upload --episode ID [--confirm]|update --episode ID [--publish-at T] [--not-for-kids] [--title T] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {
