@@ -3,7 +3,7 @@ name: vegas-microworks-marketing
 description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. Use when the Mac task runs or when asked to run the weekly Vegas Microworks marketing pass.
 internal: true
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # Vegas Microworks marketing
@@ -103,6 +103,9 @@ Use the report format in the playbook's "Each weekly run" section.
   the default mode, in a scratch folder. There, any read or command outside that folder waits for a click.
   `app-marketing-mac` runs in Auto mode and never prompts. Only the owner can set the mode, in the task's settings in
   the Claude app.
+- **"Run now" from another session proves nothing about the schedule (2026-11-12).** A run started with
+  `run_scheduled_task` took the launching session's bypass mode and never prompted. A cron run uses the task's own
+  mode. Only a cron run, or the app's own Run now button, shows whether the setting works.
 - **Read the skill from `origin/main` (2026-11-12).** The old prompt read a side checkout stuck at 1.0.0, which had
   no gambling rule. The prompt now fetches and reads `origin/main`, so it can't go stale.
 
