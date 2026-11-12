@@ -26,8 +26,9 @@ numbers. Each line below is a starting point, not a script.
   never imply therapy outcomes.
 - **Nametag** (badges for parent meetups): "Which badge would you wear?" (a quick build, with the choice asked in
   the comments).
-- **Newsworthy** (world news rated 1–10): "Today's biggest story, rated", with the app's own score and one line, on
-  the day. Accuracy matters more than speed.
+- **Newsworthy** (world news rated 1–10): "Today's biggest story, rated", with the app's own score and its real
+  sentence, on the day, exactly as the app shows them, public figures and serious stories included. Accuracy matters
+  more than speed.
 - **Data Center** (pixel strategy game): a valley growing in time-lapse; "Can it survive the night?"
 - **Rhythm** (an endless place to slow down): 10-second calm loops; sound is the content, so use the app's own audio.
 - **Importron** (lab PDF → Apple Health): before and after with a synthetic lab report only, never real results.

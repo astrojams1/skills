@@ -146,7 +146,8 @@ verdicts on past Shorts. If `rules` reports a missing source, fix it before the 
    Is anything corny, templated or amateur?
 3. **The skeptic.** Truth, clarity and brand: is every claim real, is the app on sale today (a "coming soon" Short
    fails), does it say what the app is, can a viewer find it from the search phrase, any pricing line, anything ugly or busy, anything that repeats an owner verdict? The
-   skeptic checks every rule in the pack, one by one, and names each breach with the rule's words.
+   skeptic checks every rule in the pack, one by one, and names each breach with the rule's words. Only a written
+   rule is a breach: a real headline the app shows, even one naming a public figure, is never one.
 
 Each answers with scores on every line of the bar, the single weakest moment, and what to change. A Short that
 breaks a written rule or repeats a recorded verdict fails as a **rule breach**: it is a concrete fault, never a taste
