@@ -101,6 +101,20 @@ export function leftOpenProblems(event) {
   return problems;
 }
 
+// The ledger is append-only, so a wrong line is corrected by a new one: the same run_id and event, with `corrects` set to
+// the wrong line's ts. correctedLines returns the indexes the check reads through their correction, and a problem for a
+// correction that names no earlier line.
+export function correctedLines(records) {
+  const fixed = new Set(), problems = [];
+  records.forEach((c, at) => {
+    if (!c?.corrects) return;
+    const i = records.findIndex((e, j) => j < at && e.run_id === c.run_id && e.event === c.event && e.ts === c.corrects);
+    if (i < 0) problems.push(`ledger line ${at + 1}: corrects names no earlier ${c.event} of ${c.run_id} at ${c.corrects}`);
+    else fixed.add(i);
+  });
+  return { fixed, problems };
+}
+
 // eventProblems returns what is wrong with one ledger event.
 export function eventProblems(event) {
   const problems = REQUIRED.filter(key => event[key] === undefined || event[key] === '').map(key => `missing ${key}`);
@@ -496,7 +510,9 @@ async function cmdCheck(root) {
   }
   const ledger = loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger');
   problems.push(...ledger.problems);
-  ledger.records.forEach((e, i) => eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)));
+  const corrected = correctedLines(ledger.records);
+  problems.push(...corrected.problems);
+  ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i)) eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)); });
   const ids = new Set(profiles.map(p => p.id));
   ledger.records.forEach((e, i) => { if (e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
   const metrics = loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics');
