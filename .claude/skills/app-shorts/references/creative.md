@@ -6,6 +6,26 @@ iterate until it is good enough for the owner's body of work. The nine Shorts th
 taken down for failing this: none said what its app was, all shared one look and one synthesised bed, and several had
 captions the colour of their background.
 
+## Start from what already worked
+
+Before any plan, watch the channel's best Shorts and rank every Short by views and average percentage viewed
+(`node ../../youtube-growth/scripts/yt-api.mjs pull`, then the registry). As of 2026-11-12 the three best were:
+
+| Short | Numbers | What it is |
+|---|---|---|
+| Giraffe Stretch "Calm and cute ABCs" (90P4ykE6gSA) | 1,289 views, 206 % viewed | 7 s of the game's own art, full bleed: a cute giraffe on a sunset savanna stretches for a lettered leaf. Almost no text, no pitch, a gentle voice. It loops, so people watch it twice |
+| Newsworthy "Search Newsworthy in the App Store" (EB6GGrACO10) | 1,145 views, 12 likes, 415 engaged | Calm editorial type on paper-white: "Once. Not every month.", a receipt (World news, rated. No subscription. No ads. Total $1), the real app showing one story rated 5/10, "Pay once. Keep your attention." One stance, few words, lots of space |
+| Space Worms "Tiny worm kills a giant" (QB1N8ErYSgM) | 804 views, 88 % viewed | Raw gameplay filling the frame and one line of stakes |
+
+**What they share:** one simple idea; the product's own visuals as the spectacle; few words; calm and beautiful;
+short (7 to 20 s). **What failed:** everything the 2026-11-11/12 remakes added: mascots and robot voices,
+scoreboards, slot machines, documentary parodies, phone mockups with step pills, dense captions, 13 to 27 s
+lengths. The owner called all of them horrible. "Creative risk" means a fresh input and a fresh look inside the
+pattern that works, not a gimmick on top of the product.
+
+Every plan names which best Short it learns from and how. Every reviewer pack includes frames from the three best
+Shorts as the reference: "is this at least as good as these?"
+
 ## The creative plan
 
 Write it in the episode folder (`plan.md`) before recording. Short and specific:
@@ -56,6 +76,10 @@ the ui seem ugly and complicated… the whole point is that its easy and the 'fi
 off." On the Space Worms documentary (Gill Sans and Iowan italic subtitles, a subtle story about which worm is
 ours, ambient piano): "font story sound all bad." Both had passed every automated check, so the checks are
 necessary but not enough.
+
+**No gambling imagery for Vegas Microworks** (slot machines, chips, cards, casino lights or language): the owner's
+standing rule, which the 2026-11-12 slot-machine Short broke. Read each business's own marketing skill rules before
+the plan.
 
 **No pricing lines** in a Short, its cover, title or pinned comment ("first one free", "pay once per…"). The
 store page carries the price.

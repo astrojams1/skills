@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.3.0"
+  version: "2.4.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -47,7 +47,8 @@ Repository rules and approval holds outrank this skill.
 1. **Read the state.** `node $S/shorts.mjs sync` (new apps from `app-release.config.json` files), then `status`,
    `due` and `plan`. Read this ledger and `youtube-growth`'s latest decisions (`evaluate.mjs`). A format marked `drop`
    gets no new episodes. A `double-down` format gets the next slot.
-2. **Start from a blank page.** Read the app's listing and website first, then write the episode's creative plan
+2. **Start from what worked, then a blank page.** Watch the channel's best Shorts first (`references/creative.md`,
+   "Start from what already worked"). Read the app's listing and website, then write the episode's creative plan
    (`references/creative.md`) before touching footage: the one-line idea, the experiment it tests and how we will
    know, the look, the sound, the type, the structure. Read `experiments.md` in this skill's `ledger/` and change at
    least three of those dimensions from every earlier Short on the channel. Reusing a layout, a caption style, a
