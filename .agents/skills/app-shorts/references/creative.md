@@ -45,6 +45,20 @@ reviewer. Write the scores in the plan.
 6. **Crafted.** Timing, motion and cuts feel deliberate; no frame looks like a mistake.
 7. **True.** Every result is what the real app did in the take, with synthetic data.
 8. **Earns an action.** A viewer would comment, share, rewatch or look the app up.
+9. **Obviously an iPhone app, and obviously easy.** A real iPhone is on screen, large, the way Apple shows apps,
+   not a flat rectangle of UI or a cartoon. The app's part is the shortest real path to the result, with the
+   cleanest screens; never linger on dense lists, forms or settings. If it looks complicated, it is wrong, however
+   true it is.
+
+**Owner verdicts to design against (2026-11-12).** On the Importron robot cut (pixel-art mascot, robot voice,
+stamped pixel type, flat recordings of the review screens): "you cant even tell its an iphone app, and you make
+the ui seem ugly and complicated… the whole point is that its easy and the 'first pdf is free' line is a turn
+off." On the Space Worms documentary (Gill Sans and Iowan italic subtitles, a subtle story about which worm is
+ours, ambient piano): "font story sound all bad." Both had passed every automated check, so the checks are
+necessary but not enough.
+
+**No pricing lines** in a Short, its cover, title or pinned comment ("first one free", "pay once per…"). The
+store page carries the price.
 
 ## Sound
 
@@ -77,5 +91,8 @@ Check every mix: `ffmpeg -i cut.mp4 -af ebur128=peak=true -f null -` (about -14 
 
 ## Watching it
 
-You cannot hear the video, so measure the sound and look at it; you can see the video, so look at every frame.
-Each round, write down the weakest moment and what changes. A cut that reads as "fine" is not done.
+A contact sheet is not watching. Stills at one per second hid both failures above: each beat looked clear on its
+own, and the whole read as ugly, busy and not like an iPhone. Each round, also pull every frame of the first three
+seconds and of each transition at full size, and judge the cut as a viewer on a phone would: what is this, does it
+look easy, would I want it. You cannot hear it, so measure the sound and say so; the owner listens before posting.
+Write down the weakest moment and what changes. A cut that reads as "fine" is not done.
