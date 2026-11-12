@@ -385,7 +385,9 @@ then verify resubmission separately from the posted reply.
 first submission asking how they meet Guideline 1.3: third-party analytics, third-party advertising, data
 shared with third parties, and other data collected (Giraffe Stretch 1.0, 31 October 2026). `submit` reads the
 saved review notes and refuses, naming the unanswered questions, until they answer all four
-([app types](app-types.md), "Kids apps").
+([app types](app-types.md), "Kids apps"). Answered notes do not prevent the request: Pipsqueak 1.0's notes answered
+all four and Apple still rejected it under 2.1, asking for a reply in App Store Connect (11 November 2026). Recovery
+needs no new build: reply in the submission's Messages with the notes' answers, then `submit --confirm`.
 
 **Guideline 2.1 information requests for a new developer** have needed, for both apps: a physical-device
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the

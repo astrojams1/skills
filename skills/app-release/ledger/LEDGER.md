@@ -1,9 +1,21 @@
 # App release skill ledger
 
-Skill version **2.24.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.25.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
+## Lessons incorporated into v2.25.1 (2026-11-11)
+
+- Pipsqueak 1.0 (Kids Category, SIX_TO_EIGHT) was rejected under 2.1 with Apple's automated Guideline 1.3 information
+  request although its saved notes answered all four questions (the v2.9.0 check passed). The message asks for a reply
+  in App Store Connect; the v2.9.0 lesson had assumed the notes would prevent the hold. Recovery: the same answers,
+  checked against the code (no networking, no packages, on-device recognition only), posted as a reply in the
+  submission's Messages, then `submit --confirm` with build 9; the version read WAITING_FOR_REVIEW. The reviewer
+  message is still not in the API: it was read in App Store Connect once the owner signed in and the Ouro LLC team was
+  selected.
+- `status` now prints what to do under a rejected Kids Category version (`kidsRejectionAdvice`, unit-tested), and
+  `submit` warns after a Kids Category submission that the request may still come. `app-types.md` and `ios.md` no
+  longer say the notes prevent it. Consumers only bump the submodule.
 ## Lessons incorporated into v2.25.0 (2026-11-11)
 
 - Removed the blanket "never name another app or trademark" rule. Name the service an app works with (Importron:
