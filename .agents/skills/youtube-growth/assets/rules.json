@@ -29,7 +29,9 @@
     "why": "Each Short is first shown to a small seed audience and spreads only on its response, so reach against the channel median says whether it left the seed.",
     "source": "Todd Sherman (YouTube Shorts) on Creator Insider, reported by onlinemarketing.de 2026-08-31"
   },
-  "subscribersPer1k": { "strong": 5 },
+  "subscribersPer1k": {
+    "strong": 5
+  },
   "format": {
     "readAgeDays": 7,
     "minEpisodes": 5,
@@ -44,12 +46,25 @@
     "windowHours": 72,
     "baselineDays": 7,
     "minBaselineDays": 3,
-    "sources": ["App Store search", "App Store browse"],
+    "sources": [
+      "App Store search",
+      "App Store browse"
+    ],
     "minViews": 500,
     "minExtra": 3,
     "z": 2,
     "formatLifted": 2,
     "why": "The goal is downloads, not views (James, 2026-11-12: Shorts must be judged on downloads). A Short's views come mostly in its first days, and a viewer who wants the app searches its phrase, so search and browse carry its effect. The 72 hours after it goes public are compared with the app's own mean daily downloads over the 7 days before (at least 3 days known); 'lifted' means at least minExtra more than expected and 2 Poisson standard deviations (z) above it. Under minViews public views a Short is inconclusive: at the low view-to-download rates app marketers report, it cannot add 3 downloads. Two lifted Shorts in a format double it down.",
-    "source": "Proposal 2026-11-12, low confidence: no published study links Shorts views to App Store downloads. Tune minViews and z once 5+ Shorts have download verdicts."
+    "source": "Proposal 2026-11-12, low confidence: no published study links Shorts views to App Store downloads. Tune minViews and z once 5+ Shorts have download verdicts.",
+    "site": {
+      "leadsExtra": 1,
+      "why": "Vegas Microworks has no app to download, so its Shorts are judged on its site's visits (same test as downloads) and leads (one more lead than its baseline predicts lifts it)."
+    }
+  },
+  "decommission": {
+    "strikes": 3,
+    "formatStrikes": 3,
+    "why": "James, 2026-11-12: 'I hope that we decommission shorts that are not proving working.' An app whose last 3 judged Shorts (72-hour verdicts) are all no-effect is retired from Short-making; so is a format with 3 no-effects in a row across apps. Shorts of one app public within the same 72 hours are one judgement. Inconclusive verdicts (missing data, too few views) are never strikes. A retired app or format returns only when something changes that could plausibly change the result: a new version, or a format that lifted elsewhere (recorded as shortsReturn / retiredFormats[f].return).",
+    "source": "Owner decision 2026-11-12"
   }
 }

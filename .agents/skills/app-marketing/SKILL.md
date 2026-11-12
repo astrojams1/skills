@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.19.0"
+  version: "1.19.1"
   ledger: ledger/LEDGER.md
 ---
 
@@ -111,8 +111,10 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    repeats a date in later report instances, and the newest instance wins it.
 3. **Learn.** `node $R/marketing.mjs learn --write` judges every channel on first-time downloads
    ([channels](references/channels.md), "How each channel is judged"):
-   - **Shorts:** the app's App Store search and browse downloads in the 72 hours after a Short, against its 7 days
-     before.
+   - **Shorts:** the app's App Store search and browse downloads in the 72 hours after a Short goes public, against
+     its 7 days before. An app or format with 3 no-effect Shorts in a row is retired from Shorts (`youtube-growth`).
+     Shorts do produce downloads: the Newsworthy Shorts of 2026-10-21 to 10-28 did, with no other marketing running
+     (James, 2026-11-12).
    - **Guides, site pages and directories:** web-referrer downloads, in 4-week blocks from 8 weeks on.
    - **Store text:** impressions, then page views, then downloads, the week after a change against the week before.
      Log each store text change with `changed`.
@@ -131,7 +133,8 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    [Fix what you find](#fix-what-you-find). If nothing is open for this runner, add a better idea to that app's backlog
    with honest scores, and log that.
    - **Only Hacker News's limits pace anything** (`hn`). Shorts have no posting cap (`app-shorts`, since 2.6.0): every
-     due Short is made and posted as soon as it passes review (the Mac pass's Shorts stage, step 9).
+     due Short is made and made public as soon as it passes review, never scheduled (the Mac pass's Shorts stage,
+     step 9).
    - **A Shorts item is done only while its Short is on the channel.** On the Mac, `next` reads the registry. A
      pulled, superseded or never-uploaded Short reopens the item at once. It then rests for the app's `cadenceDays`
      in the registry, which `youtube-growth` sets from downloads, never for a `repeat_days` of its own.
@@ -196,7 +199,8 @@ Another way can be another tool, a different source, or a `runner: mac` backlog 
 credentials. Only these may stay open, each logged with `blocked_by`:
 
 - `store-gate`: a store submission, review or release, which keep their own gates (Never).
-- `pacing`: an outside rule that forbids the act today, such as Hacker News's limits. A Short's slot never qualifies.
+- `pacing`: an outside rule that forbids the act today, such as Hacker News's limits. A Short never qualifies: it
+  goes public the moment it passes review.
 - `outside`: a service that is down, or data that does not exist yet, after another way was tried.
 
 ## Never

@@ -96,14 +96,14 @@ skills/                                    # Skill definitions (Agent Skills spe
     scripts/call_triage.py, scripts/transcribe.swift   # Item register and privacy guard (Python, no deps); on-device transcription (SpeechAnalyzer)
     ledger/LEDGER.md                       # Versions and lessons
   app-shorts/
-    SKILL.md                               # Make, post and schedule YouTube Shorts series for every app the owner ships
+    SKILL.md                               # Make and post YouTube Shorts series for every app the owner ships, public at once
     references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
     scripts/shorts.mjs                     # Registry: roster, calendar, due reads, attributed links, search phrase, views per app, rules pack and checklist, music claims, pre-publish check (Node 22, no deps)
     assets/rule-sources.json               # Where each app's or business's written rules live, for the reviewer pack
     ledger/verdicts.md                     # The owner's verdicts on past Shorts, loaded by every review
     ledger/LEDGER.md                       # Versions and lessons
   youtube-growth/
-    SKILL.md                               # Read each Short's metrics on schedule and turn them into decisions that grow the channel
+    SKILL.md                               # Read each Short's metrics, judge its downloads, retire what does not work
     references/{api,metrics,policy}.md     # API setup and limits; what each metric means and the evidence; YouTube policy risks for a templated pipeline
     scripts/{yt-api,evaluate}.mjs          # OAuth, analytics, comments, metadata updates; decisions from snapshots and App Store downloads (Node 22, no deps)
     assets/rules.json                      # Decision thresholds, each with its source
@@ -164,7 +164,7 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 - **A routine's prompt never restates its skill.** The prompt of a routine or scheduled task says only what the skill can't know: which skill to run, where the repository is checked out, that the run is unattended, how to load tools in that environment, and the final message format when a notification shows it. Every step, rule and limit lives in the skill (or the file it points to), so the two can't drift apart. When a prompt seems to need more, move that text into the skill (James, 2026-11-08).
 - **A scheduled run clears its known work.** Each run works through every open item it can safely do together (every backlog idea, every app pending release, every due thread), not one item a run. Skip only what is blocked, with the reason, so no backlog builds up between runs, above all for skills that run rarely (James, 2026-11-08).
 - **A run fixes what it finds.** Every issue a scheduled run sees, inside or outside the item it was working on (a wrong fact on a site, a broken link, a failing check, a stale prompt, a script bug), is fixed in that run, shipped and verified. Logging it, noting it or "leaving it alone" is not a fix. Only a step that truly needs James (a payment, a sign-in, an approval), a store submission or review gate, an outside rule that forbids the act today, or an outside service that is down after another way was tried may stay open, and the run's summary names each with what unblocks it. A skill's ledger should refuse an open item without its blocker, as `app-marketing`'s does (James, 2026-11-10).
-- **A throttle is a cap, wherever it lives.** A limit on how much a run does is a cap whether it sits in `SKILL.md`, a reference ("one good guide a week per app"), a script default (`windowDays`) or a data file (`repeat_days` over 1). Pacing may decide *when* finished work goes public (a Short's `publishAt`), never whether the work is done this run. A cap stays only with a reason James gave or a rule a third party sets (Hacker News's limits), written in `cap-allowlist.txt`. `python3 bin/check_caps.py . skills` fails on any other, and `tests/test_no_hidden_caps.py` runs it; consumer repos with a skill-improver run the same check (James, 2026-11-10).
+- **A throttle is a cap, wherever it lives.** A limit on how much a run does is a cap whether it sits in `SKILL.md`, a reference ("one good guide a week per app"), a script default (`windowDays`) or a data file (`repeat_days` over 1). Pacing never holds finished work back: a Short goes public the moment it passes review, never at a later `publishAt` (James, 2026-11-12). A cap stays only with a reason James gave or a rule a third party sets (Hacker News's limits), written in `cap-allowlist.txt`. `python3 bin/check_caps.py . skills` fails on any other, and `tests/test_no_hidden_caps.py` runs it; consumer repos with a skill-improver run the same check (James, 2026-11-10).
 - **Every scheduled task is listed below, with where its prompt lives.** Cloud routines show up in the routine list; tasks on James's Mac (Cowork or Codex) don't, so an audit that reads only the routine list misses them, as the 2026-11-08 audit missed `app-marketing-mac`. Each Mac task's stored prompt is a pointer, written in its skill, and a skill that finds a stale prompt follows itself and reports the stale words. When a prompt must change, use its stored task file where available. For a task that can only be edited by the owner, give James the exact pointer to paste.
 - **Done means seen in a run.** A change to how a scheduled skill paces or caps its work is done when the next run's ledger shows the new behaviour, not when the PR merges.
 
@@ -373,14 +373,14 @@ Invoke with `/youtube-shorts`, or ask to make, check or post a Short. Check a re
 
 The repeatable pipeline that keeps every app the owner ships (both App Store teams) on YouTube: a registry built from
 each app's `app-release.config.json`, a series format per app, fresh recordings of the real app with rehearsed
-inputs, renders through app-release's `app-preview.swift` and youtube-shorts' safe zone and soundtrack, posting and
-scheduling through YouTube Studio (or the API once it is connected), and links back to the App Store (attributed
-campaign links) and the marketing websites. `scripts/shorts.mjs` keeps the registry, the posting calendar and the
-list of Shorts due a metrics read.
+inputs, renders through app-release's `app-preview.swift` and youtube-shorts' safe zone and soundtrack, posting public at
+once through the YouTube API (never scheduled), and links back to the App Store (attributed campaign links) and the
+marketing websites. `scripts/shorts.mjs` keeps the registry and the list of Shorts due a metrics read; an app or
+format with 3 no-effect Shorts in a row is retired.
 
 #### How to use
 
-Invoke with `/app-shorts`, or ask to make, post or schedule Shorts for an app. Run
+Invoke with `/app-shorts`, or ask to make or post Shorts for an app. Run
 `node skills/app-shorts/scripts/shorts.mjs status` to see where every app stands. After changing the script, run
 `node --test tests/app-shorts/*.test.mjs`.
 

@@ -49,8 +49,13 @@ Scopes (all four are requested at consent):
   2025-12-04 an upload costs about 100 units, and since 2026-06-01 `videos.insert` has its own bucket (about 100
   uploads a day). Analytics queries have a separate, larger allowance.
 - **Public uploads need no audit any more.** Since **2026-11-02** videos uploaded by unaudited API projects are no
-  longer forced private (they had been since 2020). With no `privacyStatus` an upload defaults to public. To
-  schedule, upload as `private` with `status.publishAt`; it only works on a never-published private video.
+  longer forced private (they had been since 2020). With no `privacyStatus` an upload defaults to public. The
+  pipeline never schedules (James, 2026-11-12): `yt-api.mjs upload` always sends `public`.
+- **Making a scheduled video public now:** `videos.update` with `part=status`, `privacyStatus: "public"` and no
+  `publishAt`, sending every other status field back (the part is replaced whole, so a field left out resets).
+  `yt-api.mjs publish --episode ID --confirm` does this, reads it back until YouTube shows public with no publish
+  time, and marks the episode `live` with `postedAt` set to that moment, so the 72-hour verdict starts then. Used
+  2026-11-12 on 13 Shorts; each read back public within seconds.
   `yt-api.mjs upload` states `selfDeclaredMadeForKids` and `containsSyntheticMedia` every time.
 - **Shorts thumbnails:** since **2026-11-03** `thumbnails.set` accepts custom thumbnails for Shorts after
   processing (with a new `shortsAspectRatio` property). Retry later if it fails right after upload.

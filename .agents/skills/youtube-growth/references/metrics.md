@@ -46,8 +46,10 @@ Twelve app Shorts posted 21 Oct to 1 Nov: median about 61 views. Outliers: a 7 s
 
 ## Downloads: what a Short is for (2026-11-12)
 
-A view is not the goal; a download is. The owner's audit on 2026-11-12 found no evidence any Short had produced a
-download. Apple does not say which download came from which video, so `evaluate.mjs` compares time windows:
+A view is not the goal; a download is. Shorts do produce them: the Newsworthy Shorts posted 2026-10-21 to 10-28
+(1,680 views, the best 1,145) were followed by downloads and purchases while no other marketing ran (James,
+2026-11-12: "we DO have evidence they work"). Apple does not say which download came from which video, so
+`evaluate.mjs` compares time windows:
 
 - **The window:** the three days starting the day the Short went public (UTC), 72 hours.
 - **The baseline:** the app's mean daily first-time downloads over the 7 days before, counting only days Apple

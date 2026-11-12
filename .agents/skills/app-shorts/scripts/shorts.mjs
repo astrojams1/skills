@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // shorts.mjs
-// The app-shorts registry: which apps the owner ships, which Shorts exist for each, when the next ones go out and
-// which posted Shorts are due a metrics read. One JSON file (default /Volumes/ssd/projects/app-shorts/registry.json)
+// The app-shorts registry: which apps the owner ships, which Shorts exist for each, and which public Shorts are due
+// a metrics read. A finished Short goes public at once; nothing is scheduled into the future (James, 2026-11-12). One JSON file (default /Volumes/ssd/projects/app-shorts/registry.json)
 // is the record every run reads first and writes last. Node 22, no dependencies.
 //
 //   node shorts.mjs roster [--code DIR]            apps found from app-release.config.json files (main checkouts first)
@@ -15,10 +15,12 @@
 //   node shorts.mjs phrase <app> [--try "a|b"]      how a Short ends: the search phrase the App Store's search finds the
 //                                                  app with ("search"), or, when none does yet, its exact store name
 //                                                  ("name": the end card says it is on the App Store)
-//   node shorts.mjs claim <episode> --app A --music "loop|loop" [--publish-at T]   claim the music beds at plan time;
-//                                                  refuses a bed used by a Short public or going public within 14 days
+//   node shorts.mjs claim <episode> --app A --music "loop|loop"   claim the music beds when the episode is started;
+//                                                  refuses a bed used by a Short public within 14 days
 //   node shorts.mjs check                          the pre-publish check of every scheduled Short: on sale, title,
-//                                                  phrase, rules checklist and the business's banned words
+//                                                  phrase, rules checklist and the business's banned words. A Short
+//                                                  scheduled more than an hour ahead is a defect: make it public now
+//                                                  (yt-api.mjs publish) or hold it
 //   node shorts.mjs views                          per app: Shorts views on public Shorts only, and whether a live or
 //                                                  scheduled Short exists (what app-marketing reads)
 //   node shorts.mjs rules <app> [--checklist FILE --episode ID]   the reviewer pack's rules: this skill's, the app's
@@ -26,12 +28,11 @@
 //                                                  source is missing); --checklist writes (or tops up) the per-rule
 //                                                  checklist each rule is marked pass or fail in, with its evidence;
 //                                                  with --episode it also points that episode's rulesChecklist at FILE
-//   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first;
-//                                                  apps not on sale get no slot and are listed as notOnSale
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
 //                                                  scheduled ones to hold (app not on sale) and held ones to re-check
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
-//   node shorts.mjs status                         per app: episodes by status, last post, next due
+//   node shorts.mjs status                         per app: episodes by status, last post, next due (none for an app
+//                                                  retired from Shorts: youtube-growth evaluate.mjs --record)
 //
 // --registry PATH, --profiles DIR and --now ISO-TIME work with every command (the last for tests and dry runs).
 
@@ -43,7 +44,7 @@ import { fileURLToPath } from 'node:url';
 export const READS = [3, 7, 28];
 // What each status means on the channel:
 //   idea, recorded, rendered   not on YouTube yet
-//   scheduled                  on YouTube, private, goes public at publishAt
+//   scheduled                  on YouTube, private, with a publish time: a defect since 2026-11-12, made public at once
 //   held                       on YouTube, private, no publish time: made for an app that is not on sale, kept until
 //                              it is, then re-checked against the current rules before it is scheduled
 //   live                       public
@@ -205,15 +206,15 @@ export function checklistProblems(episode, text, { read = p => JSON.parse(readFi
   return out;
 }
 
-// Music beds are claimed when the episode is planned, so Shorts made in parallel never share one. A bed is taken
-// while a Short using it is public or going public within this many days of the new one.
+// Music beds are claimed when the episode is started, so Shorts made in parallel never share one. A bed is taken
+// while a Short using it went public, or was claimed, within this many days.
 export const MUSIC_DAYS = 14;
 const GONE = ['pulled', 'superseded'];
-export function claimMusic(registry, { id, app, music, publishAt = null, now = new Date() }) {
+export function claimMusic(registry, { id, app, music, now = new Date() }) {
   if (!id || !app) throw new Error('A claim needs an episode id and --app');
   const loops = [music ?? ''].flat().join('|').split('|').map(l => l.trim()).filter(Boolean);
   if (!loops.length) throw new Error('Name the music beds: --music "loop|loop"');
-  const at = new Date(publishAt ?? now);
+  const at = new Date(now);
   const taken = [];
   for (const e of registry.episodes) {
     if (e.id === id || GONE.includes(e.status) || !e.music) continue;
@@ -221,9 +222,9 @@ export function claimMusic(registry, { id, app, music, publishAt = null, now = n
     if (!when || Math.abs(new Date(when) - at) > MUSIC_DAYS * DAY) continue;
     for (const loop of loops) if (e.music.toLowerCase().includes(loop.toLowerCase())) taken.push(`"${loop}" (${e.id}, ${e.status}, ${when})`);
   }
-  if (taken.length) throw new Error(`Music already used by a Short public or going public within ${MUSIC_DAYS} days: ${taken.join('; ')}. Pick other beds`);
+  if (taken.length) throw new Error(`Music already used by a Short public or claimed within ${MUSIC_DAYS} days: ${taken.join('; ')}. Pick other beds`);
   const index = registry.episodes.findIndex(e => e.id === id);
-  const claim = { music: loops.join(', '), musicClaimedAt: new Date(now).toISOString(), ...(publishAt ? { publishAt } : {}) };
+  const claim = { music: loops.join(', '), musicClaimedAt: new Date(now).toISOString() };
   if (index < 0) registry.episodes.push({ id, app, status: 'idea', metrics: [], ...claim });
   else registry.episodes[index] = { ...registry.episodes[index], ...claim };
   return { episode: id, claimed: loops };
@@ -254,42 +255,6 @@ export function record(registry, episode, { recent = 6, profile = null, checkRul
     if (same) warnings.push(`Same ${label} as ${same.id} ("${saved[field]}"): vary it`);
   }
   return { episode: saved, warnings };
-}
-
-// A calendar of `days` days from `now`: one Short every `gap` days across the channel (2 gives three or four a
-// week, a pace distinct ideas can sustain). Each slot goes to the active app most overdue against its cadence
-// that has a rendered episode ready; due apps with nothing ready are listed as needing production. An app not on
-// sale gets no slot and is never listed as needing production, only as notOnSale.
-export function plan(registry, { now = new Date(), days = 14, gap = 2, profiles = [] } = {}) {
-  const selling = slug => onSale(registry.apps[slug], profileFor(profiles, slug));
-  const last = {};
-  for (const e of registry.episodes) {
-    const at = postedAt(e);
-    if (at && ['scheduled', 'live'].includes(e.status) && (!last[e.app] || at > last[e.app])) last[e.app] = at;
-  }
-  const ready = {};
-  for (const e of registry.episodes) if (e.status === 'rendered') (ready[e.app] ??= []).push(e);
-  const posts = registry.episodes.filter(e => postedAt(e) && ['scheduled', 'live'].includes(e.status)).map(e => new Date(postedAt(e)));
-  const slots = [], needs = new Set();
-  const start = new Date(now); start.setUTCHours(0, 0, 0, 0);
-  for (let d = 0; d < days; d += 1) {
-    const day = new Date(start.getTime() + d * DAY), key = day.toISOString().slice(0, 10);
-    if (posts.some(p => Math.abs(Math.floor(p / DAY) - Math.floor(day / DAY)) < gap)) continue;
-    const due = Object.entries(registry.apps)
-      .filter(([slug, a]) => a.active !== false && selling(slug))
-      .map(([slug, a]) => ({ slug, overdue: last[slug] ? (day - new Date(last[slug])) / DAY - (a.cadenceDays ?? 7) : Infinity }))
-      .filter(a => a.overdue >= 0)
-      .sort((a, b) => b.overdue - a.overdue || a.slug.localeCompare(b.slug));
-    for (const a of due) if (!ready[a.slug]?.length) needs.add(a.slug);
-    const pick = due.find(a => ready[a.slug]?.length);
-    if (!pick) continue;
-    const episode = ready[pick.slug].shift();
-    slots.push({ date: key, app: pick.slug, episode: episode.id, title: episode.title ?? null });
-    last[pick.slug] = day.toISOString();
-    posts.push(day);
-  }
-  const notOnSale = Object.entries(registry.apps).filter(([slug, a]) => a.active !== false && !selling(slug)).map(([slug]) => slug).sort();
-  return { slots, needsProduction: [...needs].sort(), notOnSale };
 }
 
 // What a run should do now: scheduled Shorts whose time has passed (mark live) and live Shorts that have reached a
@@ -330,6 +295,13 @@ export function link(registry, slug, campaign) {
   return { url: url.toString(), attributed: Boolean(pt) };
 }
 
+// Whether an app is retired from Short-making: youtube-growth's evaluate.mjs records `shortsRetired` after three
+// no-effect Shorts in a row, and only a later `shortsReturn` (a new version, a format that lifted elsewhere) undoes it.
+export function retiredFromShorts(app) {
+  const at = app?.shortsRetired?.at;
+  return Boolean(at) && !(app.shortsReturn?.at && Date.parse(app.shortsReturn.at) > Date.parse(at));
+}
+
 export function status(registry, { now = new Date(), profiles = [] } = {}) {
   return Object.entries(registry.apps).map(([slug, a]) => {
     const selling = onSale(a, profileFor(profiles, slug));
@@ -337,8 +309,10 @@ export function status(registry, { now = new Date(), profiles = [] } = {}) {
     const counts = Object.fromEntries(STATUSES.map(s => [s, mine.filter(e => e.status === s).length]).filter(([, n]) => n));
     const posted = mine.filter(onChannel).map(postedAt).filter(Boolean).sort().pop() ?? null;
     const next = posted ? new Date(new Date(posted).getTime() + (a.cadenceDays ?? 7) * DAY).toISOString().slice(0, 10) : 'now';
+    const retired = retiredFromShorts(a);
     return { app: slug, active: a.active !== false, onSale: selling, formats: a.formats?.length ?? 0, ...counts, liveOrScheduled: mine.some(onChannel),
-      lastPost: posted, nextDue: a.active === false || !selling ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
+      lastPost: posted, ...(retired ? { retired: a.shortsRetired.why } : {}),
+      nextDue: a.active === false || !selling || retired ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
   });
 }
 
@@ -422,8 +396,10 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
 
 // The pre-publish check of every scheduled Short in the registry, whether or not it has a marketing profile: on
 // sale, title, phrase, a passing rules checklist against today's rules, and the business's banned words in its
-// title, description, tags and captions.
-export function check(registry, { profiles = [], sources = null, rulesFor = slug => rules(slug, { profiles, sources }), checklist = checklistProblems } = {}) {
+// title, description, tags and captions. Shorts are never scheduled (James, 2026-11-12: "if you wanted to test a
+// short you should have released it right away"), so one left scheduled more than an hour ahead is a defect.
+export const SCHEDULED_GRACE_MS = 3600000;
+export function check(registry, { profiles = [], sources = null, rulesFor = slug => rules(slug, { profiles, sources }), checklist = checklistProblems, now = new Date() } = {}) {
   const config = sources ?? JSON.parse(readFileSync(join(SKILL, 'assets', 'rule-sources.json'), 'utf8'));
   return registry.episodes.filter(e => e.status === 'scheduled').sort((a, b) => String(a.publishAt).localeCompare(String(b.publishAt))).map(e => {
     const profile = profileFor(profiles, e.app), pack = rulesFor(e.app);
@@ -432,7 +408,8 @@ export function check(registry, { profiles = [], sources = null, rulesFor = slug
     const hits = words.filter(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
     const problems = [...findability({ ...e, legacy: false }, { profile, app: registry.apps[e.app] ?? null }),
       ...pack.missing.map(m => `${e.id}: missing rule source: ${m}`), ...checklist({ ...e, legacy: false }, pack.text),
-      ...(hits.length ? [`${e.id} uses words its business's rules forbid: ${hits.join(', ')}`] : [])];
+      ...(hits.length ? [`${e.id} uses words its business's rules forbid: ${hits.join(', ')}`] : []),
+      ...(e.publishAt && Date.parse(e.publishAt) - now.getTime() > SCHEDULED_GRACE_MS ? [`${e.id} is scheduled for ${e.publishAt}, more than an hour ahead: a defect. Make it public now (yt-api.mjs publish --episode ${e.id} --confirm) if everything else passes, or hold it`] : [])];
     return { episode: e.id, app: e.app, publishAt: e.publishAt ?? null, profile: profile ? profile.id : 'none: checked against its business rules', ok: !problems.length, problems };
   });
 }
@@ -502,11 +479,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const path = option('--registry', '/Volumes/ssd/projects/app-shorts/registry.json');
   const now = new Date(option('--now', new Date().toISOString()));
   const code = option('--code', '/Volumes/ssd/code');
-  const days = Number(option('--days', 14)), gap = Number(option('--gap', 2));
   const profiles = loadProfiles(option('--profiles', PROFILES));
   const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
   const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
-  const claimApp = option('--app', null), music = option('--music', null), publishAt = option('--publish-at', null);
+  const claimApp = option('--app', null), music = option('--music', null);
+  if (args.includes('--publish-at')) { console.error('Shorts are never scheduled: a finished Short that passes check goes public now'); process.exit(2); }
   const [command, ...rest] = args;
   const writes = ['sync', 'record', 'claim'].includes(command) || (command === 'rules' && checklistFile && episodeId);
   const unlock = writes ? lock(path) : () => {};
@@ -522,9 +499,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
       const result = record(registry, episode, { profile: profileFor(profiles, app), checkRules }); save(path, registry); print(result); break;
     }
-    case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, publishAt, now }); save(path, registry); print(result); break; }
+    case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, now }); save(path, registry); print(result); break; }
     case 'check': {
-      const results = check(registry, { profiles });
+      const results = check(registry, { profiles, now });
       print(results);
       const bad = results.filter(r => !r.ok);
       console.error(`${results.length} scheduled Shorts checked: ${results.length - bad.length} pass, ${bad.length} fail${bad.length ? ` (${bad.map(r => r.episode).join(', ')})` : ''}`);
@@ -546,12 +523,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exitCode = 1; }
       break;
     }
-    case 'plan': print(plan(registry, { now, days, gap, profiles })); break;
+    case 'plan': console.error('plan is gone: Shorts are never scheduled into slots. A finished Short goes public at once; youtube-growth evaluate.mjs lists the apps to produce'); process.exitCode = 2; break;
     case 'due': print(due(registry, { now, profiles })); break;
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
     case 'status': print(status(registry, { now, profiles })); break;
     default:
-      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|plan|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
+      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
       process.exitCode = 2;
   }
   } catch (error) {
