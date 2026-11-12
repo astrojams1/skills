@@ -94,5 +94,29 @@ Check every mix: `ffmpeg -i cut.mp4 -af ebur128=peak=true -f null -` (about -14 
 A contact sheet is not watching. Stills at one per second hid both failures above: each beat looked clear on its
 own, and the whole read as ugly, busy and not like an iPhone. Each round, also pull every frame of the first three
 seconds and of each transition at full size, and judge the cut as a viewer on a phone would: what is this, does it
-look easy, would I want it. You cannot hear it, so measure the sound and say so; the owner listens before posting.
+look easy, would I want it. You cannot hear it, so measure the sound and say what you measured.
 Write down the weakest moment and what changes. A cut that reads as "fine" is not done.
+
+## The reviewer panel (the posting gate)
+
+The owner does not review Shorts (2026-11-12: "stop depending on me. use independent reviewers and get their
+feedback. post when everyone is happy."). Three independent reviewer subagents do, each round, and a Short posts when
+all three are happy. None of them sees the creative plan, the scores you gave, or another reviewer's answer.
+
+Give each the same pack: the 0.5 s contact sheet; every frame of the first three seconds and of each transition at
+full size; the cover; the title, description and pinned comment; the audio report (loudness, true peak, a
+spectrogram image, and a plain list of what plays when); the bar above; and the owner verdicts above. Each has one
+lens:
+
+1. **The viewer.** Someone the app is for (a Function Health member, a parent, a casual mobile gamer), scrolling
+   Shorts on a phone. Would they stop? By 3 seconds, do they know what this is and that it is an iPhone app? Does it
+   look easy? Would they look it up?
+2. **The editor.** A short-form creative director: hook, pacing, type, colour, motion, sound design, originality.
+   Is anything corny, templated or amateur?
+3. **The skeptic.** Truth, clarity and brand: is every claim real, does it say what the app is, any pricing line,
+   anything ugly or busy, anything that repeats an owner verdict?
+
+Each answers with scores on every line of the bar, the single weakest moment, and **POST** or **NOT YET** with the
+reason. Post only when all three say POST, every line is 7 or more from all three, and lines 1, 2 and 9 are 8 or more
+from all three. Otherwise fix the weakest moments and run the panel again with fresh reviewers. After four rounds
+without a pass, drop the Short and record why.
