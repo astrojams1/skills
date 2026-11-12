@@ -173,7 +173,7 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 | `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task" |
 | `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task" |
 | `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task" |
-| `vegas-microworks-marketing` | Wednesdays 07:04 Pacific | `skills/vegas-microworks-marketing/SKILL.md` |
+| `vegas-microworks-marketing` | Wednesdays 07:04 Pacific | `skills/vegas-microworks-marketing/SKILL.md`, "The stored prompt" (reads `origin/main` through `/Volumes/ssd/code/skills`; needs Auto permission mode) |
 | Cloud routine "Vegas Microworks outreach (daily)" | Weekdays 10:23 Pacific | `astrojams1/vegas-microworks` `docs/outreach.md`, "Each daily run" |
 | `mac-memory-maintenance` | Daily 03:00 Pacific | Codex invokes `$mac-memory-maintenance` through its installed symlink |
 | `money-coaching-lead-gen` | Paused; the cloud routine "Money coaching lead gen (daily)" replaced it | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md`, "The Mac task's prompt" |
@@ -431,7 +431,7 @@ install points to this skill so callers can keep using
 **Skill:** `skills/vegas-microworks-marketing/SKILL.md`
 
 Sets up Node 22 and a fresh worktree for the weekly Mac task. The site repo's `docs/marketing.md` owns the
-marketing steps and limits.
+marketing steps and limits, and runs with no owner go-aheads or sign-ins (James, 2026-11-12).
 
 ### Call Triage — From a Recorded Call to Finished Follow-Through
 
