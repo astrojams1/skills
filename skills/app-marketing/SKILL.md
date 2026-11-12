@@ -246,9 +246,9 @@ Say plainly if the ledger could not be written.
 - **A cloud session refuses the call that sends (2026-11-12).** Its safety check blocked the run's `curl` to
   `/api/pitches`, so 22 merged pitches sat unsent. The merge now starts the Pitches workflow, which sends. A run only
   reads, with `pitches --write`.
-- **Hosts drop a bot-only user agent (2026-11-12).** Four of the first 22 source pages refused the sender (SiteGround
-  reset the connection, Cloudflare answered 403), and one source was a 404 page. The sender now reads pages as a
-  browser that names itself. Check that `source` loads before you queue a pitch.
+- **Hosts drop a bot-only user agent (2026-11-12).** Four of the first 22 source pages refused the sender, and one
+  source was a 404 page. The sender now reads pages as a browser that names itself. One page still meets a Cloudflare
+  challenge from Vercel's network; the sender never works around one. Prefer a source page that is not behind one.
 - **Shorts links do not click.** Give a search phrase, and check that it finds the app.
 
 ## Ledger
