@@ -1,8 +1,17 @@
 # App release skill ledger
 
-Skill version **2.25.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.25.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.25.2 (2026-11-12)
+
+- Data Center 0.1.0 went live while internal builds continued. The next internal build, cut as 0.1.0, failed Apple's
+  validation: approval closes a version's build train, and a new build needs a higher version. The app moved to
+  0.1.1 in its native projects, but its store data still said 0.1.0, so `testers` looked for a 0.1.0 build that
+  could not exist and waited the full 30 minutes. `testers` now checks once whether the build number is on App Store
+  Connect under another version, and stops at once naming both versions (unit-tested). `ios.md` has the gotcha.
+  Consumers only bump the submodule.
 
 ## Lessons incorporated into v2.25.1 (2026-11-11)
 

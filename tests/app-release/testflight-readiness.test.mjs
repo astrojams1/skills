@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as ios from '../../skills/app-release/scripts/ios-release.mjs';
 
-function fixture({ automatic = true, state = 'IN_BETA_TESTING', membership = [true], groups = 1, people = [[{ id: 't1', attributes: { state: 'INVITED' } }]], users = [] } = {}) {
+function fixture({ otherVersion = null, lateBuild = false, automatic = true, state = 'IN_BETA_TESTING', membership = [true], groups = 1, people = [[{ id: 't1', attributes: { state: 'INVITED' } }]], users = [] } = {}) {
   let clock = 0;
   let membershipRead = 0;
   let testerReads = 0;
@@ -14,7 +14,8 @@ function fixture({ automatic = true, state = 'IN_BETA_TESTING', membership = [tr
     api: async (path, method = 'GET', body) => {
       if (method !== 'GET') { writes.push({ path, method, body }); testerReads++; return {}; }
       reads.push(path);
-      if (path.startsWith('/v1/builds?')) return { data: [{ id: 'build191', attributes: { version: '191', processingState: 'VALID' } }] };
+      if (path.startsWith('/v1/builds?') && path.includes('include=preReleaseVersion')) return { data: [], included: otherVersion ? [{ type: 'preReleaseVersions', attributes: { version: otherVersion } }] : [] };
+      if (path.startsWith('/v1/builds?')) return { data: lateBuild && !clock ? [] : [{ id: 'build191', attributes: { version: '191', processingState: 'VALID' } }] };
       if (path.startsWith('/v1/betaGroups?')) return { data: Array.from({ length: groups }, (_, i) => ({ id: 'group' + i, attributes: { name: 'QA', isInternalGroup: true, hasAccessToAllBuilds: automatic } })) };
       if (path === '/v1/builds/build191/buildBetaDetail') return { data: { attributes: { internalBuildState: typeof state === 'function' ? state(clock) : state } } };
       throw new Error('Unexpected provider read: ' + path);
@@ -100,4 +101,17 @@ test('a tester who was never invited is invited', async () => {
   await ios.testers(191, f.io);
   assert.equal(f.writes[0].path, '/v1/betaTesterInvitations');
   assert.equal(f.writes[0].body.data.relationships.betaTester.data.id, 't2');
+});
+
+test('a build uploaded under another version fails at once instead of waiting for a version that will never appear', async () => {
+  const f = fixture({ otherVersion: '1.1.1', lateBuild: true });
+  await assert.rejects(() => ios.testers(191, f.io), /Build 191 is version 1\.1\.1 on App Store Connect, but the store data says 1\.1\.0/);
+  assert.equal(f.io.now(), 0, 'no wait');
+  assert.equal(f.writes.length, 0);
+});
+
+test('a build still processing under the right version is waited for', async () => {
+  const f = fixture({ lateBuild: true });
+  assert.equal((await ios.testers(191, f.io)).buildPresent, true);
+  assert.equal(f.io.now(), 30000);
 });
