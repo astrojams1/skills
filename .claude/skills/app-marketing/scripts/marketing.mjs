@@ -26,6 +26,9 @@
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
 //   node marketing.mjs youtube [--write]            one `youtube` snapshot per app from `shorts.mjs views` (public Shorts
 //                                                   only): shortsViews, publicShorts, scheduledShorts
+//   node marketing.mjs site-visits --sql | --rows FILE [--app ID] [--out PATH] [--write]   a business site's visits
+//                                                   and form leads per day (rows from the Neon connector's run_sql of
+//                                                   --sql) as one `site-visits` row in app-shorts' site-metrics.jsonl
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
@@ -88,7 +91,7 @@ export function leftOpenProblems(event) {
     if (autonomous && event.blocked_by === 'owner') problems.push('nothing waits on the owner since 2026-11-12: drop owner-only work (status skipped, dropped: true) and route around it');
     else if (!allowed.includes(event.blocked_by)) problems.push(`a ${event.status} action needs blocked_by, one of ${allowed.join(', ')}; anything else is fixed in this run`);
     if (!event.reason) problems.push(`a ${event.status} action needs a reason naming the blocker and each way tried`);
-    if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and schedule it into the next free slot');
+    if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and, once it passes the gate, make it public at once');
   }
   if (event.event === 'end') {
     if (!Array.isArray(event.left_open)) problems.push('end needs left_open: every issue still open, or [] when the run fixed everything');
@@ -605,6 +608,44 @@ function cmdYoutube(root, args) {
   console.log(JSON.stringify(lines, null, 1));
 }
 
+// ---- business site visits and leads (youtube-growth judges a business's Shorts on them) ----
+
+export const SITE_METRICS = '/Volumes/ssd/projects/app-shorts/site-metrics.jsonl';
+// SITE_VISITS_SQL is the Vegas Microworks aggregate, read with the Neon connector's run_sql on project
+// lucky-hat-15341181: visits per Pacific day from site_visits, and form leads per Pacific day from interest (row 1
+// is a deploy test). Counts only; no name, contact or path leaves the database.
+// Days before the counter's first row are left out: no row there means "not counted", never zero visits.
+export const SITE_VISITS_SQL = `with t as (select (now() at time zone 'America/Los_Angeles')::date as today),
+d as (select g::date as day from t, generate_series(greatest(t.today - 13, coalesce((select min(day) from site_visits), t.today)),
+  t.today, interval '1 day') as g)
+select to_char(d.day, 'YYYY-MM-DD') as day,
+  (select count(*) from site_visits v where v.day = d.day)::int as visits,
+  (select count(*) from interest i where i.id > 1 and (i.created_at at time zone 'America/Los_Angeles')::date = d.day)::int as leads
+from d order by 1`;
+
+// siteVisitsRow turns the query's rows into one `site-visits` metrics row ({ app, source, at, days: { date: { visits,
+// leads } } }), the shape youtube-growth's evaluate.mjs reads; the newest row wins each day, so today's partial count
+// is corrected by tomorrow's run.
+export function siteVisitsRow(app, rows, at = new Date().toISOString()) {
+  const list = Array.isArray(rows) ? rows : rows?.rows;
+  if (!Array.isArray(list) || !list.length) throw new Error('site-visits needs the query rows: a JSON array of { day, visits, leads }');
+  const days = {};
+  for (const r of list) {
+    const visits = Number(r.visits), leads = Number(r.leads);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(r.day)) || !Number.isInteger(visits) || visits < 0 || !Number.isInteger(leads) || leads < 0) throw new Error(`site-visits: bad row ${JSON.stringify(r)}`);
+    days[r.day] = { visits, leads };
+  }
+  return { at, app, source: 'site-visits', days };
+}
+
+function cmdSiteVisits(args) {
+  if (args.sql) return console.log(SITE_VISITS_SQL);
+  if (!args.rows || args.rows === true) throw new Error('Usage: marketing.mjs site-visits --sql | --rows FILE [--app vegas-microworks] [--out PATH] [--write]');
+  const row = siteVisitsRow(typeof args.app === 'string' ? args.app : 'vegas-microworks', JSON.parse(readFileSync(args.rows === '-' ? 0 : args.rows, 'utf8')));
+  if (args.write) appendFileSync(typeof args.out === 'string' ? args.out : SITE_METRICS, JSON.stringify(row) + '\n');
+  console.log(JSON.stringify(row));
+}
+
 // ---- App Store Connect (Mac only: the key never leaves 1Password and this process) ----
 
 function vaultEnv() {
@@ -930,15 +971,26 @@ function liveDate(test, lookups) {
   return seen ? seen.at.slice(0, 10) : null;
 }
 
+// STALE_QUEUE_DAYS is how long a merged listing change may wait unsubmitted. The daily app-release run ships one by
+// itself (app-release references/daily-review-run.md, "A listing change ships"), so an older one means that run failed.
+export const STALE_QUEUE_DAYS = 3;
+
 // listingTestResults reads each listing test in the profile's `listingTests` on its own stage: the 7 days after it
 // went live against the 7 before, readable from 8 days after (14 for a fuller read). An effect is the stage's count
-// lifting by the shared rule: at least 2 more and half again as many, at a better rate.
-export function listingTestResults(tests = [], days, discovery, lookups = []) {
+// lifting by the shared rule: at least 2 more and half again as many, at a better rate. A test not yet live shows the
+// date it was queued, and is `stale` once it has waited more than STALE_QUEUE_DAYS without a `submitted` date.
+export function listingTestResults(tests = [], days, discovery, lookups = [], now = Date.now()) {
   const all = [...Object.keys(days), ...Object.keys(discovery)].sort(), through = all[all.length - 1];
   return tests.map(test => {
     const live = liveDate(test, lookups);
     const base = { stage: test.stage, field: test.field, prepared: test.prepared, version: test.version || null, live };
-    if (!live) return { ...base, judged: false, why: `waiting for version ${test.version} to go live` };
+    if (!live) {
+      const waited = Math.floor((now - Date.parse(String(test.prepared).slice(0, 10))) / 86400000);
+      const stale = !test.submitted && waited > STALE_QUEUE_DAYS;
+      const why = test.submitted ? `queued ${String(test.prepared).slice(0, 10)}, submitted ${String(test.submitted).slice(0, 10)}; waiting for App Review`
+        : `queued ${String(test.prepared).slice(0, 10)}, not submitted after ${waited} days${stale ? ': STALE, read the app-release daily run evidence for this app and fix what stopped it' : '; the 09:05 app-release run ships it'}`;
+      return { ...base, judged: false, waited, stale, why };
+    }
     const firstRead = plusDays(live, STORE_DAYS + 1);
     if (!through || through < plusDays(live, STORE_DAYS)) return { ...base, firstRead, judged: false, why: `first read ${firstRead}` };
     const before = funnelTotals(days, discovery, plusDays(live, -STORE_DAYS), plusDays(live, -1));
@@ -981,7 +1033,7 @@ export function learnApp(profile, events, metrics, registry, now = Date.now(), p
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
   const lookups = metrics.filter(m => m.app === profile.id && m.source === 'itunes-lookup');
   return { app: profile.id, funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
-    listingTests: listingTestResults(profile.listingTests, days, discovery, lookups), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
+    listingTests: listingTestResults(profile.listingTests, days, discovery, lookups, now), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
 
@@ -1022,7 +1074,7 @@ function cmdLearn(root, args) {
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
     const s = r.stage;
     console.log(`  funnel ${s ? `${s.from} to ${s.to}: weakest ${s.stage} (${s.why}); tap-through ${s.judged ? pct(s.tapThrough) : 'n/a'}, conversion ${s.judged?.conversion ? pct(s.conversion) : `${s.judged ? pct(s.conversion) : 'n/a'} (too small to judge)`}; next: ${s.next.change}, live ${s.next.live}` : 'no discovery numbers yet'}`);
-    for (const t of r.listingTests) console.log(`  listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''}: ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
+    for (const t of r.listingTests) console.log(`  ${t.stale ? 'STALE ' : ''}listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''} (queued ${String(t.prepared).slice(0, 10)}): ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
     for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
   }
@@ -1247,7 +1299,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    youtube: () => cmdYoutube(root, args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();

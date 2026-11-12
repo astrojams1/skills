@@ -26,6 +26,9 @@
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
 //   node marketing.mjs youtube [--write]            one `youtube` snapshot per app from `shorts.mjs views` (public Shorts
 //                                                   only): shortsViews, publicShorts, scheduledShorts
+//   node marketing.mjs site-visits --sql | --rows FILE [--app ID] [--out PATH] [--write]   a business site's visits
+//                                                   and form leads per day (rows from the Neon connector's run_sql of
+//                                                   --sql) as one `site-visits` row in app-shorts' site-metrics.jsonl
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
@@ -88,7 +91,7 @@ export function leftOpenProblems(event) {
     if (autonomous && event.blocked_by === 'owner') problems.push('nothing waits on the owner since 2026-11-12: drop owner-only work (status skipped, dropped: true) and route around it');
     else if (!allowed.includes(event.blocked_by)) problems.push(`a ${event.status} action needs blocked_by, one of ${allowed.join(', ')}; anything else is fixed in this run`);
     if (!event.reason) problems.push(`a ${event.status} action needs a reason naming the blocker and each way tried`);
-    if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and schedule it into the next free slot');
+    if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and, once it passes the gate, make it public at once');
   }
   if (event.event === 'end') {
     if (!Array.isArray(event.left_open)) problems.push('end needs left_open: every issue still open, or [] when the run fixed everything');
@@ -603,6 +606,44 @@ function cmdYoutube(root, args) {
   const lines = youtubeSnapshots(registry, loadProfiles(root));
   if (args.write) lines.forEach(m => appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(m) + '\n'));
   console.log(JSON.stringify(lines, null, 1));
+}
+
+// ---- business site visits and leads (youtube-growth judges a business's Shorts on them) ----
+
+export const SITE_METRICS = '/Volumes/ssd/projects/app-shorts/site-metrics.jsonl';
+// SITE_VISITS_SQL is the Vegas Microworks aggregate, read with the Neon connector's run_sql on project
+// lucky-hat-15341181: visits per Pacific day from site_visits, and form leads per Pacific day from interest (row 1
+// is a deploy test). Counts only; no name, contact or path leaves the database.
+// Days before the counter's first row are left out: no row there means "not counted", never zero visits.
+export const SITE_VISITS_SQL = `with t as (select (now() at time zone 'America/Los_Angeles')::date as today),
+d as (select g::date as day from t, generate_series(greatest(t.today - 13, coalesce((select min(day) from site_visits), t.today)),
+  t.today, interval '1 day') as g)
+select to_char(d.day, 'YYYY-MM-DD') as day,
+  (select count(*) from site_visits v where v.day = d.day)::int as visits,
+  (select count(*) from interest i where i.id > 1 and (i.created_at at time zone 'America/Los_Angeles')::date = d.day)::int as leads
+from d order by 1`;
+
+// siteVisitsRow turns the query's rows into one `site-visits` metrics row ({ app, source, at, days: { date: { visits,
+// leads } } }), the shape youtube-growth's evaluate.mjs reads; the newest row wins each day, so today's partial count
+// is corrected by tomorrow's run.
+export function siteVisitsRow(app, rows, at = new Date().toISOString()) {
+  const list = Array.isArray(rows) ? rows : rows?.rows;
+  if (!Array.isArray(list) || !list.length) throw new Error('site-visits needs the query rows: a JSON array of { day, visits, leads }');
+  const days = {};
+  for (const r of list) {
+    const visits = Number(r.visits), leads = Number(r.leads);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(r.day)) || !Number.isInteger(visits) || visits < 0 || !Number.isInteger(leads) || leads < 0) throw new Error(`site-visits: bad row ${JSON.stringify(r)}`);
+    days[r.day] = { visits, leads };
+  }
+  return { at, app, source: 'site-visits', days };
+}
+
+function cmdSiteVisits(args) {
+  if (args.sql) return console.log(SITE_VISITS_SQL);
+  if (!args.rows || args.rows === true) throw new Error('Usage: marketing.mjs site-visits --sql | --rows FILE [--app vegas-microworks] [--out PATH] [--write]');
+  const row = siteVisitsRow(typeof args.app === 'string' ? args.app : 'vegas-microworks', JSON.parse(readFileSync(args.rows === '-' ? 0 : args.rows, 'utf8')));
+  if (args.write) appendFileSync(typeof args.out === 'string' ? args.out : SITE_METRICS, JSON.stringify(row) + '\n');
+  console.log(JSON.stringify(row));
 }
 
 // ---- App Store Connect (Mac only: the key never leaves 1Password and this process) ----
@@ -1258,7 +1299,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    youtube: () => cmdYoutube(root, args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();

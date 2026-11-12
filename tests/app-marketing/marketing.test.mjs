@@ -499,3 +499,16 @@ test('a queued listing test shows its queue date and is stale after 3 days unsub
   assert.equal(sent.stale, false);
   assert.match(sent.why, /submitted 2026-11-13/);
 });
+
+test('site-visits turns the Neon aggregate into the row youtube-growth reads', async () => {
+  const { siteVisitsRow, SITE_VISITS_SQL } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const { siteDays } = await import('../../skills/youtube-growth/scripts/evaluate.mjs');
+  const row = siteVisitsRow('vegas-microworks', [{ day: '2026-11-11', visits: '7', leads: 0 }, { day: '2026-11-12', visits: 3, leads: 1 }], '2026-11-12T23:00:00Z');
+  assert.deepEqual(row, { at: '2026-11-12T23:00:00Z', app: 'vegas-microworks', source: 'site-visits', days: { '2026-11-11': { visits: 7, leads: 0 }, '2026-11-12': { visits: 3, leads: 1 } } });
+  assert.deepEqual(Object.keys(siteDays([row])['vegas-microworks'].days), ['2026-11-11', '2026-11-12']);
+  assert.throws(() => siteVisitsRow('x', []), /query rows/);
+  assert.throws(() => siteVisitsRow('x', [{ day: 'today', visits: 1, leads: 0 }]), /bad row/);
+  assert.match(SITE_VISITS_SQL, /from site_visits/);
+  assert.match(SITE_VISITS_SQL, /from interest i where i.id > 1/);
+  assert.doesNotMatch(SITE_VISITS_SQL, /contact|name|problem|path/);
+});

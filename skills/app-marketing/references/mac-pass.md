@@ -59,7 +59,11 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
 1. **Measure.** `marketing.mjs public --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
-   public Shorts only. Never total the registry by hand. Run `evaluate.mjs` and read its decisions. Then
+   public Shorts only. Never total the registry by hand. Then the business sites: run the query from
+   `marketing.mjs site-visits --sql` with the Neon connector's `run_sql` on project `lucky-hat-15341181` (Vegas
+   Microworks; counts only), save the rows to a file and run `marketing.mjs site-visits --rows FILE --write`. It
+   appends one `site-visits` row to `/Volumes/ssd/projects/app-shorts/site-metrics.jsonl`, which `evaluate.mjs`
+   judges Vegas Microworks Shorts on. Run `evaluate.mjs` and read its decisions. Then
    `marketing.mjs learn --write` (SKILL.md, Learn).
 2. **Check the search phrase, then publish every scheduled Short.** The `search-phrase` item runs `shorts.mjs phrase <app>`
    for every live app and writes the result to the profile as `searchPhrase: { phrase, rank, checked }`. When no

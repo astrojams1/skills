@@ -19,7 +19,7 @@ Shorts registry and the ledger. Use what has moved downloads; a channel with no 
 | YouTube Shorts | The app's App Store search and browse first-time downloads in the 72 hours after a Short goes public, against the app's daily rate over the 7 days before. A download from the YouTube app (Detailed report referrer) counts too | One Short, or Shorts for the same app inside each other's 72 hours (a burst, at most a week) | Apple's data covers the whole window (two to three days after it closes) |
 | Search guides, site pages, directories | Web-referrer first-time downloads (Standard report source type). The Detailed report names the site (`ouro-apps.vercel.app`) when Apple shows the row | Each 4-week block, from 8 weeks after the app's first guide | The block is in Apple's data |
 | Pitch emails | Per approach: 30 first emails with no positive reply retire it. Per piece of coverage: web-referrer first-time downloads in the 7 days after it, or search and browse downloads against the 7 days before | One piece of coverage | Apple's data covers its 7 days |
-| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it; a change that rides a version is a `listingTests` entry ([the funnel](#the-app-store-funnel)) | One change | 8 days after it goes live |
+| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it; a change that needs a version is a `listingTests` entry and ships within a day ([the funnel](#the-app-store-funnel)) | One change | 8 days after it goes live |
 
 **An effect** is at least 2 more downloads than expected, and at least half again as many. For Shorts, one YouTube
 referrer download is enough.
@@ -41,8 +41,8 @@ discovery report cover (`funnelStage`).
 
 | Stage | The number | Reference | Weak when | Next change to try |
 |---|---|---|---|---|
-| Impressions | Impressions in the window | No published floor | Under 100 (too few to judge the rest), or both stages below are in range | Keywords: all 100 characters, no word the name or subtitle already carries; then category. Rides the next version |
-| Tap-through | App Store search and browse page views / impressions | 6 to 12% from search to the page ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 6%, judged from 100 impressions | Subtitle (search shows it beside the icon), then the first screenshot. Rides the next version |
+| Impressions | Impressions in the window | No published floor | Under 100 (too few to judge the rest), or both stages below are in range | Keywords: all 100 characters, no word the name or subtitle already carries; then category. Ships as a metadata-only version the next morning |
+| Tap-through | App Store search and browse page views / impressions | 6 to 12% from search to the page ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 6%, judged from 100 impressions | Subtitle (search shows it beside the icon), then the first screenshot. Ships as a metadata-only version the next morning |
 | Conversion | Search and browse first-time downloads / those page views | 8.56% US average, first-time downloads only ([AppTweak, 2025](https://www.apptweak.com/en/aso-blog/average-app-conversion-rate-per-category)); 25 to 27% ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 8.6%, judged from 20 page views | Promotional text, live today with `promo`; then the description opening and screenshot order |
 
 Impressions to downloads averages 3.6 to 3.8% (both sources); `learn` shows it for context. Read the sources again
@@ -61,15 +61,21 @@ before relying on a figure: they were checked on 2026-11-12.
   against the 7 before, from 8 days after it went live; a fuller read comes at 14.
 - **What changes today.** Promotional text is the only listing text that changes without a version, and it shows only
   on the product page. So only a conversion weakness gets a same-day change. Keywords, subtitle, description and
-  screenshots go into the app's store data (the file `app-release.config.json` names), merged, and ride the next
-  version. Nothing here submits.
+  screenshots go into the app's store data (the file `app-release.config.json` names), merged.
+- **A merged listing change ships now (owner, 2026-11-12).** Never leave one "for the next version" without a ship
+  path. Apple takes name, subtitle and keywords only with a new version and build. The app-release daily run (09:05
+  Pacific) sees store data that differs from the live listing and submits a metadata-only version with release on
+  approval (app-release `references/daily-review-run.md`, "A listing change ships"). Record the test with
+  `version: "next"`. `learn` shows each queued test with its queue date and flags it `STALE` after 3 days without
+  `submitted`; set `submitted` (a date) when `asc.mjs status` shows its version in review. A stale test is this
+  run's to fix: read that day's app-release evidence and close the gate it names.
 
 ## Open
 
 | Channel | Runner | How |
 |---|---|---|
 | YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, public the moment each passes review (never scheduled), with no posting cap. Judged as above; an app or format with 3 no-effect Shorts in a row is retired (`youtube-growth`). Shorts work: the Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, best 1,145) were followed by downloads and purchases while no other marketing ran, per the owner (James, 2026-11-12); start from that format |
-| App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords ride the next version; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
+| App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords and subtitle ship as a metadata-only version the morning after they merge; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
 | Featuring nominations | mac | Free, and indie apps are eligible. Three weeks' notice, for real updates only |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |
 | Review replies | mac | Factual and brief. They show on the product page |

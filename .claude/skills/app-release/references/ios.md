@@ -213,8 +213,11 @@ A scheduled run works every eligible app, not just the first, and takes each upd
 teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
 one, or a submission sent or with `UNRESOLVED_ISSUES`; an unsent `READY_FOR_REVIEW` draft is not, because `submit` reuses
 it), `deferred`,
-`no_product_change` or `candidate`. A candidate is only a list of files: read the diff and decide whether the shipped
-app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse.
+`no_product_change` or `candidate`. A `product` candidate is only a list of files: read the diff and decide whether
+the shipped app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse. A
+`listing` candidate has no product change, but its merged store data differs from the live name, subtitle, keywords,
+description or URLs. Apple takes those only with a new version and build, so the run ships it as a metadata-only
+version ([the daily review run](daily-review-run.md), "A listing change ships").
 
 Provenance is the build's `summary.json` from `ios-release.mjs archive`. A build without one (a cloud build) needs
 `<state>/provenance/<ascAppId>-<version>-<build>.json` with `commit` (full hash), `appleBuildId`, `evidence` and
