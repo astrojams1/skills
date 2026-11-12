@@ -3,7 +3,7 @@ name: vegas-microworks-marketing
 description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. Use when the Mac task runs or when asked to run the weekly Vegas Microworks marketing pass.
 internal: true
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Vegas Microworks marketing
@@ -56,6 +56,11 @@ goes out through the site's `api/outreach.js` from astrojams1; the routine never
 the Clean Streets account). The weekly Mac pass here keeps the site, tools and Shorts; it doesn't send outreach.
 
 ## Rules
+
+- **No gambling imagery, ever.** No slot machines, reels, jackpots, chips, cards, dice, roulette, casino floors,
+  neon-strip clichés or "bet/odds/win big" language, in any video, page, image, post or email. Vegas Microworks
+  sells to ordinary Las Vegas small businesses; show their real work (a counter, a booking book, an invoice), not
+  the Strip. The owner's standing rule, restated 2026-11-12 after a slot-machine Short was made anyway.
 
 **Run rules (James, 2026-11-10).**
 

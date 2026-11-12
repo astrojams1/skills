@@ -8,3 +8,5 @@ Append versions and lessons here. The shared activity ledger holds the record of
 |---|---|---|---|
 | 1.0.0 | 2026-11-10 | Move Node and worktree setup into the skill. Keep the marketing playbook in the site repo. | Keep the Mac task prompt to a pointer. |
 | 1.1.0 | 2026-11-11 | Point to the cloud outreach routine; the Mac pass no longer builds waves. | Outreach runs in the cloud so it doesn't depend on the Mac. |
+
+- 1.2.0 (2026-11-12): No gambling imagery in any Vegas Microworks material. The owner's standing rule was not written in this skill, and a slot-machine YouTube Short was made and scheduled; it was taken down before going live.
