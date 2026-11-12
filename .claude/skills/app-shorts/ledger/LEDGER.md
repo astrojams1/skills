@@ -36,3 +36,9 @@ app's repository; each run in the owner's activity ledger.
 - 2026-11-04: Chrome's `file_upload` only reads the session's folders; Studio's schedule time field ignores
   typing; the captions and thumbnail uploaders have hidden file inputs that take files without opening a picker.
 - 2026-11-04: Uploading an `.srt` that repeats burned-in captions shows the text twice for viewers with captions on.
+- 2026-11-12: Chrome's CDP screencast (`Page.startScreencast`) delivers frames at CSS pixels (390x844 for a 390-wide
+  viewport) whatever the device scale factor, so a cut built from it is a 2.8x upscale and reviewers call it soft. For a
+  web build, install the page clock (`page.clock.install`) and step it, taking a `page.screenshot` per frame: true 3x
+  frames (1170x2532), deterministic timing (Data Center dc-first-01).
+- 2026-11-12: An Apple Loop's name says nothing about gaps. Bedlam Synth Layers and Airy Vox Synth drop below -70 dB
+  for 50 ms windows; measure each loop with `astats` at 50 ms (`asetnsamples=2400`) before building a bed on it.
