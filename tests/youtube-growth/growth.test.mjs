@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -93,4 +93,11 @@ test('replyRequest builds plain short replies and refuses links, blanks and long
   assert.throws(() => replyRequest('p1', ' '), /--text/);
   assert.throws(() => replyRequest('p1', 'x'.repeat(301)), /300/);
   assert.throws(() => replyRequest(null, 'hello'), /--parent/);
+});
+
+test('unscheduleStatus makes a scheduled video private with no publish time and keeps its other settings', () => {
+  const status = { privacyStatus: 'private', publishAt: '2026-11-19T01:00:00Z', uploadStatus: 'processed',
+    selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube', publicStatsViewable: true };
+  assert.deepEqual(unscheduleStatus(status), { selfDeclaredMadeForKids: false, embeddable: true, license: 'youtube',
+    publicStatsViewable: true, privacyStatus: 'private' });
 });

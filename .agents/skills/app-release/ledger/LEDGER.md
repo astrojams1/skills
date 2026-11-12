@@ -4,6 +4,13 @@ Skill version **2.24.0**. This index preserves sanitized outcomes and lessons ac
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
 
+## Lessons incorporated into v2.25.0 (2026-11-11)
+
+- Removed the blanket "never name another app or trademark" rule. Name the service an app works with (Importron:
+  Function Health lab PDFs into Apple Health) in the description, screenshots, website and videos; follow the
+  Guideline 4.1(a) companion-app steps for doing it in the App Store listing. The ban hid what Importron is for,
+  and the Shorts pipeline carried it onto YouTube. The owner called it stupid and removed it.
+
 ## Lessons incorporated into v2.24.0 (2026-11-11)
 
 - Hanzi Cards reached its first App Store run with its listing's privacy, support and marketing URLs, and its in-app
