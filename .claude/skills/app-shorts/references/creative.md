@@ -23,6 +23,9 @@ scoreboards, slot machines, documentary parodies, phone mockups with step pills,
 lengths. The owner called all of them horrible. "Creative risk" means a fresh input and a fresh look inside the
 pattern that works, not a gimmick on top of the product.
 
+The Giraffe Stretch loop went up before its app was on sale, so its views could not become downloads. Learn its
+look, never its timing: only an app on sale gets a Short (`../SKILL.md`, Rules).
+
 Every plan names which best Short it learns from and how. Every reviewer pack includes frames from the three best
 Shorts as the reference: "is this at least as good as these?"
 
@@ -141,8 +144,8 @@ verdicts on past Shorts. If `rules` reports a missing source, fix it before the 
    look easy? Would they look it up?
 2. **The editor.** A short-form creative director: hook, pacing, type, colour, motion, sound design, originality.
    Is anything corny, templated or amateur?
-3. **The skeptic.** Truth, clarity and brand: is every claim real, does it say what the app is, can a viewer find it
-   from the search phrase, any pricing line, anything ugly or busy, anything that repeats an owner verdict? The
+3. **The skeptic.** Truth, clarity and brand: is every claim real, is the app on sale today (a "coming soon" Short
+   fails), does it say what the app is, can a viewer find it from the search phrase, any pricing line, anything ugly or busy, anything that repeats an owner verdict? The
    skeptic checks every rule in the pack, one by one, and names each breach with the rule's words.
 
 Each answers with scores on every line of the bar, the single weakest moment, and what to change. A Short that

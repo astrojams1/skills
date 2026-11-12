@@ -18,6 +18,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { onSale, profileFor } from '../../app-shorts/scripts/shorts.mjs';
 
 const DAY = 86400000;
 export const RULES = fileURLToPath(new URL('../assets/rules.json', import.meta.url));
@@ -106,7 +107,7 @@ export function latest(episode) {
   return { ...snap, age: (new Date(snap.at) - new Date(posted)) / DAY, reach: snap.engagedViews ?? snap.views ?? 0 };
 }
 
-export function evaluate(registry, rules, { now = new Date(), downloads = {} } = {}) {
+export function evaluate(registry, rules, { now = new Date(), downloads = {}, profiles = [] } = {}) {
   const live = registry.episodes.filter(e => PUBLIC.includes(e.status));
   const reads = live.map(e => ({ e, m: latest(e) })).filter(x => x.m && x.m.age >= rules.minAgeDays);
   const baseline = median(reads.map(x => x.m.reach));
@@ -181,10 +182,10 @@ export function evaluate(registry, rules, { now = new Date(), downloads = {} } =
     else actions.push({ kind: 'make-next-episode', app: s.app, format: s.format, provisional: true, why: `${s.episode}: ${n.detail}; downloads not judged yet` });
   }
 
-  // Apps the channel has not shown in a long time get a nudge, so the calendar does not starve them. A pulled or
-  // superseded Short does not count as shown.
+  // Apps the channel has not shown in a long time get a nudge, so the calendar does not starve them. A pulled,
+  // held or superseded Short does not count as shown. An app not on sale gets no Short, so no nudge (app-shorts).
   for (const [slug, app] of Object.entries(registry.apps ?? {})) {
-    if (app.active === false) continue;
+    if (app.active === false || !onSale(app, profileFor(profiles, slug))) continue;
     const last = registry.episodes.filter(e => e.app === slug && [...PUBLIC, 'scheduled'].includes(e.status)).map(e => e.publishAt ?? e.postedAt).filter(Boolean).sort().pop();
     const idle = last ? (now - new Date(last)) / DAY : Infinity;
     if (idle > rules.idleAppDays) actions.push({ kind: 'produce', app: slug, why: last ? `no live or scheduled Short for ${Math.floor(idle)} days` : 'no live or scheduled Short' });
@@ -207,5 +208,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const dir = option('--profiles', '/Volumes/ssd/code/app-sites/marketing/apps');
   const profiles = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).map(f => JSON.parse(readFileSync(join(dir, f), 'utf8'))) : [];
   const downloads = downloadsBySlug(readMetrics(option('--metrics', '/Volumes/ssd/code/app-sites/marketing/metrics.jsonl')), profiles);
-  console.log(JSON.stringify(evaluate(registry, rules, { now: new Date(option('--now', new Date().toISOString())), downloads }), null, 2));
+  console.log(JSON.stringify(evaluate(registry, rules, { now: new Date(option('--now', new Date().toISOString())), downloads, profiles }), null, 2));
 }

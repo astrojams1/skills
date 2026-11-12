@@ -21,7 +21,7 @@ numbers. Each line below is a starting point, not a script.
 - **Füd** (family food tracker, describe a meal): "Can Füd work out this meal?" Use relatable parent meals
   (crusts, leftovers, dinner for three) and comment-supplied meals. Live as series 1.
 - **Giraffe Stretch** (letter game for little learners): a 7–10 s calm loop per letter ("Calm and cute ABCs"),
-  the channel's best performer so far.
+  the channel's best performer so far. It was not on sale on 2026-11-12: no new Short until it is (`SKILL.md`, Rules).
 - **Pipsqueak** (speech and language practice for children): one-sound parent tips with the app modelling the sound;
   never imply therapy outcomes.
 - **Nametag** (badges for parent meetups): "Which badge would you wear?" (a quick build, with the choice asked in
@@ -35,6 +35,7 @@ numbers. Each line below is a starting point, not a script.
 
 ## Rules
 
+- **Only for apps on sale.** A seed for an app not on sale waits; there is no "coming soon" format.
 - **One idea per Short, 10–20 seconds**, with the hook on screen in the first second.
 - **Show what the product can do.** Staged, scripted and edited footage is fine; a feature it doesn't have is not.
 - **Vary the input, keep the shape:** that is what makes a series rather than "repetitious content" (see

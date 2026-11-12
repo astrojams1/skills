@@ -29,8 +29,21 @@ App Store, so every Short gives a phrase that is known to find it (James, 2026-1
 4. **Put the app's name early in the title** when it fits the searcher's words. The player shows about the first 40
    characters over the Short.
 
-An app not on sale yet says "coming to the App Store" instead, and needs no phrase. A plain-text App Store link may
-follow lower in the description for desktop viewers, never in place of the phrase.
+A plain-text App Store link may follow lower in the description for desktop viewers, never in place of the phrase.
+
+## Only for apps on sale
+
+A Short is posted or scheduled only for an app on sale: its marketing profile's stage is `live`, or its `preorder`
+names a live pre-order page (`SKILL.md`, Rules). There is no "coming soon" Short. `yt-api.mjs upload`, and `update
+--publish-at`, refuse an app not on sale, and `shorts.mjs phrase` gives it no phrase.
+
+- **A Short already scheduled for one is held.** `shorts.mjs due` lists it under `hold`. Run `yt-api.mjs unschedule
+  --episode ID --hold --confirm` (add `--live` if it already went public). The video stays on the channel, private,
+  with no publish time, and the registry marks it `held`, keeping `wasPublishAt`.
+- **When the app goes live,** `due` lists the held Short under `recheck`. Judge it as a new Short: the rules in force
+  that day, the reviewer panel, the phrase on screen and in the first line. A held Short that says "coming soon"
+  fails. Remake it, or set its new time with `yt-api.mjs update --episode ID --publish-at T --confirm`, which checks
+  the app is on sale and the phrase leads the description, then marks it `scheduled`.
 
 ## Through the YouTube Data API (the default)
 

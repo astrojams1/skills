@@ -16,15 +16,19 @@
 //   node yt-api.mjs unanswered [--registry PATH]  comments on live Shorts the channel has not answered, as JSON
 //   node yt-api.mjs reply --parent ID --text T [--confirm]   reply to a top-level comment; refuses a thread already answered
 //   node yt-api.mjs upload --episode ID [--confirm]   upload a registry episode (public, or scheduled at its publishAt);
-//                                               refuses one with no search phrase on its description's first line
+//                                               refuses one for an app not on sale, or with no search phrase on its
+//                                               description's first line
 //   node yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] [--description-file F [--search-phrase P]]
 //                                               [--confirm]   change a posted or scheduled Short's publish time, set it
 //                                               "not made for kids", or replace its description (whose first line must
 //                                               give the search phrase), keeping its other settings; the registry
-//                                               follows and keeps the old description as wasDescription
-//   node yt-api.mjs unschedule --episode ID [--live] [--confirm]   cancel a scheduled episode (or, with --live, take a
-//                                               live one down): the video stays on the channel, private with no publish
-//                                               time, and the registry marks it "pulled"
+//                                               follows and keeps the old description as wasDescription. A publish
+//                                               time is refused for an app not on sale, and gives a held Short back
+//                                               its "scheduled" status once it passes the same checks as an upload
+//   node yt-api.mjs unschedule --episode ID [--live] [--hold] [--confirm]   cancel a scheduled episode (or, with --live,
+//                                               take a live one down): the video stays on the channel, private with no
+//                                               publish time, and the registry marks it "pulled", or "held" with
+//                                               --hold (made for an app not on sale; it waits until the app is)
 //
 // Scopes: youtube.readonly and yt-analytics.readonly (analytics needs both), youtube.force-ssl (comments) and
 // youtube.upload. Since 2026-11-02 uploads from unaudited API projects are no longer forced private. "Related
@@ -214,6 +218,14 @@ export function unscheduleStatus(status) {
   return { ...kept, privacyStatus: 'private' };
 }
 
+// The registry fields for an episode taken off the schedule: "pulled", or "held" when it waits for its app to go on
+// sale. Its old publish time and status are kept, the first ones only, so a second call loses nothing.
+export function heldOrPulled(episode, { hold = false, reason = null, now = new Date() } = {}) {
+  const at = hold ? 'heldAt' : 'pulledAt';
+  return { status: hold ? 'held' : 'pulled', [at]: episode[at] ?? now.toISOString(), wasPublishAt: episode.wasPublishAt ?? episode.publishAt ?? null,
+    wasStatus: episode.wasStatus ?? episode.status, publishAt: null, ...(reason ? { [hold ? 'heldReason' : 'pulledReason']: reason } : {}) };
+}
+
 // The status for a video whose publish time or audience changes, every other field kept.
 export function updatedStatus(status, { publishAt, notForKids } = {}) {
   const { uploadStatus, failureReason, rejectionReason, madeForKids, ...kept } = status ?? {};
@@ -322,7 +334,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode) throw new Error(`No episode "${id}" in the registry`);
       if (episode.videoId) throw new Error(`${id} is already on YouTube (${episode.videoId})`);
-      const refused = findable({ ...episode, status: 'scheduled' }, { profile: profileFor(loadProfiles(), episode.app) });
+      const refused = findable({ ...episode, status: 'scheduled' }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
       if (refused) throw new Error(refused);
       const request = uploadRequest(episode);
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
@@ -339,9 +351,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
       if (!publishAt && !notForKids && !descriptionFile) throw new Error('Nothing to change: pass --publish-at, --not-for-kids and/or --description-file');
       const description = descriptionFile ? readFileSync(descriptionFile, 'utf8').replace(/\s+$/, '') : null;
-      if (description) {
-        const refused = findable({ ...episode, description, searchPhrase: searchPhrase ?? episode.searchPhrase, status: 'scheduled', legacy: false },
-          { profile: profileFor(loadProfiles(), episode.app) });
+      // A new description must give the phrase; a new publish time must also be for an app on sale (a held Short
+      // goes out only after these checks and a fresh review against the current rules).
+      if (description || publishAt) {
+        const refused = findable({ ...episode, description: description ?? episode.description, searchPhrase: searchPhrase ?? episode.searchPhrase,
+          status: 'scheduled', legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
         if (refused) throw new Error(refused);
       }
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt, notForKids, searchPhrase, description })); process.exit(0); }
@@ -356,20 +370,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         result.description = changed;
       }
       if (publishAt) episode.publishAt = new Date(publishAt).toISOString().replace('.000Z', 'Z');
+      if (publishAt && episode.status === 'held') episode.status = 'scheduled';
       if (notForKids) episode.madeForKids = false;
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
     } else if (command === 'unschedule') {
-      const id = option('--episode', null), confirm = args.includes('--confirm'), reason = option('--reason', null), live = args.includes('--live');
+      const id = option('--episode', null), confirm = args.includes('--confirm'), reason = option('--reason', null), live = args.includes('--live'), hold = args.includes('--hold');
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const episode = registry.episodes.find(e => e.id === id);
       if (!episode) throw new Error(`No episode "${id}" in the registry`);
       if (!episode.videoId) throw new Error(`${id} has no video on YouTube`);
-      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt: episode.publishAt })); process.exit(0); }
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, publishAt: episode.publishAt, becomes: hold ? 'held' : 'pulled' })); process.exit(0); }
       const result = await unschedule(await accessToken(), episode.videoId, { live });
-      Object.assign(episode, { status: 'pulled', pulledAt: episode.pulledAt ?? new Date().toISOString(),
-        wasPublishAt: episode.wasPublishAt ?? episode.publishAt, wasStatus: episode.wasStatus ?? episode.status, publishAt: null,
-        ...(reason ? { pulledReason: reason } : {}) });
+      Object.assign(episode, heldOrPulled(episode, { hold, reason }));
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
     } else if (command === 'show') {
