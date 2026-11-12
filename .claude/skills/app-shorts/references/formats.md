@@ -40,5 +40,4 @@ numbers. Each line below is a starting point, not a script.
 - **Vary the input, keep the shape:** that is what makes a series rather than "repetitious content" (see
   `youtube-growth/references/policy.md`).
 - **Kids appear only as app users' names or emoji,** never as filmed children. Most formats speak to parents
-  and are general audience; a calm alphabet loop for toddlers may be made for kids (which turns comments off).
-  Decide truthfully per Short (`youtube-growth/references/policy.md`).
+  and players. Every Short is set "not made for kids" (`youtube-growth/references/policy.md`).

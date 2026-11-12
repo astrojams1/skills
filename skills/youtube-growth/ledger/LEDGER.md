@@ -14,6 +14,7 @@ app-shorts registry; each run goes in the owner's activity ledger.
 | 1.3.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. The run rules block applies when a scheduled pass runs this skill | The owner asked that every skill read as one author wrote it, plainly |
 | 1.4.0 | 2026-11-11 | `yt-api.mjs unschedule --episode ID [--reason R] --confirm`: takes a scheduled Short back to private with no publish time, keeps its other status fields, and marks the episode `pulled` with the old time. | The owner rejected Shorts already scheduled; there was no way to take one back. |
 | 1.5.0 | 2026-11-11 | `unschedule --live` takes a live Short down to private; every unschedule reads the video back and fails unless it is private with no publish time; a second run keeps the first run's saved time. | The update response for fud-cereal echoed the old publish time, and a retry overwrote the saved time. |
+| 1.6.0 | 2026-11-12 | `yt-api.mjs update --episode ID [--publish-at T] [--not-for-kids] --confirm` changes a Short's publish time or audience, keeping its other settings. Every Short is "not made for kids". | Three Giraffe loops had been uploaded as made for kids and spread one a day; the owner wants comments on and no posting cap. |
 
 ## Experiments
 

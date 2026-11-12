@@ -56,8 +56,7 @@ relying on it for a decision, and date what you find in the ledger.
 - **Altered or synthetic content.** For realistic content a viewer could
   mistake for real people, places or events. Clearly animated or
   motion-graphic work does not need it.
-- **Made for kids.** Answer truthfully; a "yes" turns off comments and
-  personalised features.
+- **Made for kids: always "No"** (owner's rule); a "yes" turns off comments and personalised features.
 
 ## After it is up
 

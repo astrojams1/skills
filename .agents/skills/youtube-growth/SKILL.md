@@ -2,7 +2,7 @@
 name: youtube-growth
 description: Follow up on every Short the owner posts and grow the channel: read metrics at 3, 7 and 28 days, decide per format whether to double down, iterate or retire, turn comments into episodes, and stay clear of YouTube's spam and inauthentic-content policies. Use when the owner asks how the Shorts or the channel are doing, how to get more views or subscribers, or about YouTube analytics; when app-shorts' `due` lists reads or go-lives; weekly for the channel review; and to connect the YouTube APIs.
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -97,7 +97,7 @@ When a scheduled pass runs this skill (the weekly review, or the `app-marketing`
 ## Gotchas
 
 - **Analytics lag 48–72 hours.** A day-1 read is a sanity check of public counts only.
-- **Made-for-kids Shorts lose comments,** and with them the comment-driven loop. Decide it truthfully per Short.
+- **Every Short is "not made for kids"** (owner's rule); "made for kids" would turn comments off.
 
 ## Ledger
 

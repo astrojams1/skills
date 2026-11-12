@@ -40,10 +40,10 @@ whenever a Short adds realistic generated imagery or voice. API: `status.contain
 
 ## Made for kids
 
-A video is made for kids when children are its primary audience, or one of its audiences, judged by subject,
-characters, music and style. A Short aimed at parents (a parent's lunch, logging dinner for the family) is general
-audience. A calm alphabet loop for toddlers may well be made for kids. Decide truthfully per Short: answering
-"made for kids" turns off comments and Test & Compare. (support.google.com/youtube/answer/9528076)
+Set every Short "not made for kids" (`selfDeclaredMadeForKids: false`): the owner's rule, 2026-11-12, because "made
+for kids" turns off comments and Test & Compare. Pitch each Short to parents and players (titles, hashtags such as
+#parenting, descriptions). YouTube may override the setting on its own review; if it does, record it in the
+ledger. (support.google.com/youtube/answer/9528076)
 
 ## One channel or several
 

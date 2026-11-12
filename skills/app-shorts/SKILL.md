@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.5.0"
+  version: "2.6.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -75,8 +75,8 @@ Repository rules and approval holds outrank this skill.
    first line names the app, what it does and the service it works with; three hashtags; a JPEG cover made for the
    cover, not a frame grab; the pinned comment. No stock lines ("Search '<App>' on the App Store") unless the idea
    calls for them.
-7. **Post after the rounds, without asking.** There is no fixed calendar. Post a Short when it clears the bar, at most one a day on
-   the channel, at the hour `youtube-growth` reports the audience is most active. `record` the episode with
+7. **Post after the rounds, without asking.** There is no fixed calendar. Post every Short as soon as it is ready, as many a day as
+   are ready, at the hour `youtube-growth` reports the audience is most active. `record` the episode with
    `videoId`, `status` and `postedAt` or `publishAt` immediately, and add its row to `ledger/experiments.md`.
 8. **Hand over to `youtube-growth`.** It reads metrics at 3, 7 and 28 days, pins comments once a Short is live, and
    decides what the next episode changes.
@@ -92,8 +92,8 @@ Repository rules and approval holds outrank this skill.
 - **Show what the product can do.** Staged, scripted, edited and composited footage is fine. Don't show a feature
   it doesn't have.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
-- **Parents are the audience, not children.** Mark Shorts "not made for kids" unless the video really is for
-  children. Never film children.
+- **Always "not made for kids".** The owner's rule (2026-11-12): "made for kids" turns comments off. Pitch every
+  Short to parents and players. Never film children.
 - **Vary the inputs, keep the shape.** A series of real, different moments is a series. The same clip re-cut with new
   captions is the "inauthentic, mass-produced" content YouTube demonetises and buries (`youtube-growth`,
   `references/policy.md`).
