@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, onSale, views, searchRank, phrase, section, rules } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, onSale, titleNamesApp, views, searchRank, phrase, section, rules } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -262,4 +262,36 @@ test('the real rule sources load for Vegas Microworks', () => {
   const vm = rules('vegas-microworks', { profiles: [] });
   assert.match(vm.text, /No gambling imagery, ever/);
   assert.match(vm.text, /What he rejected/);
+});
+
+test('a made Short\'s title names the app within the 40 characters the player shows', () => {
+  assert.equal(titleNamesApp('Function Health lab results in Apple Health, on your iPhone | Importron', 'Importron'), false);
+  assert.equal(titleNamesApp('Importron: Function Health labs in Apple Health', 'Importron'), true);
+  assert.equal(titleNamesApp('Build the data center that trains an AI. Then 9 protesters show up. | Data Center: AI Frontier', 'Data Center: AI Frontier'), false);
+  assert.equal(titleNamesApp('Data Center: AI Frontier, 9 protesters arrive', 'Data Center: AI Frontier'), true);
+  assert.equal(titleNamesApp('Space Worms: 1 tiny worm vs 3 giants', ['Space Worms: Swarm', 'Space Worms']), true, 'the verified search phrase names the app too');
+  assert.equal(titleNamesApp('Space Worms: 1 tiny worm vs 3 giants', 'Space Worms: Swarm'), false);
+  const profile = { name: 'Importron', stage: 'live', searchPhrase: { phrase: 'Importron health' } };
+  const base = { id: 'i', app: 'importron', status: 'scheduled', searchPhrase: 'Importron health', description: "Importron. Search 'Importron health' on the App Store." };
+  assert.match(findable({ ...base, title: 'Function Health lab results in Apple Health | Importron' }, { profile }), /first 40 characters/);
+  assert.equal(findable({ ...base, title: 'Importron: Function Health labs in Apple Health' }, { profile }), null);
+  assert.equal(findable({ ...base, legacy: true, status: 'live', title: 'No app name in this title at all, not one' }, { profile }), null);
+});
+
+test('phrase waits out a rate limit and records a refused query instead of stopping', async () => {
+  const registry = emptyRegistry();
+  registry.apps = { dc: { name: 'Data Center', ascAppId: '6827325155' } };
+  let calls = 0;
+  const fetcher = async url => {
+    if (url.includes('itunes.apple.com')) return { ok: true, json: async () => ({ results: [{ trackName: 'Data Center: AI Frontier' }] }) };
+    calls += 1;
+    if (url.includes('term=Data%20Center%3A%20AI%20Frontier')) return calls < 2 ? { ok: false, status: 429 } : { ok: true, text: async () => '<a href="/us/app/x/id6827325155">' };
+    return { ok: false, status: 429 };
+  };
+  const got = await phrase(registry, 'dc', { fetcher, waits: [0], sleep: async () => {} });
+  assert.equal(got.phrase, 'Data Center: AI Frontier');
+  assert.equal(got.rank, 1);
+  const none = await phrase(registry, 'dc', { fetcher: async url => url.includes('itunes') ? { ok: true, json: async () => ({ results: [] }) } : { ok: false, status: 429 }, waits: [0], sleep: async () => {} });
+  assert.equal(none.rank, null);
+  assert.match(none.checked[0].error, /429/);
 });

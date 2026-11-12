@@ -195,3 +195,11 @@ test('updatedSnippet replaces the description and sends the title, category, tag
   assert.deepEqual(updatedSnippet(snippet, { description: 'new' }), { title: 'T', categoryId: '28', description: 'new', tags: ['a'], defaultLanguage: 'en', defaultAudioLanguage: 'en' });
   assert.throws(() => updatedSnippet({ description: 'x' }, { description: 'y' }), /title or category/);
 });
+
+test('updatedSnippet can replace the title, keep the description, and refuses an empty or over-long title', () => {
+  const snippet = { title: 'Old', categoryId: '28', description: 'keep', tags: ['a'] };
+  assert.deepEqual(updatedSnippet(snippet, { title: 'New' }), { title: 'New', categoryId: '28', description: 'keep', tags: ['a'] });
+  assert.deepEqual(updatedSnippet(snippet, { title: 'New', description: 'd' }), { title: 'New', categoryId: '28', description: 'd', tags: ['a'] });
+  assert.throws(() => updatedSnippet(snippet, { title: ' ' }), /1 to 100/);
+  assert.throws(() => updatedSnippet(snippet, { title: 'x'.repeat(101) }), /1 to 100/);
+});
