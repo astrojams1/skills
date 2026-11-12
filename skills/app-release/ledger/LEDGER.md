@@ -16,6 +16,7 @@ Dates describe observations, not guarantees that provider state remains unchange
 - `status` now prints what to do under a rejected Kids Category version (`kidsRejectionAdvice`, unit-tested), and
   `submit` warns after a Kids Category submission that the request may still come. `app-types.md` and `ios.md` no
   longer say the notes prevent it. Consumers only bump the submodule.
+
 ## Lessons incorporated into v2.25.0 (2026-11-11)
 
 - Removed the blanket "never name another app or trademark" rule. Name the service an app works with (Importron:
