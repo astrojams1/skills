@@ -82,7 +82,10 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
 5. **Other repositories.** Work there follows that repository's `AGENTS.md`, on its own branch, with a PR. Store listing
    text and data are this skill's call: decide and merge them, never leave a draft for the owner. Merge a PR this
    skill opened once the repository's checks pass and its rules hold nothing back. Never submit, release, change a
-   price or change the app itself. Log a store text change with `changed`, so Learn can judge it.
+   price or change the app itself. Log a store text change with `changed`, so Learn can judge it. A merged name,
+   subtitle, keyword or description change needs no release of its own: app-release's daily run ships it the next
+   morning as a metadata-only version. When `asc.mjs status` shows that version in review, set the test's
+   `submitted` date. A `STALE` test from `learn` is a gap to close in this run.
 6. **Directories.** Work every `directories` item as in [channels](channels.md), "Directories and review sites",
    in Claude in Chrome. Never sign in; a form that needs an account is skipped.
 7. **Ship and end the core stage.** `marketing.mjs board` (it also writes `marketing/show-hn.txt` and the Mac's copy

@@ -121,7 +121,9 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    - **The funnel:** one line per app names the weakest stage (impressions, tap-through or conversion) and the next
      listing change. `--write` puts that change in the backlog at impact 5. Read
      [the funnel](references/channels.md#the-app-store-funnel) before changing a listing: one change per stage,
-     recorded in `listingTests` with its before snapshot.
+     recorded in `listingTests` with its before snapshot. A merged listing change ships the next morning as a
+     metadata-only version through app-release's daily run, never "with the next release". `learn` lists each queued
+     test with its queue date and marks it `STALE` after 3 days unsubmitted: fix what stopped it in this run.
    - **Pitch emails:** run `marketing.mjs pitches --write` first. Each piece of coverage is judged on downloads in the
      week after it. A pitch approach with 30 sent and no positive reply is retired.
    - **The kill rule:** three mature results in a row with no download effect stop that work for that app.

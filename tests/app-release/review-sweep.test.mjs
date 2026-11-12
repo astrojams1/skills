@@ -4,7 +4,7 @@ import { mkdtempSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { archiveProvenance, claim, finish, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
+import { archiveProvenance, claim, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
 import { liveVersion, occupancy, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
 const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
@@ -124,3 +124,18 @@ for (const command of ['release', 'withdraw', 'pricing']) {
     assert.match(result.stderr, /refused in an unattended run/);
   });
 }
+
+test('a merged subtitle or keyword change is a reason to ship; promotional text and release notes are not', () => {
+  const live = { name: 'Space Worms: Swarm', subtitle: 'Grow, boost, survive the swarm', keywords: 'worm,io', promotionalText: 'Old', whatsNew: 'Old notes' };
+  assert.deepEqual(listingChanges({ ...live, subtitle: 'Multiplayer worm game, no ads', keywords: 'io,arena' }, live), ['subtitle', 'keywords']);
+  assert.deepEqual(listingChanges({ ...live, promotionalText: 'New', whatsNew: 'New notes' }, live), []);
+  assert.deepEqual(listingChanges({ ...live, subtitle: ' Grow, boost, survive the swarm ' }, live), []);
+  assert.deepEqual(listingChanges({ subtitle: '' }, live), [], 'an empty field in store data is not a change');
+});
+
+test('the live App Info is the one the storefront shows, not the draft', () => {
+  const info = (id, state) => ({ id, attributes: { state } });
+  assert.equal(liveAppInfo([info('draft', 'PREPARE_FOR_SUBMISSION'), info('live', 'READY_FOR_DISTRIBUTION')]).id, 'live');
+  assert.equal(liveAppInfo([{ id: 'old', attributes: { appStoreState: 'READY_FOR_SALE' } }]).id, 'old');
+  assert.equal(liveAppInfo([info('a', 'PREPARE_FOR_SUBMISSION'), info('b', 'WAITING_FOR_REVIEW')]), null);
+});

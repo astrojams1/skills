@@ -930,15 +930,26 @@ function liveDate(test, lookups) {
   return seen ? seen.at.slice(0, 10) : null;
 }
 
+// STALE_QUEUE_DAYS is how long a merged listing change may wait unsubmitted. The daily app-release run ships one by
+// itself (app-release references/daily-review-run.md, "A listing change ships"), so an older one means that run failed.
+export const STALE_QUEUE_DAYS = 3;
+
 // listingTestResults reads each listing test in the profile's `listingTests` on its own stage: the 7 days after it
 // went live against the 7 before, readable from 8 days after (14 for a fuller read). An effect is the stage's count
-// lifting by the shared rule: at least 2 more and half again as many, at a better rate.
-export function listingTestResults(tests = [], days, discovery, lookups = []) {
+// lifting by the shared rule: at least 2 more and half again as many, at a better rate. A test not yet live shows the
+// date it was queued, and is `stale` once it has waited more than STALE_QUEUE_DAYS without a `submitted` date.
+export function listingTestResults(tests = [], days, discovery, lookups = [], now = Date.now()) {
   const all = [...Object.keys(days), ...Object.keys(discovery)].sort(), through = all[all.length - 1];
   return tests.map(test => {
     const live = liveDate(test, lookups);
     const base = { stage: test.stage, field: test.field, prepared: test.prepared, version: test.version || null, live };
-    if (!live) return { ...base, judged: false, why: `waiting for version ${test.version} to go live` };
+    if (!live) {
+      const waited = Math.floor((now - Date.parse(String(test.prepared).slice(0, 10))) / 86400000);
+      const stale = !test.submitted && waited > STALE_QUEUE_DAYS;
+      const why = test.submitted ? `queued ${String(test.prepared).slice(0, 10)}, submitted ${String(test.submitted).slice(0, 10)}; waiting for App Review`
+        : `queued ${String(test.prepared).slice(0, 10)}, not submitted after ${waited} days${stale ? ': STALE, read the app-release daily run evidence for this app and fix what stopped it' : '; the 09:05 app-release run ships it'}`;
+      return { ...base, judged: false, waited, stale, why };
+    }
     const firstRead = plusDays(live, STORE_DAYS + 1);
     if (!through || through < plusDays(live, STORE_DAYS)) return { ...base, firstRead, judged: false, why: `first read ${firstRead}` };
     const before = funnelTotals(days, discovery, plusDays(live, -STORE_DAYS), plusDays(live, -1));
@@ -981,7 +992,7 @@ export function learnApp(profile, events, metrics, registry, now = Date.now(), p
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
   const lookups = metrics.filter(m => m.app === profile.id && m.source === 'itunes-lookup');
   return { app: profile.id, funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
-    listingTests: listingTestResults(profile.listingTests, days, discovery, lookups), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
+    listingTests: listingTestResults(profile.listingTests, days, discovery, lookups, now), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
 
@@ -1022,7 +1033,7 @@ function cmdLearn(root, args) {
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
     const s = r.stage;
     console.log(`  funnel ${s ? `${s.from} to ${s.to}: weakest ${s.stage} (${s.why}); tap-through ${s.judged ? pct(s.tapThrough) : 'n/a'}, conversion ${s.judged?.conversion ? pct(s.conversion) : `${s.judged ? pct(s.conversion) : 'n/a'} (too small to judge)`}; next: ${s.next.change}, live ${s.next.live}` : 'no discovery numbers yet'}`);
-    for (const t of r.listingTests) console.log(`  listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''}: ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
+    for (const t of r.listingTests) console.log(`  ${t.stale ? 'STALE ' : ''}listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''} (queued ${String(t.prepared).slice(0, 10)}): ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
     for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
   }

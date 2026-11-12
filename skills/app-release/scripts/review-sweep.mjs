@@ -50,6 +50,25 @@ export function splitPaths(paths, projectDir) {
   return { product, other };
 }
 
+// Store text Apple takes only with a new version: name and subtitle on the App Info, keywords, description and URLs
+// on the version. Promotional text changes any time and `whatsNew` belongs to each version, so neither ships an app.
+const INFO_FIELDS = ['name', 'subtitle'];
+const VERSION_FIELDS = ['keywords', 'description', 'supportUrl', 'marketingUrl'];
+export const LISTING_FIELDS = [...INFO_FIELDS, ...VERSION_FIELDS];
+
+// listingChanges names each version-bound field the merged store data sets to something other than what is live.
+// A merged listing change is a reason to ship by itself (references/daily-review-run.md, "A listing change ships").
+export function listingChanges(wanted, live) {
+  const text = value => typeof value === 'string' ? value.trim() : '';
+  return LISTING_FIELDS.filter(field => text(wanted?.[field]) && text(wanted[field]) !== text(live?.[field]));
+}
+
+// liveAppInfo picks the App Info the storefront shows; a draft version adds a second, editable one.
+export function liveAppInfo(infos) {
+  const state = info => info.attributes.state || info.attributes.appStoreState;
+  return infos.find(info => ['READY_FOR_DISTRIBUTION', 'READY_FOR_SALE'].includes(state(info))) || (infos.length === 1 ? infos[0] : null);
+}
+
 // archiveProvenance accepts an `ios-release.mjs archive` summary only when it is exactly this build from a clean tree.
 export function archiveProvenance(summary, expected) {
   if (!summary) return { problem: 'no archive summary' };
@@ -220,8 +239,32 @@ async function classify(api, app, team, index, stateRoot) {
   const diff = changes(repo, provenance.commit, row.head);
   if (diff.problem) return { ...row, status: 'deferred', reason: diff.problem };
   row.changes = { productFiles: diff.product.length, otherFiles: diff.otherCount, sample: diff.product.slice(0, 30), commits: diff.commits };
-  if (!diff.product.length) return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) };
-  return { ...row, status: 'candidate', reason: diff.product.length + ' product files changed; read the diff before treating it as material', dedupeKey: live.attributes.versionString + '-' + row.head.slice(0, 12) };
+  row.listing = await pendingListing(api, app, live, repo, row.head);
+  const dedupeKey = live.attributes.versionString + '-' + row.head.slice(0, 12);
+  if (diff.product.length) return { ...row, status: 'candidate', kind: 'product', reason: diff.product.length + ' product files changed; read the diff before treating it as material', dedupeKey };
+  if (row.listing.fields?.length) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + row.listing.fields.join(', ') + '); ship it as a metadata-only version', dedupeKey };
+  if (row.listing.problem) return { ...row, status: 'deferred', reason: 'no product change, and the listing could not be compared: ' + row.listing.problem };
+  return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' };
+}
+
+// pendingListing compares the store data on the release branch with the live App Info and version texts. A failure
+// here is reported, never read as "nothing to ship".
+async function pendingListing(api, app, live, repo, head) {
+  try {
+    const raw = repo.config.storeData && git(repo.dir, 'show', head + ':' + repo.config.storeData);
+    if (!raw) return { problem: 'no store data at ' + (repo.config.storeData || '(storeData unset)') };
+    const wanted = JSON.parse(raw).listing || {};
+    const locale = wanted.locale || 'en-US';
+    const info = liveAppInfo(await api.all('/v1/apps/' + app.id + '/appInfos'));
+    if (!info) return { problem: 'no live App Info' };
+    const infoText = (await api.all('/v1/appInfos/' + info.id + '/appInfoLocalizations')).find(item => item.attributes.locale === locale);
+    const versionText = (await api.all('/v1/appStoreVersions/' + live.id + '/appStoreVersionLocalizations')).find(item => item.attributes.locale === locale);
+    if (!infoText || !versionText) return { problem: 'no live ' + locale + ' localization' };
+    const fields = listingChanges(wanted, { ...versionText.attributes, ...infoText.attributes });
+    return { locale, fields, wanted: Object.fromEntries(fields.map(field => [field, wanted[field]])) };
+  } catch (error) {
+    return { problem: error.message };
+  }
 }
 
 async function sweep(options) {
