@@ -17,6 +17,8 @@ and **Open issues** before every run.
 | 0.4.0 | 2026-11-03 | "Make it worth watching" (hook, payoff number, 10–15 s, sound, series, rehearse inputs); `soundtrack.mjs`; app-preview.swift `zoom`/`focus`/per-clip `move`, caption overrides, `box`, `pop`. | The owner judged the 0.3.0 Short (a silent 29 s tour) would get no engagement; the skill had covered framing, not whether anyone would watch. |
 | 0.5.0 | 2026-11-04 | `soundtrack.mjs` varies its bed from a seed (tempo, key, progression, pattern, feel) and prints the signature; points to the new app-shorts and youtube-growth skills. | Research: the spam policy names identical background music across many videos; the owner asked for a pipeline for every app and a follow-up skill. |
 | 0.6.0 | 2026-11-10 | Rewritten in the house style from `skill-writing`; no behavior change. "Workflow" is now "A run" and comes before the craft sections | The owner asked that every skill read as one author wrote it, plainly |
+| 0.7.0 | 2026-11-11 | Say what the product is, by name of what it works with, within three seconds. | Importron's Short never said Function Health or Apple Health. |
+| 1.0.0 | 2026-11-11 | `legibility.swift`: Vision finds every caption word and fails any under 4.5:1 contrast. `soundtrack.mjs` refuses its synth music (effects only). "Make it worth watching" points to `app-shorts/references/creative.md` instead of prescribing one template. | Captions were the colour of their backgrounds (Füd's purple \"248\" at 1.9:1 on lavender, Space Worms' \"lasted\" at 1.1:1), and the owner rejected the synth bed and the shared look. |
 
 ## Measurements
 
