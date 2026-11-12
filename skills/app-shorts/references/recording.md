@@ -1,7 +1,9 @@
 # Recording an app for a Short
 
-Every episode is a fresh, real recording of the shipped (or about-to-ship) app doing the thing the episode is about.
-No mock-ups, no faked results: the number on screen is the number the app returned in that take.
+Get the footage the idea needs, however is fastest: the shipped build, a dev build, a developer arena or debug
+mode, a scripted or staged scenario, seeded data, reused takes from earlier Shorts, composites, speed ramps and edits.
+There is no rule that a moment must happen unscripted in a normal round. The owner (2026-11-12): kill the guardrails on how footage is made. The one line: don't
+show the product doing something it can't do (a feature it doesn't have). Use synthetic data, never real people's.
 
 ## The rig (iOS simulator)
 
@@ -29,7 +31,7 @@ The iOS Simulator tool refuses scheduled (unattended) sessions, so step 5 fails 
 blocked route, not a blocked Short. Try these, in order, before deferring, and name each one tried in the event:
 
 1. **A web build, if the app has one.** Space Worms records its real 1.0.1 game from the web export in headless
-   Chromium (sw-challenge-02, 2026-11-10). Same rules: the shipped build, a real result, nothing edited.
+   Chromium (sw-challenge-02, 2026-11-10). Its developer arena can stage any scenario (sw-challenge-01's giant kill).
 2. **The app's own UI test as the driver.** Keep steps 1 to 4 (Release build, leased device, status bar,
    `simctl io <udid> recordVideo`), and drive the take with the app's UI test instead of the tool. A bare
    `xcodebuild` cannot see a leased device in the SSD pool, so route it to the leased device's set through
@@ -49,9 +51,7 @@ Defer only when all three fail, with the error from each, and still make every S
 
 Some features have variable output: AI features, search, scores, game outcomes. Run candidate inputs through the
 real feature first (its API or a quick unrecorded pass). Keep the ones whose real result is surprising, funny or
-clear. Results vary between runs, so caption what the recorded take actually returned, not the rehearsal. In Füd's
-"crusts" episode the rehearsal said "2½ slices", but the take returned "Pizza Crust · 220 cal · Estimated". The take,
-not the rehearsal, set the caption.
+clear, and caption what is on screen.
 
 Drop inputs whose result is wrong or embarrassing (a dish matched to the wrong food), not just dull. A Short that
 shows the app getting it wrong teaches viewers not to trust it.
@@ -66,4 +66,5 @@ payoff row, the confirmation. The edit spec is built from those times.
 
 Record longer and pick moments: a near-miss, a win, a satisfying chain or a calm loop. A loop that returns to its
 first frame invites rewatches. The channel's best Short so far (about 1.3K views, 207% average viewed on day 3) is a
-7-second calm alphabet loop. Keep gameplay real, with no edited scores.
+7-second calm alphabet loop. Stage the moment you want (a developer arena, a scripted round, seeded state) rather
+than hunting hours of autopilot for it, and don't add "autopilot" or "staged" disclaimers.

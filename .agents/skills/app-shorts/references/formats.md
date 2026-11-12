@@ -36,7 +36,7 @@ numbers. Each line below is a starting point, not a script.
 ## Rules
 
 - **One idea per Short, 10–20 seconds**, with the hook on screen in the first second.
-- **True to the app.** Show only what the shipped build does; no features on the roadmap, no edited outcomes.
+- **Show what the product can do.** Staged, scripted and edited footage is fine; a feature it doesn't have is not.
 - **Vary the input, keep the shape:** that is what makes a series rather than "repetitious content" (see
   `youtube-growth/references/policy.md`).
 - **Kids appear only as app users' names or emoji,** never as filmed children. Most formats speak to parents

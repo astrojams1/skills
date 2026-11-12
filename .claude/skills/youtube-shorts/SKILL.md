@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -100,13 +100,13 @@ work: `app-shorts/references/creative.md` has the plan, the bar it is scored aga
 - **Say what it is.** By three seconds the viewer knows what the product does and what it works with, named
   (Function Health, Apple Health). A clever hook that never explains the product gets a swipe and no install.
 - **Stop the scroll on the first frame,** before any words are read.
-- **One true payoff.** Show the real app returning it; never fake a result.
+- **One clear payoff.** Stage it if that's quicker.
 - **Sound on, scored for this Short.** Real instruments (Apple Loops arranged for the idea), the app's own sound,
   foley or a character's voice. Identical background music across videos is a mark of mass-produced spam, and the
   owner rejected the synth bed as corny.
 - **Readable at a glance.** Run `legibility.swift`; fix every word under 4.5:1.
-- **Rehearse the inputs first.** Run candidate inputs through the real feature before recording. Keep the ones
-  whose real output is funny or striking, and caption what the take actually returned.
+- **Rehearse the inputs first.** Try candidate inputs before recording and keep the ones whose output is funny or
+  striking.
 
 ## App videos from screen recordings
 
