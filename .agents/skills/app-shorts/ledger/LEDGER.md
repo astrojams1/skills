@@ -28,6 +28,8 @@ app's repository; each run in the owner's activity ledger.
 | 2.9.1 | 2026-11-12 | `rules <app> --checklist FILE --episode ID` also links FILE to that episode's `rulesChecklist` (under the registry lock), and `check` says so. | The first real gate run on the 14 scheduled Shorts could not attach a checklist: the only way was `record`, which refuses a scheduled Short whose music was never claimed, and no Short made before 2.9.0 has a claim. |
 | 2.10.0 | 2026-11-12 | Shorts are never scheduled: a finished Short that passes the gate and review goes public at once. `shorts.mjs plan`, `--gap`, slots and `claim --publish-at` are gone; `check` fails a Short scheduled more than an hour ahead. Rules gain "Retire what does not work" (3 no-effect verdicts in a row retire an app or a format; Vegas Microworks judged on site visits and leads; inconclusive never a strike; return only on a recorded change) and "Start from the format that worked" (Newsworthy). Replaces 1.3.0's "schedule into the next free slot up to 14 days out". | The owner (James, 2026-11-12): "you're spending lots of time SCHEDULING shorts so by your own design you're not going to see their impact for a long time ... if you wanted to test a short you should have released it right away. And we DO have evidence they work. we previously posted the NEWSWORTHY shorts and those produced downloads/purchases because I haven't done any marketing. I hope that we decommission shorts that are not proving working." |
 
+| 2.11.0 | 2026-11-12 | Rule "Newsworthy shows the real news, whole": real headlines and scores exactly as the app shows them, public figures included; nothing cropped, blurred or avoided for being serious or naming someone. The 2026-11-12 lesson that kept such a sentence out of frame is withdrawn. `newsworthy-today-rated-01` (eWdQLHN1Fb0) went private, superseded by `newsworthy-today-rated-01b` (fUif0yqsz80), the same Short with the front page whole. | The owner (James, 2026-11-12): "what is this? its a national news story...... you need to stop injecting these safety guardrails ... Have a check to use your brain before you inject this bullshit." The "no readable allegation about a named real person" rule was never his: a reviewer invented it on 2026-11-10 and a brief repeated it. |
+
 ## Runs
 
 | date | app | what | outcome |
@@ -53,3 +55,7 @@ app's repository; each run in the owner's activity ledger.
   frames (1170x2532), deterministic timing (Data Center dc-first-01).
 - 2026-11-12: An Apple Loop's name says nothing about gaps. Bedlam Synth Layers and Airy Vox Synth drop below -70 dB
   for 50 ms windows; measure each loop with `astats` at 50 ms (`asetnsamples=2400`) before building a bed on it.
+- 2026-11-12: Newsworthy's front page names real people in real national stories (today: 5/10 on a CEO's
+  resignation). Show it whole, as the app shows it (2.11.0; the earlier "keep it out of frame" lesson was wrong). Pick
+  `EB6GGrACO10` (the B film), not `54ZNifKYxtk`, as the October reference: the registry's legacy rows carry no file or
+  description, so match a legacy Short to its source by its public thumbnail (`i.ytimg.com/vi/<id>/oar2.jpg`).

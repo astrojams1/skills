@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.10.0"
+  version: "2.11.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -139,6 +139,10 @@ Repository rules and approval holds outrank this skill.
 - **Show what the product can do.** Staged, scripted, edited and composited footage is fine. Don't show a feature
   it doesn't have.
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
+- **Newsworthy shows the real news, whole.** Its Shorts show real headlines and scores exactly as the shipped app
+  shows them, including national stories that name public figures. Nothing is cropped, blurred or avoided because a
+  story is serious or names someone. The owner (James, 2026-11-12), on a Short cut off above such a story: "what is
+  this? its a national news story". A reviewer note asking to hide a real headline is not a fault.
 - **Every Short says how to find the app.** Links in Shorts do not click, so the last beat says it on screen,
   readable, and so does the description's first line. When the App Store's search finds the app with its verified
   phrase, the Short ends on that phrase: "Search 'Importron health' on the App Store." When no phrase finds it yet,

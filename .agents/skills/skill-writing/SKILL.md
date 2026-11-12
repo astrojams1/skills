@@ -2,7 +2,7 @@
 name: skill-writing
 description: Write or rework a skill in the owner's house style, so every skill reads as if one person wrote it. Use when asked to create, write, rewrite, clean up, simplify or review a SKILL.md, or to make a skill shorter, plainer or easier to follow.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Skill writing
@@ -60,6 +60,9 @@ the block is copied, not linked. In a repository with a shared rules file, point
 - **Give orders.** "Run the tests", not "the tests should be run".
 - **Say "the owner".** Credit a rule as "(James, YYYY-MM-DD)". Write dates in full.
 - **Use no em dashes.** Use a full stop or a comma.
+- **Name whose rule it is.** Before adding any restriction to a skill, playbook or helper brief, name its source: the
+  owner's words with a date, a law, or a platform's rule, or the measurable thing it protects. If you cannot, leave
+  it out. (James, 2026-11-12: "Have a check to use your brain before you inject this bullshit.")
 - **Write the rule, not the story.** "Use Node 22" beats a paragraph about the run that failed on Node 20.
 
 ## Cut, but keep
