@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -69,16 +69,15 @@ Repository rules and approval holds outrank this skill.
    - Check the audio: loudness about -14 LUFS, no clipping, the music under any voice (`ffmpeg -af ebur128`), and
      a spectrogram (`showspectrumpic`) to see that the bed has real instruments, not sine tones.
    - Score it against `references/creative.md`, "The bar". Write down what is weakest and change it.
-   - Have an independent reviewer (a subagent given only the video's frames, audio report and the bar, not your
-     plan) say whether they would stop scrolling, whether they know what the app is by 3 seconds, and what is
-     weakest. Fix what they find.
-   Ship only when you and the reviewer both rate it at least 8 of 10 on every line of the bar. A Short that cannot
-   get there after three rounds is dropped, and the reason goes in the ledger.
+   - Run the reviewer panel (`references/creative.md`, "The reviewer panel"): three fresh subagents (the viewer,
+     the editor, the skeptic) who never see your plan. Fix what they find.
+   It ships when all three say POST under the panel's rule. The owner does not review cuts. A Short that has not
+   passed after four rounds is dropped, and the reason goes in the ledger.
 6. **Package** the upload: a title that says what the app is or does in the searcher's words; a description whose
    first line names the app, what it does and the service it works with; three hashtags; a JPEG cover made for the
    cover, not a frame grab; the pinned comment. No stock lines ("Search '<App>' on the App Store") unless the idea
    calls for them.
-7. **Post when it is ready.** There is no fixed calendar. Post a Short when it clears the bar, at most one a day on
+7. **Post when the panel passes it, without asking.** There is no fixed calendar. Post a Short when it clears the bar, at most one a day on
    the channel, at the hour `youtube-growth` reports the audience is most active. `record` the episode with
    `videoId`, `status` and `postedAt` or `publishAt` immediately, and add its row to `ledger/experiments.md`.
 8. **Hand over to `youtube-growth`.** It reads metrics at 3, 7 and 28 days, pins comments once a Short is live, and
