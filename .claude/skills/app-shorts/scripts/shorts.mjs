@@ -6,23 +6,45 @@
 //
 //   node shorts.mjs roster [--code DIR]            apps found from app-release.config.json files (main checkouts first)
 //   node shorts.mjs sync [--code DIR]              add newly found apps to the registry; never removes or edits any
-//   node shorts.mjs record <episode.json>          add or update one episode (matched by id)
+//   node shorts.mjs record <episode.json>          add or update one episode (matched by id); refuses a made episode with
+//                                                  no searchPhrase, or whose description's first line lacks it
+//   node shorts.mjs phrase <app> [--try "a|b"]      the search phrase that finds the app on the App Store: the profile's,
+//                                                  else the first candidate the store's search ranks first
+//   node shorts.mjs views                          per app: Shorts views on public Shorts only, and whether a live or
+//                                                  scheduled Short exists (what app-marketing reads)
+//   node shorts.mjs rules <app>                    the reviewer pack's rules: this skill's, the app's or business's own,
+//                                                  and the owner's recorded verdicts (exits 1 if a source is missing)
 //   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days) and scheduled ones now live
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
 //   node shorts.mjs status                         per app: episodes by status, last post, next due
 //
-// --registry PATH and --now ISO-TIME work with every command (the second for tests and dry runs).
+// --registry PATH, --profiles DIR and --now ISO-TIME work with every command (the last for tests and dry runs).
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Analytics settle 48–72 hours after the day they describe, so the first real read is at day 3.
 export const READS = [3, 7, 28];
-export const STATUSES = ['idea', 'recorded', 'rendered', 'scheduled', 'live', 'retired'];
+// What each status means on the channel:
+//   idea, recorded, rendered   not on YouTube yet
+//   scheduled                  on YouTube, private, goes public at publishAt
+//   live                       public
+//   retired                    still public, but its series stopped
+//   pulled                     taken back to private (by the owner or a run); never counts as a Short
+//   superseded                 replaced by a remake before it was ever uploaded
+export const STATUSES = ['idea', 'recorded', 'rendered', 'scheduled', 'live', 'retired', 'pulled', 'superseded'];
+export const PUBLIC = ['live', 'retired'];
+export const ON_CHANNEL = ['scheduled', ...PUBLIC];
+// A made episode is one a viewer could see: it needs a search phrase before it is recorded at these statuses.
+const MADE = ['rendered', 'scheduled', 'live', 'retired'];
 const DAY = 86400000;
+const SKILL = fileURLToPath(new URL('..', import.meta.url));
+export const PROFILES = '/Volumes/ssd/code/app-sites/marketing/apps';
 
 const postedAt = e => e.publishAt ?? e.postedAt ?? null;
+const onChannel = e => ON_CHANNEL.includes(e.status);
 
 export function emptyRegistry() {
   return { version: 1, channel: {}, teams: {}, apps: {}, episodes: [] };
@@ -59,15 +81,31 @@ export function sync(registry, apps) {
   return added;
 }
 
+// Why a made episode cannot be recorded as it stands, or null. Links in Shorts do not click, so a viewer finds the
+// app only by searching: the phrase must exist and lead the description. An app not yet on sale (its marketing
+// profile's stage is not "live") has nothing to find yet and is exempt.
+export function findable(episode, { profile = null } = {}) {
+  if (!MADE.includes(episode.status) || episode.legacy) return null;
+  if (profile && profile.stage && profile.stage !== 'live') return null;
+  const phrase = (episode.searchPhrase ?? '').trim();
+  if (!phrase) return `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`;
+  const first = (episode.description ?? '').split('\n')[0].toLowerCase();
+  if (episode.description && !first.includes(phrase.toLowerCase())) return `${episode.id}: the description's first line must give the search phrase "${phrase}"`;
+  return null;
+}
+
 // Adds or merges an episode. Warnings flag what makes a channel look mass-produced: the same music bed or the
 // same hook as one of the channel's last few Shorts.
-export function record(registry, episode, { recent = 6 } = {}) {
+export function record(registry, episode, { recent = 6, profile = null } = {}) {
   if (!episode.id || !episode.app) throw new Error('An episode needs an id and an app');
   if (episode.status && !STATUSES.includes(episode.status)) throw new Error(`Unknown status "${episode.status}"`);
   const index = registry.episodes.findIndex(e => e.id === episode.id);
-  if (index < 0) registry.episodes.push({ status: 'idea', metrics: [], ...episode });
-  else registry.episodes[index] = { ...registry.episodes[index], ...episode };
-  const saved = registry.episodes.find(e => e.id === episode.id);
+  const merged = index < 0 ? { status: 'idea', metrics: [], ...episode } : { ...registry.episodes[index], ...episode };
+  const refused = findable(merged, { profile });
+  if (refused) throw new Error(refused);
+  if (index < 0) registry.episodes.push(merged);
+  else registry.episodes[index] = merged;
+  const saved = merged;
   const others = registry.episodes.filter(e => e.id !== saved.id && postedAt(e)).sort((a, b) => postedAt(b).localeCompare(postedAt(a))).slice(0, recent);
   const warnings = [];
   for (const [field, label] of [['music', 'music bed'], ['hook', 'hook']]) {
@@ -147,10 +185,116 @@ export function status(registry, { now = new Date() } = {}) {
   return Object.entries(registry.apps).map(([slug, a]) => {
     const mine = registry.episodes.filter(e => e.app === slug);
     const counts = Object.fromEntries(STATUSES.map(s => [s, mine.filter(e => e.status === s).length]).filter(([, n]) => n));
-    const posted = mine.map(postedAt).filter(Boolean).sort().pop() ?? null;
+    const posted = mine.filter(onChannel).map(postedAt).filter(Boolean).sort().pop() ?? null;
     const next = posted ? new Date(new Date(posted).getTime() + (a.cadenceDays ?? 7) * DAY).toISOString().slice(0, 10) : 'now';
-    return { app: slug, active: a.active !== false, formats: a.formats?.length ?? 0, ...counts, lastPost: posted, nextDue: a.active === false ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
+    return { app: slug, active: a.active !== false, formats: a.formats?.length ?? 0, ...counts, liveOrScheduled: mine.some(onChannel),
+      lastPost: posted, nextDue: a.active === false ? null : next < now.toISOString().slice(0, 10) ? 'now' : next };
   });
+}
+
+// What app-marketing reads per app: views summed over public Shorts only (a pulled or superseded Short never
+// counts, whatever views it had), and whether the app has a live or scheduled Short right now. `marketingId` is the
+// app's id in app-sites (`marketing/apps/<id>.json`, matched on its `shortsSlug`).
+export function views(registry, { profiles = [] } = {}) {
+  return Object.keys(registry.apps).map(slug => {
+    const mine = registry.episodes.filter(e => e.app === slug);
+    const pub = mine.filter(e => PUBLIC.includes(e.status));
+    const latestViews = e => (e.metrics ?? []).filter(m => Number.isFinite(m.views)).sort((a, b) => a.at.localeCompare(b.at)).at(-1)?.views ?? 0;
+    const scheduled = mine.filter(e => e.status === 'scheduled').map(e => e.publishAt).filter(Boolean).sort();
+    return { app: slug, marketingId: profiles.find(p => (p.shortsSlug ?? p.id) === slug)?.id ?? null,
+      shortsViews: pub.reduce((sum, e) => sum + latestViews(e), 0), publicShorts: pub.length, scheduledShorts: scheduled.length,
+      liveOrScheduled: pub.length + scheduled.length > 0, nextPublic: scheduled[0] ?? null,
+      excluded: mine.filter(e => ['pulled', 'superseded'].includes(e.status)).length };
+  });
+}
+
+// The marketing profiles in app-sites, for the search phrase, the stage and the app's own rules.
+export function loadProfiles(dir = PROFILES) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter(f => f.endsWith('.json')).sort().map(f => { try { return JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { return null; } }).filter(Boolean);
+}
+export const profileFor = (profiles, slug) => profiles.find(p => (p.shortsSlug ?? p.id) === slug) ?? null;
+
+// The App Store's own search page lists results in rank order; an app's rank is where its id first appears.
+export function searchRank(html, appId) {
+  const ids = [...new Set([...String(html).matchAll(/\/id(\d{6,})/g)].map(m => m[1]))];
+  const at = ids.indexOf(String(appId));
+  return at < 0 ? null : at + 1;
+}
+
+export async function checkPhrase(phrase, appId, { fetcher = fetch } = {}) {
+  const res = await fetcher(`https://apps.apple.com/us/iphone/search?term=${encodeURIComponent(phrase)}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!res.ok) throw new Error(`App Store search answered ${res.status}`);
+  return searchRank(await res.text(), appId);
+}
+
+// The app's name on the App Store (Apple's public lookup), or null.
+export async function storeName(appId, { fetcher = fetch } = {}) {
+  if (!appId) return null;
+  const res = await fetcher(`https://itunes.apple.com/lookup?id=${encodeURIComponent(appId)}&country=us`);
+  if (!res.ok) return null;
+  return (await res.json()).results?.[0]?.trackName ?? null;
+}
+
+// The phrase a Short gives: the profile's searchPhrase when app-marketing has set one (it checks it daily), else the
+// first candidate the store ranks first, else the best-ranked one. Candidates: --try, the store name, its part
+// before a colon, the store name without punctuation, the registry and profile names.
+export async function phrase(registry, slug, { profiles = [], tries = [], fetcher = fetch } = {}) {
+  const app = registry.apps[slug];
+  if (!app) throw new Error(`No app "${slug}" in the registry`);
+  const profile = profileFor(profiles, slug);
+  const fromProfile = typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : profile?.searchPhrase?.phrase;
+  const name = (profile?.name ?? app.name ?? '').trim();
+  if (profile && profile.stage && profile.stage !== 'live') return { app: slug, phrase: fromProfile ?? name, rank: null, source: 'not on sale yet', checked: [] };
+  const store = await storeName(app.ascAppId, { fetcher }) ?? name;
+  const plain = n => n.replace(/[:|–—-]/g, ' ').replace(/\s+/g, ' ');
+  const candidates = [...new Set([fromProfile, ...tries, store, store.split(':')[0], plain(store), name, app.name].map(c => c?.trim()).filter(Boolean))];
+  const checked = [];
+  for (const candidate of candidates) {
+    const rank = app.ascAppId ? await checkPhrase(candidate, app.ascAppId, { fetcher }) : null;
+    checked.push({ phrase: candidate, rank });
+    if (rank === 1) return { app: slug, phrase: candidate, rank, source: candidate === fromProfile ? 'profile' : 'checked', checked };
+  }
+  const best = checked.filter(c => c.rank).sort((a, b) => a.rank - b.rank)[0];
+  if (best) return { app: slug, phrase: best.phrase, rank: best.rank, source: 'checked', checked };
+  return { app: slug, phrase: fromProfile ?? name, rank: null, source: fromProfile ? 'profile, not found by the store today' : 'store name, not found by the store today', checked };
+}
+
+// A section of a Markdown file: from its "## <name>" heading to the next "## " heading, without a skill's copied
+// run rules block (those are run rules, not content rules).
+export function section(text, name) {
+  const lines = String(text).split('\n');
+  const start = lines.findIndex(l => l.replace(/^#+\s*/, '').trim().toLowerCase() === name.toLowerCase() && /^##\s/.test(l));
+  if (start < 0) return null;
+  const out = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^##\s/.test(line) || /^\*\*Run rules/.test(line) || /^When a scheduled pass runs this skill/.test(line)) break;
+    out.push(line);
+  }
+  return out.join('\n').trim();
+}
+
+// The rules every reviewer must check a Short against: this skill's own rules, the app's or business's written
+// rules (its marketing profile's `rules`, and the sources in assets/rule-sources.json), and the owner's recorded
+// verdicts. A Short that breaks one fails review as a rule breach.
+export function rules(slug, { profiles = [], sources = null, read = p => readFileSync(p, 'utf8'), exists = existsSync } = {}) {
+  const config = sources ?? JSON.parse(readFileSync(join(SKILL, 'assets', 'rule-sources.json'), 'utf8'));
+  const resolve = p => (isAbsolute(p) ? p : join(SKILL, p));
+  const parts = [], missing = [];
+  const add = ({ file, section: name, title }) => {
+    const path = resolve(file);
+    if (!exists(path)) { missing.push(path); return; }
+    const body = name ? section(read(path), name) : read(path).trim();
+    if (!body) { missing.push(`${path} (section "${name}")`); return; }
+    parts.push(`## ${title ?? `${file}${name ? `, "${name}"` : ''}`}\n\n${body}`);
+  };
+  for (const s of config.always ?? []) add(s);
+  const profile = profileFor(profiles, slug);
+  if (profile?.rules?.length) parts.push(`## ${profile.name ?? slug}: rules from its marketing profile (app-sites marketing/apps/${profile.id}.json)\n\n${profile.rules.map(r => `- ${r}`).join('\n')}`);
+  for (const s of config.apps?.[slug] ?? []) add(s);
+  if (!profile?.rules?.length && !(config.apps?.[slug] ?? []).length) missing.push(`no written rules for "${slug}": add a marketing profile or an entry in assets/rule-sources.json`);
+  for (const s of config.verdicts ?? []) add(s);
+  return { app: slug, text: `# Rules for ${slug}\n\nA Short that breaks any line below fails review as a rule breach, not a taste note.\n\n${parts.join('\n\n')}\n`, missing };
 }
 
 function load(path) {
@@ -170,19 +314,33 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const now = new Date(option('--now', new Date().toISOString()));
   const code = option('--code', '/Volumes/ssd/code');
   const days = Number(option('--days', 14)), gap = Number(option('--gap', 2));
+  const profiles = loadProfiles(option('--profiles', PROFILES));
+  const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
   const [command, ...rest] = args;
   const registry = load(path);
   const print = value => console.log(JSON.stringify(value, null, 2));
+  try {
   switch (command) {
     case 'roster': print(roster(code)); break;
     case 'sync': { const added = sync(registry, roster(code)); save(path, registry); print({ added, apps: Object.keys(registry.apps).length }); break; }
-    case 'record': { const result = record(registry, JSON.parse(readFileSync(rest[0], 'utf8'))); save(path, registry); print(result); break; }
+    case 'record': {
+      const episode = JSON.parse(readFileSync(rest[0], 'utf8'));
+      const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
+      const result = record(registry, episode, { profile: profileFor(profiles, app) }); save(path, registry); print(result); break;
+    }
+    case 'phrase': print(await phrase(registry, rest[0], { profiles, tries })); break;
+    case 'views': print(views(registry, { profiles })); break;
+    case 'rules': { const r = rules(rest[0], { profiles }); console.log(r.text); if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exit(1); } break; }
     case 'plan': print(plan(registry, { now, days, gap })); break;
     case 'due': print(due(registry, { now })); break;
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
     case 'status': print(status(registry, { now })); break;
     default:
-      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|plan|due|link <app> <campaign>|status [--registry PATH] [--now ISO]');
+      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|views|rules <app>|plan|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
       process.exit(2);
+  }
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
   }
 }

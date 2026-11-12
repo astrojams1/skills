@@ -30,15 +30,17 @@ relying on it for a decision, and date what you find in the ledger.
 - **Links do not click.** Since 31 August 2023 links in Shorts descriptions
   and comments are plain text, the creator's own included
   ([Tubefilter](https://tubefilter.com/2023/08/10/youtube-shorts-comments-spam/)).
-  Give a search phrase in the description. Put the link in the channel's
-  links, which do click. Use Related video (below) for your own videos.
+  Give a search phrase that finds the app, on screen at the end and on the
+  description's first line (`app-shorts/references/posting.md`, "Find the
+  app"). Put the link in the channel's links, which do click.
 - **Hashtags.** The first three show above the title; more than 60 and all of
   them are ignored ([YouTube Help](https://support.google.com/youtube/answer/6390658)).
-- **Related video.** In Studio → Content → the Short → Related video, link a
-  video, live stream or another Short from the same channel. It shows as a row
-  above the title, which makes the bottom stack taller
-  ([vidIQ](https://vidiq.com/blog/post/youtube-related-links-connect-shorts-long-videos/)).
-  Third-party tools report that it cannot be set through the API.
+- **Related video: not used (2026-11-12).** Studio can link a video or
+  another Short as a row above the title
+  ([vidIQ](https://vidiq.com/blog/post/youtube-related-links-connect-shorts-long-videos/)),
+  but no API sets it and Studio needs the owner's sign-in. Unattended runs
+  cannot set it, so they skip it without logging it as open. Keep the bottom
+  stack measured without the row.
 
 ## Cover, captions, settings
 

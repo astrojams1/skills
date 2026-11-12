@@ -69,8 +69,10 @@ are not a pass mark (see "The reviewer panel").
    not a flat rectangle of UI or a cartoon. The app's part is the shortest real path to the result, with the
    cleanest screens; never linger on dense lists, forms or settings. If it looks complicated, it is wrong, however
    true it is.
+10. **Findable.** A viewer who wants the app knows what to type: the search phrase is on screen in the last beat,
+   readable for 1.5 s or more, and on the description's first line (`posting.md`, "Find the app").
 
-**Owner verdicts to design against (2026-11-12).** On the Importron robot cut (pixel-art mascot, robot voice,
+**Owner verdicts to design against (2026-11-12).** The full list is `../ledger/verdicts.md`; every reviewer gets it. On the Importron robot cut (pixel-art mascot, robot voice,
 stamped pixel type, flat recordings of the review screens): "you cant even tell its an iphone app, and you make
 the ui seem ugly and complicated… the whole point is that its easy and the 'first pdf is free' line is a turn
 off." On the Space Worms documentary (Gill Sans and Iowan italic subtitles, a subtle story about which worm is
@@ -81,7 +83,7 @@ necessary but not enough.
 standing rule, which the 2026-11-12 slot-machine Short broke. Read each business's own marketing skill rules before
 the plan.
 
-**No pricing lines** in a Short, its cover, title or pinned comment ("first one free", "pay once per…"). The
+**No pricing lines** in a Short, its cover, title or description ("first one free", "pay once per…"). The
 store page carries the price.
 
 ## Sound
@@ -128,22 +130,27 @@ feedback. post when everyone is happy."). Three independent reviewer subagents d
 all three are happy. None of them sees the creative plan, the scores you gave, or another reviewer's answer.
 
 Give each the same pack: the 0.5 s contact sheet; every frame of the first three seconds and of each transition at
-full size; the cover; the title, description and pinned comment; the audio report (loudness, true peak, a
-spectrogram image, and a plain list of what plays when); the bar above; and the owner verdicts above. Each has one
-lens:
+full size; the cover; the title and description; the audio report (loudness, true peak, a spectrogram image, and a
+plain list of what plays when); the bar above; and the output of `node ../scripts/shorts.mjs rules <app>`, loaded
+fresh every time. That output holds this skill's rules, the app's or business's own written rules (its marketing
+profile's `rules`; for Vegas Microworks its marketing skill's Rules and its playbook's Never list), and the owner's
+verdicts on past Shorts. If `rules` reports a missing source, fix it before the panel runs. Each has one lens:
 
 1. **The viewer.** Someone the app is for (a Function Health member, a parent, a casual mobile gamer), scrolling
    Shorts on a phone. Would they stop? By 3 seconds, do they know what this is and that it is an iPhone app? Does it
    look easy? Would they look it up?
 2. **The editor.** A short-form creative director: hook, pacing, type, colour, motion, sound design, originality.
    Is anything corny, templated or amateur?
-3. **The skeptic.** Truth, clarity and brand: is every claim real, does it say what the app is, any pricing line,
-   anything ugly or busy, anything that repeats an owner verdict?
+3. **The skeptic.** Truth, clarity and brand: is every claim real, does it say what the app is, can a viewer find it
+   from the search phrase, any pricing line, anything ugly or busy, anything that repeats an owner verdict? The
+   skeptic checks every rule in the pack, one by one, and names each breach with the rule's words.
 
-Each answers with scores on every line of the bar, the single weakest moment, and what to change. Their feedback
+Each answers with scores on every line of the bar, the single weakest moment, and what to change. A Short that
+breaks a written rule or repeats a recorded verdict fails as a **rule breach**: it is a concrete fault, never a taste
+note, and it is fixed before posting in any round. Their feedback
 drives the next round; it is not a pass mark. The owner's rule (2026-11-12): "each round the reviewers provide
 feedback. max 3 rounds." Run at most three rounds. After the third, fix every concrete fault the last panel named
-(a pricing line, a glitch or blank frame, unreadable words, an untrue claim, not saying what the app is, not
-obviously an iPhone app) without another round, then post. Taste notes ("feels like a template") guide the next
+(a rule breach, a pricing line, a glitch or blank frame, unreadable words, an untrue claim, not saying what the app
+is, no search phrase, not obviously an iPhone app) without another round, then post. Taste notes ("feels like a template") guide the next
 Short, not this one. Why: after 13 attempts with no pass, the panel ranked the owner's own verdicts in reverse
 (`../ledger/experiments.md`); it finds faults well and cannot judge taste, so the audience's numbers decide.

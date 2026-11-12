@@ -1,0 +1,15 @@
+{
+  "why": "The owner's written rules a reviewer must check every Short against (James, 2026-11-12: reviewers never saw them, and passed work he then rejected). `shorts.mjs rules <app>` prints them with each app's marketing-profile rules. Paths are relative to the app-shorts folder unless absolute.",
+  "always": [
+    { "file": "SKILL.md", "section": "Rules", "title": "Every Short (app-shorts rules)" }
+  ],
+  "apps": {
+    "vegas-microworks": [
+      { "file": "../vegas-microworks-marketing/SKILL.md", "section": "Rules", "title": "Vegas Microworks: rules from its marketing skill" },
+      { "file": "/Volumes/ssd/code/vegas-microworks/docs/marketing.md", "section": "Never", "title": "Vegas Microworks: the playbook's Never list (docs/marketing.md)" }
+    ]
+  },
+  "verdicts": [
+    { "file": "ledger/verdicts.md", "title": "The owner's verdicts on past Shorts" }
+  ]
+}

@@ -55,7 +55,11 @@ Scopes (all four are requested at consent):
 - **Shorts thumbnails:** since **2026-11-03** `thumbnails.set` accepts custom thumbnails for Shorts after
   processing (with a new `shortsAspectRatio` property). Retry later if it fails right after upload.
 - **Not in the API:** "Related video" on a Short, pinning a comment, and the Shorts feed metrics ("Shown in feed",
-  "viewed vs. swiped away"). Use Studio for those.
+  "viewed vs. swiped away"). Pinning and Related video are not used at all: Studio needs the owner's sign-in
+  (2026-11-12). Read the feed metrics in Studio only in a browser already signed in.
+- **A description changes with `videos.update` (part `snippet`),** 50 units. The call replaces the whole snippet, so
+  `yt-api.mjs update --description-file` sends the title, category, tags and languages back as they were, then
+  reads the video back.
 - **Analytics lag 48–72 hours.** The first real read is at day 3; `videos.list` gives near-real-time public counts
   for a same-day sanity check. Shorts can be split with the `creatorContentType` dimension (`SHORTS`).
 - **Views vs. engaged views:** public views now count every start (2025-03-31) and, for all formats, the first
