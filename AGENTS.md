@@ -172,16 +172,17 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 |---|---|---|
 | `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12; each run fast-forwards it). Runs in Auto permission mode. After its core stage ships it carries the Show HN post and the Vegas Microworks weekly pass ("Other Mac jobs this task carries"), then makes Shorts last, as their own logged stage |
 | `app-marketing-show-hn` | Paused; `app-marketing-mac` carries it on a booked weekday (2026-11-12) | `skills/app-marketing/references/hacker-news.md`, "Start the Show HN task", which now stops at once |
-| `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task" |
-| `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task" |
-| `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task" |
+| `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
+| `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
+| `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
 | `vegas-microworks-marketing` | Paused; `app-marketing-mac` carries it on Wednesdays, or when the last completed weekly pass is over 7 days old (2026-11-12) | `skills/vegas-microworks-marketing/SKILL.md`, "The old weekly task is paused" (it ran in the default permission mode and stalled on its first prompt) |
 | Cloud routine "Vegas Microworks outreach (daily)" | Weekdays 10:23 Pacific | `astrojams1/vegas-microworks` `docs/outreach.md`, "Each daily run" |
 | `mac-memory-maintenance` | Daily 03:00 Pacific | Codex invokes `$mac-memory-maintenance` through its installed symlink |
 | `money-coaching-lead-gen` | Paused; the cloud routine "Money coaching lead gen (daily)" replaced it | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md`, "The Mac task's prompt" |
 
-The Mac uses `/Volumes/ssd/code/skills-mac-maintenance` for these task pointers and the maintenance symlink.
-Keep that checkout available while the Mac points to it.
+Every Mac task pointer above reads the main checkout `/Volumes/ssd/code/skills`, and each start section exports
+`origin/main`. The maintenance symlink still uses `/Volumes/ssd/code/skills-mac-maintenance`; keep that checkout
+available while the symlink points to it.
 
 ## Available Skills
 

@@ -2,7 +2,7 @@
 name: abandoned-prs
 description: Find abandoned GitHub pull requests in the owner's repositories, decide whether each should merge, close or wait, and see that through. Use for the weekly PR cleanup, or when asked to triage, clean up, finish or close stale, abandoned or forgotten PRs.
 metadata:
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # Abandoned PRs
@@ -29,7 +29,7 @@ Repository rules and approval holds outrank this skill.
 
 The stored prompt is:
 
-> Read `/Volumes/ssd/code/skills-mac-maintenance/skills/abandoned-prs/SKILL.md` and follow "Start the weekly task" unattended.
+> Read `/Volumes/ssd/code/skills/skills/abandoned-prs/SKILL.md` and follow "Start the weekly task" unattended.
 
 Check that `/Volumes/ssd` is mounted. If it is absent, stop and report exactly that.
 Use Node 22. Make a new export folder under `/Volumes/ssd/projects/abandoned-prs/run/`:

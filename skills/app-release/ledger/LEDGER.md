@@ -1,8 +1,17 @@
 # App release skill ledger
 
-Skill version **2.27.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.27.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.27.1 (2026-11-12)
+
+- The daily task stopped at its model check on 10, 11 and 12 November 2026 and submitted nothing: a scheduled task
+  starts on the app's default model (`claude-fable-5-2`) and a skill cannot change it. The owner's rule that Opus 5.5
+  does the release work stays. A session on another model now hands the whole run to one Opus 5.5 subagent at high
+  effort and reports its result; it stops only when it cannot start one
+  ([daily review run](../references/daily-review-run.md), "Model"). The stored prompt now reads the main checkout
+  `/Volumes/ssd/code/skills`; the side checkout's copy exported `origin/main` too, so no run used old rules.
 
 ## Lessons incorporated into v2.27.0 (2026-11-12)
 

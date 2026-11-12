@@ -21,8 +21,13 @@ The run follows the **Run rules** in [SKILL.md](../SKILL.md#rules). The lines be
   cannot close itself: an app's own hold, a legal or account fact, a sign-in or payment only the owner can give, or an
   Apple state that forbids the write today. Name the exact gate.
 - **Nobody is watching.** If something is blocked, record why and how to retry, move to the next app, and finish.
-- **Model.** This run uses Opus 5.5. If the session is not `claude-opus-5-5`, record that in the run log and stop
-  before any write. Any subagent uses Opus 5.5 too.
+- **Model (James, 2026-11-10).** Opus 5.5 does this run's release work. A scheduled task starts on the app's default
+  model, and a skill cannot change that. So a session that is not `claude-opus-5-5` does not stop. Right after setup
+  it hands the whole run to one subagent: the Agent tool with `model: opus` and `effort: high`. Give it this file's
+  path in `<folder>`, the same `RUN` and `folder`, and the words "you are the Opus 5.5 run; follow Standing approval
+  and rules and Steps". Wait for it, then report its result as this run's result. Any helper it starts also uses Opus
+  5.5. Only if the session has no way to start an Opus 5.5 subagent, record that in the run log and stop before any
+  write.
 - **Every submission is `AFTER_APPROVAL`,** so Apple publishes on approval: everything the release needs is done and
   verified before submitting. A version waiting for developer release is left alone.
 
@@ -120,7 +125,7 @@ Prepare a `listing` candidate exactly as a product release in step 3, with every
 
 The stored prompt is:
 
-> Read `/Volumes/ssd/code/skills-mac-maintenance/skills/app-release/references/daily-review-run.md` and follow "Start the daily task" unattended.
+> Read `/Volumes/ssd/code/skills/skills/app-release/references/daily-review-run.md` and follow "Start the daily task" unattended.
 
 Check that `/Volumes/ssd` is mounted. If it is absent, stop and report exactly that.
 Use Node 22. Make a new export folder for the same run ID used in "Steps":
