@@ -19,7 +19,7 @@ Shorts registry and the ledger. Use what has moved downloads; a channel with no 
 | YouTube Shorts | The app's App Store search and browse first-time downloads in the 72 hours after a Short goes public, against the app's daily rate over the 7 days before. A download from the YouTube app (Detailed report referrer) counts too | One Short, or Shorts for the same app inside each other's 72 hours (a burst, at most a week) | Apple's data covers the whole window (two to three days after it closes) |
 | Search guides, site pages, directories | Web-referrer first-time downloads (Standard report source type). The Detailed report names the site (`ouro-apps.vercel.app`) when Apple shows the row | Each 4-week block, from 8 weeks after the app's first guide | The block is in Apple's data |
 | Pitch emails | Per approach: 30 first emails with no positive reply retire it. Per piece of coverage: web-referrer first-time downloads in the 7 days after it, or search and browse downloads against the 7 days before | One piece of coverage | Apple's data covers its 7 days |
-| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it | One change | 8 days after the change |
+| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it; a change that rides a version is a `listingTests` entry ([the funnel](#the-app-store-funnel)) | One change | 8 days after it goes live |
 
 **An effect** is at least 2 more downloads than expected, and at least half again as many. For Shorts, one YouTube
 referrer download is enough.
@@ -32,6 +32,36 @@ different format that another app proved, written as a new item with its reason.
 
 Small numbers are honest numbers. Two downloads a day is the baseline for most apps, so the rule needs a clear jump.
 Never round a result up, and never judge a window Apple has not finished.
+
+## The App Store funnel
+
+Every download so far came from App Store search or browse, so the listing is the channel with proven effect.
+`learn` reads it as three stages and names the weakest one per app, on up to 14 days that both the downloads and the
+discovery report cover (`funnelStage`).
+
+| Stage | The number | Reference | Weak when | Next change to try |
+|---|---|---|---|---|
+| Impressions | Impressions in the window | No published floor | Under 100 (too few to judge the rest), or both stages below are in range | Keywords: all 100 characters, no word the name or subtitle already carries; then category. Rides the next version |
+| Tap-through | App Store search and browse page views / impressions | 6 to 12% from search to the page ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 6%, judged from 100 impressions | Subtitle (search shows it beside the icon), then the first screenshot. Rides the next version |
+| Conversion | Search and browse first-time downloads / those page views | 8.56% US average, first-time downloads only ([AppTweak, 2025](https://www.apptweak.com/en/aso-blog/average-app-conversion-rate-per-category)); 25 to 27% ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 8.6%, judged from 20 page views | Promotional text, live today with `promo`; then the description opening and screenshot order |
+
+Impressions to downloads averages 3.6 to 3.8% (both sources); `learn` shows it for context. Read the sources again
+before relying on a figure: they were checked on 2026-11-12.
+
+- **Count only store page views against impressions.** Apple counts an impression only in search and browse, while a
+  page view from a website, another app or an unknown source ("Unavailable") has none. Of Füd's 31 page views against
+  108 impressions (2026-11-05 to 11-10), 18 were "Unavailable" and 3 came from another app; only 10 came from the store.
+- **Conversion can pass 100%.** People tap Get in search results without opening the page. Space Worms converts 43%.
+- **The sources disagree** (8.56% against 25%) on what they count, so the floors are the lower figures. Only a
+  clearly weak stage is named.
+- **One change per stage per app,** so its effect can be read. Record it in the profile's `listingTests`:
+  `{ stage, field, from, to, prepared, version or live, before }`, where `before` is the window's numbers and the
+  listing text. `learn` finds the live date in the public lookup once `version` ships. It reads the stage 7 days after
+  against the 7 before, from 8 days after it went live; a fuller read comes at 14.
+- **What changes today.** Promotional text is the only listing text that changes without a version, and it shows only
+  on the product page. So only a conversion weakness gets a same-day change. Keywords, subtitle, description and
+  screenshots go into the app's store data (the file `app-release.config.json` names), merged, and ride the next
+  version. Nothing here submits.
 
 ## Open
 

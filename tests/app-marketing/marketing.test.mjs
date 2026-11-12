@@ -416,3 +416,68 @@ test('a ledger line is corrected by a later one with the same run and event that
   const stray = correctedLines([{ run_id: 'x', event: 'end', ts: 't2', corrects: 't1' }]);
   assert.match(stray.problems[0], /names no earlier end of x/);
 });
+
+// ---- the App Store funnel ----
+import { funnelStage, listingTestResults, rescoreFunnel, FUNNEL_REF } from '../../skills/app-marketing/scripts/marketing.mjs';
+
+const fdays = (from, n, make) => Object.fromEntries(Array.from({ length: n }, (_, i) => { const d = new Date(Date.parse(`${from}T00:00:00Z`) + i * DAY).toISOString().slice(0, 10); return [d, make(i)]; }));
+const view = (imp, search, other = 0) => ({ impressions: imp, pageViews: search + other, taps: 0, pageViewSources: { 'App Store search': search, ...(other ? { Unavailable: other } : {}) } });
+const dl = n => ({ first: n, re: 0, sources: { 'App Store search': n } });
+
+test('funnel: low tap-through is named, and only App Store page views count against impressions', () => {
+  const s = funnelStage(fdays('2026-11-01', 7, () => dl(2)), fdays('2026-11-01', 7, () => view(100, 2, 20)));
+  assert.equal(s.stage, 'tap-through');
+  assert.equal(s.storePageViews, 14);
+  assert.equal(s.otherPageViews, 140);
+  assert.equal(s.next.field, 'subtitle');
+});
+
+test('funnel: too few impressions are not judged further, and in-range stages leave reach as the limit', () => {
+  assert.equal(funnelStage(fdays('2026-11-01', 5, () => dl(1)), fdays('2026-11-01', 5, () => view(15, 3))).stage, 'impressions');
+  const ok = funnelStage(fdays('2026-11-01', 7, () => dl(2)), fdays('2026-11-01', 7, () => view(50, 5)));
+  assert.equal(ok.stage, 'impressions');
+  assert.match(ok.why, /reach limits/);
+});
+
+test('funnel: low conversion is named once tap-through is in range and the sample is big enough', () => {
+  const s = funnelStage(fdays('2026-11-01', 7, () => dl(0)), fdays('2026-11-01', 7, () => view(50, 5)));
+  assert.equal(s.stage, 'conversion');
+  assert.equal(s.next.live, 'today');
+  const small = funnelStage(fdays('2026-11-01', 7, () => dl(0)), fdays('2026-11-01', 7, () => view(50, 2)));
+  assert.equal(small.judged.conversion, false);
+  assert.notEqual(small.stage, 'conversion');
+});
+
+test('funnel: the window is the days both reports cover, at most 14', () => {
+  const s = funnelStage(fdays('2026-11-03', 30, () => dl(1)), fdays('2026-11-01', 30, () => view(20, 2)));
+  assert.equal(s.from, '2026-11-17');
+  assert.equal(s.to, '2026-11-30');
+  assert.equal(FUNNEL_REF.windowDays, 14);
+});
+
+test('listing tests wait for their version, then read the stage 7 days after against 7 before', () => {
+  const days = fdays('2026-11-01', 20, () => dl(1));
+  const disc = fdays('2026-11-01', 20, i => view(100, i < 10 ? 2 : 8));
+  const test1 = { stage: 'tap-through', field: 'subtitle', prepared: '2026-11-05', version: '1.0.2', before: {} };
+  assert.match(listingTestResults([test1], days, disc, [])[0].why, /waiting for version 1.0.2/);
+  const lookups = [{ at: '2026-11-11T05:00:00Z', app: 'x', source: 'itunes-lookup', values: { version: '1.0.2' } }];
+  const [r] = listingTestResults([test1], days, disc, lookups);
+  assert.equal(r.live, '2026-11-11');
+  assert.equal(r.firstRead, '2026-11-19');
+  assert.equal(r.judged, true);
+  assert.equal(r.effect, true);
+});
+
+test('rescoreFunnel adds the weak stage item at impact 5 and lowers other stages', () => {
+  const p = profile({ backlog: [item({ id: 'funnel-impressions', impact: 5 })] });
+  const s = funnelStage(fdays('2026-11-01', 7, () => dl(2)), fdays('2026-11-01', 7, () => view(100, 2)));
+  const out = rescoreFunnel(p, s);
+  assert.equal(out.backlog.find(b => b.id === 'funnel-tap-through').impact, 5);
+  assert.equal(out.backlog.find(b => b.id === 'funnel-impressions').impact, 2);
+  assert.deepEqual(profileProblems(out), []);
+});
+
+test('listingTests in a profile need a date, a snapshot and a live date or version', () => {
+  assert.ok(profileProblems(profile({ listingTests: [{ stage: 'reach', field: 'keywords' }] })).some(p => p.includes('listingTests[0]')));
+  assert.deepEqual(profileProblems(profile({ listingTests: [{ stage: 'impressions', field: 'keywords', prepared: '2026-11-12', version: '1.3.1', before: { impressions: 1 } }] })), []);
+});

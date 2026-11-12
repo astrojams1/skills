@@ -168,6 +168,12 @@ export function profileProblems(profile, name = profile.id) {
   for (const [channel, stop] of Object.entries(profile.stopped || {})) {
     if (!stop || Number.isNaN(Date.parse(stop.since)) || !stop.evidence) problems.push(`${name}: stopped.${channel} needs since (a date) and evidence (the three results)`);
   }
+  // Listing tests (references/channels.md, "The App Store funnel"): one change per stage, with the date and snapshot.
+  for (const [n, t] of (profile.listingTests || []).entries()) {
+    if (!['impressions', 'tap-through', 'conversion'].includes(t.stage) || !t.field || Number.isNaN(Date.parse(t.prepared)) || !t.before || !(t.live || t.version)) {
+      problems.push(`${name}: listingTests[${n}] needs stage, field, prepared (a date), before (the snapshot) and live (a date) or version`);
+    }
+  }
   if (profile.hackerNews !== undefined) {
     const hn = profile.hackerNews;
     if (!/^https:\/\//.test(hn.url || '')) problems.push(`${name}: hackerNews.url must be an https URL`);
@@ -852,6 +858,111 @@ export function funnel(days, discovery = {}) {
   return { through: plusDays(end, -1), last7: week(plusDays(end, -7), end), previous7: week(plusDays(end, -14), plusDays(end, -7)) };
 }
 
+// ---- the App Store funnel: which listing stage is weakest (references/channels.md, "The App Store funnel") ----
+// Published reference rates, cited in channels.md. Page views count only App Store search and browse, because
+// impressions happen only there: a visit from a website, another app or an unknown source has no impression.
+export const FUNNEL_REF = {
+  tapThrough: { low: 0.06, high: 0.12 },   // impression to page view: Adapty, 6 to 12%
+  conversion: { low: 0.086, high: 0.27 },  // page view to first-time download: AppTweak US 2025 8.56%; Adapty 25 to 27%
+  installRate: 0.038,                      // impression to download: AppTweak US 2025 3.8%; Adapty 3.6 to 3.8%
+  minImpressions: 100,                     // fewer and the 6% floor predicts under 6 page views: too small to judge
+  minPageViews: 20,                        // fewer and the 25% average predicts under 5 downloads: too small to judge
+  windowDays: 14
+};
+const STORE_SOURCES = ['App Store search', 'App Store browse'];
+const storeViews = d => STORE_SOURCES.reduce((n, s) => n + (d?.pageViewSources?.[s] || 0), 0);
+const pct = r => r === null ? 'n/a' : `${round1(r * 100)}%`;
+
+// The next listing change for each weak stage, and when it can be live (one change per stage, so its effect reads).
+export const STAGE_NEXT = {
+  impressions: { field: 'keywords', live: 'next version',
+    change: 'Keywords: spend all 100 characters on searched terms the name and subtitle do not already carry (also check the category)' },
+  'tap-through': { field: 'subtitle', live: 'next version',
+    change: 'Subtitle: say the one reason to tap, as search shows it beside the icon and first screenshot (then the first screenshot caption)' },
+  conversion: { field: 'promotionalText', live: 'today',
+    change: 'Promotional text, live today through `promo`; then the description opening and screenshot order for the next version' }
+};
+
+// funnelTotals sums a span of days: impressions, page views (all, and App Store search and browse only) and search
+// and browse first-time downloads.
+function funnelTotals(days, discovery, from, to) {
+  const t = { impressions: 0, pageViews: 0, storePageViews: 0, downloads: 0 };
+  for (let d = from; d <= to; d = plusDays(d, 1)) {
+    t.impressions += discovery[d]?.impressions || 0;
+    t.pageViews += discovery[d]?.pageViews || 0;
+    t.storePageViews += storeViews(discovery[d]);
+    t.downloads += searchBrowse(days[d]).n;
+  }
+  return t;
+}
+const rates = t => ({
+  tapThrough: t.impressions ? t.storePageViews / t.impressions : null,
+  conversion: t.storePageViews ? t.downloads / t.storePageViews : null,
+  installRate: t.impressions ? t.downloads / t.impressions : null
+});
+
+// funnelStage reads up to 14 days that both the downloads and the discovery report cover, and names the weakest
+// stage. Too few impressions to judge, or every judged stage in range, means reach is what limits.
+export function funnelStage(days, discovery, ref = FUNNEL_REF) {
+  const v = Object.keys(discovery).sort(), dl = Object.keys(days).sort();
+  if (!v.length) return null;
+  let from = dl.length ? (dl[0] > v[0] ? dl[0] : v[0]) : v[0];
+  const to = dl.length ? (dl[dl.length - 1] < v[v.length - 1] ? dl[dl.length - 1] : v[v.length - 1]) : v[v.length - 1];
+  if (from > to) return { from: v[0], to: v[v.length - 1], stage: 'impressions', why: 'the downloads and discovery reports share no day yet', next: STAGE_NEXT.impressions };
+  if (plusDays(to, 1 - ref.windowDays) > from) from = plusDays(to, 1 - ref.windowDays);
+  const t = funnelTotals(days, discovery, from, to), r = rates(t);
+  const judged = { tapThrough: t.impressions >= ref.minImpressions, conversion: t.storePageViews >= ref.minPageViews };
+  const out = { from, to, ...t, otherPageViews: t.pageViews - t.storePageViews, ...r, judged };
+  let stage, why;
+  if (!judged.tapThrough) [stage, why] = ['impressions', `${t.impressions} impressions in ${from} to ${to}: too few to judge tap-through or conversion`];
+  else if (r.tapThrough < ref.tapThrough.low) [stage, why] = ['tap-through', `tap-through ${pct(r.tapThrough)} is under the ${pct(ref.tapThrough.low)} floor`];
+  else if (judged.conversion && r.conversion < ref.conversion.low) [stage, why] = ['conversion', `conversion ${pct(r.conversion)} is under the ${pct(ref.conversion.low)} floor`];
+  else [stage, why] = ['impressions', `tap-through ${pct(r.tapThrough)} is in range and conversion ${judged.conversion ? `${pct(r.conversion)} is in range` : 'is too small to judge'}, so reach limits`];
+  return { ...out, stage, why, next: STAGE_NEXT[stage] };
+}
+
+// liveDate is when a listing test went live: its own `live` date, or the first public lookup that shows its version.
+function liveDate(test, lookups) {
+  if (test.live) return test.live.slice(0, 10);
+  const seen = lookups.find(m => test.version && m.values?.version === test.version);
+  return seen ? seen.at.slice(0, 10) : null;
+}
+
+// listingTestResults reads each listing test in the profile's `listingTests` on its own stage: the 7 days after it
+// went live against the 7 before, readable from 8 days after (14 for a fuller read). An effect is the stage's count
+// lifting by the shared rule: at least 2 more and half again as many, at a better rate.
+export function listingTestResults(tests = [], days, discovery, lookups = []) {
+  const all = [...Object.keys(days), ...Object.keys(discovery)].sort(), through = all[all.length - 1];
+  return tests.map(test => {
+    const live = liveDate(test, lookups);
+    const base = { stage: test.stage, field: test.field, prepared: test.prepared, version: test.version || null, live };
+    if (!live) return { ...base, judged: false, why: `waiting for version ${test.version} to go live` };
+    const firstRead = plusDays(live, STORE_DAYS + 1);
+    if (!through || through < plusDays(live, STORE_DAYS)) return { ...base, firstRead, judged: false, why: `first read ${firstRead}` };
+    const before = funnelTotals(days, discovery, plusDays(live, -STORE_DAYS), plusDays(live, -1));
+    const after = funnelTotals(days, discovery, plusDays(live, 1), plusDays(live, STORE_DAYS));
+    const [rb, ra] = [rates(before), rates(after)];
+    const effect = test.stage === 'impressions' ? lifted(after.impressions, before.impressions)
+      : test.stage === 'tap-through' ? lifted(after.storePageViews, before.storePageViews) && ra.tapThrough > (rb.tapThrough || 0)
+      : lifted(after.downloads, before.downloads) && ra.conversion > (rb.conversion || 0);
+    return { ...base, firstRead, judged: true, before, after, effect };
+  });
+}
+
+// funnelItem is the backlog item for the weak stage: the next listing change to try, scored first among listing work.
+export function funnelItem(f) {
+  return { id: `funnel-${f.stage}`, title: `Funnel: lift ${f.stage} (${f.next.field})`, channel: 'app-store', runner: 'mac', impact: 5, effort: 2,
+    how: `learn names ${f.stage} the weakest stage (${f.why}, ${f.from} to ${f.to}). ${f.next.change}. Live ${f.next.live}. One change per stage; record it in listingTests with the before snapshot.` };
+}
+
+// rescoreFunnel puts the weak stage's item in the backlog at impact 5 and drops other stages' funnel items to 2.
+export function rescoreFunnel(profile, f) {
+  const item = funnelItem(f), backlog = (profile.backlog || []).map(b => b.id?.startsWith('funnel-') && b.id !== item.id ? { ...b, impact: 2 } : b);
+  const at = backlog.findIndex(b => b.id === item.id);
+  if (at >= 0) backlog[at] = { ...backlog[at], ...item }; else backlog.push(item);
+  return { ...profile, backlog };
+}
+
 export function learnApp(profile, events, metrics, registry, now = Date.now(), pitchQueue = []) {
   const days = mergedDays(metrics, profile.id), refDays = mergedDays(metrics, profile.id, 'asc-downloads-detailed');
   const discovery = mergedDays(metrics, profile.id, 'asc-discovery');
@@ -865,7 +976,9 @@ export function learnApp(profile, events, metrics, registry, now = Date.now(), p
   const coverage = coverageResults(pitchQueue.filter(r => r.type === 'outcome' && r.kind === 'coverage' && pitchApp(pitchQueue, r.pitch) === profile.id), days);
   const verdicts = { 'youtube-shorts': killVerdict(shorts), seo: killVerdict(guides), directories: killVerdict(directories), pitches: killVerdict(coverage) };
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
-  return { app: profile.id, funnel: funnel(days, discovery), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
+  const lookups = metrics.filter(m => m.app === profile.id && m.source === 'itunes-lookup');
+  return { app: profile.id, funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
+    listingTests: listingTestResults(profile.listingTests, days, discovery, lookups), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
 
@@ -876,7 +989,13 @@ function cmdLearn(root, args) {
   const out = profiles.map(p => learnApp(p, events, metrics, registry, Date.now(), queue));
   const approaches = approachResults(queue, latestPitches(metrics));
   for (const r of out) {
-    const p = profiles.find(x => x.id === r.app);
+    // The weak stage's next listing change goes into the backlog first among listing work.
+    const i = profiles.findIndex(x => x.id === r.app);
+    if (r.stage && args.write) {
+      profiles[i] = rescoreFunnel(profiles[i], r.stage);
+      writeFileSync(join(dirOf(root), 'apps', `${r.app}.json`), JSON.stringify(profiles[i], null, 2) + '\n');
+    }
+    const p = profiles[i];
     for (const [key, v] of Object.entries(r.verdicts)) {
       if (v.verdict !== 'stop' || p.stopped?.[key]) continue;
       r.newStops = [...(r.newStops || []), key];
@@ -898,6 +1017,9 @@ function cmdLearn(root, args) {
   for (const r of out) {
     const f = r.funnel;
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
+    const s = r.stage;
+    console.log(`  funnel ${s ? `${s.from} to ${s.to}: weakest ${s.stage} (${s.why}); tap-through ${s.judged ? pct(s.tapThrough) : 'n/a'}, conversion ${s.judged?.conversion ? pct(s.conversion) : `${s.judged ? pct(s.conversion) : 'n/a'} (too small to judge)`}; next: ${s.next.change}, live ${s.next.live}` : 'no discovery numbers yet'}`);
+    for (const t of r.listingTests) console.log(`  listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''}: ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
     for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
   }
