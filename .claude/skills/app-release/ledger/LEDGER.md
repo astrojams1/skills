@@ -1,8 +1,19 @@
 # App release skill ledger
 
-Skill version **2.26.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.27.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.27.0 (2026-11-12)
+
+- Two subtitle tests (Space Worms and Newsworthy) were merged as store data to "ride the next version", and neither
+  app had one planned, so their effect could not be read for an unknown time. Apple's App Store Connect Help does not
+  mark Subtitle editable without a new version and lists Keywords as a version property; only promotional text changes
+  without a new submission, and each version needs a build. The daily run now ships a merged listing change by
+  itself: `review-sweep.mjs sweep` compares the store data on the release branch with the live App Info and version
+  texts and marks a difference in name, subtitle, keywords, description or URLs as a `listing` candidate, which the
+  run submits as a metadata-only version from the same code, with truthful release and review notes and every gate
+  unchanged ([daily review run](../references/daily-review-run.md), "A listing change ships").
 
 ## Lessons incorporated into v2.26.0 (2026-11-12)
 

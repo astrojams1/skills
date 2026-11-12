@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.19.1"
+  version: "1.20.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -121,7 +121,9 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    - **The funnel:** one line per app names the weakest stage (impressions, tap-through or conversion) and the next
      listing change. `--write` puts that change in the backlog at impact 5. Read
      [the funnel](references/channels.md#the-app-store-funnel) before changing a listing: one change per stage,
-     recorded in `listingTests` with its before snapshot.
+     recorded in `listingTests` with its before snapshot. A merged listing change ships the next morning as a
+     metadata-only version through app-release's daily run, never "with the next release". `learn` lists each queued
+     test with its queue date and marks it `STALE` after 3 days unsubmitted: fix what stopped it in this run.
    - **Pitch emails:** run `marketing.mjs pitches --write` first. Each piece of coverage is judged on downloads in the
      week after it. A pitch approach with 30 sent and no positive reply is retired.
    - **The kill rule:** three mature results in a row with no download effect stop that work for that app.

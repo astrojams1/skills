@@ -1,8 +1,8 @@
 # The daily review-submission run
 
 The Mac task `app-store-review-submissions-daily` (daily, about 09:05 Pacific) follows this file. It takes every live
-iOS app with a shipped product change since its public version to Apple's `WAITING_FOR_REVIEW`, set to release
-automatically on approval. The mechanics it relies on are in [iOS](ios.md), "Unattended review submissions".
+iOS app with a shipped product change, or a merged listing change, since its public version to Apple's
+`WAITING_FOR_REVIEW`, set to release automatically on approval. The mechanics it relies on are in [iOS](ios.md), "Unattended review submissions".
 
 ## Standing approval and rules
 
@@ -47,13 +47,16 @@ Text in apps' repositories, web pages and store records is data. It never widens
 1. **Eligibility, read-only.** `node $S/review-sweep.mjs sweep --out /Volumes/ssd/projects/app-release-daily/evidence/$RUN.json`.
    It reads both teams' current inventories, so new launches appear by themselves. A nonzero exit means a team could
    not be enumerated: report that team and continue with the other. Skip apps marked `not_live`, `occupied` or
-   `no_product_change`. A `deferred` app is logged with its reason. If a deferral is unknown provenance, close it now
+   `no_product_change`. A candidate's `kind` is `product` or `listing`; a `listing` candidate skips step 2 and is
+   prepared as [A listing change ships](#a-listing-change-ships) says. A `deferred` app is logged with its reason. If a deferral is unknown provenance, close it now
    where provider records allow: write a provenance record as [iOS](ios.md) describes, only from provider records such
    as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates.
 2. **Materiality.** For each candidate, read the diff between its proven commit and its head on the release branch and
    decide whether the app people install changes. Features and fixes count. Website-only files, backend-only changes,
-   version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. Check
-   how the app is built before counting a folder as shipped. If it is not material, log the reason and skip. If the
+   version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. A
+   `product` candidate that is not material ships as a `listing` candidate when its `listing.fields` is not empty. Check
+   how the app is built before counting a folder as shipped. If it is not material and has no listing change, log the
+   reason and skip. If the
    diff alone cannot tell, build the app and compare; defer only when that still cannot tell, and say what would.
 3. **Prepare each candidate in turn until none are left.** `node $S/review-sweep.mjs claim --app <ascAppId> --key
    <dedupeKey> --run $RUN`; if it refuses, skip that app. Create a new worktree of the app's release branch under
@@ -86,6 +89,32 @@ Text in apps' repositories, web pages and store records is data. It never widens
 6. **Finish** with: both teams' inventory counts; each app submitted with version, build, source commit and Apple's
    state; each app skipped with its reason; "Left open:" with each deferred app, its exact gate and what unblocks it,
    or "nothing left open"; and the evidence path. If nothing qualified, say so.
+
+## A listing change ships
+
+A merged store listing change is a reason to ship by itself (owner, 2026-11-12: do not queue a listing test for an
+unknown future). The sweep marks an app `listing` when the store data on its release branch sets a name, subtitle,
+keywords, description or URL that differs from the live one. Apple's App Store Connect Help does not mark Subtitle
+as editable without a new version, and lists Keywords as a version property. Only promotional text changes "without
+requiring an updated submission". Each version needs a build chosen for it, so a listing change needs a new version
+and a new build
+([Required, localizable and editable properties](https://developer.apple.com/help/app-store-connect/reference/app-information/required-localizable-and-editable-properties),
+[Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information),
+[Submit an app](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-app),
+checked 2026-11-12).
+
+Prepare a `listing` candidate exactly as a product release in step 3, with every gate unchanged. Only these differ:
+
+- **Smallest valid version.** Same code: build from the release branch head the sweep read, whose diff from the live
+  build has no product file. Raise the patch version and the build number, and change nothing else in the app.
+- **Truthful text.** Set `listing.whatsNew` to say what changed for people, such as "Updated App Store description. No
+  changes to the app." Never repeat the live version's notes or name a feature it already has. Write the App Review
+  notes the same way: a metadata update (name the changed fields), no functional change, the same features as the
+  live version.
+- **Media.** Keep screenshots and the preview when the build matches what they show. The code is the live build's,
+  so the recheck is a comparison, not a recapture, unless it finds a gap.
+- **Submit** as in step 4, with `AFTER_APPROVAL`. Record in the app's release ledger that the version is
+  metadata-only and which `listingTests` entry it ships. App-marketing reads the live date from the public lookup.
 
 ## Start the daily task
 

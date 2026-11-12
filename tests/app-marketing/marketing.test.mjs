@@ -459,7 +459,7 @@ test('listing tests wait for their version, then read the stage 7 days after aga
   const days = fdays('2026-11-01', 20, () => dl(1));
   const disc = fdays('2026-11-01', 20, i => view(100, i < 10 ? 2 : 8));
   const test1 = { stage: 'tap-through', field: 'subtitle', prepared: '2026-11-05', version: '1.0.2', before: {} };
-  assert.match(listingTestResults([test1], days, disc, [])[0].why, /waiting for version 1.0.2/);
+  assert.match(listingTestResults([test1], days, disc, [], Date.parse('2026-11-06T12:00:00Z'))[0].why, /queued 2026-11-05, not submitted after 1 days/);
   const lookups = [{ at: '2026-11-11T05:00:00Z', app: 'x', source: 'itunes-lookup', values: { version: '1.0.2' } }];
   const [r] = listingTestResults([test1], days, disc, lookups);
   assert.equal(r.live, '2026-11-11');
@@ -486,4 +486,29 @@ test('a listing test for the next version goes live with the first lookup showin
   const t = { stage: 'impressions', field: 'keywords', prepared: '2026-11-12', version: 'next', before: { listing: { version: '1.3.0' } } };
   const lookups = [['2026-11-11', '1.4.0'], ['2026-11-12', '1.3.0'], ['2026-11-15', '1.3.1']].map(([d, v]) => ({ at: `${d}T05:00:00Z`, values: { version: v } }));
   assert.equal(listingTestResults([t], {}, {}, lookups)[0].live, '2026-11-15');
+});
+
+test('a queued listing test shows its queue date and is stale after 3 days unsubmitted', () => {
+  const t = { stage: 'tap-through', field: 'subtitle', prepared: '2026-11-12', version: 'next', before: { listing: { version: '1.3.0' } } };
+  const at = d => Date.parse(`${d}T17:00:00Z`);
+  assert.equal(listingTestResults([t], {}, {}, [], at('2026-11-15'))[0].stale, false);
+  const late = listingTestResults([t], {}, {}, [], at('2026-11-16'))[0];
+  assert.equal(late.stale, true);
+  assert.match(late.why, /queued 2026-11-12, not submitted after 4 days: STALE/);
+  const sent = listingTestResults([{ ...t, submitted: '2026-11-13' }], {}, {}, [], at('2026-11-16'))[0];
+  assert.equal(sent.stale, false);
+  assert.match(sent.why, /submitted 2026-11-13/);
+});
+
+test('site-visits turns the Neon aggregate into the row youtube-growth reads', async () => {
+  const { siteVisitsRow, SITE_VISITS_SQL } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const { siteDays } = await import('../../skills/youtube-growth/scripts/evaluate.mjs');
+  const row = siteVisitsRow('vegas-microworks', [{ day: '2026-11-11', visits: '7', leads: 0 }, { day: '2026-11-12', visits: 3, leads: 1 }], '2026-11-12T23:00:00Z');
+  assert.deepEqual(row, { at: '2026-11-12T23:00:00Z', app: 'vegas-microworks', source: 'site-visits', days: { '2026-11-11': { visits: 7, leads: 0 }, '2026-11-12': { visits: 3, leads: 1 } } });
+  assert.deepEqual(Object.keys(siteDays([row])['vegas-microworks'].days), ['2026-11-11', '2026-11-12']);
+  assert.throws(() => siteVisitsRow('x', []), /query rows/);
+  assert.throws(() => siteVisitsRow('x', [{ day: 'today', visits: 1, leads: 0 }]), /bad row/);
+  assert.match(SITE_VISITS_SQL, /from site_visits/);
+  assert.match(SITE_VISITS_SQL, /from interest i where i.id > 1/);
+  assert.doesNotMatch(SITE_VISITS_SQL, /contact|name|problem|path/);
 });

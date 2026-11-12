@@ -59,7 +59,11 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
 1. **Measure.** `marketing.mjs public --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
-   public Shorts only. Never total the registry by hand. Run `evaluate.mjs` and read its decisions. Then
+   public Shorts only. Never total the registry by hand. Then the business sites: run the query from
+   `marketing.mjs site-visits --sql` with the Neon connector's `run_sql` on project `lucky-hat-15341181` (Vegas
+   Microworks; counts only), save the rows to a file and run `marketing.mjs site-visits --rows FILE --write`. It
+   appends one `site-visits` row to `/Volumes/ssd/projects/app-shorts/site-metrics.jsonl`, which `evaluate.mjs`
+   judges Vegas Microworks Shorts on. Run `evaluate.mjs` and read its decisions. Then
    `marketing.mjs learn --write` (SKILL.md, Learn).
 2. **Check the search phrase, then publish every scheduled Short.** The `search-phrase` item runs `shorts.mjs phrase <app>`
    for every live app and writes the result to the profile as `searchPhrase: { phrase, rank, checked }`. When no
@@ -82,7 +86,10 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
 5. **Other repositories.** Work there follows that repository's `AGENTS.md`, on its own branch, with a PR. Store listing
    text and data are this skill's call: decide and merge them, never leave a draft for the owner. Merge a PR this
    skill opened once the repository's checks pass and its rules hold nothing back. Never submit, release, change a
-   price or change the app itself. Log a store text change with `changed`, so Learn can judge it.
+   price or change the app itself. Log a store text change with `changed`, so Learn can judge it. A merged name,
+   subtitle, keyword or description change needs no release of its own: app-release's daily run ships it the next
+   morning as a metadata-only version. When `asc.mjs status` shows that version in review, set the test's
+   `submitted` date. A `STALE` test from `learn` is a gap to close in this run.
 6. **Directories.** Work every `directories` item as in [channels](channels.md), "Directories and review sites",
    in Claude in Chrome. Never sign in; a form that needs an account is skipped.
 7. **Ship and end the core stage.** `marketing.mjs board` (it also writes `marketing/show-hn.txt` and the Mac's copy
