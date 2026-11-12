@@ -170,8 +170,8 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 
 | Mac scheduled task | When | Stored prompt (pointer) |
 |---|---|---|
-| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task" |
-| `app-marketing-show-hn` | Weekdays 09:00 Pacific | `skills/app-marketing/references/hacker-news.md`, "Start the Show HN task" |
+| `app-marketing-mac` | Daily, about 05:35 Pacific | `skills/app-marketing/references/mac-pass.md`, "Start the Mac task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12; each run fast-forwards it) |
+| `app-marketing-show-hn` | Weekdays 09:00 Pacific | `skills/app-marketing/references/hacker-news.md`, "Start the Show HN task", read from the main checkout; its first step reads one file and runs no command |
 | `abandoned-prs-weekly` | Weekly | `skills/abandoned-prs/SKILL.md`, "Start the weekly task" |
 | `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task" |
 | `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task" |
