@@ -65,6 +65,7 @@ function fixture(options = {}) {
     let data;
     if (path === '/v1/apps/app') data = { id: 'app', attributes: { bundleId: options.wrongBundle ? 'com.foreign.app' : 'com.example.app' } };
     else if (path === '/v1/apps/app/appInfos') data = [];
+    else if (path === '/v1/apps') data = options.teamApps || [{ id: 'app', attributes: { name: 'Example', bundleId: 'com.example.app', sku: 'example' } }];
     else if (path === '/v1/apps/app/appAvailabilityV2') data = { id: 'av' };
     else if (path === '/v2/appAvailabilities/av/territoryAvailabilities') data = [{ id: 'ta', attributes: { available: Boolean(options.china) }, relationships: { territory: { data: { id: 'CHN' } } } }];
     else if (path === '/v1/appStoreVersions/v1/appStoreVersionLocalizations') data = [{ id: 'loc', attributes: { locale: 'en-US' } }];
@@ -300,6 +301,16 @@ test('submit refuses before any write while the promotion list is unfinished', a
   await assert.rejects(submit('--confirm'), /app preview video \(none placed for IPHONE\).*Nothing was submitted/);
   assert.equal(state.writes.length, 0);
   assert.equal(state.submitted, false);
+});
+
+test('submit refuses before any write while another record on the team duplicates the app', async () => {
+  // Giraffe Stretch 1.0 was rejected under Guideline 4.3 with an earlier record of the same game on its team (2026-11-12).
+  const state = fixture({ teamApps: [
+    { id: 'app', attributes: { name: 'Example Stretch', bundleId: 'com.example.app', sku: 'example' } },
+    { id: 'old', attributes: { name: 'Stretch the Example', bundleId: 'com.example.old', sku: 'old' } },
+  ] });
+  await assert.rejects(submit('--confirm'), /Guideline 4\.3.*Stretch the Example.*Nothing was submitted/);
+  assert.equal(state.writes.length, 0);
 });
 
 test('submit refuses before any write while a listing naming AI services is sold in China mainland', async () => {

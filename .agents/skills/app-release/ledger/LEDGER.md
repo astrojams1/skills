@@ -1,8 +1,22 @@
 # App release skill ledger
 
-Skill version **2.25.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.26.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.26.0 (2026-11-12)
+
+- Giraffe Stretch 1.0 (Kids Category) was rejected under Guidelines 4.3 (Spam) and 4.2.6 with Apple's general notice:
+  if the app is original, reply to nine questions and do not resubmit. `status` had printed the Kids Category advice
+  ("reply, then `submit --confirm` with the same build") under it, which would have drawn a second rejection. Signals
+  App Review could see: a test-named bundle ID (`com.ouro.giraffestretchtest1`), two earlier records of the same game
+  on the team until 5 November, and a crowded toddler-ABC category. Nothing in the app was templated or shared.
+- `status` now tells every rejected version to check the cited guideline and never to resubmit a 4.3 notice
+  (`rejectionAdvice`). `submit` refuses, before any write, while another record on the team shares two name words
+  with the app or its bundle ID, SKU or name carries a placeholder (`identityProblems`, `identityRefusal`); a fixed
+  bundle ID passes with a reason in `review.identityWaiver`. All unit-tested. `ios.md` and `app-types.md` describe
+  the reply route and the one-record rule. Consumers only bump the submodule; an app with a placeholder in its bundle
+  ID adds `review.identityWaiver` before its next `submit`.
 
 ## Lessons incorporated into v2.25.2 (2026-11-12)
 

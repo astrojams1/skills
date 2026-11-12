@@ -443,9 +443,74 @@ const KIDS_CATEGORY_QUESTIONS = [
 export function kidsRejectionAdvice(ageRating, state) {
   if (!ageRating || !ageRating.kidsAgeBand || state !== 'REJECTED') return null;
   return 'Kids Category: a 2.1 rejection here is usually Apple\'s automated Guideline 1.3 information request, sent even '
-    + 'when the review notes answer it. Read the message in App Store Connect (App Review, then the submission); if it is '
-    + 'that request, reply there with the notes\' Guideline 1.3 answers, then run `asc.mjs submit --confirm` with the same '
-    + 'build. The reply alone does not resubmit.';
+    + 'when the review notes answer it. Read the message in App Store Connect (App Review, then the submission) and check '
+    + 'the guideline it cites first. If it is that request, reply there with the notes\' Guideline 1.3 answers, then run '
+    + '`asc.mjs submit --confirm` with the same build; the reply alone does not resubmit. ' + SPAM_REJECTION_ADVICE;
+}
+
+// SPAM_REJECTION_ADVICE covers Apple's 4.3 (Spam) and 4.2.6 notice, which asks for the opposite of the 2.1 route: if the
+// app is original, reply to all its questions and do not resubmit, since an unchanged resubmission is rejected again
+// (Giraffe Stretch 1.0, 2026-11-12).
+const SPAM_REJECTION_ADVICE = 'If it cites 4.3 (Spam) or 4.2.6, do not run `submit --confirm`: when the app is original, '
+  + 'reply answering every question it asks, from evidence (other apps on the team, shared code, beta feedback); '
+  + 'otherwise make substantial changes first (app-release references/ios.md, "When App Review rejects").';
+
+// rejectionAdvice is printed under any rejected version: the state alone never says which route applies.
+export function rejectionAdvice(ageRating, state) {
+  if (state !== 'REJECTED') return null;
+  return kidsRejectionAdvice(ageRating, state)
+    || 'Rejected: read the message in App Store Connect (App Review, then the submission) and check the guideline it cites '
+      + 'before changing anything. ' + SPAM_REJECTION_ADVICE;
+}
+
+// IDENTITY_NAME_FILLER are words too common in app names to show two records are the same app.
+const IDENTITY_NAME_FILLER = new Set(['the', 'a', 'an', 'and', 'of', 'for', 'to', 'my', 'your', 'with', 'app', 'abc', 'abcs',
+  'kids', 'learn', 'learning', 'game', 'games', 'lite', 'pro', 'free', 'legacy', 'ios']);
+
+function nameWords(name) {
+  return new Set(String(name || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(word => word.length > 1 && !IDENTITY_NAME_FILLER.has(word)));
+}
+
+// A placeholder segment in a bundle ID, SKU or name: "test", "demo2", or one ending in test/demo plus a number
+// ("giraffestretchtest1"). App Review reads these as a test or variant build of an existing app.
+function placeholderSegment(value) {
+  return String(value || '').split(/[.\-_\s:]+/).find(part => /^(?:test|demo|sample|template|copy|tmp)\d*$/i.test(part)
+    || /(?:test|demo|sample)\d+$/i.test(part));
+}
+
+// identityProblems names what makes a record look like a duplicate or a test build to App Review under Guideline 4.3:
+// a placeholder in its bundle ID, SKU or name, and other records on the team whose names share two or more words with
+// it. Giraffe Stretch 1.0 was rejected under 4.3 and 4.2.6 (2026-11-12) with bundle ID com.ouro.giraffestretchtest1
+// and two earlier records of the same game on the team. `teamApps` are the team's other apps (GET /v1/apps); removed
+// apps are not listed there.
+export function identityProblems(app, teamApps = []) {
+  const problems = [];
+  const attributes = app?.attributes || {};
+  for (const field of ['bundleId', 'sku', 'name']) {
+    const segment = placeholderSegment(attributes[field]);
+    if (segment) problems.push(field + ' ' + JSON.stringify(attributes[field]) + ' contains ' + JSON.stringify(segment)
+      + ', which reads as a test or variant build');
+  }
+  const own = nameWords(attributes.name);
+  for (const other of teamApps) {
+    if (!other || other.id === app?.id) continue;
+    const shared = [...nameWords(other.attributes?.name)].filter(word => own.has(word));
+    if (shared.length >= 2) problems.push('another record on the team, ' + JSON.stringify(other.attributes.name) + ' (' + other.id
+      + ', ' + other.attributes.bundleId + '), shares the words ' + shared.join(', ') + '; remove the duplicate before submitting');
+  }
+  return problems;
+}
+
+// identityRefusal is the sentence `submit` refuses with, or null. A placeholder that cannot change on an existing
+// record (its bundle ID) is accepted with a reason in the store data's review.identityWaiver; a duplicate never is.
+export function identityRefusal(problems, waiver) {
+  if (!problems.length) return null;
+  const duplicates = problems.filter(problem => problem.startsWith('another record'));
+  const remaining = typeof waiver === 'string' && waiver.trim() ? duplicates : problems;
+  if (!remaining.length) return null;
+  return 'App Review rejects apps that look like duplicates or test builds under Guideline 4.3: ' + remaining.join('; ')
+    + '. Remove duplicate records; for a placeholder that cannot change on this record, give the reason in the store data\'s '
+    + 'review.identityWaiver. Nothing was submitted.';
 }
 
 export function kidsReviewNotesProblems(ageRating, notes) {
@@ -539,7 +604,7 @@ async function status() {
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
   for (const item of versions) {
     console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
-    const advice = item.attributes.versionString === STORE.version && kidsRejectionAdvice(STORE.ageRating, versionState(item));
+    const advice = item.attributes.versionString === STORE.version && rejectionAdvice(STORE.ageRating, versionState(item));
     if (advice) console.log('    ' + advice);
   }
   const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5&include=buildBetaDetail');
@@ -1494,6 +1559,11 @@ export async function submit(flag) {
       + 'its notes answer how it meets Guideline 1.3. The saved review notes do not answer: ' + unanswered.join('; ')
       + '. Answer each from the shipped code in the store data\'s review.notes, run `asc.mjs review-details`, then submit again; nothing was submitted.');
   }
+  // Duplicate records and test-named identifiers draw a 4.3 Spam rejection; both are read before anything is written.
+  const teamApps = await listAll('/v1/apps?fields[apps]=name,bundleId,sku&limit=200');
+  const self = teamApps.find(item => item.id === ctx.app.id) || ctx.app;
+  const identity = identityRefusal(identityProblems(self, teamApps), STORE.review?.identityWaiver);
+  if (identity) throw new Error(identity);
   const wrongRelease = releaseTypeRefusal(ctx.version);
   if (wrongRelease) throw new Error(wrongRelease + ' Nothing was submitted.');
   await requireUnattendedSubmit(ctx.version.id);

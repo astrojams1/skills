@@ -389,6 +389,20 @@ saved review notes and refuses, naming the unanswered questions, until they answ
 all four and Apple still rejected it under 2.1, asking for a reply in App Store Connect (11 November 2026). Recovery
 needs no new build: reply in the submission's Messages with the notes' answers, then `submit --confirm`.
 
+**Guideline 4.3 (Spam) and 4.2.6 (app generation services)** come as one general notice: the app "appears to
+match" a duplicate of an App Store app (4.3(a)), an opportunistic variant of a crowded category (4.3(b)) or a
+template-built app not submitted by its content provider (4.2.6). Apple's route is the reverse of the 2.1 one: if
+the app is original, **reply and do not resubmit**; an unchanged resubmission is rejected again. Answer every
+question in full from evidence: the team's other apps (`GET /v1/apps`) and how each differs; code, art and audio
+shared with them (compare source hashes); third-party code; the TestFlight builds and the feedback each one
+applied; who owns the concept. Facts only the owner has (who beta tested, a client) are asked for, never written
+in. Giraffe Stretch 1.0 was rejected this way on 12 November 2026 with a test-named bundle ID
+(`com.ouro.giraffestretchtest1`) and two earlier records of the same game on the team. To stop the next one,
+`submit` refuses (`identityProblems`, unit-tested) while another record on the team shares two name words with the
+app (remove it first) or the bundle ID, SKU or name carries a placeholder such as `test1` or `demo`; a placeholder
+that cannot change on an existing record passes with a reason in the store data's `review.identityWaiver`. Create
+one record per app, with its final bundle ID, before the first build.
+
 **Guideline 2.1 information requests for a new developer** have needed, for both apps: a physical-device
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the
 in-app privacy policy and contact; and notes covering purpose and audience, setup (no login), external
