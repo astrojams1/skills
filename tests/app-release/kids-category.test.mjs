@@ -1,7 +1,7 @@
-// The Kids Category check: App Review holds a Kids Category app until its notes answer the four Guideline 1.3 questions.
+// The Kids Category checks: the notes must answer Apple's four Guideline 1.3 questions, and a rejected version gets advice.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { kidsReviewNotesProblems } from '../../skills/app-release/scripts/asc.mjs';
+import { kidsReviewNotesProblems, kidsRejectionAdvice } from '../../skills/app-release/scripts/asc.mjs';
 
 const kids = { kidsAgeBand: 'FIVE_AND_UNDER' };
 const answered = [
@@ -37,4 +37,18 @@ test('a general privacy line answers collection and ads but not analytics or thi
 test('Family Sharing is not an answer about sharing data with third parties', () => {
   const problems = kidsReviewNotesProblems(kids, 'Purchases are shared with the family through Family Sharing. No analytics, no ads, nothing collected.');
   assert.deepEqual(problems.map(problem => problem.split(' (')[0]), ['data shared with third parties']);
+});
+
+test('a rejected Kids Category version gets the reply-then-resubmit advice', () => {
+  // Pipsqueak 1.0: notes answered all four questions and Apple still sent the automated request (2026-11-11).
+  const advice = kidsRejectionAdvice({ kidsAgeBand: 'SIX_TO_EIGHT' }, 'REJECTED');
+  assert.match(advice, /Guideline 1\.3/);
+  assert.match(advice, /reply/);
+  assert.match(advice, /submit --confirm/);
+});
+
+test('no advice outside the Kids Category or when the version is not rejected', () => {
+  assert.equal(kidsRejectionAdvice({ kidsAgeBand: null }, 'REJECTED'), null);
+  assert.equal(kidsRejectionAdvice(undefined, 'REJECTED'), null);
+  assert.equal(kidsRejectionAdvice({ kidsAgeBand: 'SIX_TO_EIGHT' }, 'WAITING_FOR_REVIEW'), null);
 });

@@ -426,8 +426,9 @@ export function listingCharacterProblems(copy) {
 }
 
 // KIDS_CATEGORY_QUESTIONS are the four Guideline 1.3 questions App Review asks of every Kids Category app in an
-// automated information request, holding the version until they are answered (Giraffe Stretch 1.0, 2026-10-31). Each
-// pairs the question with the words an answer to it must use.
+// automated information request (Giraffe Stretch 1.0, 2026-10-31). Answering them in the notes is required but does not
+// stop the request: Pipsqueak 1.0's notes answered all four and Apple still rejected it under 2.1, asking for a reply in
+// App Store Connect (2026-11-11). Each pairs the question with the words an answer to it must use.
 const KIDS_CATEGORY_QUESTIONS = [
   ['third-party analytics (whether the app includes any, and what data they collect)', /analytics/i],
   ['third-party advertising (whether the app shows any, and a link to the ad network\'s policies for kids apps)', /\bads?\b|advertis/i],
@@ -437,6 +438,16 @@ const KIDS_CATEGORY_QUESTIONS = [
 
 // kidsReviewNotesProblems names the Kids Category questions the review notes leave unanswered. An app outside the Kids
 // Category (no kidsAgeBand in its age rating) is not asked them.
+// kidsRejectionAdvice is what to do when a Kids Category version reads REJECTED: the cause is most often the automated
+// Guideline 1.3 information request, which wants a reply in App Store Connect, not a new build. Null otherwise.
+export function kidsRejectionAdvice(ageRating, state) {
+  if (!ageRating || !ageRating.kidsAgeBand || state !== 'REJECTED') return null;
+  return 'Kids Category: a 2.1 rejection here is usually Apple\'s automated Guideline 1.3 information request, sent even '
+    + 'when the review notes answer it. Read the message in App Store Connect (App Review, then the submission); if it is '
+    + 'that request, reply there with the notes\' Guideline 1.3 answers, then run `asc.mjs submit --confirm` with the same '
+    + 'build. The reply alone does not resubmit.';
+}
+
 export function kidsReviewNotesProblems(ageRating, notes) {
   if (!ageRating || !ageRating.kidsAgeBand) return [];
   const text = typeof notes === 'string' ? notes : '';
@@ -526,7 +537,11 @@ async function status() {
     console.log('  IAP review screenshot', image.productId, image.state, 'id', image.id || 'none', 'checksum', image.checksum || 'pending');
   }
   const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS');
-  for (const item of versions) console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
+  for (const item of versions) {
+    console.log('  version', item.attributes.versionString, versionState(item), 'id', item.id);
+    const advice = item.attributes.versionString === STORE.version && kidsRejectionAdvice(STORE.ageRating, versionState(item));
+    if (advice) console.log('    ' + advice);
+  }
   const builds = await api('/v1/builds?filter[app]=' + IOS.ascAppId + '&sort=-uploadedDate&limit=5&include=buildBetaDetail');
   for (const item of builds.data) {
     console.log('  build', item.attributes.version, item.attributes.processingState, item.attributes.uploadedDate, testflightState(item, builds.included));
@@ -1539,6 +1554,9 @@ export async function submit(flag) {
     throw new Error('Review submission/version readback is not waiting for or in review; inspect provider state before retrying.');
   }
   console.log('Review submission', submission.id, 'is', saved.attributes.state, '; app version is', versionState(version));
+  // A first Kids Category submission still draws the automated Guideline 1.3 request; say so now, not after the rejection.
+  if (STORE.ageRating && STORE.ageRating.kidsAgeBand) console.log('Kids Category: Apple may still hold this with its automated '
+    + 'Guideline 1.3 information request. If it does, reply in App Store Connect with the notes\' answers, then submit --confirm.');
 }
 
 // release publishes an approved version left awaiting release, such as one submitted before every app released on approval.
