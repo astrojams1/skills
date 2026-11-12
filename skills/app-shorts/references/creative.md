@@ -33,8 +33,8 @@ Write it in the episode folder (`plan.md`) before recording. Short and specific:
 
 ## The bar
 
-Score every round 1 to 10 on each line. Ship only when every line is 8 or more, from you and from the independent
-reviewer. Write the scores in the plan.
+Score every round 1 to 10 on each line, and write the scores in the plan. The scores show what to fix next; they
+are not a pass mark (see "The reviewer panel").
 
 1. **Stops the scroll.** The first frame is already interesting, before any words are read.
 2. **Says what it is.** By 3 seconds a stranger knows what the app does and what it works with.
@@ -116,7 +116,10 @@ lens:
 3. **The skeptic.** Truth, clarity and brand: is every claim real, does it say what the app is, any pricing line,
    anything ugly or busy, anything that repeats an owner verdict?
 
-Each answers with scores on every line of the bar, the single weakest moment, and **POST** or **NOT YET** with the
-reason. Post only when all three say POST, every line is 7 or more from all three, and lines 1, 2 and 9 are 8 or more
-from all three. Otherwise fix the weakest moments and run the panel again with fresh reviewers. After four rounds
-without a pass, drop the Short and record why.
+Each answers with scores on every line of the bar, the single weakest moment, and what to change. Their feedback
+drives the next round; it is not a pass mark. The owner's rule (2026-11-12): "each round the reviewers provide
+feedback. max 3 rounds." Run at most three rounds. After the third, fix every concrete fault the last panel named
+(a pricing line, a glitch or blank frame, unreadable words, an untrue claim, not saying what the app is, not
+obviously an iPhone app) without another round, then post. Taste notes ("feels like a template") guide the next
+Short, not this one. Why: after 13 attempts with no pass, the panel ranked the owner's own verdicts in reverse
+(`../ledger/experiments.md`); it finds faults well and cannot judge taste, so the audience's numbers decide.
