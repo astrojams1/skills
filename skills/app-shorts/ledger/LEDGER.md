@@ -53,3 +53,7 @@ app's repository; each run in the owner's activity ledger.
   frames (1170x2532), deterministic timing (Data Center dc-first-01).
 - 2026-11-12: An Apple Loop's name says nothing about gaps. Bedlam Synth Layers and Airy Vox Synth drop below -70 dB
   for 50 ms windows; measure each loop with `astats` at 50 ms (`asetnsamples=2400`) before building a bed on it.
+- 2026-11-12: Newsworthy's front page can name a real person in a scandal (today: 5/10 on a CEO's resignation). Keep the
+  sentence out of frame by clipping the capture above it, never by blurring, and say so in the description. Pick
+  `EB6GGrACO10` (the B film), not `54ZNifKYxtk`, as the October reference: the registry's legacy rows carry no file or
+  description, so match a legacy Short to its source by its public thumbnail (`i.ytimg.com/vi/<id>/oar2.jpg`).
