@@ -24,7 +24,8 @@
 //   node shorts.mjs rules <app> [--checklist FILE --episode ID]   the reviewer pack's rules: this skill's, the app's
 //                                                  or business's own, and the owner's recorded verdicts (exits 1 if a
 //                                                  source is missing); --checklist writes (or tops up) the per-rule
-//                                                  checklist each rule is marked pass or fail in, with its evidence
+//                                                  checklist each rule is marked pass or fail in, with its evidence;
+//                                                  with --episode it also points that episode's rulesChecklist at FILE
 //   node shorts.mjs plan [--days 14] [--gap 2]     a posting calendar: a Short every `gap` days, the most overdue app first;
 //                                                  apps not on sale get no slot and are listed as notOnSale
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
@@ -35,7 +36,7 @@
 // --registry PATH, --profiles DIR and --now ISO-TIME work with every command (the last for tests and dry runs).
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync, openSync, closeSync, unlinkSync } from 'node:fs';
-import { join, dirname, isAbsolute } from 'node:path';
+import { join, dirname, isAbsolute, resolve as absolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Analytics settle 48–72 hours after the day they describe, so the first real read is at day 3.
@@ -180,10 +181,18 @@ export function checklistTemplate(slug, episodeId, text, prior = null) {
   return { app: slug, episode: episodeId, how: 'Mark each rule "pass", "n/a" or "fail", and give the frame (seconds) or caption that shows it. Fix every fail before the reviewer panel.',
     checks: ruleItems(text).map(rule => marked.get(rule) ?? { rule, result: null, evidence: null }) };
 }
+// Points an episode at its checklist file, so a Short already made or scheduled gets one without re-running `record`
+// (which also wants a music claim that older Shorts never had). Returns false when the registry has no such episode.
+export function attachChecklist(registry, episodeId, file) {
+  const episode = registry.episodes.find(e => e.id === episodeId);
+  if (!episode) return false;
+  episode.rulesChecklist = absolute(file);
+  return true;
+}
 export function checklistProblems(episode, text, { read = p => JSON.parse(readFileSync(p, 'utf8')), exists = existsSync } = {}) {
   if (episode.legacy) return [];
   const file = episode.rulesChecklist;
-  if (!file) return [`${episode.id} has no rules checklist: run "shorts.mjs rules ${episode.app} --checklist FILE --episode ${episode.id}", mark every rule, and set rulesChecklist`];
+  if (!file) return [`${episode.id} has no rules checklist: run "shorts.mjs rules ${episode.app} --checklist FILE --episode ${episode.id}" (it links FILE to the episode), then mark every rule`];
   if (!exists(file)) return [`${episode.id}: its rules checklist ${file} is missing`];
   const checks = new Map((read(file).checks ?? []).map(c => [c.rule, c]));
   const out = [];
@@ -499,7 +508,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
   const claimApp = option('--app', null), music = option('--music', null), publishAt = option('--publish-at', null);
   const [command, ...rest] = args;
-  const unlock = ['sync', 'record', 'claim'].includes(command) ? lock(path) : () => {};
+  const writes = ['sync', 'record', 'claim'].includes(command) || (command === 'rules' && checklistFile && episodeId);
+  const unlock = writes ? lock(path) : () => {};
   const registry = load(path);
   const print = value => console.log(JSON.stringify(value, null, 2));
   const checkRules = episode => checklistProblems(episode, rules(episode.app, { profiles }).text);
@@ -529,7 +539,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         const prior = existsSync(checklistFile) ? JSON.parse(readFileSync(checklistFile, 'utf8')) : null;
         const list = checklistTemplate(rest[0], episodeId ?? prior?.episode ?? null, r.text, prior);
         writeFileSync(checklistFile, JSON.stringify(list, null, 2) + '\n');
-        console.log(`wrote ${list.checks.length} rules to ${checklistFile} (${list.checks.filter(c => !c.result).length} unmarked)`);
+        const linked = episodeId && attachChecklist(registry, episodeId, checklistFile);
+        if (linked) save(path, registry);
+        console.log(`wrote ${list.checks.length} rules to ${checklistFile} (${list.checks.filter(c => !c.result).length} unmarked)${linked ? `; ${episodeId}'s rulesChecklist points to it` : episodeId ? `; no episode "${episodeId}" in the registry to link it to` : ''}`);
       } else console.log(r.text);
       if (r.missing.length) { console.error(`Missing rule sources: ${r.missing.join('; ')}`); process.exitCode = 1; }
       break;

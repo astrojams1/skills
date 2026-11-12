@@ -406,3 +406,13 @@ test('pitches only reads, and proves access with the deployed queue digest, whic
   assert.ok(calls.length >= 2);
   for (const c of calls) assert.match(c, /dry=1/, c);
 });
+
+test('a ledger line is corrected by a later one with the same run and event that names its ts', async () => {
+  const { correctedLines } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const end = { run_id: 'mkt-tick-1', event: 'end', ts: '2026-11-12T20:24:27.875Z' };
+  const records = [{ ...end, event: 'action' }, end, { ...end, ts: '2026-11-12T21:00:00Z', corrects: end.ts, left_open: [] }];
+  assert.deepEqual([...correctedLines(records).fixed], [1]);
+  assert.deepEqual(correctedLines(records).problems, []);
+  const stray = correctedLines([{ run_id: 'x', event: 'end', ts: 't2', corrects: 't1' }]);
+  assert.match(stray.problems[0], /names no earlier end of x/);
+});

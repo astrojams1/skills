@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, posted or scheduled on the owner's channel with links back to the App Store and the marketing websites. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `shorts.mjs plan` shows an app due; and to post or schedule a rendered episode.
 metadata:
-  version: "2.9.0"
+  version: "2.9.1"
   ledger: ledger/LEDGER.md
 ---
 
@@ -78,9 +78,9 @@ Repository rules and approval holds outrank this skill.
      a spectrogram (`showspectrumpic`) to see that the bed has real instruments, not sine tones.
    - Score it against `references/creative.md`, "The bar". Write down what is weakest and change it.
    - Fill the rules checklist before any review: `node $S/shorts.mjs rules <app> --checklist <file> --episode <id>`.
-     Mark every rule `pass`, `n/a` or `fail`, each with the frame (in seconds) or caption that shows it, and set the
-     episode's `rulesChecklist` to the file. A failed rule is fixed, and marked again, before the taste review
-     starts.
+     It also links the file to the episode (`rulesChecklist`). Mark every rule `pass`, `n/a` or `fail`, each with
+     the frame (in seconds) or caption that shows it. A failed rule is fixed, and marked again, before the taste
+     review starts.
    - Run the reviewer panel (`references/creative.md`, "The reviewer panel"): three fresh subagents (the viewer,
      the editor, the skeptic) who never see your plan. Each gets the `rules` output. Fix what they find.
    At most three rounds, each driven by the panel's feedback. Then fix every concrete fault it named and post. A

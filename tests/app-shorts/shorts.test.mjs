@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { roster, sync, record, plan, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -343,6 +343,15 @@ test('the rules checklist covers every rule, and a fail or an unmarked rule bloc
   files['/c.json'].checks[1] = { rule: 'Two.', result: 'fail', evidence: '4 s: results without "not medical advice"' };
   assert.match(checklistProblems(ep, text, io)[0], /breaks a written rule/);
   assert.match(checklistProblems(ep, `${text}- Three.\n`, io).at(-1), /not on its checklist/);
+});
+
+test('a checklist written for an episode is linked to it, even one scheduled before music claims existed', () => {
+  const registry = emptyRegistry();
+  registry.episodes = [{ id: 'old', app: 'fud', status: 'scheduled', music: 'Loop' }];
+  assert.equal(attachChecklist(registry, 'old', '/ssd/old.rules-checklist.json'), true);
+  assert.equal(registry.episodes[0].rulesChecklist, '/ssd/old.rules-checklist.json');
+  assert.equal(attachChecklist(registry, 'missing', '/ssd/x.json'), false);
+  assert.match(checklistProblems({ id: 'n', app: 'fud' }, '- A rule.\n')[0], /links FILE to the episode/);
 });
 
 test('record refuses a rendered episode whose checklist fails, or whose music was not claimed', () => {
