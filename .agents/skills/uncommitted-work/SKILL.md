@@ -2,7 +2,7 @@
 name: uncommitted-work
 description: Find uncommitted changes and stashes left in every local Git checkout and worktree, decide whether each should ship or close, then merge it through a PR or back it up and clear it. Use for the weekly local cleanup, or when asked to audit, triage or clean up uncommitted, dirty, stashed or forgotten local work across repositories.
 metadata:
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # Uncommitted work
@@ -28,7 +28,7 @@ Repository rules and approval holds outrank this skill.
 
 The stored prompt is:
 
-> Read `/Volumes/ssd/code/skills-mac-maintenance/skills/uncommitted-work/SKILL.md` and follow "Start the weekly task" unattended.
+> Read `/Volumes/ssd/code/skills/skills/uncommitted-work/SKILL.md` and follow "Start the weekly task" unattended.
 
 Check that `/Volumes/ssd` is mounted. If it is absent, stop and report exactly that.
 Use Node 22. Make a new export folder under `/Volumes/ssd/projects/uncommitted-work/run/`:
