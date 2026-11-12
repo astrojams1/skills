@@ -3,7 +3,7 @@ name: vegas-microworks-marketing
 description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. Use when the Mac task runs or when asked to run the weekly Vegas Microworks marketing pass.
 internal: true
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Vegas Microworks marketing
@@ -46,6 +46,14 @@ Repository rules and approval holds outrank this skill.
    Stop and report if a setup command fails.
 3. **Run the playbook.** Read `AGENTS.md` and `docs/marketing.md` in the new worktree. Follow "Each weekly run"
    and its "Never" list. Use the new folder from step 2 as the playbook's `<run>`. Verify and log the outcome.
+
+## The daily outreach routine (cloud)
+
+James, 2026-11-11: outreach email runs as the cloud routine **"Vegas Microworks outreach (daily)"** (weekdays 10:23
+Pacific, Default environment, Neon connector), never on the Mac. Its prompt only points to `docs/outreach.md` in the
+site repo, which holds every step: research, one unique email per business, replies, follow-ups and learning. Mail
+goes out through the site's `api/outreach.js` from astrojams1; the routine never uses a Gmail connector (that one is
+the Clean Streets account). The weekly Mac pass here keeps the site, tools and Shorts; it doesn't send outreach.
 
 ## Rules
 
