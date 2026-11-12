@@ -13,7 +13,12 @@
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
 //                                                   referrer, impressions and product page views; --recount re-reads every
 //                                                   instance Apple still holds and appends corrected totals
-//   node marketing.mjs learn [--app ID] [--json]     each channel's results judged on downloads, and the kill verdicts
+//   node marketing.mjs learn [--app ID] [--json] [--write]   each channel's results judged on downloads, and the kill
+//                                                   verdicts; also pitch approaches (--write retires a dead one)
+//   node marketing.mjs pitches [--write] [--replies] [--json]   pitch emails: each pitch's state from /api/pitches
+//                                                   (needs a GitHub token that reads app-sites: GH_TOKEN or `gh auth
+//                                                   token`); --replies prints replies' text to answer, --write appends
+//                                                   a snapshot (no text, no addresses) to metrics.jsonl
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
@@ -29,7 +34,7 @@ import { spawnSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ON_CHANNEL } from '../../app-shorts/scripts/shorts.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
@@ -435,6 +440,7 @@ function loadJsonl(path, label) {
 }
 const loadEvents = root => loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger').records;
 const loadMetrics = root => loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records;
+const loadPitchQueue = root => loadJsonl(join(dirOf(root), 'pitches.jsonl'), 'pitches');
 const REGISTRY = '/Volumes/ssd/projects/app-shorts/registry.json';
 const MAC_HOME = '/Volumes/ssd/projects/app-marketing';
 function loadRegistry(args = {}) {
@@ -467,10 +473,18 @@ export function appendEvent(root, input, { registry } = {}) {
 
 // ---- commands ----
 
-function cmdCheck(root) {
+async function cmdCheck(root) {
   const problems = [];
   const profiles = loadProfiles(root);
   profiles.forEach(p => problems.push(...profileProblems(p)));
+  // The pitch queue is checked with the site's own rules (packages/pitches/rules.mjs), the ones the sender applies.
+  const queue = loadPitchQueue(root);
+  problems.push(...queue.problems);
+  const rules = join(root, 'packages/pitches/rules.mjs');
+  if (queue.records.length && existsSync(rules)) {
+    const { validateQueue } = await import(pathToFileURL(rules).href);
+    problems.push(...validateQueue(queue.records.map((r, i) => ({ line: i + 1, ...r })), profiles).map(p => `pitches.jsonl ${p}`));
+  }
   const ledger = loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger');
   problems.push(...ledger.problems);
   ledger.records.forEach((e, i) => eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)));
@@ -484,7 +498,7 @@ function cmdCheck(root) {
     if (off) problems.push(`${p.id}: downloads shows ${off.shown} but its unique days add up to ${off.unique}; run pull --recount --write on the Mac`);
   }
   if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
-  console.log(`ok: ${profiles.length} apps, ${ledger.records.length} events, ${metrics.records.length} snapshots`);
+  console.log(`ok: ${profiles.length} apps, ${ledger.records.length} events, ${metrics.records.length} snapshots, ${queue.records.length} pitch queue lines`);
 }
 
 // latest merges an app's newest value of every metric, newest snapshot winning.
@@ -798,7 +812,7 @@ export function funnel(days, discovery = {}) {
   return { through: plusDays(end, -1), last7: week(plusDays(end, -7), end), previous7: week(plusDays(end, -14), plusDays(end, -7)) };
 }
 
-export function learnApp(profile, events, metrics, registry, now = Date.now()) {
+export function learnApp(profile, events, metrics, registry, now = Date.now(), pitchQueue = []) {
   const days = mergedDays(metrics, profile.id), refDays = mergedDays(metrics, profile.id, 'asc-downloads-detailed');
   const discovery = mergedDays(metrics, profile.id, 'asc-discovery');
   const mine = events.filter(e => e.event === 'action' && e.app === profile.id && e.status === 'ok');
@@ -808,16 +822,19 @@ export function learnApp(profile, events, metrics, registry, now = Date.now()) {
   const byItem = {};
   for (const c of changes) (byItem[c.item] ||= []).push(c);
   const directories = guideResults(mine.find(e => e.channel === 'directories')?.ts, days, refDays);
-  const verdicts = { 'youtube-shorts': killVerdict(shorts), seo: killVerdict(guides), directories: killVerdict(directories) };
+  const coverage = coverageResults(pitchQueue.filter(r => r.type === 'outcome' && r.kind === 'coverage' && pitchApp(pitchQueue, r.pitch) === profile.id), days);
+  const verdicts = { 'youtube-shorts': killVerdict(shorts), seo: killVerdict(guides), directories: killVerdict(directories), pitches: killVerdict(coverage) };
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
-  return { app: profile.id, funnel: funnel(days, discovery), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, store: changes, verdicts,
+  return { app: profile.id, funnel: funnel(days, discovery), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
 
 function cmdLearn(root, args) {
   const profiles = loadProfiles(root).filter(p => !args.app || p.id === args.app);
   const events = loadEvents(root), metrics = loadMetrics(root), registry = loadRegistry(args);
-  const out = profiles.map(p => learnApp(p, events, metrics, registry));
+  const queue = loadPitchQueue(root).records;
+  const out = profiles.map(p => learnApp(p, events, metrics, registry, Date.now(), queue));
+  const approaches = approachResults(queue, latestPitches(metrics));
   for (const r of out) {
     const p = profiles.find(x => x.id === r.app);
     for (const [key, v] of Object.entries(r.verdicts)) {
@@ -829,12 +846,114 @@ function cmdLearn(root, args) {
       }
     }
   }
-  if (args.json) return console.log(JSON.stringify(out, null, 2));
+  // A pitch approach with 30 sent first emails and no positive reply is retired (references/pitches.md, "Learn").
+  for (const a of approaches.filter(x => x.verdict === 'retire')) {
+    a.evidence = `${a.sent} first emails sent, ${a.replies} replied, ${a.positive} positive, ${a.optOuts} opted out, ${a.visits} page visits`;
+    if (args.write) appendFileSync(join(dirOf(root), 'pitches.jsonl'), JSON.stringify({ type: 'retire', ts: new Date().toISOString(), run_id: args.run || 'learn', approach: a.approach, evidence: a.evidence }) + '\n');
+  }
+  if (args.json) return console.log(JSON.stringify({ apps: out, approaches }, null, 2));
+  for (const a of approaches) {
+    console.log(`pitch approach ${a.approach}: ${a.verdict} (${a.sent} sent, ${a.replies} replied, ${a.positive} positive, ${a.optOuts} opted out, ${a.visits} visits)${a.verdict === 'retire' ? (args.write ? ': retired in pitches.jsonl; write a different approach' : ': rerun with --write to retire it') : ''}`);
+  }
   for (const r of out) {
     const f = r.funnel;
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
     for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
+  }
+}
+
+// ---- pitch emails (references/pitches.md) ----
+// The queue is marketing/pitches.jsonl (approaches, pitches, answers, outcomes, retirements), checked by the site's
+// own rules. What was sent and what came back lives in the site's database; `pitches --write` keeps a snapshot of it in
+// metrics.jsonl (states, reply kinds and visit counts; never text or addresses) for `learn`.
+
+export const PITCHES_URL = 'https://astrojams-apps.vercel.app/api/pitches';
+const RETIRE_AFTER = 30;   // first emails in one approach with no positive reply (the owner's kill rule, 2026-11-12)
+const COVERAGE_DAYS = 7;   // coverage is read on the 7 days after it against the 7 before
+
+const pitchApp = (queue, id) => queue.find(r => r.type === 'pitch' && r.id === id)?.app;
+
+// latestPitches is the newest snapshot of every pitch, from the `pitches` lines in metrics.jsonl.
+export function latestPitches(metrics) {
+  const byId = new Map();
+  for (const m of metrics.filter(x => x.source === 'pitches')) for (const p of m.pitches || []) byId.set(p.id, p);
+  return [...byId.values()];
+}
+
+// approachResults judges each approach across every app: first emails sent, pitches with a real reply, positive
+// outcomes (a run's `positive` or `coverage` outcome line), opt-outs and visits. 30 sent with none positive retires it.
+export function approachResults(queue, snapshot = []) {
+  const state = new Map(snapshot.map(p => [p.id, p]));
+  const out = new Map();
+  const get = id => out.get(id) || out.set(id, { approach: id, sent: 0, replies: 0, positive: 0, optOuts: 0, visits: 0, retired: false }).get(id);
+  for (const a of queue.filter(r => r.type === 'approach')) get(a.id);
+  const good = new Set(queue.filter(r => r.type === 'outcome' && ['positive', 'coverage'].includes(r.kind)).map(r => r.pitch));
+  for (const p of queue.filter(r => r.type === 'pitch')) {
+    const a = get(p.approach), s = state.get(p.id);
+    if (s?.first?.status === 'sent') a.sent += 1;
+    if ((s?.replies || []).some(r => r.kind === 'other')) a.replies += 1;
+    if ((s?.replies || []).some(r => r.kind === 'no')) a.optOuts += 1;
+    if (good.has(p.id)) a.positive += 1;
+    a.visits += s?.visits || 0;
+  }
+  for (const r of queue.filter(x => x.type === 'retire')) get(r.approach).retired = true;
+  return [...out.values()].map(a => ({ ...a, verdict: a.retired ? 'retired' : a.positive ? 'working' : a.sent >= RETIRE_AFTER ? 'retire' : 'keep' }));
+}
+
+// coverageResults reads each piece of coverage a pitch earned on the app's downloads: web-referrer first-time
+// downloads in the 7 days after it, and search and browse downloads against the 7 days before. Either is an effect.
+export function coverageResults(outcomes, days) {
+  const dates = Object.keys(days).sort();
+  const through = dates[dates.length - 1];
+  return outcomes.map(o => {
+    const start = (o.at || o.ts).slice(0, 10), end = plusDays(start, COVERAGE_DAYS);
+    const result = { pitch: o.pitch, url: o.url, start, end, mature: Boolean(through) && through >= plusDays(end, -1) };
+    if (!result.mature) return { ...result, judged: false, why: `its window closes ${end}` };
+    const web = span(days, start, end, d => ({ n: d?.sources?.['Web referrer'] || 0 })).n;
+    const before = span(days, plusDays(start, -COVERAGE_DAYS), start, searchBrowse).n, after = span(days, start, end, searchBrowse).n;
+    return { ...result, judged: true, web, before, after, effect: web > 0 || lifted(after, before) };
+  });
+}
+
+// pitchSnapshot turns the endpoint's detail into one metrics line per app: counts as values, and each pitch's state.
+export function pitchSnapshot(detail, at = new Date().toISOString()) {
+  const apps = new Map();
+  for (const p of detail.pitches || []) {
+    const line = apps.get(p.app) || apps.set(p.app, { at, app: p.app, source: 'pitches', values: { pitchesSent: 0, pitchFollowUps: 0, pitchReplies: 0, pitchOptOuts: 0, pitchVisits: 0 }, pitches: [] }).get(p.app);
+    const v = line.values;
+    if (p.first?.status === 'sent') v.pitchesSent += 1;
+    if (p.followUp?.status === 'sent') v.pitchFollowUps += 1;
+    if (p.replies.some(r => r.kind === 'other')) v.pitchReplies += 1;
+    if (p.replies.some(r => r.kind === 'no')) v.pitchOptOuts += 1;
+    v.pitchVisits += p.visits || 0;
+    line.pitches.push({ id: p.id, approach: p.approach, first: p.first && { status: p.first.status, at: p.first.at }, followUp: p.followUp && { status: p.followUp.status, at: p.followUp.at },
+      replies: p.replies.map(r => ({ kind: r.kind, at: r.at, answered: r.answered })), visits: p.visits || 0 });
+  }
+  return [...apps.values()];
+}
+
+function githubToken() {
+  if (process.env.GH_TOKEN || process.env.GITHUB_TOKEN) return process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  const got = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' });
+  if (got.status !== 0 || !got.stdout.trim()) throw new Error('pitches needs a GitHub token that can read astrojams1/app-sites: set GH_TOKEN or sign gh in');
+  return got.stdout.trim();
+}
+
+async function cmdPitches(root, args) {
+  const url = `${args.url || PITCHES_URL}?${args.replies ? 'replies' : 'detail'}=1${args.send ? '' : '&dry=1'}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${githubToken()}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`/api/pitches answered ${res.status}: ${body.error || 'no detail'}`);
+  if (args.write) for (const line of pitchSnapshot(body)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
+  if (args.json) return console.log(JSON.stringify(body, null, 2));
+  console.log(`ready: ${JSON.stringify(body.ready)}${body.paused ? ' (paused)' : ''}; counts: ${JSON.stringify(body.counts)}`);
+  for (const p of body.pitches || []) {
+    console.log(`${p.app}/${p.id} [${p.approach}] first ${p.first?.status || 'not yet'}${p.first?.error ? ` (${p.first.error})` : ''}, follow-up ${p.followUp?.status || 'not yet'}, ${p.visits} visits`);
+    for (const r of p.replies) {
+      if (r.kind !== 'other' || r.answered) continue;
+      console.log(`  unanswered reply ${r.id} (${r.at}, from ${r.fromDomain || 'unknown'})${r.body !== undefined ? `:\n    ${String(r.body).replace(/\n/g, '\n    ')}` : ''}`);
+    }
   }
 }
 
@@ -946,7 +1065,7 @@ async function main() {
   const root = rootOf(args);
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
-    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args),
+    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
     board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
