@@ -2,7 +2,7 @@
 name: youtube-growth
 description: Follow up on every Short the owner posts and grow the channel: read metrics at 3, 7 and 28 days, judge each Short on the App Store downloads in its first 72 hours, decide per format whether to double down, iterate or retire, turn comments into episodes, and stay clear of YouTube's spam and inauthentic-content policies. Use when the owner asks how the Shorts or the channel are doing, how to get more views or subscribers, or about YouTube analytics; when app-shorts' `due` lists reads or go-lives; weekly for the channel review; and to connect the YouTube APIs.
 metadata:
-  version: "1.8.0"
+  version: "1.8.1"
   ledger: ledger/LEDGER.md
 ---
 

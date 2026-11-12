@@ -94,3 +94,19 @@ every cut; all named faults were fixed before upload. What it taught: dark green
 word "Vegas" reads as a card table (two cuts recoloured); every cut opened on a calm static frame and scored 3 to 6
 on "stops the scroll", so the next Vegas Microworks Short should open mid-motion on a result; nobody listened to
 any mix, they were only measured.
+
+## The second Mac pass of 2026-11-12 (mkt-mac-20261112T181229Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-13 | importron-calm-v5b (XHiSaWN5HGc), remake of importron-calm-v5 | the same calm cut; end card now gives the verified phrase "Importron health"; "sample data · not medical advice" on every results frame | pre-publish check (app-marketing 1.14.0): phrase on screen and in line 1, app name in the first 40 characters of the title | as importron-calm-v5 | as importron-calm-v5 | |
+| 2026-11-15 | dc-first-01b (N4OVQ7qiO6E), remake of dc-first-01 | the same run; hook says "iPhone & iPad game"; end card "Now on the App Store / Data Center: AI Frontier" (no search prompt while the store's search lists the app for no phrase) | pre-publish check; title leads with the store name | as dc-first-01, cards opaque | as dc-first-01 | |
+| held until release | giraffe-m-meerkat-soon (etQ22IRIyLM), giraffe-z-zebra-soon (MiHEQnzaE2I) | the letter loops with a "Giraffe Stretch / Coming soon to the App Store" card in the last 2 s | held: no Shorts for an app not on sale (owner, 2026-11-12); peacock dropped (it asks the viewer for a letter) | game art plus a cream SF Rounded card | the game's own | |
+| 2026-11-13 | sw-triple-01 (WkWreyCzpKI) | three giants crash into one tiny worm, one after another; "All 3." | escalating triple kill on the beat; first Short to pull back onto an iPhone with the search line | Arial Rounded MT Bold, white with dark stroke and glow, one hot-pink accent, the game's neon | Modern RnB "Go Time" Beat 01/02 + Layered Bass, Orchestra Strings 27 (to D minor, 120 bpm), the game's death, kill and eat sounds | |
+| 2026-11-13 | fud-thanksgiving-01 (x1SwJJUI8mc) | a parent types Thanksgiving dinner in one sentence; Füd lists the four dishes; tick who ate it; it's in all three journals | first seasonal Short; the real screen's key parts lift out of a still, whole iPhone | New York serif, SF Rounded label, rust-to-bark gradient, Apple Simulator iPhone 16 Pro chrome | Americana Apple Loops: Front Porch Dobro 01/02, Shaker 01, Tambourine 01 | |
+| 2026-11-13 | nametag-your-name-01b (krvp--vto0w) | "Nobody at pickup knows your name?" over the app's blank worn badge; Dana types her name; worn on a lanyard; "Hi, Dana!" | wearer's point of view; the app's own blank badge as the hook; staged greeting payoff | SF Pro Rounded on the app's lilac, real iPhone on a drawn lanyard | Chillwave Apple Loops: Drifting Off Guitar, Drifting Off Bass, Reverse Hat Beat 01, Harmonic Waves Guitar (E, 90 bpm) | |
+| 2026-11-13 | hanzi-read-a-page-01b (kqR2BRXm_Gk), Hanzi Cards' first | three real pre-teach cards teach 我, 喜欢, 看书, then the storybook page 我喜欢看书 reads: "I like to read." | a micro-lesson the viewer finishes, looped page -> cards -> page; read avg % viewed vs Giraffe's 206 % | SF Rounded + PingFang SC on cream #FBF8F1, one large drawn iPhone, word chips above it that light green in reading order | Alternative Acoustic 09 guitar (Gb, 90 bpm) + Academy All strings swelling on the payoff | |
+
+**Parallel makers share loops (2026-11-12).** Three Shorts made at once by separate agents picked the same Apple Loops
+(Front Porch Dobro 01/02, Lounge Vibes 06, Shaker 01): each read this file before the others had written to it. Two
+were re-scored before going public. When Shorts are made in parallel, give each maker a disjoint loop family up front.

@@ -7,7 +7,8 @@
 //   node shorts.mjs roster [--code DIR]            apps found from app-release.config.json files (main checkouts first)
 //   node shorts.mjs sync [--code DIR]              add newly found apps to the registry; never removes or edits any
 //   node shorts.mjs record <episode.json>          add or update one episode (matched by id); refuses a made episode with
-//                                                  no searchPhrase, or whose description's first line lacks it, and any
+//                                                  no searchPhrase, whose description's first line lacks it, or whose
+//                                                  title hides the app's name past 40 characters, and any
 //                                                  episode past "idea" (except "held") for an app not on sale
 //   node shorts.mjs phrase <app> [--try "a|b"]      the search phrase that finds the app on the App Store: the profile's,
 //                                                  else the first candidate the store's search ranks first
@@ -101,12 +102,25 @@ export function onSale(app, profile) {
 // Why an episode cannot be recorded as it stands, or null. Shorts exist to win downloads, so an app not on sale gets
 // no Short: nothing past "idea" except "held". Links in Shorts do not click, so a viewer finds the app only by
 // searching: a made episode's phrase must exist and lead the description. Legacy Shorts predate both rules.
+// The player shows about the first 40 characters of a title over a Short, so the app's store name or its verified
+// search phrase must sit whole inside them (part of a name can be ordinary words: "the data center" is not
+// "Data Center: AI Frontier").
+export const TITLE_VISIBLE = 40;
+const plain = text => String(text ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+export function titleNamesApp(title, names) {
+  const wanted = [names].flat().map(plain).filter(Boolean);
+  const shown = plain(String(title ?? '').slice(0, TITLE_VISIBLE));
+  return !wanted.length || !title || wanted.some(n => shown.includes(n));
+}
+
 export function findable(episode, { profile = null, app = null } = {}) {
   if (episode.legacy) return null;
   if (MAKING.includes(episode.status) && !onSale(app, profile)) {
     return `${episode.id}: ${episode.app} is not on sale, so it gets no Short. Keep it as "idea", or "held" (private, no publish time) if it is on YouTube, until its marketing profile's stage is live`;
   }
   if (!MADE.includes(episode.status)) return null;
+  const names = [profile?.name, profile?.searchPhrase?.phrase ?? (typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : null)].filter(Boolean);
+  if (profile?.name && !titleNamesApp(episode.title, names)) return `${episode.id}: the title must name "${names.join('" or "')}" within its first ${TITLE_VISIBLE} characters (the player hides the rest)`;
   const phrase = (episode.searchPhrase ?? '').trim();
   if (!phrase) return `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`;
   const first = (episode.description ?? '').split('\n')[0].toLowerCase();
@@ -251,10 +265,14 @@ export function searchRank(html, appId) {
   return at < 0 ? null : at + 1;
 }
 
-export async function checkPhrase(phrase, appId, { fetcher = fetch } = {}) {
-  const res = await fetcher(`https://apps.apple.com/us/iphone/search?term=${encodeURIComponent(phrase)}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!res.ok) throw new Error(`App Store search answered ${res.status}`);
-  return searchRank(await res.text(), appId);
+// The store's search page rate-limits (429) after a few queries (2026-11-12), so wait and try again before giving up.
+export async function checkPhrase(phrase, appId, { fetcher = fetch, waits = [10000, 30000], sleep = ms => new Promise(r => setTimeout(r, ms)) } = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    const res = await fetcher(`https://apps.apple.com/us/iphone/search?term=${encodeURIComponent(phrase)}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (res.ok) return searchRank(await res.text(), appId);
+    if (![429, 503].includes(res.status) || attempt >= waits.length) throw new Error(`App Store search answered ${res.status}`);
+    await sleep(waits[attempt]);
+  }
 }
 
 // The app's name on the App Store (Apple's public lookup), or null.
@@ -268,7 +286,7 @@ export async function storeName(appId, { fetcher = fetch } = {}) {
 // The phrase a Short gives: the profile's searchPhrase when app-marketing has set one (it checks it daily), else the
 // first candidate the store ranks first, else the best-ranked one. Candidates: --try, the store name, its part
 // before a colon, the store name without punctuation, the registry and profile names.
-export async function phrase(registry, slug, { profiles = [], tries = [], fetcher = fetch } = {}) {
+export async function phrase(registry, slug, { profiles = [], tries = [], fetcher = fetch, waits, sleep } = {}) {
   const app = registry.apps[slug];
   if (!app) throw new Error(`No app "${slug}" in the registry`);
   const profile = profileFor(profiles, slug);
@@ -280,8 +298,10 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
   const candidates = [...new Set([fromProfile, ...tries, store, store.split(':')[0], plain(store), name, app.name].map(c => c?.trim()).filter(Boolean))];
   const checked = [];
   for (const candidate of candidates) {
-    const rank = app.ascAppId ? await checkPhrase(candidate, app.ascAppId, { fetcher }) : null;
-    checked.push({ phrase: candidate, rank });
+    // One refused query (rate limit, outage) is recorded and the next candidate is tried; it never ends the check.
+    let rank = null, error;
+    try { rank = app.ascAppId ? await checkPhrase(candidate, app.ascAppId, { fetcher, waits, sleep }) : null; } catch (e) { error = e.message; }
+    checked.push({ phrase: candidate, rank, ...(error ? { error } : {}) });
     if (rank === 1) return { app: slug, phrase: candidate, rank, source: candidate === fromProfile ? 'profile' : 'checked', checked };
   }
   const best = checked.filter(c => c.rank).sort((a, b) => a.rank - b.rank)[0];
