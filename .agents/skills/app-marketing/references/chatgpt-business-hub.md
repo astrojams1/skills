@@ -60,8 +60,10 @@ There is no API: everything is done in Business Hub.
 
 **Only the owner** signs in to ChatGPT, starts a claim, and receives and enters a verification code. Only the owner
 does the Persona identity check, accepts OpenAI's terms and publishes a Business Agent. A run never does these, never enters a
-code or an ID, and never creates an account. An unattended run logs a needed owner step as `blocked_by: owner` with
-the exact step, once, and does not repeat it every day.
+code or an ID, and never creates an account. Since the owner's rule of 2026-11-12 ("every marketing skill needs to
+be able to run autonomously (i.e. without me giving go-aheads or signing in to things)"), a run never logs a claim,
+code, check or Insights read as open work, and never lists one in `left_open`. Owner-only steps are dropped: the run
+keeps the websites, `llms.txt` and schema.org data true, which is what ChatGPT cites with or without a claim.
 
 **Agents, every time it applies:**
 
@@ -70,20 +72,20 @@ the exact step, once, and does not repeat it every day.
 - When one of those facts changes, update the website the same day. Record in the table that the profile needs the
   same change. Such changes include an app released, renamed or removed, a new price or policy, or a site's new
   address.
-  With the owner present and signed in, make the change in Business Hub; it publishes as the owner, so confirm the
-  wording first.
+  An unclaimed profile needs nothing more. A claimed one is changed in Business Hub only by the owner, signed in.
 - Keep each website easy for ChatGPT to cite, since mentions are counted from website citations. `robots.txt` allows
   all crawlers and lists a sitemap. Pages carry schema.org data that matches the profile. The app sites keep
   `/llms.txt` current.
-- Once a profile is verified, read its Insights on the first run of each month with the owner signed in. Record
-  mentions, website clicks and discovery topics in that business's metrics. Turn a discovery topic nobody has written
-  for into a guide or tool, under the usual content rules.
+- Insights need the owner's sign-in, so runs do not read them. When the owner pastes or shares them, record mentions,
+  website clicks and discovery topics in that business's metrics. Turn a discovery topic nobody has written for into a
+  guide or tool, under the usual content rules.
 - Keep this file's table and date current.
 
 ## Our businesses
 
 Status on 2026-11-10: Clean Streets' claim is started and its domain is verified; OpenAI's decision and the Persona
-identity check are still to come. The other three are not claimed yet. Every claim waits on the owner.
+identity check are still to come. The other three are not claimed yet. A claim is the owner's to start if he
+wants one; no run waits on it (2026-11-12).
 
 | Business | Website | Kind | How it can verify | Feed or agent | Facts come from |
 |---|---|---|---|---|---|
@@ -108,3 +110,4 @@ Add a row for each claim, verification result, published change, feed or agent. 
 | 2026-11-10 | all | Feature announced. Nothing claimed. Owner given the steps to claim each business |
 | 2026-11-10 | Clean Streets | Owner started the claim for `www.cleanstreets.io` and verified the domain with a TXT record at `openai-business-claim.www.cleanstreets.io`. Next: OpenAI's decision by email, then the Persona identity check |
 | 2026-11-11 | Vegas Microworks | Offer changed to a savings guarantee and the site updated. Nothing claimed yet; the profile description should lead with the guarantee when the owner claims it |
+| 2026-11-12 | Ouro, astrojams | The claims leave every run's `left_open`: owner-only work is dropped under the owner's autonomy rule of 2026-11-12. Runs keep the sites ChatGPT cites true |

@@ -10,13 +10,18 @@
 //   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
-//   node marketing.mjs pull [--write]               Mac only: App Store downloads and page views through Apple's API
+//   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
+//                                                   referrer, impressions and product page views; --recount re-reads every
+//                                                   instance Apple still holds and appends corrected totals
+//   node marketing.mjs learn [--app ID] [--json]     each channel's results judged on downloads, and the kill verdicts
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
-//   node marketing.mjs board                        regenerate marketing/LEDGER.md from the ledger
+//   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
 // --root PATH names the app-sites checkout (default: the git top level of the working directory).
+// --registry PATH names the app-shorts registry (default /Volumes/ssd/projects/app-shorts/registry.json; absent in the
+// cloud, where Shorts items are the Mac's anyway).
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createPrivateKey, sign } from 'node:crypto';
@@ -25,6 +30,7 @@ import { gunzipSync } from 'node:zlib';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ON_CHANNEL } from '../../app-shorts/scripts/shorts.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
@@ -38,6 +44,12 @@ const REQUIRED = ['v', 'ts', 'run_id', 'skill', 'agent', 'event', 'status'];
 export const BLOCKERS = ['owner', 'store-gate', 'pacing', 'outside'];
 // Events from this time on must say what blocks anything they leave open; older lines are history.
 const FIX_RULE_FROM = Date.parse('2026-11-11T00:00:00Z');
+// From here on nothing waits on the owner (James, 2026-11-12: "every marketing skill needs to be able to run
+// autonomously ... without me giving go-aheads or signing in to things"). Owner-only work is dropped and routed
+// around, so `owner` no longer keeps anything open.
+const AUTONOMY_FROM = Date.parse('2026-11-12T18:00:00Z');
+// An end event that says work was left undone without a blocker, in the words runs have used.
+const UNDONE = /\bnot (?:yet )?(?:reached|done|attempted|blocked)\b|\bthe next run (?:makes|does|will)\b|\bran out of time\b/i;
 const MAX_LINE = 16 * 1024;
 // Text that must never reach a committed ledger: private keys, 1Password service tokens, bearer tokens, API secrets.
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY|ops_[A-Za-z0-9_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{20,}|\bsk-[A-Za-z0-9_-]{20,}|\bghp_[A-Za-z0-9]{20,}/;
@@ -60,16 +72,21 @@ export function leftOpenProblems(event) {
   if (!event.ts || Date.parse(event.ts) < FIX_RULE_FROM) return [];
   const problems = [];
   const open = event.event === 'action' && ['deferred', 'failed', 'skipped'].includes(event.status) && !event.dropped;
+  const autonomous = Date.parse(event.ts) >= AUTONOMY_FROM;
+  const allowed = autonomous ? BLOCKERS.filter(b => b !== 'owner') : BLOCKERS;
   if (open) {
-    if (!BLOCKERS.includes(event.blocked_by)) problems.push(`a ${event.status} action needs blocked_by, one of ${BLOCKERS.join(', ')}; anything else is fixed in this run`);
+    if (autonomous && event.blocked_by === 'owner') problems.push('nothing waits on the owner since 2026-11-12: drop owner-only work (status skipped, dropped: true) and route around it');
+    else if (!allowed.includes(event.blocked_by)) problems.push(`a ${event.status} action needs blocked_by, one of ${allowed.join(', ')}; anything else is fixed in this run`);
     if (!event.reason) problems.push(`a ${event.status} action needs a reason naming the blocker and each way tried`);
     if (event.blocked_by === 'pacing' && (event.channel === 'shorts' || /\/shorts\b/.test(event.item || ''))) problems.push('a Short is never left for pacing: make it now and schedule it into the next free slot');
   }
   if (event.event === 'end') {
     if (!Array.isArray(event.left_open)) problems.push('end needs left_open: every issue still open, or [] when the run fixed everything');
     else event.left_open.forEach((o, i) => {
-      if (!o || !o.issue || !BLOCKERS.includes(o.blocked_by) || !o.needs) problems.push(`left_open ${i + 1} needs issue, blocked_by (${BLOCKERS.join(', ')}) and needs (what unblocks it)`);
+      if (autonomous && o?.blocked_by === 'owner') problems.push(`left_open ${i + 1} waits on the owner: drop it and route around it (James, 2026-11-12)`);
+      else if (!o || !o.issue || !allowed.includes(o.blocked_by) || !o.needs) problems.push(`left_open ${i + 1} needs issue, blocked_by (${allowed.join(', ')}) and needs (what unblocks it)`);
     });
+    if (autonomous && UNDONE.test([event.operation, event.next, event.reason].filter(Boolean).join(' '))) problems.push('end says work was left undone without a blocker: do it, or log each item deferred with blocked_by');
   }
   return problems;
 }
@@ -96,6 +113,12 @@ export function profileProblems(profile, name = profile.id) {
     if (profile[key] === undefined) problems.push(`${name}: missing ${key}`);
   }
   if (profile.stage && !STAGES.includes(profile.stage)) problems.push(`${name}: unknown stage ${profile.stage}`);
+  // The phrase every Short gives (app-shorts reads it): checked on the App Store's own search by the daily
+  // `search-phrase` item. rank is where the store listed the app for it (null: not found that day).
+  const sp = profile.searchPhrase;
+  if (profile.stage === 'live' && !(sp && typeof sp.phrase === 'string' && sp.phrase.trim() && !Number.isNaN(Date.parse(sp.checked)))) {
+    problems.push(`${name}: searchPhrase needs { phrase, rank, checked }: the phrase the App Store's search lists the app for, and the date it was checked`);
+  }
   const seen = new Set();
   for (const item of profile.backlog || []) {
     const label = `${name}/${item.id || '?'}`;
@@ -115,6 +138,11 @@ export function profileProblems(profile, name = profile.id) {
     if (item.repeat_days > 1 && !(typeof item.pace_reason === 'string' && item.pace_reason.trim())) {
       problems.push(`${label}: repeat_days ${item.repeat_days} holds known work back; use 1, or add pace_reason saying why it must wait`);
     }
+  }
+  // Work the kill rule stopped for this app (SKILL.md, Learn), keyed by channel or item id:
+  // { "youtube-shorts": { "since": date, "evidence": "..." } }.
+  for (const [channel, stop] of Object.entries(profile.stopped || {})) {
+    if (!stop || Number.isNaN(Date.parse(stop.since)) || !stop.evidence) problems.push(`${name}: stopped.${channel} needs since (a date) and evidence (the three results)`);
   }
   if (profile.hackerNews !== undefined) {
     const hn = profile.hackerNews;
@@ -190,13 +218,20 @@ export const hnSubmitLink = (url, title) => `https://news.ycombinator.com/submit
 // an item ("passed over it today") is commentary. The newest action decides: `ok` finishes it
 // (until repeat_days pass for recurring work), `deferred` or `failed` parks it until retry_after (default three days),
 // `skipped` with `dropped: true` retires it, and anything else leaves it open.
-export function itemState(item, events, app, now = Date.now()) {
+// `shorts` is the app's entry from the app-shorts registry, when the registry is on this machine: its episodes and the
+// app's cadenceDays (which youtube-growth raises when Shorts lift downloads). A Shorts item is done only while its
+// Short is on the channel: one pulled, superseded or never uploaded reopens it. It then rests for the registry's
+// cadence, so the pace of each app's Shorts has one owner.
+export function itemState(item, events, app, now = Date.now(), shorts) {
+  const episodes = Array.isArray(shorts) ? shorts : shorts?.episodes;
+  if (item.channel === 'youtube-shorts' && shorts?.cadenceDays) item = { ...item, repeat_days: shorts.cadenceDays };
   const mine = events.filter(e => e.event === 'action' && e.app === app && e.item === item.id && e.status !== 'running');
   const last = mine[mine.length - 1];
   if (!last) return { state: 'open', last: null };
   const at = Date.parse(last.ts);
   if (last.status === 'skipped' && last.dropped) return { state: 'dropped', last };
   if (last.status === 'ok' || last.status === 'partial') {
+    if (item.channel === 'youtube-shorts' && episodes && !shortStands(episodes, last)) return { state: 'open', last, why: 'its Short is not live or scheduled in the registry' };
     // Grace of half the interval, at most half a day, so a daily run that starts a few minutes earlier than
     // yesterday's still sees the item while a shorter repeat keeps a rest above zero.
     const rest = item.repeat_days * DAY;
@@ -210,19 +245,42 @@ export function itemState(item, events, app, now = Date.now()) {
   return { state: 'open', last };
 }
 
+// shortStands says whether the Short an `ok` action made is still on the channel (scheduled, live or retired, as
+// app-shorts counts them): an episode named in the action, or one posted or scheduled from half a day before it on.
+// The app-level `liveOrScheduled` of `shorts.mjs views` is not enough alone: an app's old legacy Short would keep the
+// item done after its new Short was pulled.
+export function shortStands(episodes, action) {
+  const text = JSON.stringify(action);
+  const since = Date.parse(action.ts) - DAY / 2;
+  return episodes.some(e => ON_CHANNEL.includes(e.status) &&
+    (text.includes(e.id) || (e.videoId && text.includes(e.videoId)) || Date.parse(e.publishAt || e.postedAt || 0) >= since));
+}
+
+// episodesFor returns an app's Shorts and cadence from the registry (matched by the profile's shortsSlug), or undefined
+// without a registry.
+export function episodesFor(registry, profile) {
+  if (!registry) return undefined;
+  const slug = profile.shortsSlug || profile.id;
+  return { episodes: (registry.episodes || []).filter(e => e.app === slug), cadenceDays: registry.apps?.[slug]?.cadenceDays ?? 7 };
+}
+
 // rank orders the open items across apps by expected downloads per unit of work. Each app's `weight` is its share of
 // attention, and an app that was worked on recently waits behind one that was not, so no app starves.
-export function rank(profiles, events, { runner, now = Date.now() } = {}) {
+// A channel the kill rule stopped for an app gets no more work there (SKILL.md, Learn).
+export function rank(profiles, events, { runner, now = Date.now(), registry } = {}) {
   const items = [];
   for (const profile of profiles) {
     const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
     const lastWorked = appEvents.length ? Date.parse(appEvents[appEvents.length - 1].ts) : 0;
     const idleDays = lastWorked ? Math.min((now - lastWorked) / DAY, 7) : 7;
+    const episodes = episodesFor(registry, profile);
+    const finished = id => ['done', 'resting'].includes(itemState(profile.backlog.find(b => b.id === id) || { id }, events, profile.id, now, episodes).state);
     for (const item of profile.backlog) {
       if (runner && item.runner !== runner) continue;
       if (item.requires && item.requires !== profile.stage) continue;
-      if (item.after && !item.after.every(id => itemState(profile.backlog.find(b => b.id === id) || { id }, events, profile.id, now).state === 'done' || itemState(profile.backlog.find(b => b.id === id) || { id }, events, profile.id, now).state === 'resting')) continue;
-      if (itemState(item, events, profile.id, now).state !== 'open') continue;
+      if (profile.stopped?.[item.channel] || profile.stopped?.[item.id]) continue;
+      if (item.after && !item.after.every(finished)) continue;
+      if (itemState(item, events, profile.id, now, episodes).state !== 'open') continue;
       const score = (item.impact / item.effort) * (profile.weight || 1) * (1 + idleDays / 7);
       items.push({ app: profile.id, id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: Math.round(score * 100) / 100, how: item.how });
     }
@@ -230,27 +288,133 @@ export function rank(profiles, events, { runner, now = Date.now() } = {}) {
   return items.sort((a, b) => b.score - a.score || a.app.localeCompare(b.app) || a.id.localeCompare(b.id));
 }
 
-// downloadRows totals one "App Downloads" report: first-time downloads and redownloads by day, and first-time
-// downloads by source. The report is tab separated; Apple's column names are matched loosely in case of case changes.
-export function downloadRows(tsv) {
+// ---- Apple's Analytics Reports ----
+// Each report comes as daily instances. An instance can hold several dates (late data, corrections), and the instance
+// with the newest processing date replaces every date it holds: Apple says to use the latest instance and never to add
+// a date's rows across instances (developer.apple.com/documentation/analytics-reports/data-completeness-corrections).
+// So every count is kept per date, the newest instance wins a date, and totals are sums over unique dates.
+
+// tsvTable reads one report segment: its rows as objects keyed by lower-case column name.
+function tsvTable(tsv, label) {
   const [head, ...lines] = tsv.trim().split('\n');
   const columns = head.split('\t').map(c => c.trim().toLowerCase());
-  const col = name => columns.indexOf(name);
-  const [date, type, source, counts] = [col('date'), col('download type'), col('source type'), col('counts')];
-  if (date < 0 || counts < 0) throw new Error('The downloads report has no Date or Counts column');
+  if (!columns.includes('date') || !columns.includes('counts')) throw new Error(`The ${label} report has no Date or Counts column`);
+  return lines.filter(Boolean).map(line => { const cell = line.split('\t'); return Object.fromEntries(columns.map((c, i) => [c, cell[i] ?? ''])); });
+}
+const bump = (map, key, n) => { map[key] = (map[key] || 0) + n; };
+
+// downloadRows reads "App Downloads Standard": first-time downloads and redownloads by day, and first-time downloads by
+// source type (App Store search, App Store browse, Web referrer, App referrer, Unavailable...) by day and in all.
+export function downloadRows(tsv) {
   const out = { days: {}, sources: {} };
-  for (const line of lines) {
-    const cell = line.split('\t');
-    const count = Number(cell[counts]) || 0;
-    const kind = String(cell[type] || '').toLowerCase();
-    const day = (out.days[cell[date]] ||= { first: 0, re: 0 });
+  for (const row of tsvTable(tsv, 'downloads')) {
+    const count = Number(row.counts) || 0, kind = row['download type'].toLowerCase();
+    const day = (out.days[row.date] ||= { first: 0, re: 0 });
     if (kind.includes('first')) {
       day.first += count;
-      const from = cell[source] || 'Unknown';
-      out.sources[from] = (out.sources[from] || 0) + count;
+      const from = row['source type'] || 'Unknown';
+      bump((day.sources ||= {}), from, count);
+      bump(out.sources, from, count);
     } else if (kind.includes('redownload')) day.re += count;
   }
   return out;
+}
+
+// referrerRows reads a Detailed report ("App Downloads Detailed" or "App Store Discovery and Engagement Detailed"): by
+// day, first-time downloads or product page views from each app or web referrer ("Web referrer: ouro-apps.vercel.app",
+// "App referrer: com.google.ios.youtube"). Apple withholds Detailed rows under its privacy threshold, so a missing
+// referrer is "not shown", never zero.
+export function referrerRows(tsv, kind = 'downloads') {
+  const out = { days: {} };
+  for (const row of tsvTable(tsv, `${kind} detailed`)) {
+    const wanted = kind === 'downloads' ? String(row['download type']).toLowerCase().includes('first') : row.event === 'Page view';
+    const type = row['source type'] || '';
+    if (!wanted || !/referrer/i.test(type)) continue;
+    bump(((out.days[row.date] ||= {}).referrers ||= {}), `${type}: ${row['source info'] || 'unknown'}`, Number(row.counts) || 0);
+  }
+  return out;
+}
+
+// discoveryRows reads "App Store Discovery and Engagement Standard": impressions, product page views and taps by day,
+// and page views by source type.
+export function discoveryRows(tsv) {
+  const out = { days: {} };
+  for (const row of tsvTable(tsv, 'discovery')) {
+    const count = Number(row.counts) || 0;
+    const day = (out.days[row.date] ||= { impressions: 0, pageViews: 0, taps: 0 });
+    if (row.event === 'Impression') day.impressions += count;
+    else if (row.event === 'Tap') day.taps += count;
+    else if (row.event === 'Page view') {
+      day.pageViews += count;
+      bump((day.pageViewSources ||= {}), row['source type'] || 'Unknown', count);
+    }
+  }
+  return out;
+}
+
+// The reports a pull reads, the metrics source each is stored under, and how to read it.
+export const REPORTS = [
+  { name: 'App Downloads Standard', source: 'asc-analytics', read: downloadRows },
+  { name: 'App Downloads Detailed', source: 'asc-downloads-detailed', read: tsv => referrerRows(tsv, 'downloads') },
+  { name: 'App Store Discovery and Engagement Standard', source: 'asc-discovery', read: discoveryRows },
+  { name: 'App Store Discovery and Engagement Detailed', source: 'asc-discovery-detailed', read: tsv => referrerRows(tsv, 'page views') }
+];
+
+// addDay adds one segment's counts for a day into another (segments of one instance are parts of one batch).
+function addDay(into, day) {
+  for (const [key, value] of Object.entries(day)) {
+    if (typeof value === 'number') into[key] = (into[key] || 0) + value;
+    else { into[key] ||= {}; for (const [k, n] of Object.entries(value)) bump(into[key], k, n); }
+  }
+  return into;
+}
+
+// newestPerDay merges instances ({ processingDate, days }): segments of one instance add up, and for each date the
+// instance with the newest processing date replaces the older ones.
+export function newestPerDay(instances) {
+  const byInstance = new Map();
+  for (const i of instances) {
+    const days = byInstance.get(i.processingDate) || {};
+    for (const [date, day] of Object.entries(i.days)) addDay((days[date] ||= {}), day);
+    byInstance.set(i.processingDate, days);
+  }
+  const merged = {};
+  for (const date of [...byInstance.keys()].sort()) Object.assign(merged, byInstance.get(date));
+  return merged;
+}
+
+// mergedDays gives an app's days for one report from every stored line, newer lines replacing a date (lines are
+// appended in time order, so file order is processing order).
+export function mergedDays(metrics, app, source = 'asc-analytics') {
+  const days = {};
+  for (const m of metrics) if (m.app === app && m.source === source && m.days) Object.assign(days, m.days);
+  return days;
+}
+
+const sumOf = (days, key) => Object.values(days).reduce((n, d) => n + (d[key] || 0), 0);
+function totalsOf(days, key) {
+  const out = {};
+  for (const d of Object.values(days)) for (const [k, n] of Object.entries(d[key] || {})) bump(out, k, n);
+  return out;
+}
+
+// reportValues turns an app's merged days for one report into the values a metrics line carries. Totals come only from
+// unique days, so a date Apple repeats in a later instance is counted once.
+export function reportValues(source, days) {
+  if (source === 'asc-analytics') return { downloads: sumOf(days, 'first'), redownloads: sumOf(days, 're'), sources: totalsOf(days, 'sources') };
+  if (source === 'asc-discovery') return { impressions: sumOf(days, 'impressions'), pageViews: sumOf(days, 'pageViews'), pageViewSources: totalsOf(days, 'pageViewSources') };
+  if (source === 'asc-downloads-detailed') return { downloadReferrers: totalsOf(days, 'referrers') };
+  if (source === 'asc-discovery-detailed') return { pageViewReferrers: totalsOf(days, 'referrers') };
+  return {};
+}
+
+// downloadsMismatch says when an app's newest downloads total disagrees with the sum of its unique days, as it did when
+// pulls added a repeated date again (Füd showed 5 for 3).
+export function downloadsMismatch(metrics, app) {
+  const days = mergedDays(metrics, app);
+  if (!Object.keys(days).length) return null;
+  const shown = latest(metrics, app).downloads, unique = sumOf(days, 'first');
+  return shown === unique ? null : { shown, unique };
 }
 
 // ---- files ----
@@ -271,11 +435,31 @@ function loadJsonl(path, label) {
 }
 const loadEvents = root => loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger').records;
 const loadMetrics = root => loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records;
+const REGISTRY = '/Volumes/ssd/projects/app-shorts/registry.json';
+const MAC_HOME = '/Volumes/ssd/projects/app-marketing';
+function loadRegistry(args = {}) {
+  const path = typeof args.registry === 'string' ? args.registry : REGISTRY;
+  return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined;
+}
+
+// runnerOf reads the runner from an event, or from its run id (mkt-mac-..., mkt-cloud-...).
+export const runnerOf = event => event.runner || /^mkt-(cloud|mac)-/.exec(event.run_id || '')?.[1];
+
+// endProblems refuses an end that leaves due work undone: every item `next` still lists for the runner was neither
+// done nor logged with an allowed blocker in this run (James, 2026-11-10 and 2026-11-12).
+export function endProblems(event, profiles, events, { now = Date.now(), registry } = {}) {
+  if (event.event !== 'end' || Date.parse(event.ts) < AUTONOMY_FROM) return [];
+  const runner = runnerOf(event);
+  if (!runner) return [];
+  const due = rank(profiles, events, { runner, now, registry });
+  return due.length ? [`end leaves ${due.length} due ${runner} item(s) undone: ${due.map(i => `${i.app}/${i.id}`).join(', ')}. Do each, or log it as an action with blocked_by`] : [];
+}
 
 // appendEvent stamps, validates and appends one event.
-export function appendEvent(root, input) {
+export function appendEvent(root, input, { registry } = {}) {
   const event = { v: 1, ts: new Date().toISOString(), skill: 'app-marketing', ...input };
   const problems = eventProblems(event);
+  if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -295,6 +479,10 @@ function cmdCheck(root) {
   const metrics = loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics');
   problems.push(...metrics.problems);
   metrics.records.forEach((m, i) => { if (!m.at || !m.app || !m.source) problems.push(`metrics line ${i + 1}: needs at, app and source`); });
+  for (const p of profiles) {
+    const off = downloadsMismatch(metrics.records, p.id);
+    if (off) problems.push(`${p.id}: downloads shows ${off.shown} but its unique days add up to ${off.unique}; run pull --recount --write on the Mac`);
+  }
   if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
   console.log(`ok: ${profiles.length} apps, ${ledger.records.length} events, ${metrics.records.length} snapshots`);
 }
@@ -306,17 +494,17 @@ export function latest(metrics, app) {
   return merged;
 }
 
-function summary(profiles, events, metrics) {
+function summary(profiles, events, metrics, registry) {
   return profiles.map(p => {
-    const states = p.backlog.map(i => ({ ...i, ...itemState(i, events, p.id) }));
+    const states = p.backlog.map(i => ({ ...i, ...itemState(i, events, p.id, Date.now(), episodesFor(registry, p)) }));
     const count = s => states.filter(i => i.state === s).length;
     return { id: p.id, name: p.name, stage: p.stage, numbers: latest(metrics, p.id), done: count('done') + count('resting'), open: count('open'), parked: count('parked'), states };
   });
 }
 
-function cmdStatus(root) {
+function cmdStatus(root, args) {
   const events = loadEvents(root);
-  for (const app of summary(loadProfiles(root), events, loadMetrics(root))) {
+  for (const app of summary(loadProfiles(root), events, loadMetrics(root), loadRegistry(args))) {
     console.log(`${app.name} (${app.stage}): ${app.done} done, ${app.open} open, ${app.parked} parked`);
     console.log('  numbers: ' + (JSON.stringify(app.numbers) === '{}' ? 'none yet' : JSON.stringify(app.numbers)));
   }
@@ -325,15 +513,15 @@ function cmdStatus(root) {
 }
 
 function cmdNext(root, args) {
-  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner }).slice(0, Number(args.limit) || Infinity);
+  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args) }).slice(0, Number(args.limit) || Infinity);
   if (args.json) return console.log(JSON.stringify(items, null, 2));
   items.forEach(i => console.log(`${String(i.score).padStart(6)}  ${i.app}/${i.id} [${i.runner}, ${i.channel}]  ${i.title}`));
   if (!items.length) console.log('Nothing open for this runner: add ideas to a profile\'s backlog.');
 }
 
-function cmdLog(root, file) {
+function cmdLog(root, file, args) {
   const text = file ? readFileSync(file, 'utf8') : readFileSync(0, 'utf8');
-  const event = appendEvent(root, JSON.parse(text));
+  const event = appendEvent(root, JSON.parse(text), { registry: loadRegistry(args) });
   console.log(`logged ${event.event} ${event.status} ${event.item || ''}`.trim());
 }
 
@@ -402,51 +590,60 @@ async function analyticsRequest(api, appId) {
   return { id: made.data.id, created: true };
 }
 
-// processedThrough is the newest report instance already counted for an app. Instances are compared by their own
-// processing date, never by the days inside them: an instance processed on the 7th can hold the 5th, so comparing with
-// the last data day counts it again on every pull. Lines written before this field fall back to their throughDay.
-export function processedThrough(metrics, app) {
-  return metrics.filter(m => m.app === app && m.source === 'asc-analytics').map(m => m.processedThrough ?? m.throughDay).filter(Boolean).sort().pop();
+// processedThrough is the newest report instance already stored for an app and report. Instances are compared by their
+// own processing date, never by the days inside them. Lines written before this field fall back to their throughDay.
+export function processedThrough(metrics, app, source = 'asc-analytics') {
+  return metrics.filter(m => m.app === app && m.source === source).map(m => m.processedThrough ?? m.throughDay).filter(Boolean).sort().pop();
 }
 
-async function reportText(api, requestId, name, processedAfter) {
-  const none = { texts: [], processed: undefined };
-  const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent(name)}&limit=5`)).data || [];
-  if (!reports.length) return none;
-  const instances = (await api(`/v1/analyticsReports/${reports[0].id}/instances?filter[granularity]=DAILY&limit=60`)).data || [];
-  const fresh = instances.filter(i => !processedAfter || i.attributes.processingDate > processedAfter);
-  const texts = [];
+// reportInstances downloads a report's daily instances processed after `processedAfter` (every instance Apple still
+// holds when it is undefined), each read into days. `none` says why there is nothing.
+async function reportInstances(api, requestId, spec, processedAfter) {
+  const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent(spec.name)}&limit=5`)).data || [];
+  if (!reports.length) return { instances: [], none: 'not offered for this app yet' };
+  const all = [];
+  let next = `/v1/analyticsReports/${reports[0].id}/instances?filter[granularity]=DAILY&limit=200`;
+  while (next) {
+    const page = await api(next);
+    all.push(...(page.data || []));
+    next = page.links?.next ? page.links.next.replace('https://api.appstoreconnect.apple.com', '') : null;
+  }
+  if (!all.length) return { instances: [], none: spec.name.endsWith('Detailed') ? 'no instances (a new request, or Apple withholds Detailed rows under its privacy threshold)' : 'no instances yet' };
+  const fresh = all.filter(i => !processedAfter || i.attributes.processingDate > processedAfter);
+  const instances = [];
   for (const instance of fresh) {
-    const segments = (await api(`/v1/analyticsReportInstances/${instance.id}/segments?limit=20`)).data || [];
+    const segments = (await api(`/v1/analyticsReportInstances/${instance.id}/segments?limit=50`)).data || [];
     for (const segment of segments) {
       const res = await fetch(segment.attributes.url);
-      if (res.ok) texts.push(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8'));
+      if (!res.ok) throw new Error(`${spec.name} segment download returned ${res.status}`);
+      instances.push({ processingDate: instance.attributes.processingDate, days: spec.read(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8')).days });
     }
+    if (!segments.length) instances.push({ processingDate: instance.attributes.processingDate, days: {} });
   }
-  return { texts, processed: fresh.map(i => i.attributes.processingDate).sort().pop() };
+  return { instances, none: fresh.length ? null : 'no new instance since the last pull' };
 }
 
 async function cmdPull(root, args) {
   const profiles = loadProfiles(root).filter(p => p.appStoreId && p.ascVault && p.stage === 'live');
-  const previous = loadMetrics(root);
+  const metrics = loadMetrics(root);
   for (const p of profiles) {
     const api = ascClient(p.ascVault);
     const request = await analyticsRequest(api, p.appStoreId);
     if (request.created) console.log(`${p.id}: analytics report request created; Apple's first reports take a day or two`);
-    const { texts, processed } = await reportText(api, request.id, 'App Downloads Standard', processedThrough(previous, p.id));
-    if (!texts.length) { console.log(`${p.id}: no new downloads report yet`); continue; }
-    const totals = { days: {}, sources: {} };
-    for (const text of texts) {
-      const part = downloadRows(text);
-      for (const [day, v] of Object.entries(part.days)) { const t = (totals.days[day] ||= { first: 0, re: 0 }); t.first += v.first; t.re += v.re; }
-      for (const [from, v] of Object.entries(part.sources)) totals.sources[from] = (totals.sources[from] || 0) + v;
+    for (const spec of REPORTS) {
+      const before = reportValues(spec.source, mergedDays(metrics, p.id, spec.source));
+      const { instances, none } = await reportInstances(api, request.id, spec, args.recount ? undefined : processedThrough(metrics, p.id, spec.source));
+      if (!instances.length) { console.log(`${p.id}: ${spec.name}: ${none}`); continue; }
+      const days = newestPerDay(instances);
+      const line = { at: new Date().toISOString(), app: p.id, source: spec.source, report: spec.name, throughDay: Object.keys(days).sort().pop(),
+        processedThrough: instances.map(i => i.processingDate).sort().pop(), days };
+      if (args.recount) line.recount = true;
+      line.values = reportValues(spec.source, mergedDays([...metrics, line], p.id, spec.source));
+      if (spec.source === 'asc-analytics') line.values.downloadsAdded = line.values.downloads - (before.downloads || 0);
+      metrics.push(line);
+      if (args.write) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
+      console.log(JSON.stringify({ app: p.id, report: spec.name, throughDay: line.throughDay, ...line.values }));
     }
-    const days = Object.keys(totals.days).sort();
-    const before = latest(previous, p.id).downloads || 0;
-    const added = days.reduce((sum, d) => sum + totals.days[d].first, 0);
-    const line = { at: new Date().toISOString(), app: p.id, source: 'asc-analytics', throughDay: days[days.length - 1], processedThrough: processed, values: { downloads: before + added, downloadsAdded: added, sources: totals.sources }, days: totals.days };
-    if (args.write) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
-    console.log(JSON.stringify({ app: p.id, ...line.values, throughDay: line.throughDay }));
   }
 }
 
@@ -479,16 +676,178 @@ async function cmdPromo(root, args) {
   if (!results.some(r => r.ok && r.state === 'READY_FOR_DISTRIBUTION')) process.exit(1);
 }
 
+// ---- learn: every channel is judged on downloads (SKILL.md, Learn) ----
+
+const dateOf = ms => new Date(ms).toISOString().slice(0, 10);
+const plusDays = (date, n) => dateOf(Date.parse(`${date}T00:00:00Z`) + n * DAY);
+const SHORT_HOURS = 72;      // a Short is read on the 72 hours after it goes public
+const BURST_DAYS = 7;        // Shorts for one app inside each other's 72 hours are one result, at most a week long
+const BASELINE_DAYS = 7;     // against the 7 days before
+const GUIDE_MATURE_DAYS = 56; // guides are judged from 8 weeks after the app's first one, in 4-week blocks
+const GUIDE_BLOCK_DAYS = 28;
+const STORE_DAYS = 7;        // a store text change: the 7 days after it against the 7 before
+
+// lifted is the download effect test every channel shares: at least 2 more downloads than expected, and at least
+// half again as many.
+export const lifted = (after, expected) => after - expected >= Math.max(2, expected / 2);
+
+// searchBrowse is a day's first-time downloads from App Store search and browse. Days stored before per-day sources
+// existed only have a total; those count in full and the result says so.
+function searchBrowse(day) {
+  if (!day) return { n: 0, whole: false };
+  if (!day.sources) return { n: day.first || 0, whole: Boolean(day.first) };
+  return { n: (day.sources['App Store search'] || 0) + (day.sources['App Store browse'] || 0), whole: false };
+}
+function span(days, from, to, pick) {
+  let n = 0, whole = false, count = 0;
+  for (let d = from; d < to; d = plusDays(d, 1)) { const got = pick(days[d]); n += got.n; whole ||= got.whole; count += 1; }
+  return { n, whole, count };
+}
+const referrals = (refDays, from, to, test) => {
+  let n = 0;
+  for (const [date, day] of Object.entries(refDays || {})) if (date >= from && date < to) for (const [k, v] of Object.entries(day.referrers || {})) if (test(k)) n += v;
+  return n;
+};
+const round1 = n => Math.round(n * 10) / 10;
+
+// shortsResults reads each Short (or burst of Shorts) on the app's search and browse first-time downloads in the 72
+// hours after it went public against the 7 days before. A YouTube referrer download in the window is an effect too.
+export function shortsResults(episodes, days, refDays = {}, now = Date.now()) {
+  const dates = Object.keys(days).sort();
+  if (!dates.length) return [];
+  const first = dates[0], through = dates[dates.length - 1];
+  const shown = episodes.map(e => {
+    const at = Date.parse(e.postedAt || e.publishAt || '');
+    const gone = e.pulledAt ? Date.parse(e.pulledAt) : now;
+    return Number.isNaN(at) || at > Math.min(gone, now) ? null : { id: e.id, at };
+  }).filter(Boolean).sort((a, b) => a.at - b.at);
+  const bursts = [];
+  for (const short of shown) {
+    const open = bursts[bursts.length - 1];
+    if (open && short.at < open.lastAt + SHORT_HOURS * 3600000 && short.at < open.startAt + BURST_DAYS * DAY) { open.ids.push(short.id); open.lastAt = short.at; }
+    else bursts.push({ ids: [short.id], startAt: short.at, lastAt: short.at });
+  }
+  return bursts.map(b => {
+    const start = dateOf(b.startAt), end = plusDays(dateOf(b.lastAt), SHORT_HOURS / 24);
+    const base = span(days, start > first ? (plusDays(start, -BASELINE_DAYS) > first ? plusDays(start, -BASELINE_DAYS) : first) : start, start, searchBrowse);
+    const result = { shorts: b.ids, start, end, mature: through >= plusDays(end, -1) };
+    if (base.count < 3) return { ...result, judged: false, why: 'fewer than 3 days of downloads before it' };
+    if (!result.mature) return { ...result, judged: false, why: `its window closes ${end}; data runs to ${through}` };
+    const after = span(days, start, end, searchBrowse);
+    const expected = base.n / base.count * after.count;
+    const youtube = referrals(refDays, start, end, k => /youtube/i.test(k));
+    return { ...result, judged: true, after: after.n, expected: round1(expected), youtube, effect: youtube > 0 || lifted(after.n, expected),
+      basis: after.whole || base.whole ? 'some days count all first-time downloads (no per-day sources stored)' : 'App Store search and browse' };
+  });
+}
+
+// guideResults reads guides and site pages on web-referrer first-time downloads, in 4-week blocks from 8 weeks after
+// the app's first guide. Any web-referrer download in a block is an effect.
+export function guideResults(firstGuide, days, refDays = {}) {
+  const dates = Object.keys(days).sort();
+  if (!firstGuide || !dates.length) return [];
+  const through = dates[dates.length - 1], out = [];
+  for (let start = plusDays(firstGuide.slice(0, 10), GUIDE_MATURE_DAYS); plusDays(start, GUIDE_BLOCK_DAYS - 1) <= through; start = plusDays(start, GUIDE_BLOCK_DAYS)) {
+    const end = plusDays(start, GUIDE_BLOCK_DAYS);
+    const web = span(days, start, end, d => ({ n: d?.sources?.['Web referrer'] || 0, whole: false })).n;
+    const named = referrals(refDays, start, end, k => k.startsWith('Web referrer'));
+    out.push({ start, end, judged: true, web: Math.max(web, named), effect: Math.max(web, named) > 0 });
+  }
+  return out;
+}
+
+// storeResults reads each store text change (an `ok` action with `changed`) on the app's search and browse
+// first-time downloads in the 7 days after it against the 7 before, with impressions and page views for context.
+export function storeResults(changes, days, discovery = {}) {
+  const all = [...Object.keys(days), ...Object.keys(discovery)].sort();
+  const through = all[all.length - 1];
+  return changes.map(c => {
+    const at = c.ts.slice(0, 10), start = plusDays(at, 1), end = plusDays(start, STORE_DAYS);
+    const result = { item: c.item, changed: c.changed, at, mature: Boolean(through) && through >= plusDays(end, -1) };
+    if (!result.mature) return { ...result, judged: false, why: `its window closes ${end}` };
+    const sum = (from, to) => ({
+      downloads: span(days, from, to, searchBrowse).n,
+      impressions: span(discovery, from, to, d => ({ n: d?.impressions || 0 })).n,
+      pageViews: span(discovery, from, to, d => ({ n: d?.pageViews || 0 })).n
+    });
+    const before = sum(plusDays(at, -STORE_DAYS), at), after = sum(start, end);
+    return { ...result, judged: true, before, after, effect: lifted(after.downloads, before.downloads) };
+  });
+}
+
+// killVerdict: three mature results in a row with no download effect stop the work (James's rule as the skill applies
+// it, 2026-11-12: the effort moves to what brings downloads).
+export function killVerdict(results) {
+  const judged = results.filter(r => r.judged);
+  const lastThree = judged.slice(-3);
+  const label = r => r.web !== undefined ? `${r.start}: ${r.web} web-referrer downloads`
+    : r.before ? `${r.at}: ${r.after.downloads} search+browse downloads vs ${r.before.downloads} the week before`
+    : `${r.start}: ${r.after} search+browse downloads vs ${r.expected} expected`;
+  if (lastThree.length === 3 && lastThree.every(r => !r.effect)) return { verdict: 'stop', evidence: lastThree.map(label).join('; ') };
+  return { verdict: judged.some(r => r.effect) ? 'working' : 'keep', judged: judged.length };
+}
+
+// funnel compares the last 7 days with the 7 before: impressions, product page views and search and browse downloads.
+export function funnel(days, discovery = {}) {
+  const all = [...Object.keys(days), ...Object.keys(discovery)].sort();
+  if (!all.length) return null;
+  const end = plusDays(all[all.length - 1], 1);
+  const week = (from, to) => ({ impressions: span(discovery, from, to, d => ({ n: d?.impressions || 0 })).n,
+    pageViews: span(discovery, from, to, d => ({ n: d?.pageViews || 0 })).n, downloads: span(days, from, to, searchBrowse).n,
+    web: span(days, from, to, d => ({ n: d?.sources?.['Web referrer'] || 0 })).n });
+  return { through: plusDays(end, -1), last7: week(plusDays(end, -7), end), previous7: week(plusDays(end, -14), plusDays(end, -7)) };
+}
+
+export function learnApp(profile, events, metrics, registry, now = Date.now()) {
+  const days = mergedDays(metrics, profile.id), refDays = mergedDays(metrics, profile.id, 'asc-downloads-detailed');
+  const discovery = mergedDays(metrics, profile.id, 'asc-discovery');
+  const mine = events.filter(e => e.event === 'action' && e.app === profile.id && e.status === 'ok');
+  const shorts = shortsResults(episodesFor(registry, profile)?.episodes || [], days, refDays, now);
+  const guides = guideResults(mine.find(e => e.channel === 'seo')?.ts, days, refDays);
+  const changes = storeResults(mine.filter(e => e.channel === 'app-store' && e.changed), days, discovery);
+  const byItem = {};
+  for (const c of changes) (byItem[c.item] ||= []).push(c);
+  const directories = guideResults(mine.find(e => e.channel === 'directories')?.ts, days, refDays);
+  const verdicts = { 'youtube-shorts': killVerdict(shorts), seo: killVerdict(guides), directories: killVerdict(directories) };
+  for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
+  return { app: profile.id, funnel: funnel(days, discovery), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, store: changes, verdicts,
+    shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
+}
+
+function cmdLearn(root, args) {
+  const profiles = loadProfiles(root).filter(p => !args.app || p.id === args.app);
+  const events = loadEvents(root), metrics = loadMetrics(root), registry = loadRegistry(args);
+  const out = profiles.map(p => learnApp(p, events, metrics, registry));
+  for (const r of out) {
+    const p = profiles.find(x => x.id === r.app);
+    for (const [key, v] of Object.entries(r.verdicts)) {
+      if (v.verdict !== 'stop' || p.stopped?.[key]) continue;
+      r.newStops = [...(r.newStops || []), key];
+      if (args.write) {
+        p.stopped = { ...(p.stopped || {}), [key]: { since: dateOf(Date.now()), evidence: v.evidence } };
+        writeFileSync(join(dirOf(root), 'apps', `${p.id}.json`), JSON.stringify(p, null, 2) + '\n');
+      }
+    }
+  }
+  if (args.json) return console.log(JSON.stringify(out, null, 2));
+  for (const r of out) {
+    const f = r.funnel;
+    console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
+    for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
+    if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
+  }
+}
+
 // ---- reports ----
 
-export function renderBoard(profiles, events, metrics) {
-  const apps = summary(profiles, events, metrics);
+export function renderBoard(profiles, events, metrics, registry) {
+  const apps = summary(profiles, events, metrics, registry);
   const cell = value => (value === undefined || value === null ? 'not yet read' : String(value));
-  const lines = ['# Marketing ledger', '', 'Generated by `marketing.mjs board` from `ledger.jsonl` and `metrics.jsonl`; never edit this view.', '', '## Scoreboard', '',
-    '| App | Stage | Downloads | Rating | Ratings | Shorts views | Done | Open | Parked |', '|---|---|---|---|---|---|---|---|---|'];
+  const lines = ['# Marketing ledger', '', 'Generated by `marketing.mjs board` from `ledger.jsonl` and `metrics.jsonl`; never edit this view. Downloads are first-time downloads summed over unique days.', '', '## Scoreboard', '',
+    '| App | Stage | Downloads | Impressions | Page views | Rating | Ratings | Shorts views | Done | Open | Parked |', '|---|---|---|---|---|---|---|---|---|---|---|'];
   for (const a of apps) {
     const n = a.numbers;
-    lines.push(`| ${a.name} | ${a.stage} | ${cell(n.downloads)} | ${n.ratingCount ? n.rating.toFixed(2) : 'none yet'} | ${cell(n.ratingCount)} | ${cell(n.shortsViews)} | ${a.done} | ${a.open} | ${a.parked} |`);
+    lines.push(`| ${a.name} | ${a.stage} | ${cell(n.downloads)} | ${cell(n.impressions)} | ${cell(n.pageViews)} | ${n.ratingCount ? n.rating.toFixed(2) : 'none yet'} | ${cell(n.ratingCount)} | ${cell(n.shortsViews)} | ${a.done} | ${a.open} | ${a.parked} |`);
   }
   lines.push('', '## Activity', '', '| When | App | Channel | Item | Status | What happened |', '|---|---|---|---|---|---|');
   const shown = events.filter(e => e.event === 'action' || e.event === 'finding' || e.event === 'verify').slice(-60).reverse();
@@ -526,9 +885,29 @@ async function cmdHn(root, args) {
   if (verdict.due) console.log(`  ${out.title}\n  ${out.url}\n  submit: ${out.submit}`);
 }
 
-function cmdBoard(root) {
-  writeFileSync(join(dirOf(root), 'LEDGER.md'), renderBoard(loadProfiles(root), loadEvents(root), loadMetrics(root)));
-  console.log('wrote marketing/LEDGER.md');
+// showHnFile is what the Show HN task reads first, with no command (references/hacker-news.md): the booked Show HN
+// windows still ahead, by Pacific date, or "none". A booking is an app's newest hacker-news action, logged deferred
+// as "Show HN booked for ..." with retry_after at the slot.
+export function showHnFile(profiles, events, now = Date.now()) {
+  const pacific = ms => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const booked = [];
+  for (const p of profiles.filter(x => x.hackerNews)) {
+    const mine = events.filter(e => e.event === 'action' && e.app === p.id && e.channel === 'hacker-news');
+    const last = mine[mine.length - 1];
+    if (last?.status === 'deferred' && /^Show HN booked/i.test(last.operation || '') && Date.parse(last.retry_after) > now - DAY) booked.push(`${pacific(Date.parse(last.retry_after))} ${p.id}`);
+  }
+  return ['# Generated by marketing.mjs board; never edit. The Show HN task reads this first (hacker-news.md).',
+    `booked: ${booked.length ? booked.sort().join(', ') : 'none'}`, ''].join('\n');
+}
+
+function cmdBoard(root, args) {
+  const profiles = loadProfiles(root), events = loadEvents(root);
+  writeFileSync(join(dirOf(root), 'LEDGER.md'), renderBoard(profiles, events, loadMetrics(root), loadRegistry(args)));
+  const hn = showHnFile(profiles, events);
+  writeFileSync(join(dirOf(root), 'show-hn.txt'), hn);
+  // The Mac's copy outside any checkout, so the Show HN task reads today's bookings even when a checkout lags.
+  if (existsSync(MAC_HOME)) writeFileSync(join(MAC_HOME, 'show-hn.txt'), hn);
+  console.log('wrote marketing/LEDGER.md and marketing/show-hn.txt');
 }
 
 // cmdMirror copies events the shared activity ledger has not seen, through its locking helper. The cursor is a private
@@ -540,7 +919,7 @@ function cmdMirror(root) {
   const events = loadEvents(root);
   let sent = 0;
   for (const event of events.slice(done)) {
-    const { app, channel, item, retry_after, dropped, blocked_by, left_open, ...rest } = event;
+    const { app, channel, item, retry_after, dropped, blocked_by, left_open, changed, runner, ...rest } = event;
     const got = spawnSync('python3', [helper], { input: JSON.stringify({ ...rest, targets: [...(rest.targets || []), ...(app ? [`app:${app}`] : [])] }), encoding: 'utf8' });
     if (got.status !== 0) throw new Error('The shared ledger refused an event: ' + got.stderr.slice(0, 200));
     sent += 1;
@@ -566,9 +945,9 @@ async function main() {
   const [command, file] = args._;
   const root = rootOf(args);
   const commands = {
-    check: () => cmdCheck(root), status: () => cmdStatus(root), next: () => cmdNext(root, args), log: () => cmdLog(root, file),
+    check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args),
-    board: () => cmdBoard(root), mirror: () => cmdMirror(root)
+    board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();
