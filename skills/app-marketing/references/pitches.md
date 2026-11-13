@@ -19,8 +19,8 @@ download to the own sites or the own channel, and every known download came from
 | Piece | Where |
 |---|---|
 | The queue | `marketing/pitches.jsonl` in app-sites, append-only. Approaches, pitches, answers to replies, outcomes and retirements. Runs write it; a PR merges it; `npm test` checks every line with `packages/pitches/rules.mjs` |
-| The sender | `GET https://astrojams-apps.vercel.app/api/pitches` (`packages/pitches/`). It sends only what is merged, from the owner's Gmail, only in production. It sends due follow-ups, copies replies in, suppresses opt-outs and bounces, and counts page visits. One cold email per call, at least 4 minutes after the mailbox's last cold email from any sender, within a shared mailbox ceiling (30 a day on 2026-11-13, +5 a day to 50; pitches take 35%) |
-| What calls it | The app-sites Pitches workflow (`.github/workflows/pitches.yml`): on a merge that changes the queue, it waits until production serves that commit, then calls the sender until no first email is left to send. A Vercel cron calls it daily at 17:00 UTC as the backstop. Both carry the send secret (`CRON_SECRET` in Vercel, `PITCHES_CRON_SECRET` in GitHub); a call without it gets status only. A run never calls it to send |
+| The sender | `GET https://astrojams-apps.vercel.app/api/pitches` (`packages/pitches/`). It sends only what is merged, from the owner's Gmail, only in production. It sends due follow-ups, copies replies in, suppresses opt-outs and bounces, and counts page visits. Cold email goes at least 60 seconds after the mailbox's last cold email from any sender, as many per call as fit in 300 seconds, within the shared mailbox ceiling of 300 cold emails a day (first emails and follow-ups, all three senders on astrojams1), split by need with a floor of 50 per sender. The owner's number, James, 2026-11-12: "500 emails is the gmail cap and we have astrojams1 and james@cleanstreets.io. give me buffer so say 300 emails on each account each day. that should become 600 emails or 6 yeses per day, just from email!" The hard limits are Gmail's: about 500 recipients a day for a consumer account, and its per-minute API quota. Bounces are prevented, not throttled: before a first email the sender refuses placeholders and provider typos, needs an MX record, and stops a domain that bounced and a source with 2 or more bounces in 14 days. Each answer carries `proof`: sends, replies, noes, yeses, no reply after the full sequence, bounce rate, follow-ups due |
+| What calls it | The app-sites Pitches workflow (`.github/workflows/pitches.yml`): on a merge that changes the queue, it waits until production serves that commit, then calls the sender until no first email is left to send. It also calls the sender every 10 minutes from 14:00 to 04:59 UTC at :04, :14, ... (Vegas Microworks at :01, money coaching at :07, so they never start together). A Vercel cron calls it daily at 17:00 UTC as the backstop. Both carry the send secret (`CRON_SECRET` in Vercel, `PITCHES_CRON_SECRET` in GitHub); a call without it gets status only. A run never calls it to send |
 | Results | Neon store `app-pitches` (project `raspy-smoke-79457210`): message status, replies (redacted), suppressed addresses as hashes, visits. Never in Git |
 | Reading results | `node $R/marketing.mjs pitches [--replies] [--write]`. It only reads (`?dry=1`). It proves it can read app-sites with the digest of the deployed queue, taken from the app-sites clone, so it needs no token and works in the cloud; a GitHub token (`GH_TOKEN`, or `gh auth token`) is the fallback. `--replies` prints the text of replies to answer. `--write` appends a snapshot (states and counts, no text) to `metrics.jsonl` |
 | Credentials | `DATABASE_URL` from the Neon store, connected to astrojams-apps. `GMAIL_*` from 1Password through `node packages/pitches/scripts/vercel-env.mjs` on the Mac; `--cron-secret` makes a new send secret and sets it in Vercel and GitHub. Never in Git, the ledger or output |
@@ -60,8 +60,13 @@ lacks the deployed commit: `git fetch origin main` and run it again.
 - **No gambling words,** no pressure words, no `Re:` or `Fwd:` on a first email, no placeholder left in.
 - **The sender adds** the real name (James Thompson), the brand and its site, and the opt-out line
   `Not interested? Reply "no" and I won't email you again.` Don't write them into the body.
-- **One follow-up** of its own words, 6 to 8 days on, in the same thread. The site sends it only if nobody answered
-  and the address isn't suppressed. Then stop.
+- **Two follow-ups, day 3 and day 7** after the first email, in the same thread (James, 2026-11-12: "it takes 30
+  "nos" to get a "yes." get more nos"). `followUp: { body }` is day 3 and `followUp2: { body }` is day 7 (or a later
+  queue line `{ "type": "follow-up", "pitch": "<id>", "step": 2, "body": "..." }`); each short, each adding one new
+  concrete thing (a screenshot, a fact, a date), never "just bumping this". The site sends each only if nobody
+  answered and the address isn't suppressed, then stops. A reply of any kind stops the sequence and is answered. A
+  pitch without `followUp2` shows in `proof.followUpsUnwritten`: write it. Pitches sent on or before 2026-11-10 with
+  no reply are due their first follow-up now.
 - **One pitch per person per app.** The check refuses a second, unless it `replaces` one that was never sent; the
   sender refuses a replacement if anything in its chain was sent.
 
@@ -112,8 +117,8 @@ One JSON object per line, appended, never edited. Every line has `type`, `ts` an
    an `outcome` with `kind: coverage` and its `url`.
 4. **Learn.** `node $R/marketing.mjs learn --write`. A retired approach gets no more pitches. Write a different one.
 5. **Write.** For every app, research people who fit "Who to pitch" and whom the queue has not pitched for that app.
-   Write a pitch for each one the standard allows, each from what that person published. There is no daily number:
-   the standard is the limit. Keep two or three approaches live, so each can reach a verdict.
+   Write a pitch for each one the standard allows, each from what that person published. The only number is the
+   mailbox's 300 a day (above), shared by need: write enough to use the room the sender reports, more is fine. Keep two or three approaches live, so each can reach a verdict.
 6. **Ship.** `npm test` (it checks the queue), then the run's PR and merge. Do not call the endpoint to send: the
    merge starts the Pitches workflow, which waits for the deploy and sends. About ten minutes after the merge, run
    `pitches --write` again and confirm each new pitch is `sent`. Fix any `failed` or `refused` one under step 1. One
