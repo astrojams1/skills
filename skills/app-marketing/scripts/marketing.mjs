@@ -588,6 +588,8 @@ export function appendEvent(root, input, { registry } = {}) {
   const event = { v: 1, ts: new Date().toISOString(), skill: 'app-marketing', ...input };
   const problems = eventProblems(event);
   if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
+  // check refuses an app with no profile, so log refuses it first; name another business in targets instead.
+  if (event.app && event.app !== 'all' && !loadProfiles(root).some(p => p.id === event.app)) problems.push(`unknown app ${event.app} (no marketing profile; name it in targets)`);
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -613,7 +615,7 @@ async function cmdCheck(root) {
   problems.push(...corrected.problems);
   ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i)) eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)); });
   const ids = new Set(profiles.map(p => p.id));
-  ledger.records.forEach((e, i) => { if (e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
+  ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i) && e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
   const metrics = loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics');
   problems.push(...metrics.problems);
   metrics.records.forEach((m, i) => { if (!m.at || !m.app || !m.source) problems.push(`metrics line ${i + 1}: needs at, app and source`); });
