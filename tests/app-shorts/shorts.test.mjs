@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { retiredFromShorts, roster, sync, record, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard, mark, followUpMissing } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { retiredFromShorts, roster, sync, record, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard, mark, followUpMissing, cautionProblems } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -433,4 +433,13 @@ test('a business with no App Store record ends on its site, never on "the App St
   assert.equal(r.ending, 'address');
   assert.match(r.endCard, /biz\.example/);
   assert.doesNotMatch(r.endCard, /App Store/);
+});
+
+test('a production note or caution line in a description or TikTok caption is flagged (owner, 2026-11-12)', () => {
+  assert.equal(cautionProblems('a', 'Staged in an offline round against computer worms.').length, 1);
+  assert.equal(cautionProblems('a', 'the status bar is drawn in and the scroll is sped up').length, 1);
+  assert.equal(cautionProblems('a', 'Size 107 vs the size 3,449 leader. Staged offline round against bots.', 'TikTok caption').length, 1);
+  assert.deepEqual(cautionProblems('a', 'An offline strategy game for iPhone. Search "Data Center: AI Frontier" on the App Store.'), []);
+  assert.deepEqual(cautionProblems('a', 'A size 107 worm in last place takes out the size 3,449 leader and eats its light to #1.'), []);
+  assert.deepEqual(cautionProblems('a', undefined), []);
 });

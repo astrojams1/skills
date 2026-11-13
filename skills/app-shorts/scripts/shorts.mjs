@@ -138,6 +138,14 @@ export function profilePhrase(profile) {
 
 // Every reason a made episode cannot be found or should not exist. For a business with no App Store record and no
 // profile (Vegas Microworks), its registry name is the name and the phrase.
+// Production notes and caution lines (how it was filmed, that it was staged, what was sped up or drawn in) stay out of
+// descriptions and captions: the owner's rule (2026-11-12) is that staged or scripted footage gets no self-imposed
+// caution lines or disclaimers. Add one only when a platform rule requires it, and name that rule in the ledger.
+export const CAUTION = /\b(staged|unedited|not by a person|filmed in the real|drawn in|sped up|slowed (down|to)|recorded (from|at|in|on)|nothing (in|that happens in) .{0,40}(is|was) edited|offline (round|game) against|(vs|against) (bots|computer worms))\b/i;
+export function cautionProblems(id, text, where = 'description') {
+  const hit = (text ?? '').match(CAUTION);
+  return hit ? [`${id}: the ${where} carries a production note or caution line ("${hit[0]}"); the owner's rule (2026-11-12): no self-imposed caution lines or disclaimers. Cut it unless a platform rule requires it`] : [];
+}
 export function findability(episode, { profile = null, app = null } = {}) {
   if (episode.legacy) return [];
   if (MAKING.includes(episode.status) && !onSale(app, profile)) {
@@ -147,7 +155,7 @@ export function findability(episode, { profile = null, app = null } = {}) {
   const business = !profile && app && !(app.team || app.ascAppId) ? app.name : null;
   const wanted = profilePhrase(profile);
   const names = [profile?.name ?? business, wanted?.phrase].filter(Boolean);
-  const out = [];
+  const out = [...cautionProblems(episode.id, episode.description), ...cautionProblems(episode.id, episode.tiktok?.caption, 'TikTok caption')];
   if (names.length && !titleNamesApp(episode.title, names)) out.push(`${episode.id}: the title must name "${names.join('" or "')}" within its first ${TITLE_VISIBLE} characters (the player hides the rest)`);
   const phrase = (episode.searchPhrase ?? business ?? '').trim();
   if (!phrase) return [...out, `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`];
