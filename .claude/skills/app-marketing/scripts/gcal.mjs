@@ -9,6 +9,7 @@
 //   node gcal.mjs check                          which fields exist (no values), whether they work, which calendar
 //   node gcal.mjs auth [--print-url] [--token-file PATH]   one-time consent; stores the refresh token in 1Password,
 //                                                or, when the service account is read-only, writes it to --token-file for the owner
+//   node gcal.mjs now [--hours N] [--at ISO] [--json]   is the owner free from now (or --at) for N hours (default 2)
 //   node gcal.mjs slot [--json]                  the first free weekday window (5:30-8:30 Pacific, 24+ hours ahead, 14 days)
 //   node gcal.mjs booked [--day YYYY-MM-DD]      Show HN events on that Pacific day (default today), and whether the
 //                                                owner is still free around them
@@ -32,6 +33,7 @@ const API = 'https://www.googleapis.com/calendar/v3/calendars/primary';
 export const TZ = 'America/Los_Angeles';
 // The Mac pass starts about 5:34 Pacific and posts by 7:00, so the window is its own (references/hacker-news.md, Timing).
 export const WINDOW = { hour: 5.5, hours: 3, leadHours: 24, days: 14 };
+export const NOW_HOURS = 2; // the owner answers the thread in the first two hours
 export const TAG = { appMarketing: 'show-hn' };
 const HOUR = 3600000, DAY = 24 * HOUR;
 const clock = h => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
@@ -212,6 +214,15 @@ async function main(args) {
   }
   if (command === 'auth') return authFlow({ printUrl: args.includes('--print-url'), tokenFile: option(args, '--token-file') });
   const token = await accessToken();
+  if (command === 'now') {
+    // A ready Show HN posts in the run that readies it, when the owner's calendar shows them free to answer the thread
+    // (James, 2026-11-07; 2026-11-12: release tests now, never schedule them into the future).
+    const now = option(args, '--at') ? Date.parse(option(args, '--at')) : Date.now(), hours = Number(option(args, '--hours') || NOW_HOURS);
+    const w = { start: now, end: now + hours * HOUR };
+    const clashes = busy(await events(token, w.start, w.end)).filter(b => b.start < w.end && b.end > w.start).map(b => b.summary);
+    const out = { free: !clashes.length, from: new Date(w.start).toISOString(), to: new Date(w.end).toISOString(), local: pt(now), hours, clashes };
+    return console.log(args.includes('--json') ? JSON.stringify(out) : (out.free ? `free now for ${hours} h (${out.local} Pacific)` : `busy: ${clashes.join(', ')}`));
+  }
   if (command === 'slot') {
     const now = Date.now();
     const list = windows(now);
@@ -265,7 +276,7 @@ async function main(args) {
     await api(token, `/events/${encodeURIComponent(id)}`, { method: 'DELETE' });
     return console.log(JSON.stringify({ cancelled: true, id }));
   }
-  throw new Error('Usage: gcal.mjs check|auth|slot|booked|book|note|cancel');
+  throw new Error('Usage: gcal.mjs check|auth|now|slot|booked|book|note|cancel');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

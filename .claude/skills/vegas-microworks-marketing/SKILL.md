@@ -3,7 +3,7 @@ name: vegas-microworks-marketing
 description: Start the Vegas Microworks weekly marketing pass from a fresh worktree. The app-marketing Mac pass starts it each week. Use when that pass carries it or when asked to run the weekly Vegas Microworks marketing pass.
 internal: true
 metadata:
-  version: "1.4.0"
+  version: "1.5.1"
 ---
 
 # Vegas Microworks marketing
@@ -63,6 +63,11 @@ Repository rules and approval holds outrank this skill.
    Stop and report if a setup command fails.
 3. **Run the playbook.** Read `AGENTS.md` and `docs/marketing.md` in the new worktree. Follow "Each weekly run"
    and its "Never" list. Use the new folder from step 2 as the playbook's `<run>`. Verify and log the outcome.
+4. **When the app-marketing Mac pass carries this run** (`app-marketing/references/mac-pass.md`), start no Short
+   makers of your own: list each due Short (its brief and folder) in your report, and the pass's Shorts stage makes
+   them one at a time. At most three subagents are alive on the Mac at once (James, 2026-11-12: six at once
+   "crashed my computer"). On 2026-11-13 this run started three makers at once, then a fourth, each with a
+   three-reviewer panel.
 
 ## The daily outreach routine (cloud)
 

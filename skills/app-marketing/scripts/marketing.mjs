@@ -7,9 +7,13 @@
 //
 //   node marketing.mjs check                        validate profiles, ledger and metrics; exit 1 on any problem
 //   node marketing.mjs status                       per app: stage, numbers, what shipped, what is open
-//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first;
-//                                                   includes <app>/invent weekly (daily while no experiment is in flight)
-//                                                   and <app>/judge-<id> once an experiment's judge date has come
+//   node marketing.mjs next [--runner cloud|mac] [--pass full|midday|reply] [--limit N] [--json]   every open item
+//                                                   worth doing now, best first; includes <app>/invent weekly (daily
+//                                                   while no experiment is in flight) and <app>/judge-<id> once an
+//                                                   experiment's judge date has come. For the cloud runner the pass
+//                                                   comes from the Pacific hour when --pass is not given: a midday or
+//                                                   reply pass lists only today's deferred or failed items and the
+//                                                   pass's own work (all/pitch-replies, and midday all/pitch-top-up)
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
@@ -59,6 +63,33 @@ export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'part
 export const STAGES = ['prelaunch', 'live'];
 export const PLATFORMS = ['ios', 'web']; // absent means an App Store app
 export const RUNNERS = ['cloud', 'mac'];
+// Three cloud runs a day (James, 2026-11-13, "Yes, add them"; SKILL.md "Three cloud runs a day"): the Pacific start
+// hour sets the kind. Before 10 the full run; 10 to 14 the midday pass; 15 or later the reply pass. The Mac pass is
+// always a full run.
+export const PASSES = ['full', 'midday', 'reply'];
+export const pacificHour = (ms = Date.now()) => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', hourCycle: 'h23' }).format(new Date(ms))) % 24;
+export const pacificDate = ms => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+export const passForHour = hour => (hour < 10 ? 'full' : hour < 15 ? 'midday' : 'reply');
+export const cloudPass = (now = Date.now()) => passForHour(pacificHour(now));
+// passOf reads a run's kind from its id: mkt-cloud-midday-... and mkt-cloud-reply-... are passes, anything else full.
+export const passOf = event => event.pass || /^mkt-cloud-(midday|reply)-/.exec(event.run_id || '')?.[1] || 'full';
+// The work a pass does on top of today's deferred items. Logged with app "all", one action each per pass.
+export const PASS_ITEMS = {
+  midday: [
+    { id: 'pitch-replies', title: 'Answer every unanswered pitch reply (pitches --replies --write; references/pitches.md, steps 1 and 2)', channel: 'pitches', runner: 'cloud', impact: 5, effort: 1 },
+    { id: 'pitch-top-up', title: 'Top up the pitch queue if it runs dry before the sending window closes (04:59 UTC) and the day has room', channel: 'pitches', runner: 'cloud', impact: 4, effort: 2 }
+  ],
+  reply: [
+    { id: 'pitch-replies', title: 'Answer every unanswered pitch reply (pitches --replies --write; references/pitches.md, steps 1 and 2)', channel: 'pitches', runner: 'cloud', impact: 5, effort: 1 }
+  ]
+};
+// deferredToday: the item's newest action was deferred or failed on today's Pacific date, and its retry_after (if it
+// set one) has come. Without a retry_after the next run of the day tries it again.
+const deferredToday = (state, now) => {
+  const last = state.last;
+  if (!last || !['deferred', 'failed'].includes(last.status) || pacificDate(Date.parse(last.ts)) !== pacificDate(now)) return false;
+  return !last.retry_after || now >= Date.parse(last.retry_after);
+};
 const REQUIRED = ['v', 'ts', 'run_id', 'skill', 'agent', 'event', 'status'];
 // The only reasons a run may leave something open (James, 2026-11-10: a run fixes every issue it finds). `owner` is a
 // step only the owner can take (a payment, a sign-in, an approval); `store-gate` is a store submission or review;
@@ -391,8 +422,10 @@ export const ownerOptions = profile => (profile.ideas || []).filter(i => i.needs
 // A channel the kill rule stopped for an app gets no more work there (SKILL.md, Learn).
 // Only a live product gets work (James, 2026-11-12: "we need to market everything", clarified "every app/service that
 // is live, i mean"): a profile whose `stage` is not `live` lists no item, invent and judge items included.
-export function rank(profiles, events, { runner, now = Date.now(), registry } = {}) {
+// A midday or reply pass (`pass`, cloud only) lists only items deferred or failed earlier today, then its own work.
+export function rank(profiles, events, { runner, now = Date.now(), registry, pass = 'full', run_id } = {}) {
   const items = [];
+  const passing = runner === 'cloud' && pass !== 'full';
   for (const profile of profiles) {
     if (profile.stage !== 'live') continue;
     const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
@@ -406,10 +439,16 @@ export function rank(profiles, events, { runner, now = Date.now(), registry } = 
       if (profile.stopped?.[item.channel] || profile.stopped?.[item.id]) continue;
       if (item.after && !item.after.every(finished)) continue;
       // A judge item is open while its experiment is due; writing the verdict into the profile closes it.
-      if (!item.judgeOnly && itemState(item, events, profile.id, now, episodes).state !== 'open') continue;
+      const state = itemState(item, events, profile.id, now, episodes);
+      if (passing ? !deferredToday(state, now) : !item.judgeOnly && state.state !== 'open') continue;
       const score = (item.impact / item.effort) * (profile.weight || 1) * (1 + idleDays / 7);
       items.push({ app: profile.id, id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: Math.round(score * 100) / 100, how: item.how });
     }
+  }
+  // The pass's own work, listed until this run (run_id) logs an action for it.
+  if (passing) for (const item of PASS_ITEMS[pass] || []) {
+    if (run_id && events.some(e => e.event === 'action' && e.run_id === run_id && e.app === 'all' && e.item === item.id)) continue;
+    items.push({ app: 'all', id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: item.impact / item.effort, how: 'SKILL.md, "Three cloud runs a day"' });
   }
   return items.sort((a, b) => b.score - a.score || a.app.localeCompare(b.app) || a.id.localeCompare(b.id));
 }
@@ -595,9 +634,22 @@ export function endProblems(event, profiles, events, { now = Date.now(), registr
   // The Mac pass ends twice: its core stage (mkt-mac-...) before Shorts are made, and the Shorts stage
   // (mkt-mac-shorts-...), so a slow or failed Short never holds up the rest. Each answers for its own items.
   const shortsStage = /^mkt-mac-shorts-/.test(event.run_id || '');
-  const due = rank(profiles, events, { runner, now, registry })
+  const due = rank(profiles, events, { runner, now, registry, pass: passOf(event), run_id: event.run_id })
     .filter(i => runner !== 'mac' || (i.channel === 'youtube-shorts') === shortsStage);
   return due.length ? [`end leaves ${due.length} due ${runner} item(s) undone: ${due.map(i => `${i.app}/${i.id}`).join(', ')}. Do each, or log it as an action with blocked_by`] : [];
+}
+
+// passProblems keeps a midday or reply pass to its work (SKILL.md, "Three cloud runs a day"): an item action in a pass
+// is the pass's own work (app "all") or an item an earlier run deferred or failed today.
+export function passProblems(event, profiles, events, { now = Date.now(), registry } = {}) {
+  const pass = passOf(event);
+  if (event.event !== 'action' || !event.item || pass === 'full' || runnerOf(event) !== 'cloud') return [];
+  if (event.app === 'all' && (PASS_ITEMS[pass] || []).some(i => i.id === event.item)) return [];
+  const profile = profiles.find(p => p.id === event.app);
+  const item = profile && [...profile.backlog, ...experimentItems(profile, now)].find(b => b.id === event.item);
+  const earlier = events.filter(e => e.run_id !== event.run_id);
+  if (item && deferredToday(itemState(item, earlier, profile.id, now, episodesFor(registry, profile)), now)) return [];
+  return [`a ${pass} pass does only today's deferred or failed items and ${(PASS_ITEMS[pass] || []).map(i => `all/${i.id}`).join(', ')}; ${event.app}/${event.item} is full-run work`];
 }
 
 // appendEvent stamps, validates and appends one event.
@@ -611,6 +663,7 @@ export function appendEvent(root, input, { registry } = {}) {
   // Work goes only to live products (James, 2026-11-12, SKILL.md "Market every live product"); a product not yet live
   // gets nothing until its profile's stage is live.
   if (known && known.stage !== 'live' && event.event === 'action' && event.item) problems.push(`${event.app} is not live (stage ${known.stage}): no marketing work until it is`);
+  problems.push(...passProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -676,8 +729,11 @@ function cmdStatus(root, args) {
 }
 
 function cmdNext(root, args) {
-  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args) }).slice(0, Number(args.limit) || Infinity);
+  if (args.pass !== undefined && !PASSES.includes(args.pass)) throw new Error(`--pass must be one of ${PASSES.join(', ')}`);
+  const pass = args.runner === 'cloud' ? args.pass || cloudPass() : 'full';
+  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args), pass, run_id: args.run }).slice(0, Number(args.limit) || Infinity);
   if (args.json) return console.log(JSON.stringify(items, null, 2));
+  if (args.runner === 'cloud') console.log(`pass: ${pass} (Pacific hour ${pacificHour()}; run id mkt-cloud-${pass === 'full' ? '' : pass + '-'}<UTC timestamp>)`);
   items.forEach(i => console.log(`${String(i.score).padStart(6)}  ${i.app}/${i.id} [${i.runner}, ${i.channel}]  ${i.title}`));
   if (!items.length) console.log('Nothing open for this runner: add ideas to a profile\'s backlog.');
 }

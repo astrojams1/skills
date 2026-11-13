@@ -675,3 +675,57 @@ test('only live products get work: next lists nothing for a prelaunch profile, a
   appendEvent(root, { ...base, event: 'finding', status: 'ok', operation: 'measured' });
   rmSync(root, { recursive: true, force: true });
 });
+
+test('three cloud runs a day: the Pacific hour sets the pass (James, 2026-11-13)', async () => {
+  const { passForHour, pacificHour, cloudPass, passOf } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  assert.deepEqual([0, 9, 10, 14, 15, 23].map(passForHour), ['full', 'full', 'midday', 'midday', 'reply', 'reply']);
+  // The routine's times on 2026-11-13 (PST): 7:10, 13:10, 17:10.
+  assert.deepEqual(['2026-11-13T15:10:00Z', '2026-11-13T21:10:00Z', '2026-11-14T01:10:00Z'].map(t => cloudPass(Date.parse(t))), ['full', 'midday', 'reply']);
+  assert.equal(pacificHour(Date.parse('2026-07-01T20:10:00Z')), 13, 'daylight saving');
+  assert.equal(passOf({ run_id: 'mkt-cloud-20261113T150101Z' }), 'full');
+  assert.equal(passOf({ run_id: 'mkt-cloud-midday-20261113T211000Z' }), 'midday');
+  assert.equal(passOf({ run_id: 'mkt-cloud-reply-20261114T011000Z' }), 'reply');
+  assert.equal(passOf({ run_id: 'mkt-mac-20261113T133500Z' }), 'full');
+});
+
+test('a midday or reply pass lists only today\'s deferred items and its own work, never full-run items', async () => {
+  const { passProblems } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const MIDDAY = Date.parse('2026-11-13T21:10:00Z'); // 13:10 Pacific
+  const p = profile({ backlog: [item({ id: 'guides', channel: 'seo' }), item({ id: 'pitches', channel: 'pitches', repeat_days: 1 }), item({ id: 'press', channel: 'web' })] });
+  const at = (ts, extra) => event({ ts, app: 'x', ...extra });
+  const events = [
+    at('2026-11-13T15:20:00Z', { item: 'pitches', run_id: 'mkt-cloud-20261113T150101Z' }),
+    at('2026-11-13T15:30:00Z', { item: 'press', status: 'deferred', blocked_by: 'outside', reason: 'site down', run_id: 'mkt-cloud-20261113T150101Z' })
+  ];
+  const ids = items => items.map(i => `${i.app}/${i.id}`).sort();
+  // The full run sees what is open for it: guides never done, and Invent.
+  assert.deepEqual(ids(rank([p], events, { runner: 'cloud', now: MIDDAY })), ['x/guides', 'x/invent']);
+  // Midday: the deferred step and the pass's work; guides (and Invent) wait for tomorrow's full run.
+  assert.deepEqual(ids(rank([p], events, { runner: 'cloud', now: MIDDAY, pass: 'midday' })), ['all/pitch-replies', 'all/pitch-top-up', 'x/press']);
+  assert.deepEqual(ids(rank([p], events, { runner: 'cloud', now: MIDDAY + 4 * 3600000, pass: 'reply' })), ['all/pitch-replies', 'x/press']);
+  // A deferral from yesterday is the full run's, not a pass's.
+  const yesterday = [at('2026-11-12T15:30:00Z', { item: 'press', status: 'deferred', blocked_by: 'outside', reason: 'site down' })];
+  assert.deepEqual(ids(rank([p], yesterday, { runner: 'cloud', now: MIDDAY, pass: 'midday' })), ['all/pitch-replies', 'all/pitch-top-up']);
+  // The Mac is always a full run.
+  const mac = profile({ backlog: [item({ runner: 'mac' })] });
+  assert.equal(rank([mac], [], { runner: 'mac', now: MIDDAY, pass: 'midday' }).length, 1);
+
+  // The end answers for the pass's work only.
+  const run_id = 'mkt-cloud-midday-20261113T211000Z';
+  const end = { v: 1, ts: '2026-11-13T21:30:00Z', run_id, skill: 'app-marketing', agent: 't', event: 'end', status: 'ok', left_open: [] };
+  assert.match(endProblems(end, [p], events, { now: MIDDAY })[0], /all\/pitch-replies.*all\/pitch-top-up.*x\/press|x\/press.*all\/pitch/);
+  const done = [...events,
+    event({ ts: '2026-11-13T21:15:00Z', run_id, app: 'all', item: 'pitch-replies' }),
+    event({ ts: '2026-11-13T21:20:00Z', run_id, app: 'all', item: 'pitch-top-up' }),
+    at('2026-11-13T21:25:00Z', { run_id, item: 'press' })];
+  assert.deepEqual(endProblems(end, [p], done, { now: Date.parse(end.ts) }), []);
+
+  // log refuses full-run work in a pass, and takes the pass's work and today's deferred item.
+  const act = extra => ({ v: 1, ts: '2026-11-13T21:20:00Z', run_id, skill: 'app-marketing', agent: 't', event: 'action', status: 'ok', ...extra });
+  assert.match(passProblems(act({ app: 'x', item: 'guides' }), [p], events, { now: MIDDAY })[0], /full-run work/);
+  assert.match(passProblems(act({ app: 'x', item: 'invent', experiment: 'e' }), [p], events, { now: MIDDAY })[0], /full-run work/);
+  assert.deepEqual(passProblems(act({ app: 'x', item: 'press' }), [p], events, { now: MIDDAY }), []);
+  assert.deepEqual(passProblems(act({ app: 'all', item: 'pitch-top-up' }), [p], events, { now: MIDDAY }), []);
+  assert.match(passProblems(act({ run_id: 'mkt-cloud-reply-20261114T011000Z', app: 'all', item: 'pitch-top-up' }), [p], events, { now: MIDDAY })[0], /reply pass/);
+  assert.deepEqual(passProblems(act({ run_id: 'mkt-cloud-20261113T150101Z', app: 'x', item: 'guides' }), [p], events, { now: MIDDAY }), [], 'a full run is unchanged');
+});

@@ -7,9 +7,13 @@
 //
 //   node marketing.mjs check                        validate profiles, ledger and metrics; exit 1 on any problem
 //   node marketing.mjs status                       per app: stage, numbers, what shipped, what is open
-//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first;
-//                                                   includes <app>/invent weekly (daily while no experiment is in flight)
-//                                                   and <app>/judge-<id> once an experiment's judge date has come
+//   node marketing.mjs next [--runner cloud|mac] [--pass full|midday|reply] [--limit N] [--json]   every open item
+//                                                   worth doing now, best first; includes <app>/invent weekly (daily
+//                                                   while no experiment is in flight) and <app>/judge-<id> once an
+//                                                   experiment's judge date has come. For the cloud runner the pass
+//                                                   comes from the Pacific hour when --pass is not given: a midday or
+//                                                   reply pass lists only today's deferred or failed items and the
+//                                                   pass's own work (all/pitch-replies, and midday all/pitch-top-up)
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
@@ -59,6 +63,33 @@ export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'part
 export const STAGES = ['prelaunch', 'live'];
 export const PLATFORMS = ['ios', 'web']; // absent means an App Store app
 export const RUNNERS = ['cloud', 'mac'];
+// Three cloud runs a day (James, 2026-11-13, "Yes, add them"; SKILL.md "Three cloud runs a day"): the Pacific start
+// hour sets the kind. Before 10 the full run; 10 to 14 the midday pass; 15 or later the reply pass. The Mac pass is
+// always a full run.
+export const PASSES = ['full', 'midday', 'reply'];
+export const pacificHour = (ms = Date.now()) => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', hourCycle: 'h23' }).format(new Date(ms))) % 24;
+export const pacificDate = ms => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+export const passForHour = hour => (hour < 10 ? 'full' : hour < 15 ? 'midday' : 'reply');
+export const cloudPass = (now = Date.now()) => passForHour(pacificHour(now));
+// passOf reads a run's kind from its id: mkt-cloud-midday-... and mkt-cloud-reply-... are passes, anything else full.
+export const passOf = event => event.pass || /^mkt-cloud-(midday|reply)-/.exec(event.run_id || '')?.[1] || 'full';
+// The work a pass does on top of today's deferred items. Logged with app "all", one action each per pass.
+export const PASS_ITEMS = {
+  midday: [
+    { id: 'pitch-replies', title: 'Answer every unanswered pitch reply (pitches --replies --write; references/pitches.md, steps 1 and 2)', channel: 'pitches', runner: 'cloud', impact: 5, effort: 1 },
+    { id: 'pitch-top-up', title: 'Top up the pitch queue if it runs dry before the sending window closes (04:59 UTC) and the day has room', channel: 'pitches', runner: 'cloud', impact: 4, effort: 2 }
+  ],
+  reply: [
+    { id: 'pitch-replies', title: 'Answer every unanswered pitch reply (pitches --replies --write; references/pitches.md, steps 1 and 2)', channel: 'pitches', runner: 'cloud', impact: 5, effort: 1 }
+  ]
+};
+// deferredToday: the item's newest action was deferred or failed on today's Pacific date, and its retry_after (if it
+// set one) has come. Without a retry_after the next run of the day tries it again.
+const deferredToday = (state, now) => {
+  const last = state.last;
+  if (!last || !['deferred', 'failed'].includes(last.status) || pacificDate(Date.parse(last.ts)) !== pacificDate(now)) return false;
+  return !last.retry_after || now >= Date.parse(last.retry_after);
+};
 const REQUIRED = ['v', 'ts', 'run_id', 'skill', 'agent', 'event', 'status'];
 // The only reasons a run may leave something open (James, 2026-11-10: a run fixes every issue it finds). `owner` is a
 // step only the owner can take (a payment, a sign-in, an approval); `store-gate` is a store submission or review;
@@ -389,9 +420,14 @@ export const ownerOptions = profile => (profile.ideas || []).filter(i => i.needs
 // rank orders the open items across apps by expected downloads per unit of work. Each app's `weight` is its share of
 // attention, and an app that was worked on recently waits behind one that was not, so no app starves.
 // A channel the kill rule stopped for an app gets no more work there (SKILL.md, Learn).
-export function rank(profiles, events, { runner, now = Date.now(), registry } = {}) {
+// Only a live product gets work (James, 2026-11-12: "we need to market everything", clarified "every app/service that
+// is live, i mean"): a profile whose `stage` is not `live` lists no item, invent and judge items included.
+// A midday or reply pass (`pass`, cloud only) lists only items deferred or failed earlier today, then its own work.
+export function rank(profiles, events, { runner, now = Date.now(), registry, pass = 'full', run_id } = {}) {
   const items = [];
+  const passing = runner === 'cloud' && pass !== 'full';
   for (const profile of profiles) {
+    if (profile.stage !== 'live') continue;
     const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
     const lastWorked = appEvents.length ? Date.parse(appEvents[appEvents.length - 1].ts) : 0;
     const idleDays = lastWorked ? Math.min((now - lastWorked) / DAY, 7) : 7;
@@ -403,10 +439,16 @@ export function rank(profiles, events, { runner, now = Date.now(), registry } = 
       if (profile.stopped?.[item.channel] || profile.stopped?.[item.id]) continue;
       if (item.after && !item.after.every(finished)) continue;
       // A judge item is open while its experiment is due; writing the verdict into the profile closes it.
-      if (!item.judgeOnly && itemState(item, events, profile.id, now, episodes).state !== 'open') continue;
+      const state = itemState(item, events, profile.id, now, episodes);
+      if (passing ? !deferredToday(state, now) : !item.judgeOnly && state.state !== 'open') continue;
       const score = (item.impact / item.effort) * (profile.weight || 1) * (1 + idleDays / 7);
       items.push({ app: profile.id, id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: Math.round(score * 100) / 100, how: item.how });
     }
+  }
+  // The pass's own work, listed until this run (run_id) logs an action for it.
+  if (passing) for (const item of PASS_ITEMS[pass] || []) {
+    if (run_id && events.some(e => e.event === 'action' && e.run_id === run_id && e.app === 'all' && e.item === item.id)) continue;
+    items.push({ app: 'all', id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: item.impact / item.effort, how: 'SKILL.md, "Three cloud runs a day"' });
   }
   return items.sort((a, b) => b.score - a.score || a.app.localeCompare(b.app) || a.id.localeCompare(b.id));
 }
@@ -559,6 +601,20 @@ function loadJsonl(path, label) {
 const loadEvents = root => loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger').records;
 const loadMetrics = root => loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records;
 const loadPitchQueue = root => loadJsonl(join(dirOf(root), 'pitches.jsonl'), 'pitches');
+// Untagged agent test loads the visit counter could not tell apart, recorded by the run that made them (append-only).
+const loadExcludedVisits = root => loadJsonl(join(dirOf(root), 'visits-excluded.jsonl'), 'visits-excluded');
+export function excludedVisitProblems(records) {
+  return records.flatMap((x, i) => {
+    const bad = [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(x.day || '')) bad.push('day (YYYY-MM-DD, Pacific)');
+    if (!x.site || typeof x.site !== 'string') bad.push('site');
+    if (typeof x.section !== 'string') bad.push('section ("" for a home page)');
+    if (!x.source || typeof x.source !== 'string') bad.push('source');
+    if (!Number.isInteger(x.n) || x.n < 1) bad.push('n (a whole number of loads)');
+    if (!x.reason || !x.run_id) bad.push('reason and run_id (which run made the loads)');
+    return bad.length ? [`visits-excluded.jsonl line ${i + 1} needs ${bad.join(', ')}`] : [];
+  });
+}
 const REGISTRY = '/Volumes/ssd/projects/app-shorts/registry.json';
 const MAC_HOME = '/Volumes/ssd/projects/app-marketing';
 function loadRegistry(args = {}) {
@@ -578,9 +634,22 @@ export function endProblems(event, profiles, events, { now = Date.now(), registr
   // The Mac pass ends twice: its core stage (mkt-mac-...) before Shorts are made, and the Shorts stage
   // (mkt-mac-shorts-...), so a slow or failed Short never holds up the rest. Each answers for its own items.
   const shortsStage = /^mkt-mac-shorts-/.test(event.run_id || '');
-  const due = rank(profiles, events, { runner, now, registry })
+  const due = rank(profiles, events, { runner, now, registry, pass: passOf(event), run_id: event.run_id })
     .filter(i => runner !== 'mac' || (i.channel === 'youtube-shorts') === shortsStage);
   return due.length ? [`end leaves ${due.length} due ${runner} item(s) undone: ${due.map(i => `${i.app}/${i.id}`).join(', ')}. Do each, or log it as an action with blocked_by`] : [];
+}
+
+// passProblems keeps a midday or reply pass to its work (SKILL.md, "Three cloud runs a day"): an item action in a pass
+// is the pass's own work (app "all") or an item an earlier run deferred or failed today.
+export function passProblems(event, profiles, events, { now = Date.now(), registry } = {}) {
+  const pass = passOf(event);
+  if (event.event !== 'action' || !event.item || pass === 'full' || runnerOf(event) !== 'cloud') return [];
+  if (event.app === 'all' && (PASS_ITEMS[pass] || []).some(i => i.id === event.item)) return [];
+  const profile = profiles.find(p => p.id === event.app);
+  const item = profile && [...profile.backlog, ...experimentItems(profile, now)].find(b => b.id === event.item);
+  const earlier = events.filter(e => e.run_id !== event.run_id);
+  if (item && deferredToday(itemState(item, earlier, profile.id, now, episodesFor(registry, profile)), now)) return [];
+  return [`a ${pass} pass does only today's deferred or failed items and ${(PASS_ITEMS[pass] || []).map(i => `all/${i.id}`).join(', ')}; ${event.app}/${event.item} is full-run work`];
 }
 
 // appendEvent stamps, validates and appends one event.
@@ -588,6 +657,13 @@ export function appendEvent(root, input, { registry } = {}) {
   const event = { v: 1, ts: new Date().toISOString(), skill: 'app-marketing', ...input };
   const problems = eventProblems(event);
   if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
+  // check refuses an app with no profile, so log refuses it first; name another business in targets instead.
+  const known = event.app && event.app !== 'all' ? loadProfiles(root).find(p => p.id === event.app) : null;
+  if (event.app && event.app !== 'all' && !known) problems.push(`unknown app ${event.app} (no marketing profile; name it in targets)`);
+  // Work goes only to live products (James, 2026-11-12, SKILL.md "Market every live product"); a product not yet live
+  // gets nothing until its profile's stage is live.
+  if (known && known.stage !== 'live' && event.event === 'action' && event.item) problems.push(`${event.app} is not live (stage ${known.stage}): no marketing work until it is`);
+  problems.push(...passProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -599,6 +675,8 @@ async function cmdCheck(root) {
   const problems = [];
   const profiles = loadProfiles(root);
   profiles.forEach(p => problems.push(...profileProblems(p)));
+  const excluded = loadExcludedVisits(root);
+  problems.push(...excluded.problems, ...excludedVisitProblems(excluded.records));
   // The pitch queue is checked with the site's own rules (packages/pitches/rules.mjs), the ones the sender applies.
   const queue = loadPitchQueue(root);
   problems.push(...queue.problems);
@@ -613,7 +691,7 @@ async function cmdCheck(root) {
   problems.push(...corrected.problems);
   ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i)) eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)); });
   const ids = new Set(profiles.map(p => p.id));
-  ledger.records.forEach((e, i) => { if (e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
+  ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i) && e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
   const metrics = loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics');
   problems.push(...metrics.problems);
   metrics.records.forEach((m, i) => { if (!m.at || !m.app || !m.source) problems.push(`metrics line ${i + 1}: needs at, app and source`); });
@@ -651,8 +729,11 @@ function cmdStatus(root, args) {
 }
 
 function cmdNext(root, args) {
-  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args) }).slice(0, Number(args.limit) || Infinity);
+  if (args.pass !== undefined && !PASSES.includes(args.pass)) throw new Error(`--pass must be one of ${PASSES.join(', ')}`);
+  const pass = args.runner === 'cloud' ? args.pass || cloudPass() : 'full';
+  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args), pass, run_id: args.run }).slice(0, Number(args.limit) || Infinity);
   if (args.json) return console.log(JSON.stringify(items, null, 2));
+  if (args.runner === 'cloud') console.log(`pass: ${pass} (Pacific hour ${pacificHour()}; run id mkt-cloud-${pass === 'full' ? '' : pass + '-'}<UTC timestamp>)`);
   items.forEach(i => console.log(`${String(i.score).padStart(6)}  ${i.app}/${i.id} [${i.runner}, ${i.channel}]  ${i.title}`));
   if (!items.length) console.log('Nothing open for this runner: add ideas to a profile\'s backlog.');
 }
@@ -1310,18 +1391,29 @@ export function channelOf(source) {
 // productOf: the marketing profile a view belongs to: the app whose page it is on an apps site (`<site>-site` for the
 // home page, /play/ and the rest), or the web product that served it.
 export function productOf(profiles, site, section) {
-  if (site === 'ouro' || site === 'astrojams') return profiles.find(p => p.site === site && (p.siteSlug || p.id) === section)?.id || `${site}-site`;
+  if (site === 'ouro' || site === 'astrojams') {
+    const own = profiles.find(p => p.site === site && (p.siteSlug || p.id) === section)?.id;
+    // An experiment page at the top of a site (/winter-sun/) belongs to the product whose experiment it is.
+    return own || experimentPages(profiles).find(e => e.site === site && e.section === section && e.depth === 1)?.app || `${site}-site`;
+  }
   return profiles.find(p => p.id === site)?.id || site;
 }
 
 // visitTotals: per product, visits (arrivals from anywhere but the same site) and page views for the 7 and 28 days to
-// the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out.
-export function visitTotals(report, profiles) {
+// the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out:
+// tagged ones by source, untagged ones by the lines in `marketing/visits-excluded.jsonl` (`excluded`).
+// Every live profile gets a line, zeros included.
+export function visitTotals(report, profiles, excluded = []) {
   const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
   const out = new Map();
   const add = (o, k, n, in7) => { const c = o[k] || (o[k] = { d7: 0, d28: 0 }); c.d28 += n; if (in7) c.d7 += n; };
-  for (const r of report.rows || []) {
-    if (r.source === TEST_SOURCE || r.day < from28 || r.day > report.today) continue;
+  const keyOf = r => [r.day, r.site, r.section ?? '', r.source].join('|');
+  const minus = new Map();
+  for (const x of excluded) minus.set(keyOf(x), (minus.get(keyOf(x)) || 0) + x.n);
+  for (const raw of report.rows || []) {
+    const n = Math.max(0, raw.n - (minus.get(keyOf(raw)) || 0));
+    const r = { ...raw, n };
+    if (!n || r.source === TEST_SOURCE || r.day < from28 || r.day > report.today) continue;
     const app = productOf(profiles, r.site, r.section);
     const t = out.get(app) || out.set(app, { app, visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} }).get(app);
     const in7 = r.day >= from7;
@@ -1332,7 +1424,42 @@ export function visitTotals(report, profiles) {
     const { channel, tag } = channelOf(r.source);
     add(t.channels, channel === tag ? channel : `${channel} ${tag}`, r.n, in7);
   }
+  // A live product the counter saw no visit for gets a zero line, so learn reads "0 in 7 days", never "not read yet".
+  for (const p of profiles) if (p.stage === 'live' && !out.has(p.id)) out.set(p.id, { app: p.id, visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} });
   return [...out.values()].sort((a, b) => b.visits.d28 - a.visits.d28 || a.app.localeCompare(b.app));
+}
+
+// The counter's site key for each host of the two apps sites; a web product's own host is its profile id.
+const SITE_HOSTS = { 'astrojams-apps.vercel.app': 'astrojams', 'ouro-apps.vercel.app': 'ouro' };
+// experimentPages: every experiment with a page URL, as the counter keys it (site, path, first path segment).
+export function experimentPages(profiles) {
+  return profiles.flatMap(p => (p.experiments || []).flatMap(e => {
+    let u; try { u = new URL(e.url || ''); } catch { return []; }
+    const site = SITE_HOSTS[u.host] || (p.webUrl && new URL(p.webUrl).host === u.host ? p.id : null);
+    if (!site) return [];
+    const parts = u.pathname.split('/').filter(Boolean);
+    return [{ app: p.id, id: e.id, site, path: u.pathname, section: parts[0] || '', depth: parts.length, judge: e.judge }];
+  }));
+}
+// experimentVisits: each experiment page's 28-day count. A page with its own top-level section (/winter-sun/) is read
+// from the daily rows, test loads out, as visits for 7 and 28 days; a deeper page (/lob/rings/) only from the
+// counter's top paths, all sources, as 28-day page views.
+export function experimentVisits(report, profiles, excluded = []) {
+  const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
+  const keyOf = r => [r.day, r.site, r.section ?? '', r.source].join('|');
+  const minus = new Map(); for (const x of excluded) minus.set(keyOf(x), (minus.get(keyOf(x)) || 0) + x.n);
+  return experimentPages(profiles).map(e => {
+    if (e.depth === 1) {
+      let d7 = 0, d28 = 0;
+      for (const r of report.rows || []) {
+        if (r.site !== e.site || r.section !== e.section || [TEST_SOURCE, 'internal'].includes(r.source) || r.day < from28 || r.day > report.today) continue;
+        const n = Math.max(0, r.n - (minus.get(keyOf(r)) || 0)); d28 += n; if (r.day >= from7) d7 += n;
+      }
+      return { ...e, visits: { d7, d28 } };
+    }
+    const hit = (report.paths || []).find(x => x.site === e.site && x.path === e.path);
+    return { ...e, pageViews28: hit ? hit.n : 0, allSources: true };
+  });
 }
 
 export function visitSnapshot(totals, report, at = new Date().toISOString()) {
@@ -1359,15 +1486,21 @@ const channelLine = c => Object.entries(c).sort((a, b) => b[1].d28 - a[1].d28).m
 
 async function cmdVisits(root, args) {
   const report = await fetchVisits(root, args);
-  const totals = visitTotals(report, loadProfiles(root));
-  if (args.write) for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
-  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals }, null, 2));
-  console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out`);
+  const totals = visitTotals(report, loadProfiles(root), loadExcludedVisits(root).records);
+  const pages = experimentVisits(report, loadProfiles(root), loadExcludedVisits(root).records);
+  if (args.write) {
+    for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
+    for (const e of pages) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify({ at: new Date().toISOString(), app: e.app, source: 'experiment-visits', experiment: e.id, path: e.path, site: e.site, through: report.today, values: e.visits ? { visits7: e.visits.d7, visits28: e.visits.d28 } : { pageViews28AllSources: e.pageViews28 } }) + '\n');
+  }
+  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals, experiments: pages }, null, 2));
+  console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out (tagged, and ${loadExcludedVisits(root).records.reduce((a, x) => a + x.n, 0)} untagged in visits-excluded.jsonl)`);
   if (!totals.length) console.log('  no visits counted yet');
   for (const t of totals) {
     console.log(`${t.app}: ${t.visits.d7}/${t.visits.d28} visits, ${t.pageViews.d7}/${t.pageViews.d28} page views (on ${Object.entries(t.surfaces).map(([k, v]) => `${k} ${v.d28}`).join(', ') || 'none'})`);
     if (Object.keys(t.channels).length) console.log(`  ${channelLine(t.channels)}`);
   }
+  if (pages.length) console.log('experiment pages:');
+  for (const e of pages) console.log(`  ${e.app}/${e.id} ${e.site}${e.path}: ${e.visits ? `${e.visits.d7}/${e.visits.d28} visits` : `${e.pageViews28} page views in 28 days (all sources)`}, judge ${e.judge || 'no date'}`);
 }
 
 // ---- reports ----

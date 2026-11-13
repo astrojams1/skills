@@ -1,8 +1,8 @@
 ---
 name: app-marketing
-description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
+description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.26.0"
+  version: "1.29.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -73,6 +73,11 @@ also holds the app's `rules` and the owner's `decisions`.
   judged on visits and plays, through the pitch link's visit counter, and has no store items. Its first pitches go to
   both arms. In the one-link arm its one link is its own `webUrl`, plain. Its astrojams page lives in
   `sites/astrojams/public/<slug>/`, listed on `/play/`.
+- **Only live products get work (James, 2026-11-12).** He said "we need to market everything", then, asked about Shorts
+  made for an app not yet in the store: "every app/service that is live, i mean". Live means on sale in a store, or a
+  web product that is up: the profile's `stage` is `live`. A product not yet live gets nothing (no guide, page,
+  experiment, pitch, Short or cross-promotion) until the day it is. `next` lists no item for it, and `log` refuses an
+  item `action` for it. On 2026-11-13 the cloud pass did four items for Giraffe Stretch, which is not on sale.
 - **Keep backlogs alive.** When an idea appears, add it with honest `impact` and `effort` (1 to 5).
 
 ### Developer tools on Hacker News
@@ -82,11 +87,12 @@ Some apps are for people who write or run software, and anyone can try them with
 giving an app the block or posting.
 
 - The Mac pass checks earlier submissions and limits with `marketing.mjs hn`. Today no app has the block.
-- It finds a weekday 5:30 to 8:30 Pacific window the owner's calendar shows free and books it as a heads-up event
-  (`gcal.mjs`).
-- On the booked day the Mac pass itself posts the link and title from the owner's signed-in account, between about
-  5:30 and 7:00 Pacific, once its app work has shipped. The owner answers the thread. The old 9:00
-  `app-marketing-show-hn` task is paused.
+- **A ready Show HN posts in the run that readies it** (James, 2026-11-12: release tests now, never schedule them into
+  the future). The only wait is the owner's own rule (2026-11-07): he must be free to answer, so `gcal.mjs now` must
+  show his calendar free for the next two hours. If it does not, the item is `deferred` to the next run, never booked
+  for a later day. No day of the week or hour is preferred: that was habit, not a Hacker News rule or a measurement.
+- The Mac pass posts the link and title from the owner's signed-in account and puts a "Show HN is live" event on his
+  calendar with the thread link. The owner answers the thread.
 
 Other apps get no block.
 
@@ -94,7 +100,9 @@ Other apps get no block.
 
 The cloud has no access to the vault: no `op`, no service-account token. Every backlog item says which runner does it.
 
-- **`cloud`, daily routine.** Reads the state, writes guides and site changes, ships them, records public numbers.
+- **`cloud`, routine three times a day** (7:10, 13:10 and 17:10 Pacific). The morning run reads the state, writes
+  guides and site changes, ships them and records public numbers. The later two are short passes:
+  [Three cloud runs a day](#three-cloud-runs-a-day).
 - **`mac`, daily scheduled task `app-marketing-mac` (about 05:34 Pacific).** Runs before the cloud. Reads App Store and
   YouTube numbers and does whatever needs a credential: promotional text, reviews, Shorts, store data. Mirrors the
   ledger into the shared activity ledger. Its steps are in [the Mac pass](references/mac-pass.md). It runs only while
@@ -103,16 +111,52 @@ The cloud has no access to the vault: no `op`, no service-account token. Every b
 Each run does only its own items and never waits for the other. If the Mac's last run is over three days old, the cloud
 logs one `finding` and carries on.
 
+### Three cloud runs a day
+
+James approved three cloud runs a day on 2026-11-13 ("Yes, add them") after one day of evidence. The mailbox could
+send about 70 emails an hour from 6 AM Pacific, but the queues held about 135 against a 300 cap: writing, not sending,
+was the limit. The week's one yes took four exchanges in an evening, which a daily run would spread over four days. And
+when an incident made a morning run skip a step, nothing picked it up that day. So the routine fires three times with
+the same prompt, and **the run's Pacific start hour sets its kind** (`TZ=America/Los_Angeles date +%H`).
+`marketing.mjs` holds the same rule and enforces it. The routine's prompt says "daily pass": it means the kind the
+hour sets, and is not a stale prompt.
+
+| Start hour (Pacific) | Kind | `RUN_ID` | What it does |
+|---|---|---|---|
+| before 10 | Full run | `mkt-cloud-<UTC>` | All of [A run](#a-run), as before |
+| 10 to 14 | Midday pass | `mkt-cloud-midday-<UTC>` | Today's deferred or failed items, `all/pitch-replies`, `all/pitch-top-up` |
+| 15 or later | Reply pass | `mkt-cloud-reply-<UTC>` | Today's deferred or failed items, `all/pitch-replies` |
+
+- **`next --runner cloud` reads the hour** (or `--pass full|midday|reply`). In a pass it lists only items an earlier
+  run deferred or failed today, then the pass's own work. `log` refuses any other item in a pass, and the pass's `end`
+  answers only for that list. The Mac pass is always a full run.
+- **A pass reads today's ledger first** and never redoes what an earlier run today finished.
+- **`all/pitch-replies`:** steps 1 and 2 of each run in [Pitch emails](references/pitches.md): read with
+  `pitches --replies --write`, fix refused or failed pitches, then answer every unanswered reply. One `action` for all
+  apps, counts as `evidence`.
+- **`all/pitch-top-up`** (midday only): count today's first pitches, sent or still unsent, in `pitches`. If they are
+  under the daily target (about 75, pitches.md step 5) and the sender still has room, write more to that standard,
+  ship and merge. Otherwise log it `ok` with the counts.
+- **A pass skips** Measure, Learn, Invent, guides, coverage searches, experiments, store and site work, and the board's
+  daily numbers. Its steps are 1 (start: read [pitches](references/pitches.md), not channels and content), 5, 6, 7
+  (ship only when it changed something besides the ledger), 8 and 9.
+- **Every pass writes its ledger** (`start`, an `action` per item, `end`), short when it had nothing to do, and ships
+  the ledger on its `marketing-run/` PR.
+
 ## A run
 
-Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and work from the app-sites checkout.
+Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and work from the app-sites checkout. A
+cloud run started at 10 Pacific or later is a pass: `RUN_ID=mkt-cloud-midday-…` or `mkt-cloud-reply-…`, and it does
+only the steps [Three cloud runs a day](#three-cloud-runs-a-day) names.
 
 1. **Start.** In both the skills and app-sites checkouts, `git checkout main && git pull --ff-only`. Read
    [channels](references/channels.md) and [content](references/content.md) in full. In app-sites, `npm ci`, then a
    branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`. Log a `start` event. Merge or close any
    `marketing-run/` PR left open by an earlier run.
 2. **Measure.** `node $R/marketing.mjs public --write`, then `visits --write` (visits to both apps sites and every web
-   product, per app and per channel tag, from the sites' own counter). On the Mac also `pull --write`, then `yt-api.mjs pull` and
+   product, per app and per channel tag, from the sites' own counter). It leaves out agent test loads: tagged ones
+   (`?utm_source=agent-test`) and untagged ones recorded in `marketing/visits-excluded.jsonl`. A run that opens a
+   counted page without the tag appends its loads there the same day. On the Mac also `pull --write`, then `yt-api.mjs pull` and
    `marketing.mjs youtube --write` (one `youtube` snapshot per app from `shorts.mjs views`). Compare with the last run. Log a `finding` with `metrics_before` and
    `metrics_after`. Numbers come from a tool; never type or estimate one. Downloads are summed over unique days: Apple
    repeats a date in later report instances, and the newest instance wins it.
@@ -154,7 +198,8 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
      It never blocks the run.
    - `<app>/judge-<id>` appears once a judge date comes. Read the measure and write the verdict: keep and grow,
      change once, or retire.
-5. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner, best first. Do
+5. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner (for a cloud
+   pass, only that pass's list; its first line names the pass), best first. Do
    them all, for every app, each to the content bar (the owner, 2026-11-08). Each ends done, or blocked under
    [Fix what you find](#fix-what-you-find). If nothing is open for this runner, add a better idea to that app's backlog
    with honest scores, and log that.
@@ -264,6 +309,14 @@ Five lines, for someone who wasn't watching:
 5. `left_open`, each with what unblocks it, or "nothing left open".
 
 Say plainly if the ledger could not be written.
+
+The full run sends its report as the day's push, as before. **A midday or reply pass** reports in three lines (what it
+answered, what it queued, what is still open) and sends a push only when it answered a yes or an interested reply,
+when money or an owner-only step (a wet signature, a payment by hand) came up, or when a step failed and is still open
+at its end. A pass with nothing to report sends no push.
+
+**When a connector or tool does not load,** record what https://status.claude.com shows, do everything that does not
+need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of the day picks it up.
 
 ## Gotchas
 
