@@ -368,6 +368,11 @@ export async function storeName(appId, { fetcher = fetch } = {}) {
 // How a Short ends (app-shorts, Rules, "Every Short says how to find the app"): a phrase the store's search finds
 // the app with, or, when none does yet, the exact store name and that it is on the App Store.
 export const endCard = (text, rank) => (rank ? `Search '${text}' on the App Store.` : `${text}, on the App Store.`);
+// A web product (profile `platform: "web"`) is never on the App Store and no search phrase is verified for it, so its
+// Short ends on its own address, the host of its `webUrl` (the first LOB Short ended on a phrase web search answers
+// with other games, 2026-11-13).
+export const webAddress = profile => (profile?.platform === 'web' && profile.webUrl ? new URL(profile.webUrl).host : null);
+export const webEndCard = host => `Open ${host} in your browser.`;
 
 // The phrase a Short gives: the profile's searchPhrase when app-marketing has set one (it checks it daily), else the
 // first candidate the store ranks first, else the best-ranked one. Candidates: --try, the store name, its part
@@ -379,6 +384,8 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
   const fromProfile = typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : profile?.searchPhrase?.phrase;
   const name = (profile?.name ?? app.name ?? '').trim();
   if (profile && !onSale(app, profile)) return { app: slug, phrase: null, rank: null, source: 'not on sale: no Short until it is', checked: [] };
+  const host = webAddress(profile);
+  if (host) return { app: slug, phrase: host, rank: null, ending: 'address', endCard: webEndCard(host), source: 'web product: its address', checked: [] };
   const store = await storeName(app.ascAppId, { fetcher }) ?? name;
   const plain = n => n.replace(/[:|–—-]/g, ' ').replace(/\s+/g, ' ');
   const candidates = [...new Set([fromProfile, ...tries, store, store.split(':')[0], plain(store), name, app.name].map(c => c?.trim()).filter(Boolean))];

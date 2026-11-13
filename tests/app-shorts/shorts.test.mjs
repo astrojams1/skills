@@ -199,6 +199,8 @@ test('phrase prefers the profile, then the first candidate the store ranks first
   assert.equal(tried.phrase, 'Importron health');
   const soon = await phrase(registry, 'giraffe', { profiles: [{ id: 'g', shortsSlug: 'giraffe', name: 'Giraffe Stretch', stage: 'prelaunch' }], fetcher });
   assert.deepEqual([soon.phrase, soon.source], [null, 'not on sale: no Short until it is'], 'no "coming soon" phrase');
+  const web = await phrase({ apps: { lob: { name: 'LOB' } }, episodes: [] }, 'lob', { profiles: [{ id: 'lob', stage: 'live', platform: 'web', webUrl: 'https://lob-game.vercel.app' }], fetcher });
+  assert.deepEqual([web.phrase, web.ending, web.endCard], ['lob-game.vercel.app', 'address', 'Open lob-game.vercel.app in your browser.'], 'a web product ends on its address, never the App Store');
 });
 
 test('rules gathers this skill\'s rules, the app\'s own, and the owner\'s verdicts, and names what is missing', () => {

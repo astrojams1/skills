@@ -559,6 +559,20 @@ function loadJsonl(path, label) {
 const loadEvents = root => loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger').records;
 const loadMetrics = root => loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records;
 const loadPitchQueue = root => loadJsonl(join(dirOf(root), 'pitches.jsonl'), 'pitches');
+// Untagged agent test loads the visit counter could not tell apart, recorded by the run that made them (append-only).
+const loadExcludedVisits = root => loadJsonl(join(dirOf(root), 'visits-excluded.jsonl'), 'visits-excluded');
+export function excludedVisitProblems(records) {
+  return records.flatMap((x, i) => {
+    const bad = [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(x.day || '')) bad.push('day (YYYY-MM-DD, Pacific)');
+    if (!x.site || typeof x.site !== 'string') bad.push('site');
+    if (typeof x.section !== 'string') bad.push('section ("" for a home page)');
+    if (!x.source || typeof x.source !== 'string') bad.push('source');
+    if (!Number.isInteger(x.n) || x.n < 1) bad.push('n (a whole number of loads)');
+    if (!x.reason || !x.run_id) bad.push('reason and run_id (which run made the loads)');
+    return bad.length ? [`visits-excluded.jsonl line ${i + 1} needs ${bad.join(', ')}`] : [];
+  });
+}
 const REGISTRY = '/Volumes/ssd/projects/app-shorts/registry.json';
 const MAC_HOME = '/Volumes/ssd/projects/app-marketing';
 function loadRegistry(args = {}) {
@@ -601,6 +615,8 @@ async function cmdCheck(root) {
   const problems = [];
   const profiles = loadProfiles(root);
   profiles.forEach(p => problems.push(...profileProblems(p)));
+  const excluded = loadExcludedVisits(root);
+  problems.push(...excluded.problems, ...excludedVisitProblems(excluded.records));
   // The pitch queue is checked with the site's own rules (packages/pitches/rules.mjs), the ones the sender applies.
   const queue = loadPitchQueue(root);
   problems.push(...queue.problems);
@@ -1317,14 +1333,20 @@ export function productOf(profiles, site, section) {
 }
 
 // visitTotals: per product, visits (arrivals from anywhere but the same site) and page views for the 7 and 28 days to
-// the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out.
+// the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out:
+// tagged ones by source, untagged ones by the lines in `marketing/visits-excluded.jsonl` (`excluded`).
 // Every live profile gets a line, zeros included.
-export function visitTotals(report, profiles) {
+export function visitTotals(report, profiles, excluded = []) {
   const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
   const out = new Map();
   const add = (o, k, n, in7) => { const c = o[k] || (o[k] = { d7: 0, d28: 0 }); c.d28 += n; if (in7) c.d7 += n; };
-  for (const r of report.rows || []) {
-    if (r.source === TEST_SOURCE || r.day < from28 || r.day > report.today) continue;
+  const keyOf = r => [r.day, r.site, r.section ?? '', r.source].join('|');
+  const minus = new Map();
+  for (const x of excluded) minus.set(keyOf(x), (minus.get(keyOf(x)) || 0) + x.n);
+  for (const raw of report.rows || []) {
+    const n = Math.max(0, raw.n - (minus.get(keyOf(raw)) || 0));
+    const r = { ...raw, n };
+    if (!n || r.source === TEST_SOURCE || r.day < from28 || r.day > report.today) continue;
     const app = productOf(profiles, r.site, r.section);
     const t = out.get(app) || out.set(app, { app, visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} }).get(app);
     const in7 = r.day >= from7;
@@ -1364,10 +1386,10 @@ const channelLine = c => Object.entries(c).sort((a, b) => b[1].d28 - a[1].d28).m
 
 async function cmdVisits(root, args) {
   const report = await fetchVisits(root, args);
-  const totals = visitTotals(report, loadProfiles(root));
+  const totals = visitTotals(report, loadProfiles(root), loadExcludedVisits(root).records);
   if (args.write) for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
   if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals }, null, 2));
-  console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out`);
+  console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out (tagged, and ${loadExcludedVisits(root).records.reduce((a, x) => a + x.n, 0)} untagged in visits-excluded.jsonl)`);
   if (!totals.length) console.log('  no visits counted yet');
   for (const t of totals) {
     console.log(`${t.app}: ${t.visits.d7}/${t.visits.d28} visits, ${t.pageViews.d7}/${t.pageViews.d28} page views (on ${Object.entries(t.surfaces).map(([k, v]) => `${k} ${v.d28}`).join(', ') || 'none'})`);
