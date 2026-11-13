@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.27.3"
+  version: "1.28.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -73,6 +73,11 @@ also holds the app's `rules` and the owner's `decisions`.
   judged on visits and plays, through the pitch link's visit counter, and has no store items. Its first pitches go to
   both arms. In the one-link arm its one link is its own `webUrl`, plain. Its astrojams page lives in
   `sites/astrojams/public/<slug>/`, listed on `/play/`.
+- **Only live products get work (James, 2026-11-12).** He said "we need to market everything", then, asked about Shorts
+  made for an app not yet in the store: "every app/service that is live, i mean". Live means on sale in a store, or a
+  web product that is up: the profile's `stage` is `live`. A product not yet live gets nothing (no guide, page,
+  experiment, pitch, Short or cross-promotion) until the day it is. `next` lists no item for it, and `log` refuses an
+  item `action` for it. On 2026-11-13 the cloud pass did four items for Giraffe Stretch, which is not on sale.
 - **Keep backlogs alive.** When an idea appears, add it with honest `impact` and `effort` (1 to 5).
 
 ### Developer tools on Hacker News
@@ -82,11 +87,12 @@ Some apps are for people who write or run software, and anyone can try them with
 giving an app the block or posting.
 
 - The Mac pass checks earlier submissions and limits with `marketing.mjs hn`. Today no app has the block.
-- It finds a weekday 5:30 to 8:30 Pacific window the owner's calendar shows free and books it as a heads-up event
-  (`gcal.mjs`).
-- On the booked day the Mac pass itself posts the link and title from the owner's signed-in account, between about
-  5:30 and 7:00 Pacific, once its app work has shipped. The owner answers the thread. The old 9:00
-  `app-marketing-show-hn` task is paused.
+- **A ready Show HN posts in the run that readies it** (James, 2026-11-12: release tests now, never schedule them into
+  the future). The only wait is the owner's own rule (2026-11-07): he must be free to answer, so `gcal.mjs now` must
+  show his calendar free for the next two hours. If it does not, the item is `deferred` to the next run, never booked
+  for a later day. No day of the week or hour is preferred: that was habit, not a Hacker News rule or a measurement.
+- The Mac pass posts the link and title from the owner's signed-in account and puts a "Show HN is live" event on his
+  calendar with the thread link. The owner answers the thread.
 
 Other apps get no block.
 

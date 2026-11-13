@@ -167,11 +167,8 @@ Start this part once the core stage has shipped and its `end` event is logged (s
 Each job is its own run, with its own run id, ledger events and report. A failure in a job never changes the app
 pass's result, and neither job waits for Shorts. Show HN goes first, since it has a deadline.
 
-1. **Show HN.** On a weekday, read `/Volumes/ssd/projects/app-marketing/show-hn.txt`, which step 7 just wrote. If its
-   `booked:` line names today's date in Pacific time, read [Hacker News](hacker-news.md) in full, then follow
-   "Posting" there with this pass's `R` and app-sites checkout. If the file is missing, run `node $R/gcal.mjs booked`
-   to find out. Otherwise skip the job: log nothing and add nothing to the report. Booking stays in step 3, as the
-   `show-hn` item.
+1. **Show HN.** No longer a carried job (2026-11-13): the `show-hn` item in step 3 posts in the same run when it is
+   due and the owner's calendar is free ([Hacker News](hacker-news.md), Timing). Nothing is booked ahead.
 2. **Vegas Microworks weekly pass.** It is due on a Wednesday in Pacific time. It is also due on any day when the
    newest completed weekly pass is more than 7 days old, or there is none. A completed weekly pass is an `end` event
    in the shared activity ledger with skill `vegas-microworks-marketing`, a run id that starts `vmw-weekly-`, and

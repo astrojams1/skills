@@ -77,12 +77,13 @@ test('a rest longer than a day must say why', () => {
 });
 
 test('rank filters by runner, stage and prerequisites, and favours the best ratio', () => {
-  const p = profile({ stage: 'prelaunch', backlog: [
+  const p = profile({ backlog: [
     item({ id: 'big', impact: 5, effort: 1 }), item({ id: 'small', impact: 1, effort: 5 }),
-    item({ id: 'mac', runner: 'mac' }), item({ id: 'after-launch', requires: 'live' }), item({ id: 'second', after: ['big'] })
+    item({ id: 'mac', runner: 'mac' }), item({ id: 'before-launch', requires: 'prelaunch' }), item({ id: 'second', after: ['big'] })
   ] });
   const ids = rank([p], [], { runner: 'cloud', now: NOW }).filter(i => i.channel !== 'invent').map(i => i.id);
   assert.deepEqual(ids, ['big', 'small']);
+  assert.deepEqual(rank([{ ...p, stage: 'prelaunch' }], [], { runner: 'cloud', now: NOW }), [], 'a product not live gets nothing');
   const done = [event({ app: 'x', item: 'big' })];
   assert.ok(rank([p], done, { runner: 'cloud', now: NOW }).some(i => i.id === 'second'));
 });
@@ -653,4 +654,24 @@ test('experiment pages are counted on their own, and a top-level one belongs to 
   const [winter, rings] = experimentVisits(report, profiles, [{ day: '2026-11-10', site: 'astrojams', section: 'winter-sun', source: 'direct', n: 1 }]);
   assert.deepEqual(winter.visits, { d7: 4, d28: 5 });
   assert.equal(rings.pageViews28, 3);
+});
+
+test('only live products get work: next lists nothing for a prelaunch profile, and log refuses an item action for one', async () => {
+  const live = profile({ id: 'live-one' });
+  const soon = profile({ id: 'soon', stage: 'prelaunch', backlog: [{ id: 'guides', title: 'g', channel: 'seo', runner: 'cloud', impact: 5, effort: 1, how: 'h' }] });
+  const items = rank([live, soon], [], { runner: 'cloud', now: Date.parse('2026-11-13T15:00:00Z') });
+  assert.ok(items.length > 0 && items.every(i => i.app === 'live-one'), 'no item, invent included, for the prelaunch app');
+  const { appendEvent } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const base0 = existsSync('/Volumes/ssd') ? '/Volumes/ssd/projects/app-marketing/run' : tmpdir();
+  mkdirSync(base0, { recursive: true });
+  const root = mkdtempSync(`${base0}/test-`);
+  mkdirSync(`${root}/marketing/apps`, { recursive: true });
+  writeFileSync(`${root}/marketing/apps/soon.json`, JSON.stringify(soon));
+  writeFileSync(`${root}/marketing/ledger.jsonl`, '');
+  const base = { run_id: 'r', agent: 't', app: 'soon' };
+  assert.throws(() => appendEvent(root, { ...base, event: 'action', status: 'ok', item: 'guides', channel: 'seo', operation: 'x', evidence: 'y' }), /not live/);
+  appendEvent(root, { ...base, event: 'finding', status: 'ok', operation: 'measured' });
+  rmSync(root, { recursive: true, force: true });
 });
