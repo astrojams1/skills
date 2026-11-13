@@ -297,3 +297,13 @@ test('updatedSnippet replaces tags when given and caps them; tags compare as a s
   assert.ok(sameTags(['Füd', 'fud'], ['fud', 'füd']));
   assert.ok(!sameTags(['a'], ['a', 'b']));
 });
+
+test('a re-upload marked sameVideoAs is read and judged once, under the original', () => {
+  const registry = { apps: { fud: {} }, episodes: [
+    short('a', 'meal', 1, { engagedViews: 100 }), short('b', 'meal', 2, { engagedViews: 100 }),
+    { ...short('a2', 'meal', 3, { engagedViews: 100 }), sameVideoAs: 'a' },
+  ] };
+  const { shorts, downloads } = evaluate(registry, rules, { now: NOW });
+  assert.ok(!shorts.some(s => s.episode === 'a2'));
+  assert.ok(!downloads.some(v => v.episode === 'a2'));
+});
