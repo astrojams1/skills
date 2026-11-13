@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -81,7 +81,7 @@ test('rank filters by runner, stage and prerequisites, and favours the best rati
     item({ id: 'big', impact: 5, effort: 1 }), item({ id: 'small', impact: 1, effort: 5 }),
     item({ id: 'mac', runner: 'mac' }), item({ id: 'after-launch', requires: 'live' }), item({ id: 'second', after: ['big'] })
   ] });
-  const ids = rank([p], [], { runner: 'cloud', now: NOW }).map(i => i.id);
+  const ids = rank([p], [], { runner: 'cloud', now: NOW }).filter(i => i.channel !== 'invent').map(i => i.id);
   assert.deepEqual(ids, ['big', 'small']);
   const done = [event({ app: 'x', item: 'big' })];
   assert.ok(rank([p], done, { runner: 'cloud', now: NOW }).some(i => i.id === 'second'));
@@ -259,7 +259,7 @@ test('an end that leaves due work undone is refused', () => {
   assert.match(endProblems(end(), [p], [], { now: nowEnd })[0], /x\/a/);
   assert.deepEqual(endProblems(end(), [p], [event({ ts: AFTER, app: 'x', item: 'a' })], { now: nowEnd }), [], 'done in this run');
   assert.deepEqual(endProblems(end(), [p], [event({ ts: AFTER, app: 'x', item: 'a', status: 'deferred', blocked_by: 'outside', reason: 'Apple down', retry_after: '2026-11-14T00:00:00Z' })], { now: nowEnd }), [], 'logged with a blocker');
-  assert.deepEqual(endProblems(end({ run_id: 'mkt-cloud-1' }), [p], [], { now: nowEnd }), [], 'another runner\'s item');
+  assert.ok(!endProblems(end({ run_id: 'mkt-cloud-1' }), [p], [], { now: nowEnd }).some(x => /x\/a\b/.test(x)), 'another runner\'s item');
   assert.deepEqual(endProblems(end({ ts: '2026-11-12T14:25:00Z' }), [p], [], { now: nowEnd }), [], 'history is not re-judged');
   assert.ok(eventProblems(end({ operation: 'Not reached this run, and not blocked: two Shorts' })).some(x => /undone/.test(x)));
 });
@@ -315,7 +315,7 @@ test('three mature results with no download effect stop the channel, and rank th
   assert.equal(killVerdict([r(false), r(false), { judged: false }]).verdict, 'keep');
   assert.ok(lifted(3, 0) && !lifted(1, 0) && !lifted(4, 3) && lifted(6, 3));
   const p = profile({ backlog: [item({ id: 's', channel: 'youtube-shorts' }), item({ id: 'g' })], stopped: { 'youtube-shorts': { since: '2026-11-20', evidence: 'three flat reads' } } });
-  assert.deepEqual(rank([p], [], { runner: 'cloud', now: NOW }).map(i => i.id), ['g']);
+  assert.deepEqual(rank([p], [], { runner: 'cloud', now: NOW }).filter(i => i.channel !== 'invent').map(i => i.id), ['g']);
   assert.deepEqual(profileProblems(p), []);
   assert.ok(profileProblems(profile({ stopped: { seo: {} } }))[0].includes('stopped.seo'));
 });
@@ -516,4 +516,58 @@ test('site-visits turns the Neon aggregate into the row youtube-growth reads', a
   assert.match(SITE_VISITS_SQL, /from site_visits/);
   assert.match(SITE_VISITS_SQL, /from interest i where i.id > 1/);
   assert.doesNotMatch(SITE_VISITS_SQL, /contact|name|problem|path/);
+});
+
+const idea = extra => ({ id: 'i1', title: 'Report card', pattern: 'public data story', reaches: 'reporters', size: 'about 40 desks', effort: 2, moves: 'page visits', ...extra });
+const experiment = extra => ({ id: 'e1', idea: 'Report card', pattern: 'public data story', url: 'https://example.com/card/', measure: 'page visits (site-visits)', shipped: '2026-11-01', judge: '2026-11-15', ...extra });
+const inventOf = (p, events = [], now = NOW) => rank([p], events, { runner: 'cloud', now }).filter(i => i.channel === 'invent').map(i => i.id);
+
+test('invent is offered for every profile, web products included, and comes back weekly', () => {
+  const web = profile({ id: 'w', platform: 'web', webUrl: 'https://w.example.com', searchPhrase: undefined, backlog: [], experiments: [experiment()] });
+  assert.deepEqual(inventOf(web), ['invent'], 'never invented');
+  const invented = [event({ app: 'w', item: 'invent', experiment: 'e1', ts: ago(2) })];
+  assert.deepEqual(inventOf(web, invented), [], 'invented 2 days ago with an experiment in flight');
+  assert.deepEqual(inventOf(web, [{ ...invented[0], ts: ago(7) }]), ['invent'], 'a week on');
+  assert.equal(rank([web], [], { runner: 'mac', now: NOW }).filter(i => i.channel === 'invent').length, 0, 'the cloud runs it');
+});
+
+test('with no experiment in flight, invent comes back the next day', () => {
+  const p = profile({ experiments: [experiment({ verdicts: [{ on: '2026-11-04', verdict: 'retire', evidence: '3 visits' }] })] });
+  const invented = [event({ app: 'x', item: 'invent', experiment: 'e0', ts: ago(1) })];
+  assert.deepEqual(inventOf(p, invented), ['invent']);
+  assert.deepEqual(inventOf(p, [{ ...invented[0], ts: ago(0.1) }]), [], 'not twice in one run');
+});
+
+test('an experiment is judged when its date comes: keep, change once, or retire', () => {
+  const now = Date.parse('2026-11-16T12:00:00Z');
+  assert.equal(experimentState(experiment(), NOW).state, 'in flight');
+  assert.equal(experimentState(experiment(), now).state, 'due');
+  assert.ok(inventOf(profile({ experiments: [experiment()] }), [], now).includes('judge-e1'));
+  const kept = experiment({ verdicts: [{ on: '2026-11-15', verdict: 'keep', evidence: '120 visits, 3 links in' }] });
+  assert.equal(experimentState(kept, now).state, 'keep');
+  assert.deepEqual(inventOf(profile({ experiments: [kept] }), [], now).filter(i => i.startsWith('judge-')), []);
+  const changed = experiment({ judge: '2026-11-29', verdicts: [{ on: '2026-11-15', verdict: 'change', evidence: 'few visits; new headline' }] });
+  assert.equal(experimentState(changed, now).state, 'in flight');
+  assert.deepEqual(ideaProblems(profile({ experiments: [changed] })), []);
+  const twice = experiment({ judge: '2026-12-13', verdicts: [changed.verdicts[0], { on: '2026-11-29', verdict: 'change', evidence: 'again' }] });
+  assert.ok(ideaProblems(profile({ experiments: [twice] })).some(p => /changes once/.test(p)));
+  assert.ok(ideaProblems(profile({ experiments: [experiment({ verdicts: changed.verdicts })] })).some(p => /new judge date/.test(p)));
+});
+
+test('a judge date past 14 days needs a reason, and ideas need honest scores', () => {
+  assert.deepEqual(profileProblems(profile({ ideas: [idea()], experiments: [experiment()] })), []);
+  assert.ok(ideaProblems(profile({ experiments: [experiment({ judge: '2026-12-30' })] })).some(p => /judge_reason/.test(p)));
+  assert.deepEqual(ideaProblems(profile({ experiments: [experiment({ judge: '2026-12-30', judge_reason: 'search pages take 8 weeks to rank' })] })), []);
+  assert.ok(ideaProblems(profile({ ideas: [idea({ moves: undefined })] })).some(p => /missing moves/.test(p)));
+  assert.ok(ideaProblems(profile({ ideas: [idea({ needs: 'money' })] })).some(p => /cost and returns/.test(p)));
+});
+
+test('ideas that need a person or money are the owner\'s options; an ok invent names its experiment', () => {
+  const p = profile({ ideas: [idea(), idea({ id: 'i2', title: 'Door hangers', needs: 'person', cost: 'two crew hours', returns: 'about 5 patrons from 500 doors' })] });
+  assert.deepEqual(ownerOptions(p).map(i => i.id), ['i2']);
+  assert.ok(eventProblems(event({ app: 'x', item: 'invent' })).some(x => /needs experiment/.test(x)));
+  assert.deepEqual(eventProblems(event({ app: 'x', item: 'invent', experiment: 'e1' })), []);
+  const learned = learnApp({ ...p, experiments: [experiment()] }, [], [], undefined, NOW);
+  assert.deepEqual(learned.experiments.map(x => x.state), ['in flight']);
+  assert.deepEqual(learned.options.map(i => i.id), ['i2']);
 });

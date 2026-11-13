@@ -7,14 +7,18 @@
 //
 //   node marketing.mjs check                        validate profiles, ledger and metrics; exit 1 on any problem
 //   node marketing.mjs status                       per app: stage, numbers, what shipped, what is open
-//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first
+//   node marketing.mjs next [--runner cloud|mac] [--limit N] [--json]   every open item worth doing now, best first;
+//                                                   includes <app>/invent weekly (daily while no experiment is in flight)
+//                                                   and <app>/judge-<id> once an experiment's judge date has come
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
 //                                                   referrer, impressions and product page views; --recount re-reads every
 //                                                   instance Apple still holds and appends corrected totals
 //   node marketing.mjs learn [--app ID] [--json] [--write]   each channel's results judged on downloads, and the kill
-//                                                   verdicts; also pitch approaches (--write retires a dead one)
+//                                                   verdicts; also pitch approaches (--write retires a dead one), and
+//                                                   every experiment's state (DUE, in flight or its verdict) with the
+//                                                   owner's options (ideas that need a person or money)
 //   node marketing.mjs pitches [--write] [--replies] [--json]   pitch emails: each pitch's state from /api/pitches.
 //                                                   Only reads (?dry=1): the app-sites Pitches workflow and the cron
 //                                                   send. Proves it can read app-sites with the deployed queue's digest
@@ -128,6 +132,9 @@ export function eventProblems(event) {
   if (event.ts && Number.isNaN(Date.parse(event.ts))) problems.push('ts is not a date');
   if (event.retry_after && Number.isNaN(Date.parse(event.retry_after))) problems.push('retry_after is not a date');
   problems.push(...leftOpenProblems(event));
+  if (event.event === 'action' && event.item === 'invent' && event.status === 'ok' && !event.experiment) {
+    problems.push('an ok invent action needs experiment: the id of the idea built and released in this run (references/invent.md)');
+  }
   const text = JSON.stringify(event);
   if (text.length > MAX_LINE) problems.push('event is over 16 KiB; refer to an artifact instead');
   if (SECRET.test(text)) problems.push('event looks like it contains a secret');
@@ -185,6 +192,7 @@ export function profileProblems(profile, name = profile.id) {
       problems.push(`${name}: listingTests[${n}] needs stage, field, prepared (a date), before (the snapshot) and live (a date) or version`);
     }
   }
+  problems.push(...ideaProblems(profile, name));
   if (profile.hackerNews !== undefined) {
     const hn = profile.hackerNews;
     if (!/^https:\/\//.test(hn.url || '')) problems.push(`${name}: hackerNews.url must be an https URL`);
@@ -305,6 +313,74 @@ export function episodesFor(registry, profile) {
   return { episodes: (registry.episodes || []).filter(e => e.app === slug), cadenceDays: registry.apps?.[slug]?.cadenceDays ?? 7 };
 }
 
+// ---- invent: ideas and experiments (references/invent.md) ----
+// The owner, 2026-11-12: "wild creative ideas wanted". Each profile keeps `ideas` (the backlog of new ways to reach
+// people, scored) and `experiments` (each idea built and released, with a measure, a judge date and verdicts). `next`
+// offers <app>/invent every week, and the next day again while no experiment is in flight, so a product always has one
+// live test. It offers <app>/judge-<id> once a judge date has come. `learn` prints each experiment's state.
+
+export const JUDGE_DAYS = 14;
+export const VERDICTS = ['keep', 'change', 'retire'];
+export const NEEDS = ['person', 'money'];
+const isDate = v => typeof v === 'string' && !Number.isNaN(Date.parse(v));
+
+// experimentState: `due` once the judge date has come with no final verdict, `in flight` before it, else the verdict.
+// A `change` verdict sends it back in flight with a new judge date.
+export function experimentState(x, now = Date.now()) {
+  const last = (x.verdicts || []).at(-1);
+  if (last && last.verdict !== 'change') return { state: last.verdict, last };
+  return { state: now >= Date.parse(x.judge) ? 'due' : 'in flight', last };
+}
+
+export const inFlight = (profile, now = Date.now()) => (profile.experiments || []).some(x => ['due', 'in flight'].includes(experimentState(x, now).state));
+
+export function ideaProblems(profile, name = profile.id) {
+  const problems = [], ids = new Set();
+  for (const idea of profile.ideas || []) {
+    const label = `${name}: ideas/${idea.id || '?'}`;
+    for (const key of ['id', 'title', 'pattern', 'reaches', 'size', 'effort', 'moves']) if (idea[key] === undefined || idea[key] === '') problems.push(`${label}: missing ${key}`);
+    if (ids.has(idea.id)) problems.push(`${label}: duplicate id`);
+    ids.add(idea.id);
+    if (idea.effort !== undefined && !(Number.isInteger(idea.effort) && idea.effort >= 1 && idea.effort <= 5)) problems.push(`${label}: effort must be 1 to 5`);
+    if (idea.needs !== undefined && !NEEDS.includes(idea.needs)) problems.push(`${label}: needs must be one of ${NEEDS.join(', ')}`);
+    if (idea.needs && !(idea.cost && idea.returns)) problems.push(`${label}: an idea that needs a ${idea.needs} goes on the owner's options list with cost and returns`);
+  }
+  const seen = new Set();
+  for (const x of profile.experiments || []) {
+    const label = `${name}: experiments/${x.id || '?'}`;
+    for (const key of ['id', 'idea', 'pattern', 'url', 'measure']) if (!x[key]) problems.push(`${label}: missing ${key}`);
+    if (seen.has(x.id)) problems.push(`${label}: duplicate id`);
+    seen.add(x.id);
+    if (x.url && !/^https:\/\/\S+$/.test(x.url)) problems.push(`${label}: url must be the live https address`);
+    if (!isDate(x.shipped) || !isDate(x.judge)) { problems.push(`${label}: shipped and judge must be dates`); continue; }
+    // The wait runs from the ship date, or from the one change when there was one.
+    const verdicts = x.verdicts || [];
+    const changedOn = verdicts.find(v => v?.verdict === 'change' && isDate(v.on))?.on;
+    const wait = (Date.parse(x.judge) - Date.parse(changedOn || x.shipped)) / DAY;
+    if (Date.parse(x.judge) < Date.parse(x.shipped)) problems.push(`${label}: judge comes before shipped`);
+    if (wait > JUDGE_DAYS && !(typeof x.judge_reason === 'string' && x.judge_reason.trim())) problems.push(`${label}: judge is ${Math.round(wait)} days after ${changedOn ? 'the change' : 'shipped'}; use ${JUDGE_DAYS}, or add judge_reason saying why it needs longer`);
+    verdicts.forEach((v, i) => {
+      if (!VERDICTS.includes(v?.verdict) || !isDate(v?.on) || !v?.evidence) problems.push(`${label}: verdicts[${i}] needs on (a date), verdict (${VERDICTS.join(', ')}) and evidence`);
+    });
+    if (verdicts.filter(v => v?.verdict === 'change').length > 1) problems.push(`${label}: an experiment changes once; the next verdict is keep or retire`);
+    const last = verdicts.at(-1);
+    if (last?.verdict === 'change' && isDate(last.on) && Date.parse(x.judge) <= Date.parse(last.on)) problems.push(`${label}: after a change, set a new judge date`);
+  }
+  return problems;
+}
+
+// experimentItems are the invent and judge items `next` adds for one profile; they live in no backlog.
+export function experimentItems(profile, now = Date.now()) {
+  const invent = { id: 'invent', title: 'Invent: write new ideas, then build and release the best as an experiment', channel: 'invent', runner: 'cloud', impact: 5, effort: 3,
+    repeat_days: inFlight(profile, now) ? 7 : 1, how: 'references/invent.md, "The Invent step"' };
+  const judges = (profile.experiments || []).filter(x => experimentState(x, now).state === 'due')
+    .map(x => ({ id: `judge-${x.id}`, title: `Judge experiment: ${x.idea} (${x.measure})`, channel: 'invent', runner: 'cloud', impact: 5, effort: 1, judgeOnly: true, how: 'references/invent.md, "Judging an experiment"' }));
+  return [invent, ...judges];
+}
+
+// ownerOptions lists the ideas that need a person or money: the report's options line for the owner.
+export const ownerOptions = profile => (profile.ideas || []).filter(i => i.needs && !['shipped', 'retired'].includes(i.status));
+
 // rank orders the open items across apps by expected downloads per unit of work. Each app's `weight` is its share of
 // attention, and an app that was worked on recently waits behind one that was not, so no app starves.
 // A channel the kill rule stopped for an app gets no more work there (SKILL.md, Learn).
@@ -316,12 +392,13 @@ export function rank(profiles, events, { runner, now = Date.now(), registry } = 
     const idleDays = lastWorked ? Math.min((now - lastWorked) / DAY, 7) : 7;
     const episodes = episodesFor(registry, profile);
     const finished = id => ['done', 'resting'].includes(itemState(profile.backlog.find(b => b.id === id) || { id }, events, profile.id, now, episodes).state);
-    for (const item of profile.backlog) {
+    for (const item of [...profile.backlog, ...experimentItems(profile, now)]) {
       if (runner && item.runner !== runner) continue;
       if (item.requires && item.requires !== profile.stage) continue;
       if (profile.stopped?.[item.channel] || profile.stopped?.[item.id]) continue;
       if (item.after && !item.after.every(finished)) continue;
-      if (itemState(item, events, profile.id, now, episodes).state !== 'open') continue;
+      // A judge item is open while its experiment is due; writing the verdict into the profile closes it.
+      if (!item.judgeOnly && itemState(item, events, profile.id, now, episodes).state !== 'open') continue;
       const score = (item.impact / item.effort) * (profile.weight || 1) * (1 + idleDays / 7);
       items.push({ app: profile.id, id: item.id, title: item.title, channel: item.channel, runner: item.runner, score: Math.round(score * 100) / 100, how: item.how });
     }
@@ -1040,7 +1117,8 @@ export function learnApp(profile, events, metrics, registry, now = Date.now(), p
   const verdicts = { 'youtube-shorts': killVerdict(shorts), seo: killVerdict(guides), directories: killVerdict(directories), pitches: killVerdict(coverage) };
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
   const lookups = metrics.filter(m => m.app === profile.id && m.source === 'itunes-lookup');
-  return { app: profile.id, funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
+  const experiments = (profile.experiments || []).map(x => ({ id: x.id, idea: x.idea, pattern: x.pattern, measure: x.measure, url: x.url, judge: x.judge, ...experimentState(x, now) }));
+  return { app: profile.id, experiments, options: ownerOptions(profile), funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
     listingTests: listingTestResults(profile.listingTests, days, discovery, lookups, now), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
@@ -1084,6 +1162,12 @@ function cmdLearn(root, args) {
     console.log(`  funnel ${s ? `${s.from} to ${s.to}: weakest ${s.stage} (${s.why}); tap-through ${s.judged ? pct(s.tapThrough) : 'n/a'}, conversion ${s.judged?.conversion ? pct(s.conversion) : `${s.judged ? pct(s.conversion) : 'n/a'} (too small to judge)`}; next: ${s.next.change}, live ${s.next.live}` : 'no discovery numbers yet'}`);
     for (const t of r.listingTests) console.log(`  ${t.stale ? 'STALE ' : ''}listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''} (queued ${String(t.prepared).slice(0, 10)}): ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
     for (const [key, v] of Object.entries(r.verdicts)) console.log(`  ${key}: ${v.verdict}${v.evidence ? ` (${v.evidence})` : ` (${v.judged} judged)`}`);
+    for (const x of r.experiments) {
+      const said = x.state === 'due' ? `DUE since ${x.judge}: judge it on ${x.measure}` : x.state === 'in flight' ? `in flight, judge on ${x.judge} (${x.measure})` : `${x.state} on ${x.last.on}: ${x.last.evidence}`;
+      console.log(`  experiment ${x.id} [${x.pattern}] ${said}`);
+    }
+    if (!r.experiments.some(x => ['due', 'in flight'].includes(x.state))) console.log('  experiment: none in flight, so invent is due (references/invent.md)');
+    for (const o of r.options) console.log(`  owner option ${o.id}: ${o.title} (needs a ${o.needs}; cost ${o.cost}; likely ${o.returns})`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
   }
 }
