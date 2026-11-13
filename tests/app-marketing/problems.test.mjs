@@ -143,6 +143,7 @@ test('waits-on-owner: no finding waits on the owner, and no line waits for a go-
   assert.ok(leftOpenProblems(base({ status: 'deferred', reason: 'r' })).some(p => p.includes('a deferred finding needs blocked_by')));
   assert.ok(leftOpenProblems(base({ operation: 'title staged; applying waits for the owner\'s go-ahead in chat' })).some(p => p.includes('go-ahead')));
   assert.deepEqual(leftOpenProblems(base({ operation: 'title applied' })), []);
+  assert.deepEqual(leftOpenProblems(base({ operation: "Fixed waits-on-owner: a run waited on the owner's go-ahead", problem: 'waits-on-owner', closes: 'fixed' })), [], 'a closing line names the problem it closed');
   assert.deepEqual(leftOpenProblems({ ...base({ status: 'deferred', blocked_by: 'owner', reason: 'r' }), ts: '2026-11-13T06:42:00Z' }), [], 'earlier lines are not judged again');
 });
 

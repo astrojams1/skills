@@ -160,7 +160,7 @@ export function leftOpenProblems(event) {
   if (Date.parse(event.ts) >= MORE_FROM && !event.dropped) {
     if (event.event !== 'action' && event.blocked_by === 'owner') problems.push('nothing waits on the owner since 2026-11-12: drop owner-only work and route around it, on findings too');
     if (event.event === 'finding' && ['deferred', 'failed'].includes(event.status) && !BLOCKERS.filter(b => b !== 'owner').includes(event.blocked_by)) problems.push(`a ${event.status} finding needs blocked_by (${BLOCKERS.filter(b => b !== 'owner').join(', ')}) and a reason, or it is fixed in this run`);
-    if (GO_AHEAD.test([event.operation, event.reason, event.next].filter(Boolean).join(' '))) problems.push("no step waits on the owner's go-ahead or OK (James, 2026-11-12: the skills decide): do it now, or drop it and route around it");
+    if (!event.closes && GO_AHEAD.test([event.operation, event.reason, event.next].filter(Boolean).join(' '))) problems.push("no step waits on the owner's go-ahead or OK (James, 2026-11-12: the skills decide): do it now, or drop it and route around it");
   }
   return problems;
 }
