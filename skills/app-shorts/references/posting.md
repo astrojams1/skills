@@ -143,6 +143,10 @@ no-effect Shorts. Post the moment a Short is ready; never hold one for a better 
 
 ## Gotchas
 
+- **Square pixels or it is not a Short (2026-11-13).** A file whose sample aspect ratio is not 1:1 is shown and
+  classed by its display shape; end every filter graph with `setsar=1`. `yt-api.mjs upload` refuses such a file.
+- **A custom cover can fail right after upload** (403). Retry with `yt-api.mjs thumbnail --episode ID --confirm`.
+
 - **Burned-in captions plus an uploaded `.srt` show twice** for viewers who turn captions on, and the second copy
   sits over the app. Upload a caption track only when it adds something (spoken words or sound descriptions).
   Otherwise make it match the burned-in text exactly and accept the duplication for accessibility. The first Füd series

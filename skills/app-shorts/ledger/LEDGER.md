@@ -32,6 +32,7 @@ app's repository; each run in the owner's activity ledger.
 | 2.11.1 | 2026-11-13 | A web product (profile `platform: "web"`) whose phrase finds nothing ends on its own address; `findability` no longer asks its description to say it is on the App Store, which would be false. LOB's profile phrase is now `lob-game.vercel.app` | The first LOB Short (cA7wBs5P_Gs, 2026-11-13) ended on "LOB artillery game", which web search answers with other games; correcting its description to the address was refused by the App Store rule |
 | 2.12.0 | 2026-11-13 | `phrase` returns a web product's address (`ending: "address"`, end card "Open <host> in your browser."), so a maker never invents a search phrase for one. Rules: at most three subagents alive on the Mac, nested ones included, and one render at a time (James, 2026-11-12); a maker that is a helper runs its reviewers one after another | The first LOB Short (cA7wBs5P_Gs) ends on "Search 'LOB artillery game'", baked into the video, which finds other games; the 2026-11-13 Mac pass ran four makers and up to eleven subagents at once, the condition that crashed the app the day before |
 | 2.13.0 | 2026-11-13 | One-page guidelines (`references/guidelines.md`), each line with its source (platform fact, measured by others, common practice, our own result, owner's rule) and its test status; evidence in `references/research-2026-11.md`. `rules --checklist` now carries the guidelines' "Make it" lines (numbered items are rules). New rules: at most 6 words on screen at once and 25 in all; plain one-line captions; open on the payoff; loop endings; 7 to 15 s; three hashtags led by the product's own; tags with misspellings. After posting: the channel's pinned first comment and a Related video on every Short (`yt-api.mjs comment`, `shorts.mjs mark`; `due` lists `followUp`). The 2026-11-12 "pinning and Related video are not operable" note is withdrawn: Chrome is signed in to Studio. Experiments E1 to E5 set in `ledger/experiments.md`; a verdict edits its guideline in the same run. SKILL.md Rules lose what the guidelines now hold. | The owner (James, 2026-11-13): "have you done sufficient research on tactics for making youtube shorts go viral and drive conversion? you seem to be missing out on some common tactics ... such as using tags and commenting on the videos. and youtube also lets you add a link to a video... pro youtube shorts not using a lot of words but just simple subtitle captions ... we should be updating that as simple to follow guidelines. as we run our own experiments ... we can modify our guidelines, too." |
+| 2.15.0 | 2026-11-13 | E3, E4 and E5 Shorts recorded; a business with no App Store record ends on its site; production notes and caution lines in a description or TikTok caption fail `record` and `check` (`cautionProblems`). | The owner's rule (2026-11-12) already banned staged/autopilot disclaimers, yet 13 live Shorts and walkthroughs and 3 TikTok captions carried lines like "Staged offline round against bots" and "the status bar is drawn in". The coordinator caught it on sw-giant-e5-01. |
 
 ## Runs
 
@@ -81,4 +82,19 @@ app's repository; each run in the owner's activity ledger.
   sits in one arm of one experiment. sw-e1-01 was kept at 11 s so it is only in E1; E5's Space Worms arm needs its own
   Short. The same clash exists for Newsworthy between E4 and any other arm.
 - 2026-11-13: `thumbnails.set` returned 403 on a fresh Short (sw-e1-01); its cover stays YouTube's pick.
+- 2026-11-13: one Short, one content experiment (E1, E3, E4, E5); E2 (when the comment and Related video go up) runs
+  across them by order of posting, 1st A, 2nd B, and so on. The Newsworthy E4 Short and the Space Worms E5 Short were
+  each kept out of every other content arm.
+- 2026-11-13: an ffmpeg `vstack` of a 1080x2 strip scaled to a band gave newsworthy-loop-01 a sample aspect ratio of
+  1994213:30672. YouTube drew it upright but classed it a regular video, not a Short (`/shorts/` kept answering 303
+  after processing). It was made private and re-uploaded with `setsar=1` as 01b, which YouTube classed as a Short at
+  once. `yt-api.mjs upload` now refuses a file with non-square pixels.
+- 2026-11-13: a 403 from `thumbnails.set` right after upload is a timing error. `yt-api.mjs thumbnail --episode ID
+  --confirm` set sw-e1-01's cover later with a 200.
+- 2026-11-13: `shorts.mjs phrase vegas-microworks` returned "Vegas Microworks, on the App Store." for a business with no
+  app. A business with a registry `site` now ends on that address.
+- 2026-11-13: production notes had crept back into descriptions despite the 2.5.0 rule ("Staged in an offline round",
+  "Filmed in the real app with a made-up name", "the iPhone status bar is drawn in", "sped up"). Cut from 13 live
+  YouTube descriptions and 3 TikTok captions (sw-giant-e5-01, sw-e1-01, sw-triple-01); `findability` now flags them.
+  sw-giant-e5-01 still opens on the burned-in caption "Space Worms · offline vs bots"; only a re-upload removes it.
 

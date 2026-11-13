@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics, siteDays, siteVerdict, decommission } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags, sarProblem } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -306,4 +306,11 @@ test('a re-upload marked sameVideoAs is read and judged once, under the original
   const { shorts, downloads } = evaluate(registry, rules, { now: NOW });
   assert.ok(!shorts.some(s => s.episode === 'a2'));
   assert.ok(!downloads.some(v => v.episode === 'a2'));
+});
+
+test('upload refuses a file with non-square pixels (YouTube classes it by its display shape)', () => {
+  assert.equal(sarProblem('1:1'), null);
+  assert.equal(sarProblem('N/A'), null);
+  assert.equal(sarProblem('4320:4321'), null);
+  assert.match(sarProblem('1994213:30672', 'x.mp4'), /non-square pixels/);
 });

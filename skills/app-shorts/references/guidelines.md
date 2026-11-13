@@ -66,6 +66,10 @@ lists every public Short still missing a step under "After it is public".
     (a web product: its address). **Line 2:** the attributed store link (`shorts.mjs link`), which clicks on
     desktop pages that show it. A walkthrough (a regular 16:9 video, guideline 23) swaps the two: its line 1 is the
     store link, which clicks there, and line 2 the search phrase. _Owner's rule (2026-11-12). Enforced by `record`._
+    **No production notes or caution lines** in a description, a TikTok caption or on screen: not "staged", "offline
+    vs bots", "recorded from the web build", "the status bar is drawn in", "sped up". _Owner's rule (2026-11-12):
+    staged or scripted footage gets no self-imposed caution lines or disclaimers; add one only when a platform rule
+    requires it, and name the rule. Enforced by `record` and `check` (`cautionProblems`)._
 17. **Three hashtags at the end of the description:** the product's own (#spaceworms), then two topics a viewer
     would follow. Never more than five. _Platform fact: up to three show by the title. Measured by others: hashtags
     traded about 10 % of views for 9 % more engagement (Metricool, 800k videos). Status: untested._
