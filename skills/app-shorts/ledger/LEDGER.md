@@ -59,3 +59,10 @@ app's repository; each run in the owner's activity ledger.
   resignation). Show it whole, as the app shows it (2.11.0; the earlier "keep it out of frame" lesson was wrong). Pick
   `EB6GGrACO10` (the B film), not `54ZNifKYxtk`, as the October reference: the registry's legacy rows carry no file or
   description, so match a legacy Short to its source by its public thumbnail (`i.ytimg.com/vi/<id>/oar2.jpg`).
+- 2026-11-12: A simulator take's screen carries the status bar and the Dynamic Island, so a "screens only" cut still shows
+  Apple hardware. Clip the top 180 px of a 1320x2868 iPhone 16 Pro Max frame (status bar and island) and keep the
+  image in place under the clip, so tap marks stay on their targets (importron-calm-v5c).
+- 2026-11-12: `shorts.mjs phrase` re-checks the profile's verified phrase live; one App Store 429 on it makes it return
+  a weaker candidate ("Importron", rank 2) instead of the profile's "Importron health" (rank 1, checked that day).
+  Trust the profile's `searchPhrase` when the store refuses the check; `record` enforces the profile's phrase anyway.
+
