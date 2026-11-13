@@ -478,6 +478,12 @@ build (a profile carries the capabilities it was made with; Apple-managed signin
   preview, and neutral sample labels if the app's own screens show them) and contesting in the submission's
   Messages; check the store for comparable approved listings first and record them. Whether contesting works is
   recorded in the app's ledger, not assumed here.
+- **A web view is the app's own content (Guideline 2.1(b), 3.1.1).** Apple rejected Plenty on 2026-11-12 for
+  "references to Subscription" with no In-App Purchase submitted: its sign-in sheet showed claude.ai/login, whose page
+  now lists plans and prices under the form. An app that sells nothing must show no price, plan or upgrade offer in any
+  web view; the `web-sheet` standard ([standards](standards.md#embedded-web-pages)) holds the rules and the audit, and
+  `submit --confirm` refuses an app that embeds a web view without them. Say in `review.notes` that the app sells
+  nothing and what the web view can show.
 - **Guideline 5.1.1(i)** needs the privacy policy linked inside the app as well as in the listing; App
   Review also expects contact details in the app.
 - **User-generated content** (visible nicknames, chat) means `userGeneratedContent: true` in the age rating

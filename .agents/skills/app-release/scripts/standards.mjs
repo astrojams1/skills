@@ -84,7 +84,7 @@ function auditDir(dir, catalog) {
 // table lays the sweep out with one row per app and one column per standard.
 export function table(results, catalog) {
   const ids = catalog.standards.map(standard => standard.id);
-  const label = { pass: 'pass', missing: 'MISSING', 'opted-out': 'opted out' };
+  const label = { pass: 'pass', missing: 'MISSING', 'opted-out': 'opted out', 'not-applicable': 'n/a' };
   const rows = [['App', 'Checkout', 'Branch'].concat(ids)].concat(results.map(result => {
     const cells = ids.map(id => (result.error ? 'error' : label[result.standards.find(item => item.id === id)?.status] || '?'));
     return [result.app, result.root.split('/').pop(), result.branch || '?'].concat(cells);
@@ -98,6 +98,7 @@ function report(result) {
   for (const item of result.standards) {
     if (item.status === 'pass') lines.push('  pass       ' + item.id + (item.evidence.length ? ': ' + item.evidence.join(', ') : ''));
     if (item.status === 'opted-out') lines.push('  opted out  ' + item.id + ': ' + item.reason);
+    if (item.status === 'not-applicable') lines.push('  n/a        ' + item.id + ': the source shows nothing it applies to');
     if (item.status !== 'missing') continue;
     lines.push('  MISSING    ' + item.id + ': ' + item.title);
     for (const problem of item.problems) lines.push('             - ' + problem);

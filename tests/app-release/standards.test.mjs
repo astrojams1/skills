@@ -38,7 +38,7 @@ const status = (result, id) => result.standards.find(item => item.id === id);
 test('the Swift reference, placed on a screen, passes every standard', t => {
   const result = auditApp(repo(t, { files: native() }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
-  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass']);
+  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable']);
   assert.ok(status(result, 'feedback').evidence.includes('App/FeedbackButton.swift'));
 });
 
@@ -270,4 +270,56 @@ print(String(decoding: try! JSONSerialization.data(withJSONObject: out), as: UTF
   assert.equal(url.protocol + url.pathname, 'mailto:' + address);
   assert.equal(decodeURIComponent(url.search.match(/subject=([^&]*)/)[1]), out.subject);
   assert.equal(decodeURIComponent(url.search.match(/body=([^&]*)/)[1]), out.body.replace(/\n/g, '\r\n'));
+});
+
+// Plenty 1.0 (build 7), 2026-11-12: its sign-in web view showed claude.ai/login, whose page lists plans and prices, and
+// App Review rejected it under 2.1(b) for "references to Subscription" with no In-App Purchase submitted.
+const openSheet = 'import WebKit\nstruct Sheet { let view = WKWebView(); func go() { view.load(URLRequest(url: URL(string: "https://example.test/login")!)) } }\n';
+const lockedSheet = 'import WebKit\n// app-standard: web-sheet\nfinal class Policy: NSObject, WKNavigationDelegate {\n'
+  + '  func go(_ w: WKWebView) { w.load(URLRequest(url: URL(string: "https://example.test/login")!)) }\n'
+  + '  func webView(_ w: WKWebView, decidePolicyFor a: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {\n'
+  + '    decisionHandler(a.request.url?.path.contains("pricing") == true ? .cancel : .allow)\n  }\n}\n';
+
+test('an app with no web view is not asked about one', t => {
+  const result = auditApp(repo(t, { files: native() }).config());
+  assert.equal(status(result, 'web-sheet').status, 'not-applicable');
+  assert.equal(result.ok, true);
+});
+
+test('an embedded web view with no limits is the Plenty 2.1(b) rejection, and refuses the release', t => {
+  const fixture = repo(t, { files: { ...native(), 'App/Sheet.swift': openSheet } });
+  const result = auditApp(fixture.config());
+  const sheet = status(result, 'web-sheet');
+  assert.equal(sheet.status, 'missing');
+  assert.equal(sheet.gate, 'issue.standard.web-sheet');
+  assert.deepEqual(sheet.appliesTo, ['App/Sheet.swift']);
+  assert.match(sheet.problems.join('|'), /app-standard: web-sheet/);
+  assert.match(sheet.fix, /prices or plans/);
+  assert.equal(result.ok, false);
+  assert.match(standardsRefusal(fixture.config()), /web-sheet/);
+});
+
+test('a marked web view must set a navigation policy and refuse purchase pages', t => {
+  const markedOnly = '// app-standard: web-sheet\nimport WebKit\nlet view = WKWebView()\nfunc go() { view.load(URLRequest(url: URL(string: "https://example.test")!)) }\n';
+  const problems = status(auditApp(repo(t, { files: { ...native(), 'App/Sheet.swift': markedOnly } }).config()), 'web-sheet').problems.join('|');
+  assert.match(problems, /no navigation policy/);
+  assert.match(problems, /pricing, subscription, upgrade or checkout/);
+  const locked = auditApp(repo(t, { files: { ...native(), 'App/Sheet.swift': lockedSheet } }).config());
+  assert.equal(status(locked, 'web-sheet').status, 'pass');
+  assert.equal(locked.ok, true);
+});
+
+test('React Native and Flutter web views that load pages count too', t => {
+  const rn = 'import { WebView } from "react-native-webview";\nexport const Sheet = () => <WebView source={{ uri: "https://example.test/login" }} />;\n';
+  const result = auditApp(repo(t, { files: { ...native(), 'src/Sheet.tsx': rn } }).config());
+  assert.equal(status(result, 'web-sheet').status, 'missing');
+  const flutter = 'final c = WebViewController()..loadRequest(Uri.parse("https://example.test/login"));\n';
+  assert.equal(status(auditApp(repo(t, { files: { ...native(), 'lib/sheet.dart': flutter } }).config()), 'web-sheet').status, 'missing');
+});
+
+test("a web view showing only the app's own bundled page is not covered", t => {
+  const game = 'import WebView from "react-native-webview";\nexport const Game = () => <WebView source={{ html: GAME_HTML, baseUrl: ORIGIN }} />;\n';
+  const swift = 'import WebKit\nlet view = WKWebView()\nfunc show() { view.loadFileURL(index, allowingReadAccessTo: folder) }\n';
+  const result = auditApp(repo(t, { files: { ...native(), 'src/Game.tsx': game, 'App/Local.swift': swift } }).config());
+  assert.equal(status(result, 'web-sheet').status, 'not-applicable');
 });

@@ -858,3 +858,14 @@ description and on the app's own screens in every screenshot, with no logos. The
 name another trademark, which such an app cannot do. The owner chose to contest after a store search found dozens of
 approved trackers naming the same services; the reply and notes were sent and the outcome is pending in Plenty's
 ledger. Adoption: Plenty's notes already carry the explanation; no other current app names a third-party service.
+
+### 2026-11-12 — Plenty 2.1(b): a sign-in web view showed someone else's prices
+
+Version 2.28.0 adds the `web-sheet` app standard. Plenty 1.0 (build 7) was rejected under Guideline 2.1(b): "the app
+includes references to Subscription but the associated In-App Purchase products have not been submitted". Plenty sells
+nothing. Its sign-in sheet loaded claude.ai/login, and that page now carries the plans with monthly prices under the
+form and a Pricing link in the footer; the reviewer's two screenshots show the sheet scrolled to those prices. The
+sheet allowed every Anthropic and OpenAI host and showed every page. Nothing checked what an embedded web view could
+show. The standard applies to any app whose source embeds a web view and holds its release until the marked file
+limits navigation and handles purchase pages; tests cover the Plenty case and React Native. Adoption: Plenty build 8
+limits the sheet to sign-in pages, covers the rest and hides priced parts of allowed pages, with unit and web view tests.

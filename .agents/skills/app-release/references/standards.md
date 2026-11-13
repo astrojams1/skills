@@ -9,6 +9,7 @@ is the machine-readable catalog, `scripts/standards.mjs` audits against it, and 
 | [Send Feedback](#send-feedback) | A control that opens a pre-filled email to the owner | `feedback` |
 | [Privacy link](#privacy-and-support-links) | The privacy policy, linked from inside the app | `privacy-link` |
 | [Support link](#privacy-and-support-links) | The support page, linked from inside the app | `support-link` |
+| [Embedded web pages](#embedded-web-pages) | Any web view shows only what it is for, and never a price, plan or upgrade offer | `web-sheet` |
 
 ## The audit in a run
 
@@ -105,10 +106,34 @@ contact address.
 
 **Check it.** Open each link from inside the app and see the live page.
 
+## Embedded web pages
+
+Applies only to an app whose source embeds a web view (`WKWebView`, `react-native-webview`, `webview_flutter` and the
+like); the audit shows it as n/a otherwise. App Review treats anything a web view shows as the app's own content. Plenty
+1.0 (build 7) was rejected under Guideline 2.1(b) on 2026-11-12, "references to Subscription" with no In-App Purchase
+submitted: its sign-in sheet showed claude.ai/login, and that page now lists the plans and their monthly prices under
+the form, with a Pricing link in the footer. The reviewer only scrolled.
+
+| Rule | Detail |
+|---|---|
+| One job | A web view is there to sign in, or to show one page; it is not a browser |
+| Links | A tapped link may only lead to another page of that job. Refuse the rest; do not open them in Safari either |
+| Purchase pages | Refuse pricing, plans, upgrade, subscription, billing and checkout pages, even on allowed hosts |
+| Other pages | Where the job must load a page it does not need to show (the web app a sign-in lands on), cover it with the app's own screen, since a web app changes page without a navigation the policy sees |
+| Allowed pages | Hide any part that shows a price, a plan or an upgrade offer, and any footer of product links, again whenever the page redraws |
+| Marker | The file doing this carries the comment `app-standard: web-sheet` |
+| Tests | Unit tests replay the page the reviewer would reach: the real links, and the real page's layout in a web view |
+| Review notes | Say the app sells nothing and what the web view can show |
+
+**Check it.** On a simulator, open each web view, scroll every allowed page to the bottom and tap each link that is not
+part of the job. No price, plan or upgrade offer appears and nothing else opens. Recheck at every release: these pages
+belong to someone else and change without notice.
+
 ## Adding a standard
 
 Add an entry to `assets/standards.json` and a section here; the audit, the ledger gate and every refusal follow with
-no script change. An entry has `id`, `title`, `doc`, `fix`, `verify` and `checks`, each check with a `problem`:
+no script change. An entry has `id`, `title`, `doc`, `fix`, `verify` and `checks`, each check with a `problem`, and
+optionally `appliesWhen` (`anyOf` patterns, with `flags`): when no app source matches, the standard is n/a for that app:
 
 | Check `type` | Passes when |
 |---|---|
