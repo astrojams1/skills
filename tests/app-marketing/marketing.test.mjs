@@ -347,6 +347,11 @@ test('the Show HN file says "none" unless a booking is ahead', () => {
 test('a live app needs a checked search phrase; a retired Short still stands', () => {
   assert.ok(profileProblems(profile({ searchPhrase: undefined }))[0].includes('searchPhrase'));
   assert.deepEqual(profileProblems(profile({ stage: 'prelaunch', searchPhrase: undefined })), []);
+  // A web product needs no App Store search phrase, but does need the https address people open.
+  assert.deepEqual(profileProblems(profile({ platform: 'web', webUrl: 'https://x.example', searchPhrase: undefined })), []);
+  assert.ok(profileProblems(profile({ platform: 'web', searchPhrase: undefined }))[0].includes('webUrl'));
+  assert.ok(profileProblems(profile({ platform: 'web', webUrl: 'https://x.example', appStoreId: '1' })).some(p => p.includes('appStoreId')));
+  assert.ok(profileProblems(profile({ platform: 'android' }))[0].includes('platform'));
   assert.deepEqual(profileProblems(profile({ searchPhrase: { phrase: 'Data Center: AI Frontier', rank: null, checked: '2026-11-12' } })), []);
   const made = event({ app: 'x', item: 'shorts', ts: ago(1) });
   assert.equal(itemState(item({ id: 'shorts', channel: 'youtube-shorts' }), [made], 'x', NOW, [{ id: 'e', status: 'retired', postedAt: ago(0.5) }]).state, 'done');
