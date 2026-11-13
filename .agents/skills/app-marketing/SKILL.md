@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.29.0"
+  version: "1.30.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -78,6 +78,12 @@ also holds the app's `rules` and the owner's `decisions`.
   web product that is up: the profile's `stage` is `live`. A product not yet live gets nothing (no guide, page,
   experiment, pitch, Short or cross-promotion) until the day it is. `next` lists no item for it, and `log` refuses an
   item `action` for it. On 2026-11-13 the cloud pass did four items for Giraffe Stretch, which is not on sale.
+- **Out of marketing (James, 2026-11-13).** "We should not be marketing World Sim. That was not a completed project."
+  Asked which of the five other web products added on 2026-11-12 were finished enough, he named only "LOB and Room
+  Planner". Stages beyond `prelaunch` and `live`: `unfinished` (World Sim) and `not-marketed` (Clawgree, Eggaduppa,
+  Universe of Sound) get nothing, and the pitch sender sends them nothing more, follow-ups included; `hold` (Room
+  Planner, until its AI Generate works again: Gemini credits depleted) gets no new work and no first pitch. A web
+  product is marketed only when he has named it finished.
 - **Keep backlogs alive.** When an idea appears, add it with honest `impact` and `effort` (1 to 5).
 
 ### Developer tools on Hacker News

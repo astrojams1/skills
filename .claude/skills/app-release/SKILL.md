@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac, with local Xcode and Gradle builds, store API scripts, 1Password credentials and a persistent release ledger. Covers TestFlight, App Review and rejections, Play tracks and listings, Game Center and pricing. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.29.0"
+  version: "2.29.1"
 ---
 
 # App release

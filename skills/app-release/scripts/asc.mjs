@@ -2028,7 +2028,8 @@ export function deviceFamily(name) {
 
 // promotionReport says where each item stands: `done`, `waived` with its reason, or `missing` with what is absent.
 // Previews are needed per device family the screenshots cover; `placements` are the version's live placements.
-export function promotionReport(store, placements) {
+// `groups` are the resolved screenshot groups: store data may name a manifest instead of listing them (Füd).
+export function promotionReport(store, placements, groups) {
   const waived = (store.promotion && store.promotion.waived) || {};
   return PROMOTION_ITEMS.map(item => {
     const base = { id: item.id, title: item.title };
@@ -2039,7 +2040,8 @@ export function promotionReport(store, placements) {
       const placed = placements.filter(entry => entry.attributes.placementType === item.placementType);
       if (item.id === 'preview') {
         const covered = new Set(placed.map(entry => deviceFamily(entry.attributes.placementGroup)));
-        const families = [...new Set((store.screenshots || []).map(group => deviceFamily(group.displayType)).filter(Boolean))];
+        const shots = groups || (Array.isArray(store.screenshots) ? store.screenshots : []);
+        const families = [...new Set(shots.map(group => deviceFamily(group.displayType)).filter(Boolean))];
         const uncovered = (families.length ? families : ['IPHONE']).filter(family => !covered.has(family));
         if (uncovered.length) absent = 'none placed for ' + uncovered.join(', ');
       } else if (!placed.length) {
@@ -2065,7 +2067,7 @@ export function promotionRefusal(report) {
 // versionPromotion reads the version's placements and reports the list.
 async function versionPromotion(versionId) {
   const localization = await versionLocalization(versionId, false);
-  return promotionReport(STORE, await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements'));
+  return promotionReport(STORE, await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/placements'), screenshotGroups(CONFIG, STORE.screenshots));
 }
 
 // NOMINATION_TYPES are the featuring nomination types Apple takes.
