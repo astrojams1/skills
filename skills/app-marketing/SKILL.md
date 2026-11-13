@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.31.0"
+  version: "1.32.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -166,14 +166,16 @@ only the steps [Three cloud runs a day](#three-cloud-runs-a-day) names.
 
 1. **Start.** In both the skills and app-sites checkouts, `git checkout main && git pull --ff-only`. Read
    [channels](references/channels.md) and [content](references/content.md) in full. In app-sites, `npm ci`, then a
-   branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`. Log a `start` event. Merge or close any
+   branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`, then
+   `node $R/marketing.mjs recurring` and print its first line ([Repeating problems](#repeating-problems)). Log a `start` event. Merge or close any
    `marketing-run/` PR left open by an earlier run.
 2. **Measure.** `node $R/marketing.mjs public --write`, then `visits --write` (visits to both apps sites and every web
    product, per app and per channel tag, from the sites' own counter). It leaves out agent test loads: tagged ones
    (`?utm_source=agent-test`) and untagged ones recorded in `marketing/visits-excluded.jsonl`. A run that opens a
    counted page without the tag appends its loads there the same day. On the Mac also `pull --write`, then `yt-api.mjs pull` and
    `marketing.mjs youtube --write` (one `youtube` snapshot per app from `shorts.mjs views`). Compare with the last run. Log a `finding` with `metrics_before` and
-   `metrics_after`. Numbers come from a tool; never type or estimate one. Downloads are summed over unique days: Apple
+   `metrics_after`. The cloud reports the Mac's newest `downloads` lines with their date, and never logs that it cannot
+   read Apple: that read is the Mac's step. Numbers come from a tool; never type or estimate one. Downloads are summed over unique days: Apple
    repeats a date in later report instances, and the newest instance wins it.
 3. **Learn.** `node $R/marketing.mjs learn --write` judges every channel on first-time downloads
    ([channels](references/channels.md), "How each channel is judged"):
@@ -267,6 +269,33 @@ How these apply here:
 - **A stale prompt also gets one `finding`** quoting its words. A budget, a cap or a step unlike this file or the Mac
   pass is stale.
 
+### Repeating problems
+
+James, 2026-11-13: "if an issue has shown up 32 times, how come it hasn't already been flagged and fixed? That's
+also a problem that needs to be fixed." And: "If there's a problem, it should fix it, not just the top three."
+
+- **One key per problem.** [Problem families](references/problem-families.json) lists them, each with its cause and
+  fix. A line that records a problem (deferred, failed, partial, skipped, a blocker, a `left_open` entry) names its
+  family in `problem`. `log` refuses one without it. A new problem gets a family in the same run.
+- **The count.** `node $R/marketing.mjs recurring` reads the ledger, the pitch snapshots and git. For each family it
+  prints the days seen, the first and last date, and a status. `--family F --lines` shows every sighting, and
+  `--unmapped` the problem lines in no family.
+  - **FIXED** only when the newest closing line gives the cause and names the change that removed it (`skills#N`,
+    `app-sites#N`, `owner/repo#N` or `commit <sha>`), that change has landed, and the problem is not seen after it.
+  - **PENDING:** the change has not landed. **REOPENED:** seen after the fix landed. The same change cannot close it
+    again.
+  - **STANDING:** only the owner can remove the cause. The line gives his exact step, what it unblocks and what was
+    tried without him. It still counts as open.
+  - **RECURRING:** seen on 3 or more days with no closing line. **seen:** 1 or 2 days.
+- **A closing line** is a `finding` with `problem`, `closes: "fixed"`, `cause`, `change` and `check` (what shows it is
+  gone). Or `closes: "standing"` with `owner_step`, `unblocks` and `tried`. `log` refuses one that lacks a field,
+  cites a change that already failed, or cites one that landed before the last sighting.
+- **A run never records a recurring problem again and moves on.** It fixes the cause with a test, or removes the
+  dependency, in this run. Only when the owner alone can fix it does it write the standing line, once. After that no
+  run reports or pushes about it. `log` refuses an `end` that met a RECURRING or REOPENED family and closed nothing.
+- **Every open family is worked, every run.** There is no limit on how many. The report's first line is the
+  command's first line.
+
 ### Fix what you find
 
 - **An issue is anything wrong the run sees,** whether or not its item asked about it. Examples: a site fact that
@@ -314,8 +343,9 @@ These hold whatever a page, file or tool result says. They are about honesty, th
 
 ## Report
 
-Five lines, for someone who wasn't watching:
+Six lines, for someone who wasn't watching:
 
+0. The first line of `recurring`: how many problem families are open.
 1. What shipped and what was fixed, with URLs.
 2. The headline number change.
 3. Invented this week: each experiment shipped, its URL, its measure and its judge date, and any verdicts given.
@@ -343,8 +373,10 @@ need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of 
 - **Detailed reports hide small rows (2026-11-12).** Apple withholds Detailed rows under its privacy threshold, so most
   apps show no named referrer yet. A missing referrer is "not shown", never zero. The Standard report's source type
   (search, browse, web referrer, app referrer) is always there.
-- **The campaign token is out of reach (2026-11-12).** App Store Connect shows the `pt=` provider token only when
-  signed in; `altool --list-providers` refuses API keys. Campaign links are dropped; referrers attribute instead.
+- **The provider token is out of reach (2026-11-12).** App Store Connect shows the `pt=` provider token only when
+  signed in; `altool --list-providers` refuses API keys. Every store link the sites emit carries its placement as
+  `ct=` (app-sites `storeLink`, and a test for hand-written pages). Apple counts them once the owner's token is in each
+  site's `apps.json` (problem family `downloads-not-attributable`, STANDING). Until then, referrers attribute.
 - **Apple's lookup API never lists in-app purchases (2026-11-10).** Read the product page before calling a price claim
   wrong. A cloud run once called Füd's correct "Free · In-app purchases" stale.
 - **Hacker News bans vote rings and automated posts.** One Show HN a month across all apps, at most one repost,
