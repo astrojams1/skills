@@ -118,7 +118,8 @@ send about 70 emails an hour from 6 AM Pacific, but the queues held about 135 ag
 was the limit. The week's one yes took four exchanges in an evening, which a daily run would spread over four days. And
 when an incident made a morning run skip a step, nothing picked it up that day. So the routine fires three times with
 the same prompt, and **the run's Pacific start hour sets its kind** (`TZ=America/Los_Angeles date +%H`).
-`marketing.mjs` holds the same rule and enforces it.
+`marketing.mjs` holds the same rule and enforces it. The routine's prompt says "daily pass": it means the kind the
+hour sets, and is not a stale prompt.
 
 | Start hour (Pacific) | Kind | `RUN_ID` | What it does |
 |---|---|---|---|
