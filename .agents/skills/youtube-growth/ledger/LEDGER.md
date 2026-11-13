@@ -35,3 +35,7 @@ app-shorts registry; each run goes in the owner's activity ledger.
   either.
 - 2026-11-04: The first Füd series (3 Shorts) shared one synthesised bed; `soundtrack.mjs` now varies it per Short
   because the spam policy names identical background music across many videos.
+- 2026-11-12: `yt-api.mjs show` now prints `publishedAt` and `uploadStatus`, so a run can read the real go-live time
+  back from YouTube and record it, instead of the upload's local clock (importron-calm-v5c went public 23:46:09Z,
+  20 s after the upload call returned).
+

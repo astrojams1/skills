@@ -454,7 +454,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const video = (await api(await accessToken(), `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id=${encodeURIComponent(episode.videoId)}`)).items?.[0];
       if (!video) throw new Error(`No video "${episode.videoId}" on the channel`);
       console.log(JSON.stringify({ videoId: video.id, title: video.snippet.title, description: video.snippet.description,
-        privacyStatus: video.status.privacyStatus, publishAt: video.status.publishAt ?? null, madeForKids: video.status.madeForKids }, null, 2));
+        privacyStatus: video.status.privacyStatus, uploadStatus: video.status.uploadStatus, publishAt: video.status.publishAt ?? null,
+        publishedAt: video.snippet.publishedAt ?? null, madeForKids: video.status.madeForKids }, null, 2));
     } else if (command === 'unanswered') {
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
       const token = await accessToken(), owner = await ownChannelId(token), found = [], skipped = [];
