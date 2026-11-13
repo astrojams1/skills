@@ -28,6 +28,11 @@
 //                                                   addresses) to metrics.jsonl
 //   node marketing.mjs promo --app ID --text TEXT [--confirm]   Mac only: promotional text on the live version
 //   node marketing.mjs hn --app ID [--json]          Show HN check: eligible, earlier submissions, the pre-filled submit link
+//   node marketing.mjs visits [--write] [--json]     page views on both apps sites and every web product (app-sites
+//                                                   /api/visit), per app: visits (arrivals) and page views for 7 and 28
+//                                                   days, by surface and by channel tag (cross-promo xp-…, pitch,
+//                                                   utm, search, referral, direct); --write appends one `visits` line
+//                                                   per app to metrics.jsonl. Same proof as `pitches`.
 //   node marketing.mjs youtube [--write]            one `youtube` snapshot per app from `shorts.mjs views` (public Shorts
 //                                                   only): shortsViews, publicShorts, scheduledShorts
 //   node marketing.mjs site-visits --sql | --rows FILE [--app ID] [--out PATH] [--write]   a business site's visits
@@ -1158,6 +1163,8 @@ function cmdLearn(root, args) {
   for (const r of out) {
     const f = r.funnel;
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
+    const sv = latestVisits(metrics, r.app);
+    console.log(`  site visits ${sv ? `to ${sv.through}: ${sv.values.siteVisits7} in 7 days, ${sv.values.siteVisits28} in 28 (${channelLine(sv.channels) || 'no channel yet'})` : 'not read yet: run visits --write in the measure step'}`);
     const s = r.stage;
     console.log(`  funnel ${s ? `${s.from} to ${s.to}: weakest ${s.stage} (${s.why}); tap-through ${s.judged ? pct(s.tapThrough) : 'n/a'}, conversion ${s.judged?.conversion ? pct(s.conversion) : `${s.judged ? pct(s.conversion) : 'n/a'} (too small to judge)`}; next: ${s.next.change}, live ${s.next.live}` : 'no discovery numbers yet'}`);
     for (const t of r.listingTests) console.log(`  ${t.stale ? 'STALE ' : ''}listing test ${t.stage}/${t.field}${t.version ? ` ${t.version}` : ''} (queued ${String(t.prepared).slice(0, 10)}): ${t.judged ? (t.effect ? 'effect' : 'no effect') : t.why}`);
@@ -1282,6 +1289,87 @@ async function cmdPitches(root, args) {
   }
 }
 
+// ---- page views (app-sites /api/visit; what it keeps: AGENTS.md "Visit counter" in app-sites) ----
+// Every page of both apps sites and of the web products sends one beacon; the store keeps daily totals by day, site,
+// path and source. `visits` reads the last 28 days; `--write` appends one `visits` line per app to metrics.jsonl.
+
+export const VISITS_URL = 'https://astrojams-apps.vercel.app/api/visit';
+const SEARCH_ENGINE = /^(google|bing|duckduckgo|yahoo|ecosia|baidu|yandex|brave|search\.brave|startpage|qwant|kagi|naver|seznam|sogou|so)\./;
+export const TEST_SOURCE = 'utm:agent-test'; // agent test loads; never counted
+
+// channelOf names a source's channel and tag: cross-promotion (p:xp-…), pitch (p:<pitch id>), utm (utm_source),
+// search (a search engine's domain), referral (any other site's domain), direct.
+export function channelOf(source) {
+  if (source.startsWith('p:xp-')) return { channel: 'cross-promo', tag: source.slice(2) };
+  if (source.startsWith('p:')) return { channel: 'pitch', tag: source.slice(2) };
+  if (source.startsWith('utm:')) return { channel: 'utm', tag: source.slice(4) };
+  if (source.startsWith('ref:')) { const d = source.slice(4); return { channel: SEARCH_ENGINE.test(d) ? 'search' : 'referral', tag: d }; }
+  return { channel: source, tag: source };
+}
+
+// productOf: the marketing profile a view belongs to: the app whose page it is on an apps site (`<site>-site` for the
+// home page, /play/ and the rest), or the web product that served it.
+export function productOf(profiles, site, section) {
+  if (site === 'ouro' || site === 'astrojams') return profiles.find(p => p.site === site && (p.siteSlug || p.id) === section)?.id || `${site}-site`;
+  return profiles.find(p => p.id === site)?.id || site;
+}
+
+// visitTotals: per product, visits (arrivals from anywhere but the same site) and page views for the 7 and 28 days to
+// the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out.
+export function visitTotals(report, profiles) {
+  const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
+  const out = new Map();
+  const add = (o, k, n, in7) => { const c = o[k] || (o[k] = { d7: 0, d28: 0 }); c.d28 += n; if (in7) c.d7 += n; };
+  for (const r of report.rows || []) {
+    if (r.source === TEST_SOURCE || r.day < from28 || r.day > report.today) continue;
+    const app = productOf(profiles, r.site, r.section);
+    const t = out.get(app) || out.set(app, { app, visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} }).get(app);
+    const in7 = r.day >= from7;
+    add(t, 'pageViews', r.n, in7);
+    if (r.source === 'internal') continue;
+    add(t, 'visits', r.n, in7);
+    add(t.surfaces, r.site, r.n, in7);
+    const { channel, tag } = channelOf(r.source);
+    add(t.channels, channel === tag ? channel : `${channel} ${tag}`, r.n, in7);
+  }
+  return [...out.values()].sort((a, b) => b.visits.d28 - a.visits.d28 || a.app.localeCompare(b.app));
+}
+
+export function visitSnapshot(totals, report, at = new Date().toISOString()) {
+  return totals.map(t => ({ at, app: t.app, source: 'visits', through: report.today, countedSince: report.first,
+    values: { siteVisits7: t.visits.d7, siteVisits28: t.visits.d28, sitePageViews7: t.pageViews.d7, sitePageViews28: t.pageViews.d28 },
+    surfaces: t.surfaces, channels: t.channels }));
+}
+
+// latestVisits: an app's newest `visits` line in metrics.jsonl, for learn.
+export const latestVisits = (metrics, app) => metrics.filter(m => m.app === app && m.source === 'visits').pop() || null;
+
+async function fetchVisits(root, args) {
+  const open = await fetch(`${PITCHES_URL}?dry=1`).then(r => r.json()).catch(() => ({}));
+  const queue = deployedQueue(root, open.commit);
+  const url = `${typeof args.url === 'string' ? args.url : VISITS_URL}?report=1&days=28`;
+  let res = await fetch(url, { headers: { Authorization: queue ? queueProof(queue) : `Bearer ${githubToken()}` } });
+  if (res.status === 401 && queue) res = await fetch(url, { headers: { Authorization: `Bearer ${githubToken()}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.error) throw new Error(`/api/visit answered ${res.status}: ${body.error || 'no detail'}`);
+  return body;
+}
+
+const channelLine = c => Object.entries(c).sort((a, b) => b[1].d28 - a[1].d28).map(([k, v]) => `${k} ${v.d7}/${v.d28}`).join(', ');
+
+async function cmdVisits(root, args) {
+  const report = await fetchVisits(root, args);
+  const totals = visitTotals(report, loadProfiles(root));
+  if (args.write) for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
+  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals }, null, 2));
+  console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out`);
+  if (!totals.length) console.log('  no visits counted yet');
+  for (const t of totals) {
+    console.log(`${t.app}: ${t.visits.d7}/${t.visits.d28} visits, ${t.pageViews.d7}/${t.pageViews.d28} page views (on ${Object.entries(t.surfaces).map(([k, v]) => `${k} ${v.d28}`).join(', ') || 'none'})`);
+    if (Object.keys(t.channels).length) console.log(`  ${channelLine(t.channels)}`);
+  }
+}
+
 // ---- reports ----
 
 export function renderBoard(profiles, events, metrics, registry) {
@@ -1391,7 +1479,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    youtube: () => cmdYoutube(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();
