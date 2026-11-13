@@ -403,8 +403,12 @@ in. Giraffe Stretch 1.0 was rejected this way on 12 November 2026 with a test-na
 (`com.ouro.giraffestretchtest1`) and two earlier records of the same game on the team. To stop the next one,
 `submit` refuses (`identityProblems`, unit-tested) while another record on the team shares two name words with the
 app (remove it first) or the bundle ID, SKU or name carries a placeholder such as `test1` or `demo`; a placeholder
-that cannot change on an existing record passes with a reason in the store data's `review.identityWaiver`. Create
-one record per app, with its final bundle ID, before the first build.
+that cannot change on an existing record passes with a reason in the store data's `review.identityWaiver`. `submit`
+also refuses a support or marketing address saved on the version, or the store data's privacy address, whose host or
+path carries such a placeholder (`addressProblems`): Giraffe Stretch went to review with all three on
+`giraffe-stretch-test-1.vercel.app`, linked from the app too. An address can always move, so no waiver covers it; put the
+pages on the team's website (`https://ouro-apps.vercel.app/<slug>/privacy/` for Ouro). Create one record per app, with
+its final bundle ID, before the first build.
 
 **Guideline 2.1 information requests for a new developer** have needed, for both apps: a physical-device
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the
