@@ -603,3 +603,18 @@ test('visits: each source has a channel, each view a product, and totals leave a
   assert.deepEqual(lines[0].values, { siteVisits7: 3, siteVisits28: 5, sitePageViews7: 8, sitePageViews28: 10 });
   assert.equal(latestVisits([...lines, { ...lines[0], through: '2026-12-01' }], 'hanzi-cards').through, '2026-12-01');
 });
+
+test('log refuses an app with no profile, which check would fail', async () => {
+  const { appendEvent } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync: read } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const root = mkdtempSync(`${tmpdir()}/mkt-`);
+  mkdirSync(`${root}/marketing/apps`, { recursive: true });
+  writeFileSync(`${root}/marketing/apps/x.json`, JSON.stringify(profile()));
+  writeFileSync(`${root}/marketing/ledger.jsonl`, '');
+  const base = { run_id: 'r', agent: 't', event: 'finding', status: 'ok' };
+  assert.throws(() => appendEvent(root, { ...base, app: 'elsewhere' }), /unknown app elsewhere/);
+  appendEvent(root, { ...base, app: 'x' });
+  appendEvent(root, { ...base, targets: ['elsewhere'] });
+  assert.equal(read(`${root}/marketing/ledger.jsonl`, 'utf8').trim().split('\n').length, 2);
+});
