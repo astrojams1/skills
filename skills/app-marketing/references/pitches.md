@@ -117,8 +117,16 @@ One JSON object per line, appended, never edited. Every line has `type`, `ts` an
    an `outcome` with `kind: coverage` and its `url`.
 4. **Learn.** `node $R/marketing.mjs learn --write`. A retired approach gets no more pitches. Write a different one.
 5. **Write.** For every app, research people who fit "Who to pitch" and whom the queue has not pitched for that app.
-   Write a pitch for each one the standard allows, each from what that person published. The only number is the
-   mailbox's 300 a day (above), shared by need: write enough to use the room the sender reports, more is fine. Keep two or three approaches live, so each can reach a verdict.
+   Write a pitch for each one the standard allows, each from what that person published. **Daily target: about 10
+   new first pitches per live app, about 75 a day in all,** each with its day 3 and day 7 follow-up texts. It is a
+   floor, not a cap: with more real recipients, write more, up to the room the sender reports. Why: the mailbox's 300
+   a day (above) is shared with Vegas Microworks and money coaching, and app pitches should fill about 75 of it. The
+   owner, James, 2026-11-12: "500 emails is the gmail cap and we have astrojams1 and james@cleanstreets.io. give me
+   buffer so say 300 emails on each account each day. that should become 600 emails or 6 yeses per day, just from
+   email!" and "it takes 30 "nos" to get a "yes." get more nos". Research in parallel, one helper per app, then check
+   every line before the merge. An app that falls short says why in the log (no more recipients the standard allows,
+   or the time ran out). Merge in batches of about 15 so sending starts while writing goes on. Keep two or three
+   approaches live, so each can reach a verdict.
 6. **Ship.** `npm test` (it checks the queue), then the run's PR and merge. Do not call the endpoint to send: the
    merge starts the Pitches workflow, which waits for the deploy and sends. About ten minutes after the merge, run
    `pitches --write` again and confirm each new pitch is `sent`. Fix any `failed` or `refused` one under step 1. One
