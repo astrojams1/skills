@@ -113,3 +113,15 @@ any mix, they were only measured.
 **Parallel makers share loops (2026-11-12).** Three Shorts made at once by separate agents picked the same Apple Loops
 (Front Porch Dobro 01/02, Lounge Vibes 06, Shaker 01): each read this file before the others had written to it. Two
 were re-scored before going public. When Shorts are made in parallel, give each maker a disjoint loop family up front.
+
+## The Mac pass of 2026-11-13 (mkt-mac-shorts-20261113T135820Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-13 | lob-rings-01 (cA7wBs5P_Gs), LOB's first, public 14:51:04Z | real play on lob-game.vercel.app: shells take 7 minutes, two misses leave dashed rings, a heavy shell on the ring destroys Sister Odile (a computer-run tank, named as such), +200 | first Short for a web product, judged on visits (`marketing.mjs visits`), not downloads; first time-lapse of real elapsed minutes with an on-screen "shell in the air" clock; cold open on a landing, 1.3x punch-in and 2-frame flash on the hit | full-bleed game recorded in headless Chromium at 1080x1920 (432x768 CSS, scaled 2.75x), Rockwell Bold captions on dark pills, PT Mono clock, a "lob-game.vercel.app" chip, end card over the blurred game | Apple Loops Hip Hop "Stealth" (Pad, Synth Arp, Sub Bass, Beat; 130 bpm, shifted so a downbeat lands on the hit) plus synthesised impact and launch foley | |
+
+**Recording a web game for a Short (2026-11-13).** CDP `Page.startScreencast` in Playwright's new headless Chromium returns
+frames at the window size (500x629 here), not the emulated viewport, so a take came back cropped and low-resolution. Use
+`chromium_headless_shell` and a loop of `Page.captureScreenshot` with `clip.scale` equal to the device scale factor: about
+19 fps at 1080x1920. Slow waits can use a gap of about 1 s between captures. The three-reviewer panel's recurring fault was
+the game's own dense map labels; a game whose UI cannot change needs tighter framing on the one ring and one shell.
