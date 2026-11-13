@@ -40,3 +40,6 @@ app-shorts registry; each run goes in the owner's activity ledger.
   back from YouTube and record it, instead of the upload's local clock (importron-calm-v5c went public 23:46:09Z,
   20 s after the upload call returned).
 
+- 2026-11-13 (1.12.0): `yt-api.mjs update` with only `--description-file` keeps an older Short's title even when it
+  fails the 40-character name rule (the October Newsworthy Shorts), and still requires the search phrase on the new
+  description's first line; a new `--title` must still name the app.

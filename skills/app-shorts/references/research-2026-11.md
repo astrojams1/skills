@@ -178,3 +178,30 @@ these; App Store Connect's campaign token (`ct`) on (b) and (c) is how we will s
 | Reading "viewed vs. swiped away" per Short | Platform fact (the feed's own signal) | Only when a browser was signed in; never done |
 | Tags with misspellings and variants | Platform fact (minimal, but useful for misspellings) | Partly; no rule |
 | Cross-posting the master to TikTok | Common practice | No |
+
+## 10. What counts as a Short, and the walkthroughs (added 2026-11-13)
+
+- **A Short is a video up to 3 minutes long with a square or vertical aspect ratio.** A wider-than-tall (16:9) video
+  of any length is a regular video, with a description whose links click and with end screens and cards. Platform
+  fact: YouTube Help, "Upload YouTube Shorts" (https://support.google.com/youtube/answer/15424877). So a walkthrough
+  meant to carry a clickable App Store link is rendered 16:9; 60 to 120 seconds keeps it short enough to hold.
+- **Check the class after upload:** `https://www.youtube.com/shorts/<id>` answers 200 for a Short and redirects (303)
+  to `/watch?v=<id>` for a regular video. Our own check (2026-11-13), used on each walkthrough.
+
+## 11. TikTok (added 2026-11-13, for cross-posting the Shorts)
+
+Gathered in ten minutes from TikTok's own pages where they loaded; where only secondary sources say it, it is marked.
+
+| Question | What we found | Source |
+|---|---|---|
+| Posts a day for a new account | TikTok publishes no number. The posting API names a per-user daily cap without giving it (`spam_risk_too_many_posts`). Secondary sources repeat a long-standing TikTok suggestion of 1 to 4 posts a day | Platform fact: TikTok Content Posting API reference (https://developers.tiktok.com/doc/content-posting-api-reference-direct-post); the 1 to 4 a day is secondhand only |
+| Re-uploads and watermarks | "Content is also ineligible for the FYF if it includes unoriginal or reused material without anything new." Third-party guides add that a visible other-platform watermark gets a video held back; TikTok's own page does not say so. Our Shorts are our own original masters, uploaded from the rendered file, never a YouTube download, so they carry no watermark | Platform fact: TikTok Community Guidelines, Integrity and Authenticity (https://www.tiktok.com/community-guidelines/en/integrity-authenticity) |
+| Caption length | 2,200 characters (UTF-16) for a video caption | Platform fact: Content Posting API reference |
+| Hashtags | No separate cap found; they count toward the caption | Secondary only |
+| AI-generated content label | Required for "AI-generated or significantly edited content that shows realistic-looking scenes or people". Screen recordings of a real app with drawn captions, a drawn phone frame or composited cards are not realistic AI scenes or people, so they take no label | Platform fact: Community Guidelines, Integrity and Authenticity |
+| What clicks on a post | Captions and comments: links do not click (secondary sources; matches what the upload page offers, no link field). Hashtags, the account name and sounds click inside TikTok | Secondary, and the upload page itself |
+| What clicks on the profile | A Website field in the bio appears for a personal account at 1,000 followers, or for a registered Business account. Regional differences reported | Secondary sources only (Buffer, Shopify, several link-in-bio vendors); TikTok's help page did not load |
+| Cover and safe area | TikTok picks a cover frame (editable on upload); its right-side buttons and bottom caption cover more of the frame than the Shorts player, so text near the right and bottom edges of a 9:16 master may sit under them | Platform behaviour seen on the upload page; common practice |
+
+What a Business account would change: the bio's Website field without waiting for 1,000 followers (where registered),
+and the commercial music library in place of the full one. Switching is an account setting: the owner's decision.

@@ -45,7 +45,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { due, findable, loadProfiles, profileFor, rules, checklistProblems } from '../../app-shorts/scripts/shorts.mjs';
+import { due, findable, findability, loadProfiles, profileFor, rules, checklistProblems } from '../../app-shorts/scripts/shorts.mjs';
 
 const ITEM = 'YouTube API', VAULT = 'API Tokens';
 const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly', 'https://www.googleapis.com/auth/yt-analytics.readonly',
@@ -447,9 +447,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const description = descriptionFile ? readFileSync(descriptionFile, 'utf8').replace(/\s+$/, '') : null;
       // A new description or title must give the phrase and name the app.
       if (description || title) {
-        const refused = findable({ ...episode, description: description ?? episode.description, title: title ?? episode.title, searchPhrase: searchPhrase ?? episode.searchPhrase,
-          status: 'scheduled', legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] });
-        if (refused) throw new Error(refused);
+        // A new description on a Short whose title is kept (an older Short's title predates the 40-character rule) is
+        // checked for the phrase only; a new title must name the app.
+        const problems = findability({ ...episode, description: description ?? episode.description, title: title ?? episode.title, searchPhrase: searchPhrase ?? episode.searchPhrase,
+          status: 'scheduled', legacy: false }, { profile: profileFor(loadProfiles(), episode.app), app: registry.apps?.[episode.app] })
+          .filter(p => title || !/the title must name/.test(p));
+        if (problems.length) throw new Error(problems[0]);
       }
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, notForKids, title, tags, searchPhrase, description })); process.exit(0); }
       const token = await accessToken();

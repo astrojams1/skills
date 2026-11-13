@@ -388,14 +388,32 @@ test('due lists public Shorts missing the comment, the pin or the Related video,
   registry.apps.biz = { name: 'Biz' };
   registry.episodes.push({ id: 'b1', app: 'biz', status: 'live', videoId: 'V1', postedAt: '2026-11-12T00:00:00Z', metrics: [] });
   const now = new Date('2026-11-13T00:00:00Z');
-  assert.deepEqual(due(registry, { now }).followUp, [{ episode: 'b1', app: 'biz', videoId: 'V1', missing: ['comment', 'pin', 'related video'] }]);
+  assert.deepEqual(due(registry, { now }).followUp, [{ episode: 'b1', app: 'biz', videoId: 'V1', missing: ['comment', 'pin', 'related video', 'tiktok'] }]);
   registry.episodes[0].comment = { id: 'C1', text: 't', at: now.toISOString() };
   assert.throws(() => mark(registry, 'b1', { pinned: 'C2', now }), /recorded comment is C1/);
   assert.throws(() => mark(registry, 'b1', { related: 'V1', now }), /its own/);
   assert.throws(() => mark(registry, 'b1', { now }), /Nothing to mark/);
   mark(registry, 'b1', { pinned: 'C1', related: 'V2', now });
+  assert.deepEqual(followUpMissing(registry.episodes[0]), ['tiktok']);
+  assert.throws(() => mark(registry, 'b1', { tiktok: 'https://youtu.be/x', now }), /post's URL/);
+  mark(registry, 'b1', { tiktok: 'https://www.tiktok.com/@astrojams/video/7500000000000000001', now });
+  assert.equal(registry.episodes[0].tiktok.id, '7500000000000000001');
   assert.deepEqual(followUpMissing(registry.episodes[0]), []);
   assert.equal(due(registry, { now }).followUp.length, 0);
   mark(registry, 'b1', { related: 'V3', now });
   assert.equal(registry.episodes[0].relatedVideo.was, 'V2');
+});
+
+test('a walkthrough is a regular video: its first description line is the App Store link, and it needs no Shorts follow-up', () => {
+  const registry = emptyRegistry();
+  registry.apps.newsworthy = { name: 'Newsworthy', team: 'T', ascAppId: '1' };
+  const profile = { stage: 'live', name: 'Newsworthy: Calm News', searchPhrase: { phrase: 'Newsworthy Calm News', rank: 1 } };
+  const base = { id: 'w1', app: 'newsworthy', kind: 'walkthrough', status: 'rendered', title: 'Newsworthy: Calm News walkthrough', searchPhrase: 'Newsworthy Calm News' };
+  const ok = { ...base, description: 'https://apps.apple.com/app/id1?ct=yt&mt=8\nSearch \'Newsworthy Calm News\' on the App Store.\nWorld news, rated.' };
+  assert.deepEqual(findability(ok, { profile, app: registry.apps.newsworthy }), []);
+  const noLink = { ...base, description: "Search 'Newsworthy Calm News' on the App Store.\nhttps://apps.apple.com/app/id1" };
+  assert.match(findability(noLink, { profile, app: registry.apps.newsworthy })[0], /starts with its App Store link/);
+  const noPhrase = { ...base, description: 'https://apps.apple.com/app/id1\nA news app.\nMore.\nNewsworthy Calm News' };
+  assert.match(findability(noPhrase, { profile, app: registry.apps.newsworthy })[0], /first three lines/);
+  assert.deepEqual(followUpMissing({ ...ok, status: 'live', videoId: 'W' }), []);
 });

@@ -31,8 +31,9 @@
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
 //                                                  scheduled ones to hold (app not on sale), held ones to re-check, and
 //                                                  public ones missing the pinned comment or Related video (followUp)
-//   node shorts.mjs mark <episode> [--pinned COMMENT_ID] [--related VIDEO_ID]   record a comment pinned or a Related
-//                                                  video set in Studio (guidelines.md, "After it is public")
+//   node shorts.mjs mark <episode> [--pinned COMMENT_ID] [--related VIDEO_ID] [--tiktok URL]   record a comment pinned,
+//                                                  a Related video set in Studio, or the Short's TikTok cross-post
+//                                                  (guidelines.md, "After it is public")
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
 //   node shorts.mjs status                         per app: episodes by status, last post, next due (none for an app
 //                                                  retired from Shorts: youtube-growth evaluate.mjs --record)
@@ -152,6 +153,14 @@ export function findability(episode, { profile = null, app = null } = {}) {
   if (!phrase) return [...out, `${episode.id} has no searchPhrase: add the app's verified phrase (node shorts.mjs phrase ${episode.app})`];
   if (wanted && phrase.toLowerCase() !== wanted.phrase.trim().toLowerCase()) {
     out.push(`${episode.id} ends on "${phrase}", but the profile's phrase is "${wanted.phrase}" (${wanted.rank ? `the store's search finds the app with it, rank ${wanted.rank}` : 'no phrase finds the app yet, so the end card gives this exact store name'})`);
+  }
+  // A walkthrough is a regular video (16:9), not a Short: its description's first line is the clickable App Store link
+  // (links click in a regular video's description), and the search phrase follows within the first three lines.
+  if (episode.kind === 'walkthrough') {
+    const lines = (episode.description ?? '').split('\n').filter(l => l.trim());
+    if (!/^https:\/\/apps\.apple\.com\//.test((lines[0] ?? '').trim()) && profile?.platform !== 'web') out.push(`${episode.id}: a walkthrough's description starts with its App Store link (shorts.mjs link ${episode.app} <campaign>)`);
+    if (!lines.slice(0, 3).join(' ').toLowerCase().includes(phrase.toLowerCase())) out.push(`${episode.id}: a walkthrough gives the search phrase "${phrase}" within its description's first three lines`);
+    return out;
   }
   const first = (episode.description ?? '').split('\n')[0].toLowerCase();
   if (episode.description && !first.includes(phrase.toLowerCase())) out.push(`${episode.id}: the description's first line must give the search phrase "${phrase}"`);
@@ -294,14 +303,16 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
 // pinned, and a Related video (the one link on a Short that clicks). `yt-api.mjs comment` records the comment;
 // `mark` records the pin and the Related video set in Studio.
 export function followUpMissing(e) {
-  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video'].filter(Boolean);
+  if (e.kind === 'walkthrough') return [];
+  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video', !e.tiktok?.url && 'tiktok'].filter(Boolean);
 }
 
 // Records what was done by hand in Studio or on the Short's page: the comment pinned, the Related video set.
-export function mark(registry, id, { pinned = null, related = null, now = new Date() } = {}) {
+export function mark(registry, id, { pinned = null, related = null, tiktok = null, now = new Date() } = {}) {
   const e = registry.episodes.find(x => x.id === id);
   if (!e) throw new Error(`No episode "${id}" in the registry`);
-  if (!pinned && !related) throw new Error('Nothing to mark: pass --pinned COMMENT_ID and/or --related VIDEO_ID');
+  if (!pinned && !related && !tiktok) throw new Error('Nothing to mark: pass --pinned COMMENT_ID, --related VIDEO_ID and/or --tiktok URL');
+  if (tiktok && !/^https:\/\/www\.tiktok\.com\/@[\w.]+\/video\/\d+/.test(tiktok)) throw new Error(`--tiktok takes the post's URL (https://www.tiktok.com/@account/video/ID), not "${tiktok}"`);
   const at = new Date(now).toISOString();
   if (pinned) {
     if (e.comment?.id && e.comment.id !== pinned) throw new Error(`${id}'s recorded comment is ${e.comment.id}, not ${pinned}`);
@@ -311,7 +322,8 @@ export function mark(registry, id, { pinned = null, related = null, now = new Da
     if (related === e.videoId) throw new Error(`${id} cannot be its own Related video`);
     e.relatedVideo = { videoId: related, at, ...(e.relatedVideo?.videoId && e.relatedVideo.videoId !== related ? { was: e.relatedVideo.videoId } : {}) };
   }
-  return { episode: id, comment: e.comment ?? null, relatedVideo: e.relatedVideo ?? null };
+  if (tiktok) e.tiktok = { url: tiktok, id: tiktok.match(/video\/(\d+)/)[1], postedAt: e.tiktok?.url === tiktok ? e.tiktok.postedAt : at };
+  return { episode: id, comment: e.comment ?? null, relatedVideo: e.relatedVideo ?? null, tiktok: e.tiktok ?? null };
 }
 
 // An App Store link that App Store Connect can attribute: pt is the team's provider token, ct the campaign (both
@@ -355,7 +367,7 @@ export function status(registry, { now = new Date(), profiles = [] } = {}) {
 export function views(registry, { profiles = [] } = {}) {
   return Object.keys(registry.apps).map(slug => {
     const mine = registry.episodes.filter(e => e.app === slug);
-    const pub = mine.filter(e => PUBLIC.includes(e.status));
+    const pub = mine.filter(e => PUBLIC.includes(e.status) && e.kind !== 'walkthrough');
     const latestViews = e => (e.metrics ?? []).filter(m => Number.isFinite(m.views)).sort((a, b) => a.at.localeCompare(b.at)).at(-1)?.views ?? 0;
     const scheduled = mine.filter(e => e.status === 'scheduled').map(e => e.publishAt).filter(Boolean).sort();
     return { app: slug, marketingId: profiles.find(p => (p.shortsSlug ?? p.id) === slug)?.id ?? null,
@@ -523,7 +535,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
   const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
   const claimApp = option('--app', null), music = option('--music', null);
-  const pinned = option('--pinned', null), related = option('--related', null);
+  const pinned = option('--pinned', null), related = option('--related', null), tiktok = option('--tiktok', null);
   if (args.includes('--publish-at')) { console.error('Shorts are never scheduled: a finished Short that passes check goes public now'); process.exit(2); }
   const [command, ...rest] = args;
   const writes = ['sync', 'record', 'claim', 'mark'].includes(command) || (command === 'rules' && checklistFile && episodeId);
@@ -540,7 +552,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
       const result = record(registry, episode, { profile: profileFor(profiles, app), checkRules }); save(path, registry); print(result); break;
     }
-    case 'mark': { const result = mark(registry, rest[0], { pinned, related, now }); save(path, registry); print(result); break; }
+    case 'mark': { const result = mark(registry, rest[0], { pinned, related, tiktok, now }); save(path, registry); print(result); break; }
     case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, now }); save(path, registry); print(result); break; }
     case 'check': {
       const results = check(registry, { profiles, now });
@@ -570,7 +582,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
     case 'status': print(status(registry, { now, profiles })); break;
     default:
-      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|due|mark <episode> [--pinned ID] [--related VIDEO]|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
+      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|due|mark <episode> [--pinned ID] [--related VIDEO] [--tiktok URL]|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
       process.exitCode = 2;
   }
   } catch (error) {

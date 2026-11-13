@@ -64,7 +64,8 @@ lists every public Short still missing a step under "After it is public".
     measurement (the player shows about 40). Enforced by `record`._
 16. **Description, line 1:** the product, what it does, and how to find it: "Search 'Füd family' on the App Store."
     (a web product: its address). **Line 2:** the attributed store link (`shorts.mjs link`), which clicks on
-    desktop pages that show it. _Owner's rule (2026-11-12). Enforced by `record`._
+    desktop pages that show it. A walkthrough (a regular 16:9 video, guideline 23) swaps the two: its line 1 is the
+    store link, which clicks there, and line 2 the search phrase. _Owner's rule (2026-11-12). Enforced by `record`._
 17. **Three hashtags at the end of the description:** the product's own (#spaceworms), then two topics a viewer
     would follow. Never more than five. _Platform fact: up to three show by the title. Measured by others: hashtags
     traded about 10 % of views for 9 % more engagement (Metricool, 800k videos). Status: untested._
@@ -85,8 +86,9 @@ lists every public Short still missing a step under "After it is public".
     --episode ID --text "..." --confirm`, then pin it on the Short's page. _Common practice; platform fact on links.
     Status: testing (E2)._
 23. **Set the Related video in Studio** (Content → the Short → Related video), the one link on a Short that clicks.
-    Point it at the product's long walkthrough (its description's first line is a clickable store link) once one
-    exists; until then at the same product's best other public Short, else the channel's Short with the nearest
+    Point it at the product's long walkthrough once one exists: 16:9, so YouTube classes it as a regular video, not
+    a Short (a Short is up to 3 minutes and square or vertical), 60 to 120 s, its description's first line the
+    attributed store link (`shorts.mjs link`), recorded with `kind: "walkthrough"`; until then at the same product's best other public Short, else the channel's Short with the nearest
     audience. Record it with `shorts.mjs mark`. _Platform fact. Status: testing (E2)._
 24. **The channel's first link** (shown by the Subscribe button) goes to the page that lists every product with its
     store link. _Platform fact._
@@ -100,3 +102,21 @@ lists every public Short still missing a step under "After it is public".
     (`viewedRate`). _Platform fact: the feed's own signal._
 28. **Judge at 72 hours on downloads** (site visits for a web product or Vegas Microworks); three no-effect verdicts in
     a row retire an app or a format. _Owner's rule (2026-11-12)._
+
+### TikTok (the same run)
+
+29. **Cross-post every public Short to TikTok in the run that makes it public,** from the rendered master on
+    `/Volumes/ssd` (never a download from YouTube), on the account `astrojams`. Caption it for TikTok: the hook line,
+    where to get it in words (the search phrase, or the address for a web product; caption links do not click), then
+    three hashtags. Record it with `shorts.mjs mark ID --tiktok URL`; `due` lists every public Short without one.
+    _Owner's request (2026-11-13). Platform fact: reused material with nothing new is kept off the For You feed, so
+    only our own masters go up. Status: testing (E6)._
+30. **The AI-generated label only where TikTok requires it:** realistic AI-generated or significantly edited scenes
+    or people. A real app recording with drawn captions or a drawn phone takes none. _Platform fact (Community
+    Guidelines, Integrity and Authenticity)._
+31. **At most four TikTok posts a day while the account is new;** the rest go up on the following days, best
+    performers first. _Secondhand: TikTok's long-standing suggestion of 1 to 4 a day; TikTok publishes no cap.
+    Status: untested._
+32. **Never sign in, pass a puzzle, phone or identity check, or change the TikTok account's settings** (Business
+    account, bio, website); stop TikTok work and report what the page showed. _The owner's coordinator (2026-11-13)._
+
