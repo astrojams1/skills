@@ -188,7 +188,8 @@ export function latest(episode) {
 }
 
 export function evaluate(registry, rules, { now = new Date(), downloads = {}, sites = {}, profiles = [] } = {}) {
-  const live = registry.episodes.filter(e => PUBLIC.includes(e.status));
+  // `sameVideoAs` marks a re-upload of another Short's video: one creative, read and judged once (under the original).
+  const live = registry.episodes.filter(e => PUBLIC.includes(e.status) && !e.sameVideoAs);
   const reads = live.map(e => ({ e, m: latest(e) })).filter(x => x.m && x.m.age >= rules.minAgeDays);
   const baseline = median(reads.map(x => x.m.reach));
   const hook = cutoffs(reads.map(x => x.m.viewedRate), rules.hook, rules.comparison.minSample);
@@ -218,7 +219,7 @@ export function evaluate(registry, rules, { now = new Date(), downloads = {}, si
   }
 
   // Downloads: every Short that has gone public (scheduled ones whose time passed included), legacy ones too.
-  const publicNow = registry.episodes.filter(e => (PUBLIC.includes(e.status) || e.status === 'scheduled') && (e.publishAt ?? e.postedAt) && new Date(e.publishAt ?? e.postedAt) <= now);
+  const publicNow = registry.episodes.filter(e => !e.sameVideoAs && (PUBLIC.includes(e.status) || e.status === 'scheduled') && (e.publishAt ?? e.postedAt) && new Date(e.publishAt ?? e.postedAt) <= now);
   const verdicts = publicNow.map(e => {
     const snap = (e.metrics ?? []).filter(m => Number.isFinite(m.views)).sort((a, b) => a.at.localeCompare(b.at)).at(-1);
     const judge = isBusiness(registry.apps?.[e.app]) ? siteVerdict : downloadVerdict;
