@@ -1,6 +1,6 @@
 {
   "_about": [
-    "Problem families for app marketing (SKILL.md 'Repeating problems'). A ledger line that records a problem names its family in `problem` (from 2026-11-13T21:00Z, `marketing.mjs log` refuses one that does not). Older lines are mapped by `text`: case-insensitive patterns searched in a line's operation, reason, next and left_open; a line matching `not_text` is not this family's.",
+    "Problem families for app marketing (SKILL.md 'Repeating problems'). A ledger line that records a problem names its family in `problem` (from 2026-11-13T20:00Z, `marketing.mjs log` refuses one that does not). Older lines are mapped by `text`: case-insensitive patterns searched in a line's operation, reason, next and left_open; a line matching `not_text` is not this family's.",
     "`history`: days the merged pull requests show the family, as 'YYYY-MM-DD <repo>#N: what', read from every PR in astrojams1/skills and astrojams1/app-sites on 2026-11-13. They count as days seen, never as a sighting after a fix.",
     "`cause`: the root cause, from every line of the family. `fix`: the change that removes it, or the owner's step for a STANDING family. `marketing.mjs recurring` judges each family from the ledger and git.",
     "`expected`: lines that record an outside wait or a decision, not a fault. They are not counted as problems; `recurring --unmapped` counts them apart."

@@ -84,7 +84,7 @@ test('a closing line with no cause, an unknown cause or no change closes nothing
 });
 
 test('log: a problem line names a known family; a refix of a failed or too-early change is refused', () => {
-  const now = '2026-11-14T15:00:00Z';
+  const now = '2026-11-13T20:30:00Z';
   assert.ok(logProblems(ev({ ts: now, status: 'deferred', blocked_by: 'outside', reason: 'r' }), [], fams).some(p => p.includes('names its family')));
   assert.ok(logProblems(ev({ ts: now, problem: 'nope' }), [], fams).some(p => p.includes('not a family')));
   assert.deepEqual(logProblems(ev({ ts: now, status: 'deferred', blocked_by: 'outside', reason: 'r', problem: 'token' }), [], fams), []);
@@ -121,6 +121,12 @@ test('unmapped lists problem lines in no family, not expected waits', () => {
   const rows = unmapped([ev({ ts: at(5), status: 'deferred', operation: 'beta broke' }), ev({ ts: at(5), status: 'deferred', operation: 'alpha broke' }), ev({ ts: at(5), status: 'deferred', operation: 'first report takes a day or two' })], f);
   assert.equal(rows.length, 1);
   assert.match(rows[0].text, /beta/);
+});
+
+test('a corrected closing line is read through its correction', () => {
+  const fix = ev({ ts: at(12, 20), problem: 'pin-comment', closes: 'fixed', cause: 'API has no pin', change: 'skills#10' });
+  const fixOf = ev({ ts: at(12, 21), problem: 'pin-comment', corrects: fix.ts, operation: 'Correction: not fixed yet' });
+  assert.equal(recurring([...pins, fix, fixOf], fams, { git }).find(r => r.family === 'pin-comment').status, 'RECURRING');
 });
 
 test('judge orders closing lines by time and the newest counts', () => {
