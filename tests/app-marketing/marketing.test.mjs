@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -570,4 +570,34 @@ test('ideas that need a person or money are the owner\'s options; an ok invent n
   const learned = learnApp({ ...p, experiments: [experiment()] }, [], [], undefined, NOW);
   assert.deepEqual(learned.experiments.map(x => x.state), ['in flight']);
   assert.deepEqual(learned.options.map(i => i.id), ['i2']);
+});
+
+test('visits: each source has a channel, each view a product, and totals leave agent test loads out', () => {
+  assert.deepEqual(channelOf('p:xp-astrojams-lob'), { channel: 'cross-promo', tag: 'xp-astrojams-lob' });
+  assert.deepEqual(channelOf('p:fud-parentmap-1'), { channel: 'pitch', tag: 'fud-parentmap-1' });
+  assert.deepEqual(channelOf('ref:google.co.uk'), { channel: 'search', tag: 'google.co.uk' });
+  assert.deepEqual(channelOf('ref:reddit.com'), { channel: 'referral', tag: 'reddit.com' });
+  assert.deepEqual(channelOf('direct'), { channel: 'direct', tag: 'direct' });
+  const profiles = [profile({ id: 'hanzi-cards', site: 'ouro', siteSlug: 'hanzi-cards' }), profile({ id: 'lob', site: 'astrojams', siteSlug: 'lob', platform: 'web' })];
+  assert.equal(productOf(profiles, 'ouro', 'hanzi-cards'), 'hanzi-cards');
+  assert.equal(productOf(profiles, 'ouro', ''), 'ouro-site');
+  assert.equal(productOf(profiles, 'lob', ''), 'lob');
+  assert.equal(productOf(profiles, 'astrojams', 'lob'), 'lob');
+  const report = { today: '2026-11-30', first: '2026-11-12', rows: [
+    { day: '2026-11-30', site: 'ouro', section: 'hanzi-cards', source: 'ref:google.com', n: 3 },
+    { day: '2026-11-20', site: 'ouro', section: 'hanzi-cards', source: 'p:xp-astrojams-lob', n: 2 },
+    { day: '2026-11-30', site: 'ouro', section: 'hanzi-cards', source: 'internal', n: 5 },
+    { day: '2026-11-30', site: 'ouro', section: 'hanzi-cards', source: 'utm:agent-test', n: 9 },
+    { day: '2026-10-01', site: 'ouro', section: 'hanzi-cards', source: 'direct', n: 7 },
+    { day: '2026-11-29', site: 'lob', section: '', source: 'direct', n: 1 },
+    { day: '2026-11-29', site: 'astrojams', section: 'lob', source: 'p:lob-pitch-1', n: 1 },
+  ] };
+  const [hanzi, lob] = visitTotals(report, profiles);
+  assert.deepEqual(hanzi.visits, { d7: 3, d28: 5 });
+  assert.deepEqual(hanzi.pageViews, { d7: 8, d28: 10 });
+  assert.deepEqual(hanzi.channels, { 'search google.com': { d7: 3, d28: 3 }, 'cross-promo xp-astrojams-lob': { d7: 0, d28: 2 } });
+  assert.deepEqual(lob.surfaces, { lob: { d7: 1, d28: 1 }, astrojams: { d7: 1, d28: 1 } });
+  const lines = visitSnapshot([hanzi, lob], report, '2026-11-30T20:00:00Z');
+  assert.deepEqual(lines[0].values, { siteVisits7: 3, siteVisits28: 5, sitePageViews7: 8, sitePageViews28: 10 });
+  assert.equal(latestVisits([...lines, { ...lines[0], through: '2026-12-01' }], 'hanzi-cards').through, '2026-12-01');
 });

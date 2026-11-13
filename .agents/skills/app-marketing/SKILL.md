@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.25.1"
+  version: "1.26.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -111,7 +111,8 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    [channels](references/channels.md) and [content](references/content.md) in full. In app-sites, `npm ci`, then a
    branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`. Log a `start` event. Merge or close any
    `marketing-run/` PR left open by an earlier run.
-2. **Measure.** `node $R/marketing.mjs public --write`. On the Mac also `pull --write`, then `yt-api.mjs pull` and
+2. **Measure.** `node $R/marketing.mjs public --write`, then `visits --write` (visits to both apps sites and every web
+   product, per app and per channel tag, from the sites' own counter). On the Mac also `pull --write`, then `yt-api.mjs pull` and
    `marketing.mjs youtube --write` (one `youtube` snapshot per app from `shorts.mjs views`). Compare with the last run. Log a `finding` with `metrics_before` and
    `metrics_after`. Numbers come from a tool; never type or estimate one. Downloads are summed over unique days: Apple
    repeats a date in later report instances, and the newest instance wins it.
@@ -121,7 +122,10 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
      its 7 days before. An app or format with 3 no-effect Shorts in a row is retired from Shorts (`youtube-growth`).
      Shorts do produce downloads: the Newsworthy Shorts of 2026-10-21 to 10-28 did, with no other marketing running
      (James, 2026-11-12).
-   - **Guides, site pages and directories:** web-referrer downloads, in 4-week blocks from 8 weeks on.
+   - **Guides, site pages and directories:** web-referrer downloads, in 4-week blocks from 8 weeks on. Visits to the
+     page (`visits`) show sooner whether anyone arrives.
+   - **Web products, cross-promotion and anything that only brings people to a page:** visits by channel tag
+     (`visits`: `cross-promo xp-…`, `pitch <id>`, `utm <source>`, `search <engine>`, `referral <site>`, `direct`).
    - **Store text:** impressions, then page views, then downloads, the week after a change against the week before.
      Log each store text change with `changed`.
    - **The funnel:** one line per app names the weakest stage (impressions, tap-through or conversion) and the next
