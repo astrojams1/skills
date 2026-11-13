@@ -141,6 +141,13 @@ export function auditApp(config, catalog = loadCatalog()) {
     const validReason = typeof reason === 'string' && reason.trim().length >= MIN_REASON;
     if (validReason) return { ...base, status: 'opted-out', reason: reason.trim(), problems: [], evidence: [] };
     files = files || sourceFiles(config, catalog.scan);
+    // A standard about something only some apps have (an embedded web view) applies only where the source shows it.
+    if (standard.appliesWhen) {
+      const shows = new RegExp(standard.appliesWhen.anyOf.join('|'), standard.appliesWhen.flags || '');
+      const where = files.filter(file => shows.test(file.text)).map(file => file.path);
+      if (!where.length) return { ...base, status: 'not-applicable', problems: [], evidence: [] };
+      base.appliesTo = where.slice(0, 3);
+    }
     const context = { config, store, files, marked: [], evidence: [] };
     const problems = standard.checks.map(check => CHECKS[check.type](check, context)).filter(Boolean);
     if (reason !== undefined) problems.unshift('standards.optOut.' + standard.id + ' does not record a reason of at least ' + MIN_REASON + ' characters, so it does not count');

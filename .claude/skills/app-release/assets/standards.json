@@ -59,6 +59,22 @@
       ],
       "fix": "Link the support page (the store data's listing.supportUrl) from the settings or about screen, behind the parental gate in a Kids Category app. Where the app builds the URL in a way the audit cannot see, add the comment `app-standard: support-link` beside it.",
       "verify": "On a simulator or device, open the link from inside the app and see the live support page."
+    },
+    {
+      "id": "web-sheet",
+      "title": "Embedded web pages sell nothing",
+      "doc": "references/standards.md#embedded-web-pages",
+      "appliesWhen": { "anyOf": ["\\.load\\(\\s*URLRequest\\(", "source=\\{\\{\\s*uri:", "loadRequest\\(\\s*Uri\\.parse", "\\bInAppBrowser\\.(?:open|create)\\("] },
+      "checks": [
+        { "type": "marker", "text": "app-standard: web-sheet",
+          "problem": "the app embeds a web view, and no source file carries the marker comment `app-standard: web-sheet` beside the code that limits what it shows" },
+        { "type": "source", "in": "marker", "anyOf": ["decidePolicyFor", "onShouldStartLoadWithRequest", "shouldOverrideUrlLoading", "NavigationDecision"],
+          "problem": "the marked file sets no navigation policy, so any link on the page opens inside the app" },
+        { "type": "source", "in": "marker", "anyOf": ["pricing", "subscri", "upgrade", "checkout", "billing"], "flags": "i",
+          "problem": "the marked file never refuses or hides pricing, subscription, upgrade or checkout pages" }
+      ],
+      "fix": "Limit every web view to the job it is there for (signing in, a privacy page): refuse links to pages outside that job rather than opening them; refuse pricing, upgrade, subscription and checkout pages even on allowed hosts; cover any other page with the app's own screen; and hide any part of an allowed page that shows prices or plans, which sign-in pages now do. Put the comment `app-standard: web-sheet` in the file that does this, with tests that replay the page App Review would reach. Plenty's SignInPolicy.swift is a worked example.",
+      "verify": "Open each web view on a simulator, scroll every allowed page to the bottom and tap each link that is not part of the job: no price, plan, subscription or upgrade offer appears and nothing else opens."
     }
   ]
 }
