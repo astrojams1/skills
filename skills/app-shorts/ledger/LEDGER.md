@@ -43,6 +43,7 @@ app's repository; each run in the owner's activity ledger.
 | 2026-11-12 | Importron, Data Center | Descriptions of the two scheduled Shorts fixed through `yt-api.mjs update --description-file`: the first line now ends "Search 'Importron health' on the App Store." (`GfE_D_qgorI`) and "Search 'Data Center AI Frontier' on the App Store." (`hVP6Syf7jI0`); before, each had only a dead `apps.apple.com` link. Old text kept as `wasDescription`; registry backed up to `/Volumes/ssd/projects/app-shorts/backups/` | Read back from YouTube: both match, still private and scheduled (2026-11-13 and 2026-11-15 01:00 UTC). Titles and the videos are unchanged, so neither shows the phrase on screen. Data Center was on sale one day and the store's web search did not list it for any phrase yet |
 | 2026-11-12 | All (14 scheduled) | Rules gate on every scheduled Short, soonest first: frames every 0.5 s read against each rules pack; a checklist per episode beside its render (`<id>.rules-checklist.json`). The 8 Vegas Microworks titles now start "Vegas Microworks:" (`yt-api.mjs update --title`; old titles kept as `wasTitle`) | 13 pass `check` and keep their times. Importron `importron-calm-v5b` (`XHiSaWN5HGc`) held: its drawn iPhone frame with a Dynamic Island breaks the profile's "No Apple hardware in artwork" |
 | 2026-11-12 | Füd, Space Worms, Nametag, Hanzi Cards, Data Center, Vegas Microworks (13) | Every scheduled Short passed `shorts.mjs check` (13 of 13) and was made public with `yt-api.mjs publish`, 22:05:40 to 22:06:25 UTC, each read back public with no publish time; the registry has them `live` with `postedAt` from that moment and `wasPublishAt` kept. Importron XHiSaWN5HGc and the two Giraffe Stretch Shorts stay held | First verdicts due 2026-11-15 22:05 to 22:06 UTC |
+| 2026-11-13 | Newsworthy, Space Worms | 2.14.0: the first long walkthroughs (`kind: "walkthrough"`, 16:9, first description line the store link); Newsworthy `pC0acfD0ZPc` set as Related video on all 8 public Newsworthy Shorts; the 7 October Newsworthy Shorts given descriptions (they had none); TikTok cross-post step (guidelines 29 to 32, `mark --tiktok`, `due` lists `tiktok`), experiment E6 | `/shorts/pC0acfD0ZPc` redirects 303 to `/watch`: YouTube classed it a regular video. Studio read back the Related video on each Short |
 
 ## Lessons
 
@@ -68,4 +69,12 @@ app's repository; each run in the owner's activity ledger.
 - 2026-11-12: `shorts.mjs phrase` re-checks the profile's verified phrase live; one App Store 429 on it makes it return
   a weaker candidate ("Importron", rank 2) instead of the profile's "Importron health" (rank 1, checked that day).
   Trust the profile's `searchPhrase` when the store refuses the check; `record` enforces the profile's phrase anyway.
+- 2026-11-13: Headless Chromium will not lay a page out narrower than 500 CSS px (a 393 px viewport reports
+  `innerWidth` 500 and the right edge is cut off). Record a phone-shaped web take at 540x1170 or wider.
+- 2026-11-13: `taskpolicy -b` (background QoS) slowed a headless Chromium recording about tenfold (295 frames in four
+  minutes); the same take at `nice -n 10` and screenshot scale 1 ran 2,490 frames in 126 s. Keep `taskpolicy -b` for
+  ffmpeg renders, not for recordings that must finish.
+- 2026-11-13: The October Newsworthy Shorts, the only ones the owner says sold the app, had empty descriptions on
+  YouTube; `yt-api.mjs update` refused a description-only fix because their old titles fail the 40-character rule.
+  A description-only update now keeps the old title.
 
