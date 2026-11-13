@@ -14,6 +14,12 @@ download to the own sites or the own channel, and every known download came from
 - **Every pitch email carries the Gmail label `Claude`** (James, 2026-11-13: "add a label to every marketing email
   you send in gmail ... use Claude"): the sender labels each send, and `/api/pitches?mode=labels` (daily, the
   "Pitches labels sweep" workflow in astrojams1/app-sites) catches any it missed.
+- **Every pitch email carries a reply-to tag** (James, 2026-11-13: "if its for ouro then use astrojams1+ouro"): an
+  Ouro app's pitches, follow-ups and answers carry `Reply-To: James Thompson <astrojams1+ouro@gmail.com>`, every other
+  app's `astrojams1+office@gmail.com`; the sender sets it from the app's profile `site`. Search the full address:
+  `astrojams1+office@gmail.com` for astrojams pitches, `in:sent astrojams1+ouro@gmail.com` (or with `label:Claude`)
+  for Ouro pitches, since James already uses that address; `to:` either address for replies. The tags must never
+  change: a new one splits the history (`packages/pitches/reply-marker.mjs`).
 - What still binds every email: it is true, written for one person, signed with the sender's real name, and carries a
   plain opt-out that is honoured. These are the standard below; the sender and the queue check enforce them.
 
