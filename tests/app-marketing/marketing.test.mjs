@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -636,4 +636,21 @@ test('log refuses an app with no profile, which check would fail', async () => {
   appendEvent(root, { ...base, app: 'x' });
   appendEvent(root, { ...base, targets: ['elsewhere'] });
   assert.equal(read(`${root}/marketing/ledger.jsonl`, 'utf8').trim().split('\n').length, 2);
+});
+
+test('experiment pages are counted on their own, and a top-level one belongs to its product', () => {
+  const profiles = [
+    profile({ id: 'room-planner', platform: 'web', webUrl: 'https://room-planner-silk.vercel.app', experiments: [{ id: 'winter', url: 'https://astrojams-apps.vercel.app/winter-sun/', judge: '2026-11-27' }] }),
+    profile({ id: 'lob', site: 'astrojams', siteSlug: 'lob', platform: 'web', webUrl: 'https://lob-game.vercel.app', experiments: [{ id: 'rings', url: 'https://astrojams-apps.vercel.app/lob/rings/', judge: '2026-12-11' }] }),
+  ];
+  assert.deepEqual(experimentPages(profiles).map(e => [e.app, e.site, e.section, e.depth]), [['room-planner', 'astrojams', 'winter-sun', 1], ['lob', 'astrojams', 'lob', 2]]);
+  assert.equal(productOf(profiles, 'astrojams', 'winter-sun'), 'room-planner');
+  const report = { today: '2026-11-20', rows: [
+    { day: '2026-11-19', site: 'astrojams', section: 'winter-sun', source: 'ref:google.com', n: 4 },
+    { day: '2026-11-19', site: 'astrojams', section: 'winter-sun', source: 'utm:agent-test', n: 9 },
+    { day: '2026-11-10', site: 'astrojams', section: 'winter-sun', source: 'direct', n: 2 },
+  ], paths: [{ site: 'astrojams', path: '/lob/rings/', n: 3 }] };
+  const [winter, rings] = experimentVisits(report, profiles, [{ day: '2026-11-10', site: 'astrojams', section: 'winter-sun', source: 'direct', n: 1 }]);
+  assert.deepEqual(winter.visits, { d7: 4, d28: 5 });
+  assert.equal(rings.pageViews28, 3);
 });

@@ -1328,7 +1328,11 @@ export function channelOf(source) {
 // productOf: the marketing profile a view belongs to: the app whose page it is on an apps site (`<site>-site` for the
 // home page, /play/ and the rest), or the web product that served it.
 export function productOf(profiles, site, section) {
-  if (site === 'ouro' || site === 'astrojams') return profiles.find(p => p.site === site && (p.siteSlug || p.id) === section)?.id || `${site}-site`;
+  if (site === 'ouro' || site === 'astrojams') {
+    const own = profiles.find(p => p.site === site && (p.siteSlug || p.id) === section)?.id;
+    // An experiment page at the top of a site (/winter-sun/) belongs to the product whose experiment it is.
+    return own || experimentPages(profiles).find(e => e.site === site && e.section === section && e.depth === 1)?.app || `${site}-site`;
+  }
   return profiles.find(p => p.id === site)?.id || site;
 }
 
@@ -1362,6 +1366,39 @@ export function visitTotals(report, profiles, excluded = []) {
   return [...out.values()].sort((a, b) => b.visits.d28 - a.visits.d28 || a.app.localeCompare(b.app));
 }
 
+// The counter's site key for each host of the two apps sites; a web product's own host is its profile id.
+const SITE_HOSTS = { 'astrojams-apps.vercel.app': 'astrojams', 'ouro-apps.vercel.app': 'ouro' };
+// experimentPages: every experiment with a page URL, as the counter keys it (site, path, first path segment).
+export function experimentPages(profiles) {
+  return profiles.flatMap(p => (p.experiments || []).flatMap(e => {
+    let u; try { u = new URL(e.url || ''); } catch { return []; }
+    const site = SITE_HOSTS[u.host] || (p.webUrl && new URL(p.webUrl).host === u.host ? p.id : null);
+    if (!site) return [];
+    const parts = u.pathname.split('/').filter(Boolean);
+    return [{ app: p.id, id: e.id, site, path: u.pathname, section: parts[0] || '', depth: parts.length, judge: e.judge }];
+  }));
+}
+// experimentVisits: each experiment page's 28-day count. A page with its own top-level section (/winter-sun/) is read
+// from the daily rows, test loads out, as visits for 7 and 28 days; a deeper page (/lob/rings/) only from the
+// counter's top paths, all sources, as 28-day page views.
+export function experimentVisits(report, profiles, excluded = []) {
+  const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
+  const keyOf = r => [r.day, r.site, r.section ?? '', r.source].join('|');
+  const minus = new Map(); for (const x of excluded) minus.set(keyOf(x), (minus.get(keyOf(x)) || 0) + x.n);
+  return experimentPages(profiles).map(e => {
+    if (e.depth === 1) {
+      let d7 = 0, d28 = 0;
+      for (const r of report.rows || []) {
+        if (r.site !== e.site || r.section !== e.section || [TEST_SOURCE, 'internal'].includes(r.source) || r.day < from28 || r.day > report.today) continue;
+        const n = Math.max(0, r.n - (minus.get(keyOf(r)) || 0)); d28 += n; if (r.day >= from7) d7 += n;
+      }
+      return { ...e, visits: { d7, d28 } };
+    }
+    const hit = (report.paths || []).find(x => x.site === e.site && x.path === e.path);
+    return { ...e, pageViews28: hit ? hit.n : 0, allSources: true };
+  });
+}
+
 export function visitSnapshot(totals, report, at = new Date().toISOString()) {
   return totals.map(t => ({ at, app: t.app, source: 'visits', through: report.today, countedSince: report.first,
     values: { siteVisits7: t.visits.d7, siteVisits28: t.visits.d28, sitePageViews7: t.pageViews.d7, sitePageViews28: t.pageViews.d28 },
@@ -1387,14 +1424,20 @@ const channelLine = c => Object.entries(c).sort((a, b) => b[1].d28 - a[1].d28).m
 async function cmdVisits(root, args) {
   const report = await fetchVisits(root, args);
   const totals = visitTotals(report, loadProfiles(root), loadExcludedVisits(root).records);
-  if (args.write) for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
-  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals }, null, 2));
+  const pages = experimentVisits(report, loadProfiles(root), loadExcludedVisits(root).records);
+  if (args.write) {
+    for (const line of visitSnapshot(totals, report)) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify(line) + '\n');
+    for (const e of pages) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify({ at: new Date().toISOString(), app: e.app, source: 'experiment-visits', experiment: e.id, path: e.path, site: e.site, through: report.today, values: e.visits ? { visits7: e.visits.d7, visits28: e.visits.d28 } : { pageViews28AllSources: e.pageViews28 } }) + '\n');
+  }
+  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, totals, experiments: pages }, null, 2));
   console.log(`visits to ${report.today} (Pacific), counted since ${report.first || 'no view yet'}; 7 days/28 days; agent test loads left out (tagged, and ${loadExcludedVisits(root).records.reduce((a, x) => a + x.n, 0)} untagged in visits-excluded.jsonl)`);
   if (!totals.length) console.log('  no visits counted yet');
   for (const t of totals) {
     console.log(`${t.app}: ${t.visits.d7}/${t.visits.d28} visits, ${t.pageViews.d7}/${t.pageViews.d28} page views (on ${Object.entries(t.surfaces).map(([k, v]) => `${k} ${v.d28}`).join(', ') || 'none'})`);
     if (Object.keys(t.channels).length) console.log(`  ${channelLine(t.channels)}`);
   }
+  if (pages.length) console.log('experiment pages:');
+  for (const e of pages) console.log(`  ${e.app}/${e.id} ${e.site}${e.path}: ${e.visits ? `${e.visits.d7}/${e.visits.d28} visits` : `${e.pageViews28} page views in 28 days (all sources)`}, judge ${e.judge || 'no date'}`);
 }
 
 // ---- reports ----
