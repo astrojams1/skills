@@ -68,9 +68,11 @@ Copy the reference rather than rewriting it, so every app behaves the same:
 [feedback.ts](../assets/feedback/feedback.ts) for Expo, React Native and Capacitor (its header has the calls for each).
 Both already carry the marker and build the subject and footer. Set the address in the copy to `feedback.email`.
 
-**The address.** astrojams1@gmail.com is the owner's published support contact for both teams' apps: Newsworthy and
-Importron on the personal team; Füd, Giraffe Stretch and Nametag on Ouro LLC, whose support pages all give it. Use it
-unless the owner names another for an app.
+**The address.** astrojams1@gmail.com is the owner's published support contact for both teams' apps: Newsworthy on
+the personal team; Füd, Giraffe Stretch and Nametag on Ouro LLC, whose support pages give it. Use it unless the owner
+names another for an app. Importron is the exception: its support page sends people to public GitHub issues, and its
+own and its support repository's `AGENTS.md` forbid committing account contacts, so its address waits for the owner
+(checked 2026-11-13).
 
 **Check it.** Tap the control on a simulator or device. A simulator has no mail account or Mail app, so it shows the
 fallback: the address and a Copy button that puts the address on the clipboard. On a device with a mail account, see

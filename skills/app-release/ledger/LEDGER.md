@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.27.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.29.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.29.1 (2026-11-13)
+
+- `asc.mjs status` and `submit` crashed on Füd ("(store.screenshots || []).map is not a function"): the promotion
+  check read store data's `screenshots` as a list, but Füd names a screenshot manifest. It now uses the resolved
+  screenshot groups, as `screenshots` does, with a regression test.
+- The Send Feedback standard said Importron's support page gives astrojams1@gmail.com. It does not: it uses public
+  GitHub issues, and Importron's repositories forbid committing account contacts. The standard now says Importron's
+  address waits for the owner.
+- Nametag's manual signing identity left the login keychain, so its archive failed. Apple-managed signing at export
+  (`archiveSigning: "export"`), already used by Hanzi Cards on the Ouro team, needs no local identity; Nametag moved
+  to it (nametag#42).
 
 ## Lessons incorporated into v2.27.1 (2026-11-12)
 

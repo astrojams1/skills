@@ -367,6 +367,13 @@ test('the promotion list needs a result or a recorded reason for every item', ()
   assert.equal(states(store, [iphone, placed('APP_PREVIEW', 'IPAD_13_PROFILE')]).preview, 'done');
   assert.equal(states({}, [iphone]).preview, 'done');
 
+  // Store data that names a screenshot manifest (Füd) is read through its resolved groups, not as a list.
+  const manifest = { screenshots: { manifest: 'store/assets/manifest.json' } };
+  assert.equal(states(manifest, [iphone]).preview, 'done');
+  const resolved = asc.promotionReport(manifest, [iphone], store.screenshots);
+  assert.equal(resolved[0].state, 'missing');
+  assert.match(resolved[0].detail, /IPAD/);
+
   // A word like "optional" is not a reason; a real one is reported, not hidden.
   assert.equal(states({ ...store, promotion: { waived: { preview: 'optional' } } }, []).preview, 'missing');
   const waived = asc.promotionReport({ ...store, promotion: { waived: { preview: 'Owner declined a preview on 2026-11-05' } } }, []);

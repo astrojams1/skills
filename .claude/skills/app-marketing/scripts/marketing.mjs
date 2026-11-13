@@ -60,7 +60,11 @@ import { ON_CHANNEL, views } from '../../app-shorts/scripts/shorts.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
-export const STAGES = ['prelaunch', 'live'];
+// Only `live` gets work. `prelaunch`: not on sale yet. `hold`: not to be worked until a named check passes (its decision
+// line says which). `unfinished` and `not-marketed`: the owner took it out of marketing (World Sim, 2026-11-13: "We
+// should not be marketing World Sim. That was not a completed project."). The pitch sender (astrojams1/app-sites
+// packages/pitches/profiles.mjs) reads the same stage: hold sends no first email, the out stages send nothing at all.
+export const STAGES = ['prelaunch', 'live', 'hold', 'unfinished', 'not-marketed'];
 export const PLATFORMS = ['ios', 'web']; // absent means an App Store app
 export const RUNNERS = ['cloud', 'mac'];
 // Three cloud runs a day (James, 2026-11-13, "Yes, add them"; SKILL.md "Three cloud runs a day"): the Pacific start
