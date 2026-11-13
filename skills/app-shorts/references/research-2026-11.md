@@ -196,7 +196,7 @@ Gathered in ten minutes from TikTok's own pages where they loaded; where only se
 |---|---|---|
 | Posts a day for a new account | TikTok publishes no number. The posting API names a per-user daily cap without giving it (`spam_risk_too_many_posts`). Secondary sources repeat a long-standing TikTok suggestion of 1 to 4 posts a day | Platform fact: TikTok Content Posting API reference (https://developers.tiktok.com/doc/content-posting-api-reference-direct-post); the 1 to 4 a day is secondhand only |
 | Re-uploads and watermarks | "Content is also ineligible for the FYF if it includes unoriginal or reused material without anything new." Third-party guides add that a visible other-platform watermark gets a video held back; TikTok's own page does not say so. Our Shorts are our own original masters, uploaded from the rendered file, never a YouTube download, so they carry no watermark | Platform fact: TikTok Community Guidelines, Integrity and Authenticity (https://www.tiktok.com/community-guidelines/en/integrity-authenticity) |
-| Caption length | 2,200 characters (UTF-16) for a video caption | Platform fact: Content Posting API reference |
+| Caption length | 2,200 characters (UTF-16) through the posting API; the TikTok Studio web upload page counts to 4,000 | Platform fact: Content Posting API reference; the Studio counter seen 2026-11-13 |
 | Hashtags | No separate cap found; they count toward the caption | Secondary only |
 | AI-generated content label | Required for "AI-generated or significantly edited content that shows realistic-looking scenes or people". Screen recordings of a real app with drawn captions, a drawn phone frame or composited cards are not realistic AI scenes or people, so they take no label | Platform fact: Community Guidelines, Integrity and Authenticity |
 | What clicks on a post | Captions and comments: links do not click (secondary sources; matches what the upload page offers, no link field). Hashtags, the account name and sounds click inside TikTok | Secondary, and the upload page itself |
@@ -205,3 +205,11 @@ Gathered in ten minutes from TikTok's own pages where they loaded; where only se
 
 What a Business account would change: the bio's Website field without waiting for 1,000 followers (where registered),
 and the commercial music library in place of the full one. Switching is an account setting: the owner's decision.
+
+What we saw on the first posts (2026-11-13): each new post showed "Content under review" and "Only me" for about a
+minute, then "Everyone". The first upload offered "Turn on automatic content checks?" (an account setting in Profile >
+Settings): declined, since account settings are the owner's. TikTok's Branded Content Policy requires the commercial
+disclosure toggle only for a third-party brand (https://www.tiktok.com/legal/page/global/bc-policy/en), so our own
+products' posts leave it off. Shorts made before the pipeline (the October Newsworthy ones) have no master file on
+`/Volumes/ssd`, so they are not cross-posted.
+
