@@ -869,3 +869,13 @@ sheet allowed every Anthropic and OpenAI host and showed every page. Nothing che
 show. The standard applies to any app whose source embeds a web view and holds its release until the marked file
 limits navigation and handles purchase pages; tests cover the Plenty case and React Native. Adoption: Plenty build 8
 limits the sheet to sign-in pages, covers the rest and hides priced parts of allowed pages, with unit and web view tests.
+
+### 2026-11-13 — Giraffe Stretch 4.3: test-named web addresses
+
+Version 2.29.0 makes `submit` refuse listing addresses whose host or path reads as a test build. Root-causing the
+12 November 4.3/4.2.6 rejection again found that the support, marketing and privacy pages, and the app's own links to
+them, were on `giraffe-stretch-test-1.vercel.app`, beside the test-named bundle ID, SKU and purchase IDs; and that builds
+1 and 2 of the game had gone to an earlier record under another bundle ID. 2.26.0 checked only the record's own
+identifiers, which a waiver must excuse when they cannot change, so the addresses (which can) went unchecked. Unit
+tests cover the Giraffe address and the waiver not excusing it. Adoption: Giraffe Stretch build 9 links to
+`ouro-apps.vercel.app/giraffe-stretch/privacy/` and `/support/`, and its listing names the same pages.

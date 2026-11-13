@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { identityProblems, identityRefusal, rejectionAdvice, kidsRejectionAdvice } from '../../skills/app-release/scripts/asc.mjs';
+import { identityProblems, identityRefusal, addressProblems, rejectionAdvice, kidsRejectionAdvice } from '../../skills/app-release/scripts/asc.mjs';
 
 const app = (id, name, bundleId, sku = bundleId) => ({ id, attributes: { name, bundleId, sku } });
 
@@ -53,4 +53,18 @@ test('every rejected version is told to check the guideline, and a 4.3 notice is
   }
   assert.match(kidsRejectionAdvice({ kidsAgeBand: 'FIVE_AND_UNDER' }, 'REJECTED'), /Guideline 1\.3/);
   assert.equal(rejectionAdvice({ kidsAgeBand: 'FIVE_AND_UNDER' }, 'WAITING_FOR_REVIEW'), null);
+});
+
+// The same submission's support, marketing and privacy pages were on giraffe-stretch-test-1.vercel.app (2026-11-12).
+test('test-named listing addresses are named, and no waiver covers them', () => {
+  const problems = addressProblems({
+    supportUrl: 'https://giraffe-stretch-test-1.vercel.app/support',
+    marketingUrl: 'https://example.com/demo2/',
+    privacyPolicyUrl: 'https://ouro-apps.vercel.app/giraffe-stretch/privacy/',
+  });
+  assert.equal(problems.length, 2);
+  assert.match(problems[0], /supportUrl .*giraffe-stretch-test-1\.vercel\.app.* contains "test"/);
+  assert.match(problems[1], /marketingUrl .* contains "demo2"/);
+  assert.match(identityRefusal(problems, 'Bundle ID is fixed on this record'), /giraffe-stretch-test-1/);
+  assert.deepEqual(addressProblems({ supportUrl: 'https://latest.example.com/contest/', marketingUrl: '', privacyPolicyUrl: 'not a url' }), []);
 });

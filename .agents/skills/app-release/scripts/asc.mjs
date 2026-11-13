@@ -501,11 +501,29 @@ export function identityProblems(app, teamApps = []) {
   return problems;
 }
 
+// addressProblems names listing addresses whose host or path carries a placeholder segment
+// ("giraffe-stretch-test-1.vercel.app"). App Review opens the support, marketing and privacy pages, and the app links to
+// them too; Giraffe Stretch 1.0 went to review with all three on giraffe-stretch-test-1.vercel.app and was rejected
+// under 4.3 and 4.2.6 (2026-11-12). Unlike a bundle ID, an address can always change, so no waiver covers it.
+export function addressProblems(urls = {}) {
+  const problems = [];
+  for (const [field, value] of Object.entries(urls)) {
+    if (!value) continue;
+    let url;
+    try { url = new URL(value); } catch { continue; }
+    const segment = placeholderSegment(url.hostname) || url.pathname.split('/').map(placeholderSegment).find(Boolean);
+    if (segment) problems.push('listing ' + field + ' ' + JSON.stringify(value) + ' contains ' + JSON.stringify(segment)
+      + ', which reads as a test or variant build; move the page to an address without it');
+  }
+  return problems;
+}
+
 // identityRefusal is the sentence `submit` refuses with, or null. A placeholder that cannot change on an existing
-// record (its bundle ID) is accepted with a reason in the store data's review.identityWaiver; a duplicate never is.
+// record (its bundle ID) is accepted with a reason in the store data's review.identityWaiver; a duplicate or a
+// listing address never is.
 export function identityRefusal(problems, waiver) {
   if (!problems.length) return null;
-  const duplicates = problems.filter(problem => problem.startsWith('another record'));
+  const duplicates = problems.filter(problem => problem.startsWith('another record') || problem.startsWith('listing '));
   const remaining = typeof waiver === 'string' && waiver.trim() ? duplicates : problems;
   if (!remaining.length) return null;
   return 'App Review rejects apps that look like duplicates or test builds under Guideline 4.3: ' + remaining.join('; ')
@@ -1562,7 +1580,9 @@ export async function submit(flag) {
   // Duplicate records and test-named identifiers draw a 4.3 Spam rejection; both are read before anything is written.
   const teamApps = await listAll('/v1/apps?fields[apps]=name,bundleId,sku&limit=200');
   const self = teamApps.find(item => item.id === ctx.app.id) || ctx.app;
-  const identity = identityRefusal(identityProblems(self, teamApps), STORE.review?.identityWaiver);
+  const listed = (await versionLocalization(ctx.version.id, false)).attributes;
+  const addresses = addressProblems({ supportUrl: listed.supportUrl, marketingUrl: listed.marketingUrl, privacyPolicyUrl: STORE.listing?.privacyPolicyUrl });
+  const identity = identityRefusal([...identityProblems(self, teamApps), ...addresses], STORE.review?.identityWaiver);
   if (identity) throw new Error(identity);
   const wrongRelease = releaseTypeRefusal(ctx.version);
   if (wrongRelease) throw new Error(wrongRelease + ' Nothing was submitted.');
