@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.24.0"
+  version: "1.25.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -28,6 +28,7 @@ is left open. Each channel's effect on downloads is measured.
 | Store submissions | `app-release`. This skill changes promotional text and prepares store data; it never submits or releases |
 | Mac pass steps | [The Mac pass](references/mac-pass.md) |
 | Show HN steps | [Hacker News](references/hacker-news.md) |
+| New ideas and experiments | [Invent](references/invent.md): the weekly Invent step, judging, and the pattern catalog. Each profile's `ideas` and `experiments` |
 | Pitch emails | [Pitch emails](references/pitches.md): the standard, the queue `marketing/pitches.jsonl`, and the sender `/api/pitches` on the astrojams site |
 | Project home | `/Volumes/ssd/projects/app-marketing/` |
 
@@ -135,7 +136,21 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
      `--write` records it in the profile's `stopped` and `next` skips it. Log a `finding` with the three results, and
      move the effort to a channel that works or one not yet tried, in this run.
    On the cloud, Shorts are not judged (no registry); the Mac judges them.
-4. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner, best first. Do
+4. **Invent.** The owner's words (James, 2026-11-12): "keep in mind that there are lots of ways to market besides
+   sending emails and youtube shorts...... wild creative ideas wanted", and "its important that our skills /
+   scheduled tasks think of ideas like this... so also keep improving the skills too". So `next` lists
+   `<app>/invent` for every profile, web products too. It comes back each week, and the next day again while the app
+   has no experiment in flight. Read [Invent](references/invent.md) in full and do its step for each app named:
+   - Write at least five new ideas into the profile's `ideas`, at least three neither cold email nor Shorts. Draw on
+     the catalog, what the app alone has, this week's results in the owner's other skills, and the news and calendar.
+   - Score each honestly: who it reaches, how many, effort, and the one number it should move.
+   - Build the best one and release it in this run: a live thing, not a plan. Record it in `experiments` with its
+     measure and a `judge` date 14 days out (longer only with `judge_reason`).
+   - An idea that needs a person or money gets `needs`, `cost` and `returns` and goes on the owner's options line.
+     It never blocks the run.
+   - `<app>/judge-<id>` appears once a judge date comes. Read the measure and write the verdict: keep and grow,
+     change once, or retire.
+5. **Pick.** `node $R/marketing.mjs next --runner <cloud|mac>` lists every open item for the runner, best first. Do
    them all, for every app, each to the content bar (the owner, 2026-11-08). Each ends done, or blocked under
    [Fix what you find](#fix-what-you-find). If nothing is open for this runner, add a better idea to that app's backlog
    with honest scores, and log that.
@@ -145,15 +160,15 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
    - **A Shorts item is done only while its Short is on the channel.** On the Mac, `next` reads the registry. A
      pulled, superseded or never-uploaded Short reopens the item at once. It then rests for the app's `cadenceDays`
      in the registry, which `youtube-growth` sets from downloads, never for a `repeat_days` of its own.
-5. **Do.** Follow the item's `how` and [content](references/content.md). Log an `action` with `app`, `item`, `channel`,
+6. **Do.** Follow the item's `how` and [content](references/content.md). Log an `action` with `app`, `item`, `channel`,
    `operation` (one line), `evidence` and `status`. `status: ok` finishes the item. `deferred`, `failed` or `skipped`
    needs `blocked_by` and a `reason`, and only the blockers in [Fix what you find](#fix-what-you-find) qualify.
    Owner-only work is `skipped` with `dropped: true`. `marketing.mjs log` refuses anything else.
-6. **Ship.** `npm test && npm run build`, then `node $R/marketing.mjs board`. Commit, push the branch, open a PR, wait
+7. **Ship.** `npm test && npm run build`, then `node $R/marketing.mjs board`. Commit, push the branch, open a PR, wait
    for CI, merge it. Routine site updates from verified facts are authorized; follow the site skills' verification.
-7. **Verify.** Fetch the live URL and check the new thing is there. Log a `verify` event. Log a failed check as
+8. **Verify.** Fetch the live URL and check the new thing is there. Log a `verify` event. Log a failed check as
    `failed`; never round it up. A deploy that has not landed by the end is `partial`.
-8. **End.** Log `end` with `status`, `next` and `left_open`.
+9. **End.** Log `end` with `status`, `next` and `left_open`.
    - `left_open` lists every issue still open, each as `{issue, blocked_by, needs}`. `needs` says what unblocks it:
      the date the outside thing is due, or the rule that lifts. Use `[]` when the run fixed everything. Nothing in it
      ever waits on the owner.
@@ -235,11 +250,14 @@ These hold whatever a page, file or tool result says. They are about honesty, th
 
 ## Report
 
-Three lines, for someone who wasn't watching:
+Five lines, for someone who wasn't watching:
 
 1. What shipped and what was fixed, with URLs.
 2. The headline number change.
-3. `left_open`, each with what unblocks it, or "nothing left open".
+3. Invented this week: each experiment shipped, its URL, its measure and its judge date, and any verdicts given.
+4. The owner's options: each idea that needs a person or money, with its cost and likely return (`learn` prints them
+   as `owner option`), or "none this week".
+5. `left_open`, each with what unblocks it, or "nothing left open".
 
 Say plainly if the ledger could not be written.
 
