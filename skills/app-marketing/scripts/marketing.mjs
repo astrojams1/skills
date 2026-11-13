@@ -1316,6 +1316,7 @@ export function productOf(profiles, site, section) {
 
 // visitTotals: per product, visits (arrivals from anywhere but the same site) and page views for the 7 and 28 days to
 // the report's `today`, each surface (the site that served it), and every channel tag. Agent test loads are left out.
+// Every live profile gets a line, zeros included.
 export function visitTotals(report, profiles) {
   const from7 = plusDays(report.today, -6), from28 = plusDays(report.today, -27);
   const out = new Map();
@@ -1332,6 +1333,8 @@ export function visitTotals(report, profiles) {
     const { channel, tag } = channelOf(r.source);
     add(t.channels, channel === tag ? channel : `${channel} ${tag}`, r.n, in7);
   }
+  // A live product the counter saw no visit for gets a zero line, so learn reads "0 in 7 days", never "not read yet".
+  for (const p of profiles) if (p.stage === 'live' && !out.has(p.id)) out.set(p.id, { app: p.id, visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} });
   return [...out.values()].sort((a, b) => b.visits.d28 - a.visits.d28 || a.app.localeCompare(b.app));
 }
 
