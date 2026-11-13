@@ -84,6 +84,11 @@ test('rank filters by runner, stage and prerequisites, and favours the best rati
   const ids = rank([p], [], { runner: 'cloud', now: NOW }).filter(i => i.channel !== 'invent').map(i => i.id);
   assert.deepEqual(ids, ['big', 'small']);
   assert.deepEqual(rank([{ ...p, stage: 'prelaunch' }], [], { runner: 'cloud', now: NOW }), [], 'a product not live gets nothing');
+  for (const stage of ['hold', 'unfinished', 'not-marketed']) {
+    assert.deepEqual(rank([{ ...p, stage }], [], { runner: 'cloud', now: NOW }), [], stage);
+    assert.deepEqual(rank([{ ...p, stage }], [], { runner: 'mac', now: NOW }), [], stage);
+    assert.deepEqual(profileProblems({ ...p, stage }).filter(x => /stage/.test(x)), [], `${stage} is a known stage`);
+  }
   const done = [event({ app: 'x', item: 'big' })];
   assert.ok(rank([p], done, { runner: 'cloud', now: NOW }).some(i => i.id === 'second'));
 });
