@@ -419,3 +419,9 @@ test('a walkthrough is a regular video: its first description line is the App St
   assert.match(findability(noPhrase, { profile, app: registry.apps.newsworthy })[0], /first three lines/);
   assert.deepEqual(followUpMissing({ ...ok, status: 'live', videoId: 'W' }), []);
 });
+
+test('a control-arm Short holds its comment and Related video until followUpAfter, but not TikTok', () => {
+  const e = { id: 'b', status: 'live', videoId: 'V', followUpAfter: '2026-11-16T21:30:00Z' };
+  assert.deepEqual(followUpMissing(e, new Date('2026-11-14T00:00:00Z')), ['tiktok']);
+  assert.deepEqual(followUpMissing(e, new Date('2026-11-17T00:00:00Z')), ['comment', 'pin', 'related video', 'tiktok']);
+});

@@ -281,7 +281,7 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
   for (const e of registry.episodes) {
     if (e.status === 'held' && selling(e.app)) recheck.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null });
     if (PUBLIC.includes(e.status) && e.videoId && selling(e.app)) {
-      const missing = followUpMissing(e);
+      const missing = followUpMissing(e, now);
       if (missing.length) followUp.push({ episode: e.id, app: e.app, videoId: e.videoId, missing });
     }
     if (e.status === 'scheduled' && !e.legacy && !selling(e.app)) { hold.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null, publishAt: e.publishAt ?? null }); continue; }
@@ -302,8 +302,10 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
 // What a public Short still lacks from "After it is public" in references/guidelines.md: the channel's first comment,
 // pinned, and a Related video (the one link on a Short that clicks). `yt-api.mjs comment` records the comment;
 // `mark` records the pin and the Related video set in Studio.
-export function followUpMissing(e) {
+export function followUpMissing(e, now = new Date()) {
   if (e.kind === 'walkthrough') return [];
+  // An experiment's control arm (E2 arm B) holds the comment and Related video until `followUpAfter`; TikTok still goes.
+  if (e.followUpAfter && new Date(now) < new Date(e.followUpAfter)) return [!e.tiktok?.url && !e.tiktok?.skip && 'tiktok'].filter(Boolean);
   return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video',
     // tiktok.skip names why a Short stays off TikTok (a duplicate upload, a stale launch date): `mark --tiktok-skip WHY`.
     !e.tiktok?.url && !e.tiktok?.skip && 'tiktok'].filter(Boolean);
