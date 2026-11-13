@@ -112,12 +112,12 @@ const FIX_RULE_FROM = Date.parse('2026-11-11T00:00:00Z');
 const AUTONOMY_FROM = Date.parse('2026-11-12T18:00:00Z');
 // An end event that says work was left undone without a blocker, in the words runs have used.
 const UNDONE = /\bnot (?:yet )?(?:reached|done|attempted|blocked)\b|\bthe next run (?:makes|does|will)\b|\bran out of time\b/i;
-// From 2026-11-13T21:00Z (problem families work-left-undone and waits-on-owner, both seen again after their fixes): an
+// From 2026-11-13T20:00Z (problem families work-left-undone and waits-on-owner, both seen again after their fixes): an
 // end that says work was not built, made, written or sent in this run, or left for a later run, is refused like "not
 // reached"; and no line of any kind waits on the owner's go-ahead or OK or names blocked_by owner.
 const UNDONE_MORE = /\bnot (?:built|made|written|sent|shipped|finished)\b[^.;]{0,40}\b(?:in this run|this run|today)\b|\bleft for (?:the next|a later|another) run\b|\bnext run (?:finishes|picks (?:it|them) up)\b/i;
 const GO_AHEAD = /\bgo-?ahead\b|\bowner'?s? (?:OK|approval|sign-?off)\b|\bwaits? (?:for|on) the owner\b/i;
-const MORE_FROM = Date.parse('2026-11-13T21:00:00Z');
+const MORE_FROM = Date.parse('2026-11-13T20:00:00Z');
 const MAX_LINE = 16 * 1024;
 // Text that must never reach a committed ledger: private keys, 1Password service tokens, bearer tokens, API secrets.
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY|ops_[A-Za-z0-9_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{20,}|\bsk-[A-Za-z0-9_-]{20,}|\bghp_[A-Za-z0-9]{20,}/;

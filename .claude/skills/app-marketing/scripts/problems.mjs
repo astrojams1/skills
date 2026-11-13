@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 export const FAMILIES_FILE = fileURLToPath(new URL('../references/problem-families.json', import.meta.url));
 export const SKILLS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const RECURRING_DAYS = 3;       // distinct days that make a family RECURRING (the owner, 2026-11-13)
-export const PROBLEM_KEYS_FROM = Date.parse('2026-11-13T21:00:00Z'); // lines from here on carry `problem`
+export const PROBLEM_KEYS_FROM = Date.parse('2026-11-13T20:00:00Z'); // lines from here on carry `problem`
 export const OPEN = ['RECURRING', 'REOPENED', 'PENDING', 'seen'];
 const PROBLEM_STATUS = ['deferred', 'failed', 'partial'];
 // A line that reports a fix (it names the problem it removed) counts toward the days seen, but never as a sighting
@@ -109,7 +109,11 @@ export function pitchOccurrences(metrics) {
 
 export function familyRecords(events, families, metrics = []) {
   const recs = Object.fromEntries(families.map(f => [f.key, { occ: [], closes: [] }]));
+  // A wrong line is corrected by a later one with the same run_id and event and `corrects` set to its ts (SKILL.md
+  // Never); the count reads the correction in its place.
+  const corrected = new Set(events.filter(c => c.corrects).map(c => `${c.run_id} ${c.event} ${c.corrects}`));
   events.forEach((e, i) => {
+    if (corrected.has(`${e.run_id} ${e.event} ${e.ts}`)) return;
     const at = Date.parse(e.ts);
     if (isClose(e)) { if (recs[e.problem]) recs[e.problem].closes.push({ ...e, at, line: i + 1 }); return; }
     for (const key of familiesOf(e, families)) {
