@@ -108,8 +108,9 @@ contact address.
 
 ## Embedded web pages
 
-Applies only to an app whose source embeds a web view (`WKWebView`, `react-native-webview`, `webview_flutter` and the
-like); the audit shows it as n/a otherwise. App Review treats anything a web view shows as the app's own content. Plenty
+Applies only to an app whose embedded web view loads web pages (`load(URLRequest(…))` on a `WKWebView`, a
+`react-native-webview` `source={{ uri: … }}`, Flutter's `loadRequest(Uri.parse(…))`, an in-app browser); a web view
+showing only the app's own bundled HTML is not covered, and the audit shows n/a. App Review treats anything a web view shows as the app's own content. Plenty
 1.0 (build 7) was rejected under Guideline 2.1(b) on 2026-11-12, "references to Subscription" with no In-App Purchase
 submitted: its sign-in sheet showed claude.ai/login, and that page now lists the plans and their monthly prices under
 the form, with a Pricing link in the footer. The reviewer only scrolled.

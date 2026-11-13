@@ -64,7 +64,7 @@
       "id": "web-sheet",
       "title": "Embedded web pages sell nothing",
       "doc": "references/standards.md#embedded-web-pages",
-      "appliesWhen": { "anyOf": ["\\bWKWebView\\b", "\\bUIWebView\\b", "from ['\"]react-native-webview['\"]", "<WebView\\b", "\\bInAppBrowser\\b", "\\bwebview_flutter\\b"] },
+      "appliesWhen": { "anyOf": ["\\.load\\(\\s*URLRequest\\(", "source=\\{\\{\\s*uri:", "loadRequest\\(\\s*Uri\\.parse", "\\bInAppBrowser\\.(?:open|create)\\("] },
       "checks": [
         { "type": "marker", "text": "app-standard: web-sheet",
           "problem": "the app embeds a web view, and no source file carries the marker comment `app-standard: web-sheet` beside the code that limits what it shows" },
