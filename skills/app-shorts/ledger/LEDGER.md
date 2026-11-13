@@ -81,4 +81,15 @@ app's repository; each run in the owner's activity ledger.
   sits in one arm of one experiment. sw-e1-01 was kept at 11 s so it is only in E1; E5's Space Worms arm needs its own
   Short. The same clash exists for Newsworthy between E4 and any other arm.
 - 2026-11-13: `thumbnails.set` returned 403 on a fresh Short (sw-e1-01); its cover stays YouTube's pick.
+- 2026-11-13: one Short, one content experiment (E1, E3, E4, E5); E2 (when the comment and Related video go up) runs
+  across them by order of posting, 1st A, 2nd B, and so on. The Newsworthy E4 Short and the Space Worms E5 Short were
+  each kept out of every other content arm.
+- 2026-11-13: an ffmpeg `vstack` of a 1080x2 strip scaled to a band gave newsworthy-loop-01 a sample aspect ratio of
+  1994213:30672. YouTube drew it upright but classed it a regular video, not a Short (`/shorts/` kept answering 303
+  after processing). It was made private and re-uploaded with `setsar=1` as 01b, which YouTube classed as a Short at
+  once. `yt-api.mjs upload` now refuses a file with non-square pixels.
+- 2026-11-13: a 403 from `thumbnails.set` right after upload is a timing error. `yt-api.mjs thumbnail --episode ID
+  --confirm` set sw-e1-01's cover later with a 200.
+- 2026-11-13: `shorts.mjs phrase vegas-microworks` returned "Vegas Microworks, on the App Store." for a business with no
+  app. A business with a registry `site` now ends on that address.
 

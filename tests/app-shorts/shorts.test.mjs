@@ -425,3 +425,12 @@ test('a control-arm Short holds its comment and Related video until followUpAfte
   assert.deepEqual(followUpMissing(e, new Date('2026-11-14T00:00:00Z')), ['tiktok']);
   assert.deepEqual(followUpMissing(e, new Date('2026-11-17T00:00:00Z')), ['comment', 'pin', 'related video', 'tiktok']);
 });
+
+test('a business with no App Store record ends on its site, never on "the App Store"', async () => {
+  const registry = emptyRegistry();
+  registry.apps.biz = { name: 'Biz', site: 'biz.example' };
+  const r = await phrase(registry, 'biz', { fetcher: async () => { throw new Error('no store lookups for a business'); } });
+  assert.equal(r.ending, 'address');
+  assert.match(r.endCard, /biz\.example/);
+  assert.doesNotMatch(r.endCard, /App Store/);
+});

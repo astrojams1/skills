@@ -433,7 +433,8 @@ export async function phrase(registry, slug, { profiles = [], tries = [], fetche
   const fromProfile = typeof profile?.searchPhrase === 'string' ? profile.searchPhrase : profile?.searchPhrase?.phrase;
   const name = (profile?.name ?? app.name ?? '').trim();
   if (profile && !onSale(app, profile)) return { app: slug, phrase: null, rank: null, source: 'not on sale: no Short until it is', checked: [] };
-  const host = webAddress(profile);
+  // A business with no App Store record (Vegas Microworks) ends on its site, from the registry's `site`.
+  const host = webAddress(profile) ?? (!app.ascAppId && !app.team && app.site ? app.site : null);
   if (host) return { app: slug, phrase: host, rank: null, ending: 'address', endCard: webEndCard(host), source: 'web product: its address', checked: [] };
   const store = await storeName(app.ascAppId, { fetcher }) ?? name;
   const plain = n => n.replace(/[:|–—-]/g, ' ').replace(/\s+/g, ' ');
