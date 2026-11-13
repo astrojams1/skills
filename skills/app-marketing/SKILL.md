@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.30.0"
+  version: "1.31.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -133,6 +133,15 @@ hour sets, and is not a stale prompt.
 | 10 to 14 | Midday pass | `mkt-cloud-midday-<UTC>` | Today's deferred or failed items, `all/pitch-replies`, `all/pitch-top-up` |
 | 15 or later | Reply pass | `mkt-cloud-reply-<UTC>` | Today's deferred or failed items, `all/pitch-replies` |
 
+- **A run started by a `Reply waiting` issue is always a reply pass, whatever the hour** (James, 2026-11-13: "No,
+  replies should be ultra prioritized, not a 20 email buffer"). The Pitches workflow in `astrojams1/app-sites` opens one
+  issue titled `Reply waiting` (label `reply-waiting`, body: how many and since when) while a human pitch reply is
+  unanswered. If this run was started by that issue, or one is open (`gh issue list --repo astrojams1/app-sites
+  --label reply-waiting --state open`), run `next --runner cloud --pass reply` and do `all/pitch-replies` now: answer
+  every unanswered reply, confirm each is sent (the merge's Pitches run sends it within minutes of the deploy;
+  `/api/pitches` `unanswered.count` 0 and `result.repliesWaiting.count` 0), then close the issue (`gh issue close <n>
+  --repo astrojams1/app-sites --comment answered`). An automatic reply the classifier missed raises it too: record it
+  as `auto`, then close the issue.
 - **`next --runner cloud` reads the hour** (or `--pass full|midday|reply`). In a pass it lists only items an earlier
   run deferred or failed today, then the pass's own work. `log` refuses any other item in a pass, and the pass's `end`
   answers only for that list. The Mac pass is always a full run.
