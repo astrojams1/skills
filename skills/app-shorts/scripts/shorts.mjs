@@ -31,7 +31,7 @@
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
 //                                                  scheduled ones to hold (app not on sale), held ones to re-check, and
 //                                                  public ones missing the pinned comment or Related video (followUp)
-//   node shorts.mjs mark <episode> [--pinned COMMENT_ID] [--related VIDEO_ID] [--tiktok URL]   record a comment pinned,
+//   node shorts.mjs mark <episode> [--pinned COMMENT_ID] [--related VIDEO_ID] [--tiktok URL | --tiktok-skip WHY]   record a comment pinned,
 //                                                  a Related video set in Studio, or the Short's TikTok cross-post
 //                                                  (guidelines.md, "After it is public")
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
@@ -304,14 +304,17 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
 // `mark` records the pin and the Related video set in Studio.
 export function followUpMissing(e) {
   if (e.kind === 'walkthrough') return [];
-  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video', !e.tiktok?.url && 'tiktok'].filter(Boolean);
+  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video',
+    // tiktok.skip names why a Short stays off TikTok (a duplicate upload, a stale launch date): `mark --tiktok-skip WHY`.
+    !e.tiktok?.url && !e.tiktok?.skip && 'tiktok'].filter(Boolean);
 }
 
 // Records what was done by hand in Studio or on the Short's page: the comment pinned, the Related video set.
-export function mark(registry, id, { pinned = null, related = null, tiktok = null, now = new Date() } = {}) {
+export function mark(registry, id, { pinned = null, related = null, tiktok = null, tiktokSkip = null, now = new Date() } = {}) {
   const e = registry.episodes.find(x => x.id === id);
   if (!e) throw new Error(`No episode "${id}" in the registry`);
-  if (!pinned && !related && !tiktok) throw new Error('Nothing to mark: pass --pinned COMMENT_ID, --related VIDEO_ID and/or --tiktok URL');
+  if (!pinned && !related && !tiktok && !tiktokSkip) throw new Error('Nothing to mark: pass --pinned COMMENT_ID, --related VIDEO_ID, --tiktok URL or --tiktok-skip WHY');
+  if (tiktokSkip) e.tiktok = { skip: String(tiktokSkip), at: new Date(now).toISOString() };
   if (tiktok && !/^https:\/\/www\.tiktok\.com\/@[\w.]+\/video\/\d+/.test(tiktok)) throw new Error(`--tiktok takes the post's URL (https://www.tiktok.com/@account/video/ID), not "${tiktok}"`);
   const at = new Date(now).toISOString();
   if (pinned) {
@@ -535,7 +538,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
   const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
   const claimApp = option('--app', null), music = option('--music', null);
-  const pinned = option('--pinned', null), related = option('--related', null), tiktok = option('--tiktok', null);
+  const pinned = option('--pinned', null), related = option('--related', null), tiktok = option('--tiktok', null), tiktokSkip = option('--tiktok-skip', null);
   if (args.includes('--publish-at')) { console.error('Shorts are never scheduled: a finished Short that passes check goes public now'); process.exit(2); }
   const [command, ...rest] = args;
   const writes = ['sync', 'record', 'claim', 'mark'].includes(command) || (command === 'rules' && checklistFile && episodeId);
@@ -552,7 +555,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
       const result = record(registry, episode, { profile: profileFor(profiles, app), checkRules }); save(path, registry); print(result); break;
     }
-    case 'mark': { const result = mark(registry, rest[0], { pinned, related, tiktok, now }); save(path, registry); print(result); break; }
+    case 'mark': { const result = mark(registry, rest[0], { pinned, related, tiktok, tiktokSkip, now }); save(path, registry); print(result); break; }
     case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, now }); save(path, registry); print(result); break; }
     case 'check': {
       const results = check(registry, { profiles, now });

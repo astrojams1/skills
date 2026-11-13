@@ -400,6 +400,7 @@ test('due lists public Shorts missing the comment, the pin or the Related video,
   mark(registry, 'b1', { tiktok: 'https://www.tiktok.com/@astrojams/video/7500000000000000001', now });
   assert.equal(registry.episodes[0].tiktok.id, '7500000000000000001');
   assert.deepEqual(followUpMissing(registry.episodes[0]), []);
+  assert.deepEqual(followUpMissing({ id: 'dup', status: 'live', videoId: 'V9', comment: { id: 'c', pinnedAt: 'x' }, relatedVideo: { videoId: 'V1' }, tiktok: { skip: 'duplicate of V1' } }), []);
   assert.equal(due(registry, { now }).followUp.length, 0);
   mark(registry, 'b1', { related: 'V3', now });
   assert.equal(registry.episodes[0].relatedVideo.was, 'V2');

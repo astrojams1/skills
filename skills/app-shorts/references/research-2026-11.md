@@ -186,7 +186,8 @@ these; App Store Connect's campaign token (`ct`) on (b) and (c) is how we will s
   fact: YouTube Help, "Upload YouTube Shorts" (https://support.google.com/youtube/answer/15424877). So a walkthrough
   meant to carry a clickable App Store link is rendered 16:9; 60 to 120 seconds keeps it short enough to hold.
 - **Check the class after upload:** `https://www.youtube.com/shorts/<id>` answers 200 for a Short and redirects (303)
-  to `/watch?v=<id>` for a regular video. Our own check (2026-11-13), used on each walkthrough.
+  to `/watch?v=<id>` for a regular video. Our own check (2026-11-13), used on each walkthrough. A Short fresh from
+  upload answers 303 too until YouTube has processed it (lob-cut-02: 303 at once, 200 a few minutes later).
 
 ## 11. TikTok (added 2026-11-13, for cross-posting the Shorts)
 

@@ -99,6 +99,11 @@ no TikTok post (`followUp` … `tiktok`). Chrome on the Mac is signed in to TikT
    settings. Post, then copy the post's URL from the profile and run `shorts.mjs mark <episode> --tiktok <url>`.
 5. No daily cap (guideline 31): post every public Short as soon as it is ready, best YouTube performers first.
 
+A Short made before the masters were kept is downloaded in Studio (the video's page, ⋮ by Save → Download; Chrome
+saves it to `~/Downloads`, so move it to `/Volumes/ssd/projects/app-shorts/legacy-downloads/` the same minute; the
+2026-11-13 files were 720x1280). Look at it first: an identical re-upload of a Short already on TikTok, or a
+pre-launch clip with a past date, stays off TikTok with `shorts.mjs mark <episode> --tiktok-skip "why"`.
+
 If TikTok shows a sign-in page, a puzzle, a phone or identity check, stop TikTok work and report what it showed.
 
 ## Through YouTube Studio in Chrome (only if the API is down)
