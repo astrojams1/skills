@@ -114,9 +114,9 @@ lists every public Short still missing a step under "After it is public".
 30. **The AI-generated label only where TikTok requires it:** realistic AI-generated or significantly edited scenes
     or people. A real app recording with drawn captions or a drawn phone takes none. _Platform fact (Community
     Guidelines, Integrity and Authenticity)._
-31. **At most four TikTok posts a day while the account is new;** the rest go up on the following days, best
-    performers first. _Secondhand: TikTok's long-standing suggestion of 1 to 4 a day; TikTok publishes no cap.
-    Status: untested._
+31. **No daily cap on TikTok:** post each Short the run it is public, as fast as uploads go through. _Owner's rule
+    for Shorts (2026-11-12): "post as soon as ready, no daily cap". TikTok publishes no posting limit (its API names
+    an unstated per-user daily cap, `spam_risk_too_many_posts`); if TikTok refuses a post, stop and report it._
 32. **Never sign in, pass a puzzle, phone or identity check, or change the TikTok account's settings** (Business
     account, bio, website); stop TikTok work and report what the page showed. _The owner's coordinator (2026-11-13)._
 

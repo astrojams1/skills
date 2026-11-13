@@ -304,7 +304,9 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
 // `mark` records the pin and the Related video set in Studio.
 export function followUpMissing(e) {
   if (e.kind === 'walkthrough') return [];
-  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video', !e.tiktok?.url && 'tiktok'].filter(Boolean);
+  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video',
+    // TikTok gets the rendered master, never a YouTube download, so a Short with no master on file is not listed.
+    !e.tiktok?.url && e.file && 'tiktok'].filter(Boolean);
 }
 
 // Records what was done by hand in Studio or on the Short's page: the comment pinned, the Related video set.

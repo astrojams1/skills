@@ -97,7 +97,7 @@ no TikTok post (`followUp` … `tiktok`). Chrome on the Mac is signed in to TikT
    Typing `#` opens a suggestion list; finish the word with a space.
 4. Leave the AI-generated content setting off for a real app recording (guideline 30). Do not change account
    settings. Post, then copy the post's URL from the profile and run `shorts.mjs mark <episode> --tiktok <url>`.
-5. At most four a day while the account is new (guideline 31); best YouTube performers first.
+5. No daily cap (guideline 31): post every public Short as soon as it is ready, best YouTube performers first.
 
 If TikTok shows a sign-in page, a puzzle, a phone or identity check, stop TikTok work and report what it showed.
 

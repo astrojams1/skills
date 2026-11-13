@@ -386,8 +386,9 @@ test('the guidelines "Make it" section is on every rules pack, and "After it is 
 test('due lists public Shorts missing the comment, the pin or the Related video, and mark records them', () => {
   const registry = emptyRegistry();
   registry.apps.biz = { name: 'Biz' };
-  registry.episodes.push({ id: 'b1', app: 'biz', status: 'live', videoId: 'V1', postedAt: '2026-11-12T00:00:00Z', metrics: [] });
+  registry.episodes.push({ id: 'b1', app: 'biz', status: 'live', videoId: 'V1', postedAt: '2026-11-12T00:00:00Z', metrics: [], file: '/masters/b1.mp4' });
   const now = new Date('2026-11-13T00:00:00Z');
+  assert.deepEqual(followUpMissing({ id: 'old', status: 'live', videoId: 'V0' }), ['comment', 'pin', 'related video']);
   assert.deepEqual(due(registry, { now }).followUp, [{ episode: 'b1', app: 'biz', videoId: 'V1', missing: ['comment', 'pin', 'related video', 'tiktok'] }]);
   registry.episodes[0].comment = { id: 'C1', text: 't', at: now.toISOString() };
   assert.throws(() => mark(registry, 'b1', { pinned: 'C2', now }), /recorded comment is C1/);
