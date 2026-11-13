@@ -48,6 +48,7 @@ import { ON_CHANNEL, views } from '../../app-shorts/scripts/shorts.mjs';
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
 export const STAGES = ['prelaunch', 'live'];
+export const PLATFORMS = ['ios', 'web']; // absent means an App Store app
 export const RUNNERS = ['cloud', 'mac'];
 const REQUIRED = ['v', 'ts', 'run_id', 'skill', 'agent', 'event', 'status'];
 // The only reasons a run may leave something open (James, 2026-11-10: a run fixes every issue it finds). `owner` is a
@@ -142,8 +143,15 @@ export function profileProblems(profile, name = profile.id) {
   if (profile.stage && !STAGES.includes(profile.stage)) problems.push(`${name}: unknown stage ${profile.stage}`);
   // The phrase every Short gives (app-shorts reads it): checked on the App Store's own search by the daily
   // `search-phrase` item. rank is where the store listed the app for it (null: not found that day).
+  // A web product (platform "web") lives at webUrl, not on the App Store: no search phrase, no store items. It is
+  // judged on visits and plays (the pitch link's visit counter), so it needs the https address people open.
+  if (profile.platform !== undefined && !PLATFORMS.includes(profile.platform)) problems.push(`${name}: platform must be one of ${PLATFORMS.join(', ')}`);
+  if (profile.platform === 'web') {
+    if (!/^https:\/\/\S+$/.test(profile.webUrl || '')) problems.push(`${name}: a web product needs webUrl, the https address people open`);
+    if (profile.appStoreId) problems.push(`${name}: a web product has no appStoreId; drop platform "web" once it is on the App Store`);
+  }
   const sp = profile.searchPhrase;
-  if (profile.stage === 'live' && !(sp && typeof sp.phrase === 'string' && sp.phrase.trim() && !Number.isNaN(Date.parse(sp.checked)))) {
+  if (profile.stage === 'live' && profile.platform !== 'web' && !(sp && typeof sp.phrase === 'string' && sp.phrase.trim() && !Number.isNaN(Date.parse(sp.checked)))) {
     problems.push(`${name}: searchPhrase needs { phrase, rank, checked }: the phrase the App Store's search lists the app for, and the date it was checked`);
   }
   const seen = new Set();
