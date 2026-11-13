@@ -152,7 +152,8 @@ export function findability(episode, { profile = null, app = null } = {}) {
   }
   const first = (episode.description ?? '').split('\n')[0].toLowerCase();
   if (episode.description && !first.includes(phrase.toLowerCase())) out.push(`${episode.id}: the description's first line must give the search phrase "${phrase}"`);
-  else if (episode.description && wanted && !wanted.rank && !first.includes('app store')) out.push(`${episode.id}: no phrase finds the app yet, so the description's first line must say "${phrase}" is on the App Store`);
+  // A web product (platform "web") ends on its own address and is never on the App Store.
+  else if (episode.description && wanted && !wanted.rank && profile?.platform !== 'web' && !first.includes('app store')) out.push(`${episode.id}: no phrase finds the app yet, so the description's first line must say "${phrase}" is on the App Store`);
   return out;
 }
 export const findable = (episode, context) => findability(episode, context)[0] ?? null;
