@@ -113,6 +113,11 @@ One JSON object per line, appended, never edited. Every line has `type`, `ts` an
 
 ## Each run, for every app's `pitches` item
 
+A cloud midday or reply pass ([Three cloud runs a day](../SKILL.md#three-cloud-runs-a-day)) does steps 1 and 2 as
+`all/pitch-replies`; a midday pass also does steps 5 and 6 as `all/pitch-top-up` while today's first pitches are under
+the daily target. Each logs one action with app `all`, counts per app as `evidence`. Steps 3, 4 and 7 are the full
+run's.
+
 1. **Read.** `node $R/marketing.mjs pitches --replies --write`. Fix each `refused` or `failed` pitch it names: the
    error says what failed. A `refused` pitch broke a rule: write a corrected one under a new id that `replaces` it. A `failed` one hit a
    passing error, and the site tries it again after 15 minutes, five tries in all. If it failed for good (its page
