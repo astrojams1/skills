@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics, siteDays, siteVerdict, decommission } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -278,4 +278,22 @@ test('Vegas Microworks Shorts are judged on site visits and leads, with the same
   assert.equal(result.retired.standing.vmw.basis, 'site visits and leads');
   assert.deepEqual(result.retired.apps.map(r => r.app), ['vmw']);
   assert.deepEqual(decommission([], { apps: {} }, { ...rules.decommission, windowHours: 72 }).apps, []);
+});
+
+test('commentRequest builds the channel\'s first comment and refuses links, blanks and long text', () => {
+  assert.deepEqual(commentRequest('V1', " Search 'Space Worms' on the App Store. "), { snippet: { videoId: 'V1', topLevelComment: { snippet: { textOriginal: "Search 'Space Worms' on the App Store." } } } });
+  assert.throws(() => commentRequest('V1', 'Get it https://apps.apple.com/app/id1'), /no links/);
+  assert.throws(() => commentRequest('V1', 'www.example.com'), /no links/);
+  assert.throws(() => commentRequest('V1', ' '), /--text/);
+  assert.throws(() => commentRequest('V1', 'x'.repeat(501)), /500/);
+  assert.throws(() => commentRequest(null, 'hi'), /videoId/);
+});
+
+test('updatedSnippet replaces tags when given and caps them; tags compare as a set', () => {
+  const snippet = { title: 'T', categoryId: '28', description: 'd', tags: ['a'] };
+  assert.deepEqual(updatedSnippet(snippet, { tags: ['x', 'y'] }).tags, ['x', 'y']);
+  assert.deepEqual(updatedSnippet(snippet, {}).tags, ['a']);
+  assert.throws(() => updatedSnippet(snippet, { tags: Array.from({ length: 16 }, (_, i) => `t${i}`) }), /at most 15/);
+  assert.ok(sameTags(['Füd', 'fud'], ['fud', 'füd']));
+  assert.ok(!sameTags(['a'], ['a', 'b']));
 });

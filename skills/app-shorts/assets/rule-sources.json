@@ -5,6 +5,11 @@
       "file": "SKILL.md",
       "section": "Rules",
       "title": "Every Short (app-shorts rules)"
+    },
+    {
+      "file": "references/guidelines.md",
+      "section": "Make it",
+      "title": "The Shorts guidelines (references/guidelines.md, \"Make it\"; each line names its source)"
     }
   ],
   "apps": {

@@ -2,7 +2,7 @@
 name: youtube-growth
 description: Follow up on every Short the owner posts and grow the channel: read metrics at 3, 7 and 28 days, judge each Short on the App Store downloads in its first 72 hours (site visits and leads for Vegas Microworks), retire an app or format after 3 no-effect Shorts in a row, decide per format whether to double down, iterate or retire, make a scheduled Short public now, turn comments into episodes, and stay clear of YouTube's spam and inauthentic-content policies. Use when the owner asks how the Shorts or the channel are doing, how to get more views or subscribers, or about YouTube analytics; when app-shorts' `due` lists reads or go-lives; weekly for the channel review; and to connect the YouTube APIs.
 metadata:
-  version: "1.10.0"
+  version: "1.11.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -48,9 +48,9 @@ Repository rules and approval holds outrank this skill.
 2. **Read the numbers.** Record the source and time of every snapshot.
    - **With the API connected** (`node $G/yt-api.mjs check` says `works`): run `node $G/yt-api.mjs pull`. Then, for
      the same Shorts, read **"viewed vs. swiped away"** and "Shown in feed" from Studio
-     (Analytics → the Short → Overview) when a browser is already signed in to it. No API has them. Add the first
-     as `viewedRate` to the snapshot. If no browser is signed in, leave it out: `evaluate.mjs` works without it, and
-     it is not an open item.
+     (Analytics → the Short → Overview) in Chrome, which is signed in to Studio (2026-11-13). No API has them. Add
+     the first as `viewedRate` to the snapshot; the experiments in `app-shorts` read it. If Chrome shows a sign-in
+     page, never sign in: leave it out; `evaluate.mjs` works without it, and it is not an open item.
    - **Without the API,** read everything from Studio (`references/api.md`, "Without the API").
    - **Downloads** need no step here: `app-marketing` writes them to its metrics each day, and `evaluate.mjs` reads them.
 3. **Decide.** Run `node $G/evaluate.mjs`. It reports the baseline, cut-offs, notes, a download verdict per Short
@@ -74,15 +74,18 @@ Repository rules and approval holds outrank this skill.
      `dueAt` says when a Short still in its window will be judged. Vegas Microworks is judged on site visits and
      leads, read from `/Volumes/ssd/projects/app-shorts/site-metrics.jsonl` (`site-visits` rows); with none there,
      its verdicts say so.
-4. **Work the comments.** Run `node $G/yt-api.mjs comments --video <id>`, or read them in Studio.
+4. **Work the comments.** Every public Short has the channel's pinned first comment and a Related video
+   (`app-shorts` guidelines 22 and 23); do any that `shorts.mjs due` lists under `followUp`. Then run
+   `node $G/yt-api.mjs comments --video <id>`, or read them in Studio.
    - A real question, or a meal or level request, becomes an `idea` episode quoting
      it ("You asked: …"). YouTube's "Reply with a Short" exists for exactly this.
    - `yt-api.mjs unanswered` lists what is open. `reply --parent <id> --text "..." --confirm`
      answers one: 300 characters, no links, one reply per thread.
    - **Keep replies brief and factual,** in the owner's voice, with no private data. Skip spam and arguments.
-5. **Run one experiment at a time.** Test & Compare does not work on Shorts, so test in sequence. Change one thing
-   (hook wording, length, posting hour, cover) across the next 3–5 episodes of one format. Log the hypothesis, the
-   change and the result in this ledger. Never test by posting near-duplicates.
+5. **Run the experiments** in `app-shorts/ledger/experiments.md`. Test & Compare does not work on Shorts, so each
+   experiment changes one thing across Shorts that are due anyway, and each Short sits in one arm of one experiment.
+   On an experiment's verdict date, write its result there and edit the guideline it tests
+   (`app-shorts/references/guidelines.md`) in the same run. Never test by posting near-duplicates.
 6. **Review the week** (or when the owner asks). Run `evaluate.mjs` plus `shorts.mjs status` and `plan`. Report per
    app: what posted, what it did against the channel median, what is next. Lead with decisions, not tables.
 7. **Log** the snapshots in the registry, the activity ledger entry, and any experiment or lesson here.
@@ -122,8 +125,8 @@ When a scheduled pass runs this skill (the weekly review, or the `app-marketing`
 
 - **Analytics lag 48–72 hours.** A day-1 read is a sanity check of public counts only.
 - **Every Short is "not made for kids"** (owner's rule); "made for kids" would turn comments off.
-- **Pinning a comment and a Related video are not operable (2026-11-12).** No API sets them, and Studio needs the
-  owner's sign-in. The loop does not use them; never log them as skipped or open.
+- **Pinning and Related video have no API** (2026-11-13). They are done in Chrome, signed in to Studio, and recorded
+  with `shorts.mjs mark`.
 - **A pulled or held Short is not a Short.** Its views stay out of every total (`shorts.mjs views`), and a pulled
   one does not stop an app from getting a new one. A held one waits for its app to go on sale.
 

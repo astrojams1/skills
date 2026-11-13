@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { retiredFromShorts, roster, sync, record, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard } from '../../skills/app-shorts/scripts/shorts.mjs';
+import { retiredFromShorts, roster, sync, record, due, link, status, emptyRegistry, findable, findability, onSale, titleNamesApp, views, searchRank, phrase, section, rules, ruleItems, checklistTemplate, checklistProblems, attachChecklist, claimMusic, check, endCard, mark, followUpMissing } from '../../skills/app-shorts/scripts/shorts.mjs';
 
 test('roster reads app-release configs and prefers a main checkout over its worktrees', () => {
   const code = mkdtempSync(join(tmpdir(), 'shorts-code-'));
@@ -370,4 +370,32 @@ test('an app retired from Shorts has no next due date until a later return is re
   assert.equal(retiredFromShorts(registry.apps.fud), true);
   registry.apps.fud.shortsReturn = { at: '2026-11-24T00:00:00Z', why: 'version 2.0 shipped' };
   assert.equal(status(registry, { now: new Date('2026-11-25T00:00:00Z') })[0].nextDue, 'now');
+});
+
+test('ruleItems reads numbered guidelines with their continuation lines', () => {
+  const items = ruleItems('## Make it\n\n### First\n\n1. **Open on the payoff.** No title card.\n   _Common practice. Status: testing (E3)._\n2. **Loop it.**\n');
+  assert.deepEqual(items, ['**Open on the payoff.** No title card. _Common practice. Status: testing (E3)._', '**Loop it.**']);
+});
+
+test('the guidelines "Make it" section is on every rules pack, and "After it is public" is not', () => {
+  const r = rules('vegas-microworks');
+  assert.match(r.text, /Open on the payoff, already moving/);
+  assert.doesNotMatch(r.text, /Post the channel's first comment and pin it/);
+});
+
+test('due lists public Shorts missing the comment, the pin or the Related video, and mark records them', () => {
+  const registry = emptyRegistry();
+  registry.apps.biz = { name: 'Biz' };
+  registry.episodes.push({ id: 'b1', app: 'biz', status: 'live', videoId: 'V1', postedAt: '2026-11-12T00:00:00Z', metrics: [] });
+  const now = new Date('2026-11-13T00:00:00Z');
+  assert.deepEqual(due(registry, { now }).followUp, [{ episode: 'b1', app: 'biz', videoId: 'V1', missing: ['comment', 'pin', 'related video'] }]);
+  registry.episodes[0].comment = { id: 'C1', text: 't', at: now.toISOString() };
+  assert.throws(() => mark(registry, 'b1', { pinned: 'C2', now }), /recorded comment is C1/);
+  assert.throws(() => mark(registry, 'b1', { related: 'V1', now }), /its own/);
+  assert.throws(() => mark(registry, 'b1', { now }), /Nothing to mark/);
+  mark(registry, 'b1', { pinned: 'C1', related: 'V2', now });
+  assert.deepEqual(followUpMissing(registry.episodes[0]), []);
+  assert.equal(due(registry, { now }).followUp.length, 0);
+  mark(registry, 'b1', { related: 'V3', now });
+  assert.equal(registry.episodes[0].relatedVideo.was, 'V2');
 });

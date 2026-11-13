@@ -97,6 +97,7 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions and lessons
   app-shorts/
     SKILL.md                               # Make and post YouTube Shorts series for every app the owner ships, public at once
+    references/guidelines.md               # The one-page Shorts guidelines, each with its source and test status (research-2026-11.md is the evidence)
     references/{formats,recording,posting,coordination}.md   # Series shapes per app; the real-app recording rig; Studio and API posting; release, App Store and website links
     scripts/shorts.mjs                     # Registry: roster, calendar, due reads, attributed links, search phrase, views per app, rules pack and checklist, music claims, pre-publish check (Node 22, no deps)
     assets/rule-sources.json               # Where each app's or business's written rules live, for the reviewer pack
@@ -105,7 +106,7 @@ skills/                                    # Skill definitions (Agent Skills spe
   youtube-growth/
     SKILL.md                               # Read each Short's metrics, judge its downloads, retire what does not work
     references/{api,metrics,policy}.md     # API setup and limits; what each metric means and the evidence; YouTube policy risks for a templated pipeline
-    scripts/{yt-api,evaluate}.mjs          # OAuth, analytics, comments, metadata updates; decisions from snapshots and App Store downloads (Node 22, no deps)
+    scripts/{yt-api,evaluate}.mjs          # OAuth, analytics, comments (the channel's first comment), metadata and tag updates; decisions from snapshots and App Store downloads (Node 22, no deps)
     assets/rules.json                      # Decision thresholds, each with its source
     ledger/LEDGER.md                       # Versions, experiments and lessons
   youtube-shorts/

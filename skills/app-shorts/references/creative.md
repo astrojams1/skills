@@ -52,7 +52,7 @@ Write it in the episode folder (`plan.md`) before recording. Short and specific:
 | Colour | a palette chosen for this Short; app colours, the opposite, monochrome, one accent |
 | Sound | music arranged from scratch in a genre chosen for this Short, the app's own sounds as the score, foley, a voice, silence and one hit |
 | Structure | hook → payoff, countdown, loop, escalation, reveal at the end, two halves, cold open |
-| Length | 6 s loop, 12 s, 20 s, up to 45 s when the story needs it |
+| Length | 7 to 15 s by default (`guidelines.md` 3); a 6 s loop; longer only when the story needs it |
 
 ## The bar
 
@@ -86,9 +86,6 @@ necessary but not enough.
 standing rule, which the 2026-11-12 slot-machine Short broke. Read each business's own marketing skill rules before
 the plan.
 
-**No pricing lines** in a Short, its cover, title or description ("first one free", "pay once per…"). The
-store page carries the price.
-
 ## Sound
 
 Score each Short from scratch. Never reuse another Short's bed.
@@ -116,7 +113,7 @@ Check every mix: `ffmpeg -i cut.mp4 -af ebur128=peak=true -f null -` (about -14 
 - **Contrast is not taste.** A caption's every word reaches 4.5:1 against what is behind it. An accent word in the
   app's brand colour over a background of the same hue fails, as Füd's purple "count?" on lavender did. Put text on
   a solid or shadowed ground when the picture behind it moves.
-- Give each line enough time to read: about 0.3 s per word, never under 1 s.
+- How many words and how long each line holds: `guidelines.md` 10 to 12.
 
 ## Watching it
 

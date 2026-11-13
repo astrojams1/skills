@@ -37,7 +37,7 @@ numbers. Each line below is a starting point, not a script.
 ## Rules
 
 - **Only for apps on sale.** A seed for an app not on sale waits; there is no "coming soon" format.
-- **One idea per Short, 10–20 seconds**, with the hook on screen in the first second.
+- **One idea per Short,** at the length and with the opening in `guidelines.md` 2 to 6.
 - **Show what the product can do.** Staged, scripted and edited footage is fine; a feature it doesn't have is not.
 - **Vary the input, keep the shape:** that is what makes a series rather than "repetitious content" (see
   `youtube-growth/references/policy.md`).
