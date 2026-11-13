@@ -73,6 +73,39 @@ description and keeps the old one in the registry as `wasDescription`.
 
 All three need Chrome signed in to the channel; it was on 2026-11-13. Never sign in.
 
+## The walkthrough per app (the Related video's target)
+
+Each app gets one regular video (guideline 23): 16:9 so YouTube does not class it as a Short (a Short is up to 3
+minutes and square or vertical), 60 to 120 s of the real app, plain captions beside a phone, and a description whose
+first line is the attributed store link (`shorts.mjs link <app> yt-walkthrough-01`), then the search phrase, then
+what the app is. Record it with `kind: "walkthrough"` (`record` checks the link and phrase instead of the Shorts
+first line, and `due` asks no comment or Related video of it). After upload, `https://www.youtube.com/shorts/<id>`
+must redirect (303) to `/watch`: that is the proof it is a regular video. Then set it as the Related video on every
+public Short of the app and `mark --related` each one. First made 2026-11-13: Newsworthy `pC0acfD0ZPc`.
+
+## TikTok cross-post (the same run; guidelines 29 to 32)
+
+Every Short made public on YouTube goes to TikTok in the same run, and `shorts.mjs due` lists any public Short with
+no TikTok post (`followUp` … `tiktok`). Chrome on the Mac is signed in to TikTok as `astrojams` (2026-11-13).
+
+1. Copy the rendered master (the episode's `file`, never a download from YouTube) into the session scratchpad;
+   `file_upload` refuses other paths and takes at most 10 MB.
+2. In your own Chrome tab, open `https://www.tiktok.com/tiktokstudio/upload`, `find` the hidden `input[type=file]`
+   and `file_upload` the MP4.
+3. Caption (at most 2,200 characters; links do not click): the hook line, then where to get it in words ("Search
+   'Space Worms' on the App Store", or the address for a web product), then three hashtags led by the product's own.
+   Typing `#` opens a suggestion list; finish the word with a space.
+4. Leave the AI-generated content setting off for a real app recording (guideline 30). Do not change account
+   settings. Post, then copy the post's URL from the profile and run `shorts.mjs mark <episode> --tiktok <url>`.
+5. No daily cap (guideline 31): post every public Short as soon as it is ready, best YouTube performers first.
+
+A Short made before the masters were kept is downloaded in Studio (the video's page, ⋮ by Save → Download; Chrome
+saves it to `~/Downloads`, so move it to `/Volumes/ssd/projects/app-shorts/legacy-downloads/` the same minute; the
+2026-11-13 files were 720x1280). Look at it first: an identical re-upload of a Short already on TikTok, or a
+pre-launch clip with a past date, stays off TikTok with `shorts.mjs mark <episode> --tiktok-skip "why"`.
+
+If TikTok shows a sign-in page, a puzzle, a phone or identity check, stop TikTok work and report what it showed.
+
 ## Through YouTube Studio in Chrome (only if the API is down)
 
 The built-in browser cannot attach files; use Claude in Chrome (`file_upload`). Use it only in a browser that is

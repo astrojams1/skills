@@ -140,6 +140,14 @@ All four public at once on 2026-11-13; each ends on its page's address, never an
 Panel notes across all four: "stops the scroll" scored 4 to 7 of 10; open on the payoff already lit, avoid slide-like cards, and a long address is hard to remember (end on a short path such as `/software`).
 
 
+## The walkthrough pass of 2026-11-13 (app-shorts-walkthroughs-20261113T1714Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-13 | newsworthy-walkthrough-01 (pC0acfD0ZPc), regular 16:9 video, 61 s | the live reader in an iPhone frame: score, sentence, a sped-up scroll of the week, timeline off, dark mode; end card with the store icon | the first walkthrough, Related video of all 8 Newsworthy Shorts (E2, guideline 23) | warm paper gradient, phone left, SF captions right | Apple Loops 07 Chillwave: Landing in LA Synth 01/02, Bass 01, Minimal Backbeat 01 (C minor, 120 bpm) | |
+| 2026-11-13 | space-worms-walkthrough-01 (VTNJ81gLQvo), regular 16:9 video, 70 s | the lobby, a tap on Play offline, one offline round vs 160 computer worms on Full self driving; enlarged "You" row and kill feed beside the phone | Related video of both Space Worms Shorts (E2, guideline 23) | navy radial gradient, phone left, white captions right | Apple Loops 09 Disco Funk: Boogie Right Beat 01/02, Slap Bass 01, Funk Guitar 01, Synth Lead 01 (116 bpm) | |
+| 2026-11-13 | lob-cut-02 (fDEMazEVG8k), 7.0 s | cold open on the shockwave over the ring, a 2-frame flash, the game's "Sister Odile destroyed" card, end card | E5 arm A (7 to 10 s) vs lob-rings-01 (17 s); E2 arm A (comment pinned and Related video lob-rings-01 within the hour); TikTok 7707762080639765774 (E6) | full-width game on #061015 bands, Futura Condensed ExtraBold caps on dark plates, amber accent | Apple Loops 03 Dubstep: Armament Beat 01/02, Rising Synth Effects 02, Huge Matrix Chord Synth (140 bpm) | |
+
 ## Experiments that change the guidelines (set 2026-11-13)
 
 Each experiment changes one thing, using Shorts that are due anyway; each new Short sits in one arm of one
@@ -157,6 +165,7 @@ week, once; then call it inconclusive and leave the guideline untested.
 | E3 | Open on the payoff, already moving (4) | the next three Vegas Microworks Shorts open on the tool's result already lit and moving at frame 0 | the twelve Vegas Microworks Shorts public on 2026-11-12/13, which open on a calm, static frame (panel: "stops the scroll" 3 to 7) | viewedRate first; then avg % viewed, site visits in 72 h | 2026-11-27 | |
 | E4 | Loop ending (6) | the next Short of Data Center, Importron and Newsworthy ends on a frame that cuts seamlessly into its first | dc-first-01b (N4OVQ7qiO6E), importron-calm-v5c (jIXBfd1UzH0), newsworthy-today-rated-01b (fUif0yqsz80), which end on an end card | avg % viewed (over 100 % means rewatches), avg view duration, verdicts | 2026-11-27 | |
 | E5 | Length 7 to 10 s (3) | lob-cut-02: a new 8 to 10 s cut of a different moment from the existing lob-rings-01 take (the hit on Sister Odile, cold-opened), plus the next Space Worms Short at 7 to 10 s | lob-rings-01 (cA7wBs5P_Gs, 17 s); the channel's 14 to 17 s Shorts | avg % viewed, 7-day views, site visits (LOB) | 2026-11-27 | |
+| E6 | TikTok cross-post (29) | every public Short of a cleared product, posted to TikTok (`astrojams`) from its master from 2026-11-13, best YouTube performers first, no daily cap | the same Short on YouTube | views at 72 hours on each platform (TikTok post analytics vs `yt-api.mjs pull`), then App Store search or site visits in the 72 hours after the TikTok post | 2026-11-27 | |
 
 **Queued for the next Shorts stage (one render at a time; never in parallel with another render).**
 
