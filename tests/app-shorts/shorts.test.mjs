@@ -269,6 +269,8 @@ test('a Short ends on the profile phrase: a search line when the store finds the
   const dc = extra => ({ id: 'd1', app: 'd', status: 'scheduled', title: 'Data Center: AI Frontier | 9 protesters', searchPhrase: 'Data Center: AI Frontier', ...extra });
   assert.equal(findable(dc({ description: 'Data Center: AI Frontier, on the App Store.' }), { profile: missing }), null);
   assert.match(findable(dc({ description: 'Data Center: AI Frontier is a game.' }), { profile: missing }), /is on the App Store/);
+  const web = { id: 'lob', name: 'LOB', stage: 'live', platform: 'web', searchPhrase: { phrase: 'lob-game.vercel.app', rank: null, checked: '2026-11-13' } };
+  assert.equal(findable({ id: 'l1', app: 'lob', status: 'live', title: 'LOB artillery game', searchPhrase: 'lob-game.vercel.app', description: 'LOB, in your browser: open lob-game.vercel.app.' }, { profile: web }), null);
   assert.equal(endCard('Importron health', 1), "Search 'Importron health' on the App Store.");
   assert.equal(endCard('Hanzi Cards: Learn Mandarin', null), 'Hanzi Cards: Learn Mandarin, on the App Store.');
 });

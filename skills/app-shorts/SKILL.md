@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.11.0"
+  version: "2.11.1"
   ledger: ledger/LEDGER.md
 ---
 
