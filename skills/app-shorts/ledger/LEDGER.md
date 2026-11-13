@@ -77,4 +77,8 @@ app's repository; each run in the owner's activity ledger.
 - 2026-11-13: The October Newsworthy Shorts, the only ones the owner says sold the app, had empty descriptions on
   YouTube; `yt-api.mjs update` refused a description-only fix because their old titles fail the 40-character rule.
   A description-only update now keeps the old title.
+- 2026-11-13: E1 and E5 both name "the next Space Worms Short" (E5 at 7 to 10 s), while the file says each new Short
+  sits in one arm of one experiment. sw-e1-01 was kept at 11 s so it is only in E1; E5's Space Worms arm needs its own
+  Short. The same clash exists for Newsworthy between E4 and any other arm.
+- 2026-11-13: `thumbnails.set` returned 403 on a fresh Short (sw-e1-01); its cover stays YouTube's pick.
 
