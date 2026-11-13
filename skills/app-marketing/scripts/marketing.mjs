@@ -42,6 +42,9 @@
 //   node marketing.mjs site-visits --sql | --rows FILE [--app ID] [--out PATH] [--write]   a business site's visits
 //                                                   and form leads per day (rows from the Neon connector's run_sql of
 //                                                   --sql) as one `site-visits` row in app-shorts' site-metrics.jsonl
+//   node marketing.mjs recurring [--family F] [--lines] [--unmapped] [--json]   every problem family: days seen, first
+//                                                   and last date, status (FIXED, PENDING, REOPENED, STANDING,
+//                                                   RECURRING, seen); --unmapped lists problem lines in no family
 //   node marketing.mjs board                        regenerate marketing/LEDGER.md and marketing/show-hn.txt
 //   node marketing.mjs mirror                       Mac only: copy new events into the shared activity ledger
 //
@@ -57,6 +60,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ON_CHANNEL, views } from '../../app-shorts/scripts/shorts.mjs';
+import { SKILLS_ROOT, familyProblems, gitLandings, loadFamilies, logProblems, printRecurring, recurring, unmapped } from './problems.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
@@ -108,6 +112,12 @@ const FIX_RULE_FROM = Date.parse('2026-11-11T00:00:00Z');
 const AUTONOMY_FROM = Date.parse('2026-11-12T18:00:00Z');
 // An end event that says work was left undone without a blocker, in the words runs have used.
 const UNDONE = /\bnot (?:yet )?(?:reached|done|attempted|blocked)\b|\bthe next run (?:makes|does|will)\b|\bran out of time\b/i;
+// From 2026-11-13T21:00Z (problem families work-left-undone and waits-on-owner, both seen again after their fixes): an
+// end that says work was not built, made, written or sent in this run, or left for a later run, is refused like "not
+// reached"; and no line of any kind waits on the owner's go-ahead or OK or names blocked_by owner.
+const UNDONE_MORE = /\bnot (?:built|made|written|sent|shipped|finished)\b[^.;]{0,40}\b(?:in this run|this run|today)\b|\bleft for (?:the next|a later|another) run\b|\bnext run (?:finishes|picks (?:it|them) up)\b/i;
+const GO_AHEAD = /\bgo-?ahead\b|\bowner'?s? (?:OK|approval|sign-?off)\b|\bwaits? (?:for|on) the owner\b/i;
+const MORE_FROM = Date.parse('2026-11-13T21:00:00Z');
 const MAX_LINE = 16 * 1024;
 // Text that must never reach a committed ledger: private keys, 1Password service tokens, bearer tokens, API secrets.
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY|ops_[A-Za-z0-9_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{20,}|\bsk-[A-Za-z0-9_-]{20,}|\bghp_[A-Za-z0-9]{20,}/;
@@ -144,7 +154,13 @@ export function leftOpenProblems(event) {
       if (autonomous && o?.blocked_by === 'owner') problems.push(`left_open ${i + 1} waits on the owner: drop it and route around it (James, 2026-11-12)`);
       else if (!o || !o.issue || !allowed.includes(o.blocked_by) || !o.needs) problems.push(`left_open ${i + 1} needs issue, blocked_by (${allowed.join(', ')}) and needs (what unblocks it)`);
     });
-    if (autonomous && UNDONE.test([event.operation, event.next, event.reason].filter(Boolean).join(' '))) problems.push('end says work was left undone without a blocker: do it, or log each item deferred with blocked_by');
+    const said = [event.operation, event.next, event.reason].filter(Boolean).join(' ');
+    if ((autonomous && UNDONE.test(said)) || (Date.parse(event.ts) >= MORE_FROM && UNDONE_MORE.test(said))) problems.push('end says work was left undone without a blocker: do it, or log each item deferred with blocked_by');
+  }
+  if (Date.parse(event.ts) >= MORE_FROM && !event.dropped) {
+    if (event.event !== 'action' && event.blocked_by === 'owner') problems.push('nothing waits on the owner since 2026-11-12: drop owner-only work and route around it, on findings too');
+    if (event.event === 'finding' && ['deferred', 'failed'].includes(event.status) && !BLOCKERS.filter(b => b !== 'owner').includes(event.blocked_by)) problems.push(`a ${event.status} finding needs blocked_by (${BLOCKERS.filter(b => b !== 'owner').join(', ')}) and a reason, or it is fixed in this run`);
+    if (GO_AHEAD.test([event.operation, event.reason, event.next].filter(Boolean).join(' '))) problems.push("no step waits on the owner's go-ahead or OK (James, 2026-11-12: the skills decide): do it now, or drop it and route around it");
   }
   return problems;
 }
@@ -233,6 +249,12 @@ export function profileProblems(profile, name = profile.id) {
     }
   }
   problems.push(...ideaProblems(profile, name));
+  // Only live products get work (James, 2026-11-12), and that covers what is already built: an experiment for a product
+  // not live is retired (problem family not-live-product-marketed: the Giraffe Stretch leaf-letters page shipped after
+  // the rule because nothing checked what was already up).
+  if (profile.stage && profile.stage !== 'live') for (const x of profile.experiments || []) {
+    if ((x.verdicts || []).at(-1)?.verdict !== 'retire') problems.push(`${name}: experiments/${x.id} is for a product not live (stage ${profile.stage}): take its page down and give it a retire verdict`);
+  }
   if (profile.hackerNews !== undefined) {
     const hn = profile.hackerNews;
     if (!/^https:\/\//.test(hn.url || '')) problems.push(`${name}: hackerNews.url must be an https URL`);
@@ -427,9 +449,21 @@ export const ownerOptions = profile => (profile.ideas || []).filter(i => i.needs
 // Only a live product gets work (James, 2026-11-12: "we need to market everything", clarified "every app/service that
 // is live, i mean"): a profile whose `stage` is not `live` lists no item, invent and judge items included.
 // A midday or reply pass (`pass`, cloud only) lists only items deferred or failed earlier today, then its own work.
-export function rank(profiles, events, { runner, now = Date.now(), registry, pass = 'full', run_id } = {}) {
+// missingProfiles: apps live on the App Store (either site's store.json) with no marketing profile. Every released app
+// on both teams runs a full campaign (the owner, 2026-11-06), and a profile written a day late cost Importron, Hanzi
+// Cards and Data Center a day of items and of Apple numbers (problem family live-app-without-profile).
+export function missingProfiles(profiles, storeApps) {
+  const known = new Set(profiles.map(p => String(p.appStoreId || '')));
+  return storeApps.filter(a => a.status === 'available' && !known.has(String(a.id)));
+}
+
+export function rank(profiles, events, { runner, now = Date.now(), registry, pass = 'full', run_id, storeApps = [] } = {}) {
   const items = [];
   const passing = runner === 'cloud' && pass !== 'full';
+  if (!passing && (!runner || runner === 'cloud')) for (const a of missingProfiles(profiles, storeApps)) {
+    if (run_id && events.some(e => e.event === 'action' && e.run_id === run_id && e.app === 'all' && e.item === `profile-${a.id}`)) continue;
+    items.push({ app: 'all', id: `profile-${a.id}`, title: `Write the marketing profile for ${a.name} (live on the App Store, ${a.site} site, id${a.id}), then its baseline on the Mac`, channel: 'strategy', runner: 'cloud', score: 100, how: 'SKILL.md, "One strategy per app": write marketing/apps/<id>.json; check validates it' });
+  }
   for (const profile of profiles) {
     if (profile.stage !== 'live') continue;
     const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
@@ -603,6 +637,14 @@ function loadJsonl(path, label) {
   return existsSync(path) ? parseLines(readFileSync(path, 'utf8'), label) : { records: [], problems: [] };
 }
 const loadEvents = root => loadJsonl(join(dirOf(root), 'ledger.jsonl'), 'ledger').records;
+// Both sites' store.json (refreshed by app-sites' store-sync), as one list of { site, id, name, status }.
+export function loadStoreApps(root) {
+  return ['astrojams', 'ouro'].flatMap(site => {
+    const file = join(root, 'sites', site, 'src/data/store.json');
+    if (!existsSync(file)) return [];
+    return Object.entries(JSON.parse(readFileSync(file, 'utf8')).apps || {}).map(([id, a]) => ({ site, id, name: a.name, status: a.status }));
+  });
+}
 const loadMetrics = root => loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records;
 const loadPitchQueue = root => loadJsonl(join(dirOf(root), 'pitches.jsonl'), 'pitches');
 // Untagged agent test loads the visit counter could not tell apart, recorded by the run that made them (append-only).
@@ -631,14 +673,14 @@ export const runnerOf = event => event.runner || /^mkt-(cloud|mac)-/.exec(event.
 
 // endProblems refuses an end that leaves due work undone: every item `next` still lists for the runner was neither
 // done nor logged with an allowed blocker in this run (James, 2026-11-10 and 2026-11-12).
-export function endProblems(event, profiles, events, { now = Date.now(), registry } = {}) {
+export function endProblems(event, profiles, events, { now = Date.now(), registry, storeApps = [] } = {}) {
   if (event.event !== 'end' || Date.parse(event.ts) < AUTONOMY_FROM) return [];
   const runner = runnerOf(event);
   if (!runner) return [];
   // The Mac pass ends twice: its core stage (mkt-mac-...) before Shorts are made, and the Shorts stage
   // (mkt-mac-shorts-...), so a slow or failed Short never holds up the rest. Each answers for its own items.
   const shortsStage = /^mkt-mac-shorts-/.test(event.run_id || '');
-  const due = rank(profiles, events, { runner, now, registry, pass: passOf(event), run_id: event.run_id })
+  const due = rank(profiles, events, { runner, now, registry, pass: passOf(event), run_id: event.run_id, storeApps })
     .filter(i => runner !== 'mac' || (i.channel === 'youtube-shorts') === shortsStage);
   return due.length ? [`end leaves ${due.length} due ${runner} item(s) undone: ${due.map(i => `${i.app}/${i.id}`).join(', ')}. Do each, or log it as an action with blocked_by`] : [];
 }
@@ -660,7 +702,7 @@ export function passProblems(event, profiles, events, { now = Date.now(), regist
 export function appendEvent(root, input, { registry } = {}) {
   const event = { v: 1, ts: new Date().toISOString(), skill: 'app-marketing', ...input };
   const problems = eventProblems(event);
-  if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
+  if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry, storeApps: loadStoreApps(root) }));
   // check refuses an app with no profile, so log refuses it first; name another business in targets instead.
   const known = event.app && event.app !== 'all' ? loadProfiles(root).find(p => p.id === event.app) : null;
   if (event.app && event.app !== 'all' && !known) problems.push(`unknown app ${event.app} (no marketing profile; name it in targets)`);
@@ -668,6 +710,10 @@ export function appendEvent(root, input, { registry } = {}) {
   // gets nothing until its profile's stage is live.
   if (known && known.stage !== 'live' && event.event === 'action' && event.item) problems.push(`${event.app} is not live (stage ${known.stage}): no marketing work until it is`);
   problems.push(...passProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
+  // A correction must name an earlier line, as check requires; log refuses what check would later fail.
+  if (event.corrects && !loadEvents(root).some(e => e.run_id === event.run_id && e.event === event.event && e.ts === event.corrects)) problems.push(`corrects names no earlier ${event.event} of ${event.run_id} at ${event.corrects}`);
+  // Repeating problems (SKILL.md): the family key, valid closing lines, and no recurring family met and left as it was.
+  problems.push(...logProblems(event, loadEvents(root), loadFamilies(), { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_ROOT, 'app-sites': root }) }));
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -696,6 +742,9 @@ async function cmdCheck(root) {
   ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i)) eventProblems(e).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)); });
   const ids = new Set(profiles.map(p => p.id));
   ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i) && e.app && e.app !== 'all' && !ids.has(e.app)) problems.push(`ledger line ${i + 1}: unknown app ${e.app}`); });
+  const families = loadFamilies();
+  problems.push(...familyProblems(families));
+  ledger.records.forEach((e, i) => { if (!corrected.fixed.has(i)) logProblems(e, ledger.records.slice(0, i), families).forEach(p => problems.push(`ledger line ${i + 1}: ${p}`)); });
   const metrics = loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics');
   problems.push(...metrics.problems);
   metrics.records.forEach((m, i) => { if (!m.at || !m.app || !m.source) problems.push(`metrics line ${i + 1}: needs at, app and source`); });
@@ -735,7 +784,7 @@ function cmdStatus(root, args) {
 function cmdNext(root, args) {
   if (args.pass !== undefined && !PASSES.includes(args.pass)) throw new Error(`--pass must be one of ${PASSES.join(', ')}`);
   const pass = args.runner === 'cloud' ? args.pass || cloudPass() : 'full';
-  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args), pass, run_id: args.run }).slice(0, Number(args.limit) || Infinity);
+  const items = rank(loadProfiles(root), loadEvents(root), { runner: args.runner, registry: loadRegistry(args), pass, run_id: args.run, storeApps: loadStoreApps(root) }).slice(0, Number(args.limit) || Infinity);
   if (args.json) return console.log(JSON.stringify(items, null, 2));
   if (args.runner === 'cloud') console.log(`pass: ${pass} (Pacific hour ${pacificHour()}; run id mkt-cloud-${pass === 'full' ? '' : pass + '-'}<UTC timestamp>)`);
   items.forEach(i => console.log(`${String(i.score).padStart(6)}  ${i.app}/${i.id} [${i.runner}, ${i.channel}]  ${i.title}`));
@@ -1569,6 +1618,23 @@ export function showHnFile(profiles, events, now = Date.now()) {
     `booked: ${booked.length ? booked.sort().join(', ') : 'none'}`, ''].join('\n');
 }
 
+// recurring: every problem family, its days, first and last date and status (SKILL.md "Repeating problems").
+function cmdRecurring(root, args) {
+  const events = loadEvents(root), families = loadFamilies();
+  if (args.unmapped) {
+    const rows = unmapped(events, families);
+    if (args.json) return console.log(JSON.stringify(rows, null, 2));
+    console.log(`Problem lines in no family: ${rows.length}`);
+    for (const r of rows) console.log(`  ${r.day} line ${r.line} ${r.app ? r.app + ' ' : ''}${r.text.slice(0, 150)}`);
+    return;
+  }
+  let rows = recurring(events, families, { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_ROOT, 'app-sites': root }) });
+  if (args.family) rows = rows.filter(r => r.family === args.family);
+  if (args.json) return console.log(JSON.stringify(rows, null, 2));
+  printRecurring(rows, { lines: !!args.lines });
+  console.log(`Problem lines in no family: ${unmapped(events, families).length} (recurring --unmapped lists them)`);
+}
+
 function cmdBoard(root, args) {
   const profiles = loadProfiles(root), events = loadEvents(root);
   writeFileSync(join(dirOf(root), 'LEDGER.md'), renderBoard(profiles, events, loadMetrics(root), loadRegistry(args)));
@@ -1616,7 +1682,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), recurring: () => cmdRecurring(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();

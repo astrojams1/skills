@@ -1,0 +1,496 @@
+{
+  "_about": [
+    "Problem families for app marketing (SKILL.md 'Repeating problems'). A ledger line that records a problem names its family in `problem` (from 2026-11-13T21:00Z, `marketing.mjs log` refuses one that does not). Older lines are mapped by `text`: case-insensitive patterns searched in a line's operation, reason, next and left_open; a line matching `not_text` is not this family's.",
+    "`history`: days the merged pull requests show the family, as 'YYYY-MM-DD <repo>#N: what', read from every PR in astrojams1/skills and astrojams1/app-sites on 2026-11-13. They count as days seen, never as a sighting after a fix.",
+    "`cause`: the root cause, from every line of the family. `fix`: the change that removes it, or the owner's step for a STANDING family. `marketing.mjs recurring` judges each family from the ledger and git.",
+    "`expected`: lines that record an outside wait or a decision, not a fault. They are not counted as problems; `recurring --unmapped` counts them apart."
+  ],
+  "families": [
+    {
+      "key": "downloads-double-counted",
+      "title": "Apple download totals counted a report instance or a date more than once",
+      "text": [
+        "counted report instances twice",
+        "double-?count",
+        "repeated in a later report instance"
+      ],
+      "history": [
+        "2026-11-07 skills#147: an instance re-counted on every pull, Newsworthy 3 to 5",
+        "2026-11-12 skills#194: dates repeated across instances, Space Worms 22 (true 13)",
+        "2026-11-12 app-sites#48: recount appended corrected totals"
+      ],
+      "cause": "Apple's daily report instances repeat the last two or three dates and the newest replaces them; pull first re-read whole instances (1.4.1 fixed that), then added every instance's rows, so a date counted two or three times",
+      "fix": "skills#194 (1.14.0): pull keeps each date once from the newest instance, pull --recount re-reads, and check fails a total that disagrees with its unique days"
+    },
+    {
+      "key": "visits-miscounted",
+      "title": "Site and page visits missing, incomplete or inflated by agent test loads",
+      "text": [
+        "site visits not read yet",
+        "test loads? (?:subtracted|out)",
+        "lines overstated",
+        "go-live test loads",
+        "no web analytics",
+        "Web Analytics is off"
+      ],
+      "history": [
+        "2026-11-13 skills#221: no visit numbers at all (Vercel Analytics off)",
+        "2026-11-13 skills#222: products with no visit got no line",
+        "2026-11-13 skills#227: 8 untagged agent test loads counted",
+        "2026-11-13 skills#231: experiment pages not counted per page"
+      ],
+      "cause": "the first-party counter counted every load: an agent verifying a page in headless Chromium was counted as a real visitor unless someone tagged the URL or wrote the load into visits-excluded.jsonl by hand, and the read first left out products and pages with no line",
+      "fix": "skills#222, skills#227 and skills#231: every product and experiment page gets a line, and agent loads are tagged or written to visits-excluded.jsonl and subtracted; app-sites also stops the beacon in any browser driven by automation (navigator.webdriver)"
+    },
+    {
+      "key": "downloads-not-attributable",
+      "title": "A download cannot be tied to the channel that brought it",
+      "text": [
+        "campaign[- ]token",
+        "campaign links? (?:are )?dropped",
+        "provider token",
+        "pt= link",
+        "no download (?:has been )?traced",
+        "has no counter",
+        "Maker uses cannot be counted",
+        "App Store Connect.{0,60}not signed in"
+      ],
+      "history": [
+        "2026-11-09 app-sites#28: campaign token deferred, App Store Connect not signed in",
+        "2026-11-12 skills#194: no API access to the campaign token",
+        "2026-11-12 skills#197: no download attributable to app-marketing",
+        "2026-11-13 skills#221: visit tags count site visits only"
+      ],
+      "cause": "App Store campaign links need the provider token (pt=), which App Store Connect shows only to a signed-in user and no API key can read, so storeLink adds no pt= or ct= and every download is known only by Apple's source type (search, browse, web referrer); two web products have no visit counter",
+      "fix": "owner only: read the two provider tokens once in App Store Connect; every store link the sites emit then carries pt= and a per-placement ct= (catalog.ts storeLink), checked by the app-sites tests",
+      "not_text": [
+        "campaign-token from 20",
+        "Budget of",
+        "Passed over space-worms/campaign-token"
+      ]
+    },
+    {
+      "key": "not-live-product-marketed",
+      "title": "Work done for a product not on sale or taken out of marketing",
+      "text": [
+        "not on sale",
+        "not yet live.{0,40}(?:Short|guide|page|pitch)",
+        "Coming soon viewer",
+        "did four items for Giraffe",
+        "should not be marketing",
+        "heldUntilLive"
+      ],
+      "history": [
+        "2026-11-12 skills#198: Giraffe Stretch coming-soon Shorts made and scheduled",
+        "2026-11-12 app-sites#58: Giraffe Stretch Short held",
+        "2026-11-13 skills#232: 4 Giraffe Stretch items done",
+        "2026-11-13 app-sites#104: Giraffe Stretch leaf-letters experiment page shipped",
+        "2026-11-13 app-sites#111: World Sim, Clawgree, Eggaduppa, Universe of Sound taken out; 38 unsent firsts dropped"
+      ],
+      "cause": "the stage gate was added channel by channel (Shorts in skills#198, items in skills#232, email in app-sites#111) and nothing checked what was already built, so an experiment page and experiment entries stayed live for products that are not, and the sender treated an app with no profile (Pipsqueak) as live",
+      "fix": "the sender treats an app with no profile as not cleared; check fails an experiment on a non-live profile without a retire verdict; the Giraffe Stretch leaf-letters page is taken down and the out-of-marketing experiments are retired"
+    },
+    {
+      "key": "shorts-metadata-missing",
+      "title": "A Short went up without its pinned comment, Related video, tags, a right title or description",
+      "text": [
+        "(?:comment|prompt)s?.{0,30}(?:not|cannot be) pinned",
+        "Pinned comment (?:not set|is not possible)",
+        "API cannot pin",
+        "no API for pinn",
+        "Comment pinning skipped",
+        "pinning is skipped"
+      ],
+      "history": [
+        "2026-11-12 skills#189: made-for-kids flag not always set",
+        "2026-11-12 skills#193: descriptions without the search phrase; pinning judged not operable",
+        "2026-11-12 skills#202: titles hid the app name past 40 characters",
+        "2026-11-13 skills#226: LOB description said App Store",
+        "2026-11-13 skills#237: 28 Shorts lacked tags, pinned comments and Related videos"
+      ],
+      "cause": "the YouTube Data API cannot pin a comment or set a Related video, so runs skipped both as 'not operable' although the Mac's Chrome is signed in to YouTube Studio, and nothing checked a public Short's fields",
+      "fix": "skills#237: comment and Related video set on every Short through Studio on the Mac, and shorts.mjs due lists any public Short missing a pinned comment or Related video"
+    },
+    {
+      "key": "shorts-search-phrase",
+      "title": "A Short sends viewers to a search that does not find the app first",
+      "text": [
+        "search that buried them",
+        "does not list (?:it|the app) in its first",
+        "not yet (?:listed|ranked)",
+        "finds other games",
+        "search page does not list"
+      ],
+      "history": [
+        "2026-11-12 skills#193: descriptions lacked the search phrase",
+        "2026-11-13 app-sites#108: LOB phrase found other games"
+      ],
+      "cause": "Shorts links do not click, so a Short gives a search phrase, and the phrase was written without checking what the store or web search returns for it",
+      "fix": "skills#194 records a checked searchPhrase in every profile and a daily search-phrase item; skills#226 ends a web product's Short on its address"
+    },
+    {
+      "key": "shorts-quality-rejected",
+      "title": "Shorts made, then failed review or were pulled by the owner",
+      "text": [
+        "reviewer failed it",
+        "Independent review FAIL",
+        "Known shortfall in"
+      ],
+      "history": [
+        "2026-11-12 skills#174: 9 template Shorts pulled",
+        "2026-11-12 skills#176: owner rejected remakes that passed every check",
+        "2026-11-12 skills#184: owner rejected 5 scheduled remakes",
+        "2026-11-12 skills#210: a reviewer invented a rule"
+      ],
+      "cause": "makers and panels judged Shorts against rules written from habit rather than from the research and the owner's verdicts",
+      "fix": "skills#237: one-page Shorts guidelines from research, each with its source and test status, that makers and panels check against"
+    },
+    {
+      "key": "shorts-recording-unattended",
+      "title": "A Short could not be recorded because the simulator refuses a scheduled session",
+      "text": [
+        "Simulator (?:tool )?(?:refus|driving needs)",
+        "simulator (?:rig|takes need|recording also needs)",
+        "needs an attended session",
+        "blocked in this scheduled pass by the same refusal"
+      ],
+      "history": [
+        "2026-11-10 skills#161: the iOS Simulator tool refused the scheduled session; fallbacks added"
+      ],
+      "cause": "the iOS Simulator tool refuses scheduled sessions, and native apps had no other way to drive the app for a take",
+      "fix": "skills#161: recording.md's 'When the Simulator tool refuses' route: the app's own XCTest UI test (ShortsTakes) or its web build drives the take, so no step needs the Simulator tool (Füd's test merged in wendigo124/FSRN_Subs#185)"
+    },
+    {
+      "key": "cloud-cannot-read-apple",
+      "title": "The cloud run reports that it cannot read Apple's download numbers",
+      "text": [
+        "Downloads (?:are )?not readable from the cloud",
+        "No Apple download data in the cloud",
+        "no new Apple numbers in the cloud"
+      ],
+      "cause": "Apple's analytics key is in 1Password, which only the Mac reaches; the Mac already pulls the numbers into metrics.jsonl, but the cloud's measure step said so each morning instead of reading them",
+      "fix": "SKILL.md Measure: the cloud reads the Mac's newest downloads lines from metrics.jsonl with their date and never logs that it cannot read Apple"
+    },
+    {
+      "key": "session-permission-refused",
+      "title": "An unattended session's permission check refused a send, a push or a scheduled task",
+      "text": [
+        "permission (?:system|check|policy) (?:refused|denied)",
+        "refused by this session's permission",
+        "permission check denied",
+        "permission policy refused"
+      ],
+      "history": [
+        "2026-11-12 skills#191: Vegas Microworks task had no permission mode and sat 48 minutes",
+        "2026-11-12 skills#195: the Show HN task stalled the same way",
+        "2026-11-12 skills#200: the cloud refused the call that sends pitches"
+      ],
+      "cause": "unattended sessions refuse acts their safety check classes as real-world (sending mail, pushing to a repository not attached with push access, creating a task), and separate scheduled tasks without a permission mode stall on their first prompt",
+      "fix": "skills#200: a merge starts the app-sites Pitches workflow, which sends, so no run calls the sender; skills#195 runs the side jobs inside the Mac pass; a repository is attached with push access before a push"
+    },
+    {
+      "key": "cloud-github-token",
+      "title": "The cloud has no GitHub token, so a read of the pitch sender or visit counter answered 401",
+      "text": [
+        "answered 401 \\(no GitHub token",
+        "no GH_TOKEN"
+      ],
+      "history": [
+        "2026-11-12 skills#200: pitches got 401 without a token"
+      ],
+      "cause": "the sender's detail and the counter accepted only a GitHub token as proof of access, and cloud runs have none",
+      "fix": "skills#200: the caller proves access with the deployed queue's digest from its own clone"
+    },
+    {
+      "key": "appstore-search-429",
+      "title": "App Store search pages rate-limited a check",
+      "text": [
+        "some rate-limited",
+        "crashed on the first App Store 429",
+        "429.{0,20}App Store search"
+      ],
+      "history": [
+        "2026-11-12 skills#202: shorts.mjs phrase crashed on an App Store 429",
+        "2026-11-13 skills#215: after a 429 phrase fell back to a weaker phrase"
+      ],
+      "cause": "Apple's search page answers 429 to quick repeat reads, and phrase first crashed, then took the next phrase as an answer",
+      "fix": "skills#215: phrase waits out a 429 or 503 and never treats a refused read as a result"
+    },
+    {
+      "key": "helper-overload",
+      "title": "Too many helpers at once on the Mac",
+      "text": [
+        "eleven on the Mac",
+        "subagents alive at once"
+      ],
+      "history": [
+        "2026-11-13 skills#227: about 11 subagents and 4 renders at once"
+      ],
+      "cause": "two-deep helpers multiply: a carried job's makers and their review panels each started their own",
+      "fix": "skills#227: at most three subagents alive at once, nested ones included, and one heavy job"
+    },
+    {
+      "key": "experiment-no-verdict-date",
+      "title": "An experiment without a measure, a judge date or a verdict",
+      "text": [
+        "no per-page measure",
+        "judge date.{0,30}(?:missing|none)"
+      ],
+      "history": [
+        "2026-11-12 skills#209: listing tests queued for an unknown next version",
+        "2026-11-13 skills#219: Invent makes every experiment carry a measure and judge date",
+        "2026-11-13 skills#231: experiment pages had no per-page measure"
+      ],
+      "cause": "experiments were shipped as pages without a dated judgement, so nothing came due",
+      "fix": "skills#219: check refuses an experiment without shipped and judge dates and next lists judge-<id> when it is due; skills#231 measures each page"
+    },
+    {
+      "key": "ledger-check-gap",
+      "title": "log took a line that check then failed, or a correction could not clear a wrong line",
+      "text": [
+        "itemState reads every event",
+        "marked press-page done",
+        "log took an event",
+        "correction could not clear",
+        "lacked left_open"
+      ],
+      "history": [
+        "2026-11-05 skills#133: a finding wrongly finished an item",
+        "2026-11-12 skills#204: an end missing left_open could not be corrected",
+        "2026-11-13 skills#223: log took an unknown app that check failed"
+      ],
+      "cause": "log and check applied different rules, so log accepted lines check later failed (an unknown app, a correction naming no line) and the build broke",
+      "fix": "log runs every per-line rule check runs, the correction rule and the problem-family rules included, so a line log takes passes check"
+    },
+    {
+      "key": "work-left-undone",
+      "title": "A run left known work undone: a budget, a throttle or 'not reached'",
+      "text": [
+        "Budget of (?:two|three)",
+        "budget of two items",
+        "Passed over",
+        "Not reached this run",
+        "were not built in this run",
+        "one guide a week",
+        "Stale throttle",
+        "needs a UI-test or simulator recording route"
+      ],
+      "history": [
+        "2026-11-08 skills#158: runs capped at 2 or 3 items",
+        "2026-11-10 skills#161: a stale prompt cap held the Mac pass to 3 items",
+        "2026-11-10 skills#162: hidden throttles",
+        "2026-11-12 skills#194: end refused while work remains"
+      ],
+      "cause": "runs treated a budget in a prompt, a throttle in a file or the end of the session as a reason to stop, and the end check knew only the words 'not reached'",
+      "fix": "end refuses any undone-work wording (not built, not made, not written, not sent, left for the next run) without a blocker, as well as 'not reached'"
+    },
+    {
+      "key": "stale-skill-copies",
+      "title": "A task prompt or a discovery copy of a skill fell behind the skill",
+      "text": [
+        "stale prompt",
+        "prompt still carried",
+        "copy stuck at"
+      ],
+      "history": [
+        "2026-11-08 skills#159: the routine prompt restated the skill",
+        "2026-11-10 skills#161: the Mac pass prompt kept a cap",
+        "2026-11-12 skills#191: a task read a copy stuck at 1.0.0",
+        "2026-11-12 skills#206: pitches.md discovery copy stale",
+        "2026-11-13 skills#233: .claude and .agents copies behind #224 to #232"
+      ],
+      "cause": "the repository's .claude/skills and .agents/skills copies are refreshed by hand with manage.sh link, and nothing failed when a skill changed without them",
+      "fix": "a test fails when a discovery copy differs from its skill, so every skill change ships its copies"
+    },
+    {
+      "key": "waits-on-owner",
+      "title": "A run waited on the owner's go-ahead, sign-in or OK",
+      "text": [
+        "go-ahead",
+        "owner OK",
+        "owner'?s? (?:OK|approval)",
+        "holds store listing changes for the owner",
+        "blocked_by.{0,5}owner",
+        "The owner claims each",
+        "Allow this routine to push"
+      ],
+      "not_text": [
+        "^No nomination: the owner dropped it",
+        "go-ahead is no longer needed"
+      ],
+      "history": [
+        "2026-11-07 skills#142: Nametag Shorts parked for a go-ahead",
+        "2026-11-07 skills#145: a draft PR asked the owner about keywords",
+        "2026-11-12 skills#197: a postal address asked for again",
+        "2026-11-12 skills#194: the autonomy rule"
+      ],
+      "cause": "the owner-only check in log applied only to action lines and left_open, so a finding could still be left deferred on the owner or stage a change for his go-ahead",
+      "fix": "log refuses blocked_by owner and go-ahead wording on any line after 2026-11-12 18:00Z; owner-only work is dropped and routed around"
+    },
+    {
+      "key": "featuring-no-dated-update",
+      "title": "A featuring nomination deferred day after day because no dated update exists",
+      "text": [
+        "No nomination",
+        "nominat.{0,60}(?:release date|dated update|three weeks)"
+      ],
+      "not_text": [
+        "owner dropped it"
+      ],
+      "cause": "the featuring item came due by the calendar, so each Mac pass found no dated update and logged a deferral; nothing to nominate is not a blocker",
+      "fix": "the featuring items' how: with no version in preparation dated 21 or more days out, log ok 'no dated update to nominate'; the item comes back daily"
+    },
+    {
+      "key": "live-app-without-profile",
+      "title": "An app went live and had no marketing profile for a day or more",
+      "text": [
+        "found live .{0,40}with no profile",
+        "had no marketing profiles",
+        "previously untracked"
+      ],
+      "history": [
+        "2026-11-12 app-sites#44: Hanzi Cards and Data Center live with no profiles"
+      ],
+      "cause": "profiles were written only when a run happened to compare store.json with marketing/apps, so a new app waited a day for its profile and its Apple analytics request, and its first numbers came later still",
+      "fix": "next lists <app>/profile for every live store.json app with no profile, on the cloud runner, the day it goes live"
+    },
+    {
+      "key": "mailbox-rate-limit",
+      "title": "Gmail limited or refused the owner's mailbox",
+      "text": [
+        "User-rate limit exceeded",
+        "Mail sending\\)",
+        "mailbox ceiling"
+      ],
+      "history": [
+        "2026-11-12 app-sites#54: no Gmail limit handling",
+        "2026-11-12 app-sites#64: bursts of 13 to 21 a minute",
+        "2026-11-12 app-sites#66: Vegas Microworks mail missing from the ceiling",
+        "2026-11-13 app-sites#78: a rate error answered 500",
+        "2026-11-13 app-sites#115: 429 Mail sending at 549 sent in 24 hours"
+      ],
+      "cause": "the sender counted only its own cold mail on a calendar day while the mailbox also sent replies, other senders' mail and Vegas Microworks mail, so Gmail's rolling limit was reached",
+      "fix": "app-sites#115: one rolling 24-hour budget read from Gmail's own sent count, and a stand-down until Gmail's retry time on a 429 Mail sending"
+    },
+    {
+      "key": "pitch-unsent",
+      "title": "Merged pitches not sent, or a send stuck",
+      "text": [
+        "merged pitches not yet sent",
+        "could not trigger (?:the )?send",
+        "stuck in .?sending",
+        "nothing has been sent yet"
+      ],
+      "history": [
+        "2026-11-12 app-sites#54: only 17 of 22 sent",
+        "2026-11-12 app-sites#56: a stuck sending row"
+      ],
+      "cause": "sending depended on a run calling the sender, which the cloud refused, and a send cut off mid-way stayed in sending",
+      "fix": "app-sites#54: a merge starts the Pitches workflow, which sends; app-sites#56: a send stuck ten minutes is retried"
+    },
+    {
+      "key": "source-page-refused",
+      "title": "A pitch's source page refused the sender (bot challenge), so the pitch failed",
+      "text": [
+        "bot challenge",
+        "Cloudflare challenge",
+        "refused the sender",
+        "source page answered 403"
+      ],
+      "history": [
+        "2026-11-12 app-sites#54: 3 fetch failures, a Cloudflare 403",
+        "2026-11-12 app-sites#57: a replacement page hit the same challenge",
+        "2026-11-13 app-sites#74: a bot challenge, dropped"
+      ],
+      "cause": "pitches were queued citing source pages behind bot challenges; the sender rightly never passes one, and nothing checked the page before the merge",
+      "fix": "pitches-preflight fetches every new unsent pitch's source page as the sender does before the merge, and the run replaces or drops one that is refused"
+    },
+    {
+      "key": "reply-misclassified",
+      "title": "A pitch reply missed, or an automatic reply counted as a person",
+      "text": [
+        "automatic reply the classifier missed",
+        "auto-?acknowledg",
+        "canned mail"
+      ],
+      "history": [
+        "2026-11-12 app-sites#61: replies in a new conversation never seen",
+        "2026-11-13 app-sites#76: an auto-acknowledgement recorded by hand",
+        "2026-11-13 app-sites#82: the first 4 replies were canned mail"
+      ],
+      "cause": "reply search followed only the pitch's own thread, and every answer counted as a human reply",
+      "fix": "app-sites#61 searches replies by sender; app-sites#82 classifies automatic replies (autoKind) and relabels them"
+    },
+    {
+      "key": "replies-unanswered",
+      "title": "A human reply to a pitch waited unanswered",
+      "text": [
+        "replies should be ultra prioritized",
+        "repl(?:y|ies).{0,30}unanswered a run later"
+      ],
+      "history": [
+        "2026-11-13 skills#239: replies held behind a 20-email buffer",
+        "2026-11-13 app-sites#115: only 20 reserved for replies"
+      ],
+      "cause": "answers waited for the next scheduled run and behind the cold-mail ceiling",
+      "fix": "app-sites#117 and skills#239: replies are never held by the ceiling, the workflow opens a Reply waiting issue that starts a reply pass at any hour"
+    },
+    {
+      "key": "pitch-bounces",
+      "title": "A first pitch bounced",
+      "text": [
+        "\\bbounced?\\b.{0,30}(?:pitch|address)"
+      ],
+      "history": [
+        "2026-11-12 app-sites#59: 1 bounce",
+        "2026-11-12 app-sites#64: 1 bounce",
+        "2026-11-13 app-sites#83: bounces at 3"
+      ],
+      "cause": "published addresses that no longer take mail: 5 of 175 first emails, 3 of them a named person's address on a publication page and 2 role addresses at sites whose page still shows them",
+      "fix": "app-sites#67 and app-sites#78 refuse placeholders, typos, domains with no MX and sources that bounced; still open: the 2026-11-13 bounces came after them"
+    },
+    {
+      "key": "gmail-labels-no-scope",
+      "title": "Sent pitches are not labelled because the Gmail token lacks gmail.modify",
+      "text": [
+        "labels.{0,20}no-scope",
+        "lacks gmail\\.modify"
+      ],
+      "history": [
+        "2026-11-13 app-sites#100: labels ship as no-scope"
+      ],
+      "cause": "the mailbox's Gmail token lacked gmail.modify when labelling shipped (app-sites#100), so labelling answered no-scope; the scope was granted later the same day outside the repository",
+      "fix": "app-sites#100 labels with the mailbox's own token; the Pitches run at 2026-11-13T20:14Z reads labels ok, labelFailed 0"
+    },
+    {
+      "key": "connector-down",
+      "title": "A connector failed during a run",
+      "text": [
+        "connector (?:failed|down|errors)",
+        "Neon connector"
+      ],
+      "not_text": [
+        "after the Neon connector recovered"
+      ],
+      "history": [
+        "2026-11-13 app-sites#98: Neon connector down in the morning"
+      ],
+      "cause": "the Neon connector answered server errors for about two hours on 2026-11-13, an outage on its side",
+      "fix": "the next run of the day reads it (it recovered at 15:33Z the same day); no change needed while it stays one day"
+    }
+  ],
+  "expected": [
+    {
+      "text": "first report takes a day or two|Download numbers arrive from Apple in a day or two|no (?:Apple )?search-(?:source|term) (?:numbers|data) yet",
+      "why": "Apple starts analytics reports a day or two after the request and has no data before it: an outside wait with its own retry date, not a fault"
+    },
+    {
+      "text": "^Show HN (?:booked|not posted today)",
+      "why": "the owner's 2026-11-07 rule: a Show HN goes up only while his calendar shows him free to answer"
+    },
+    {
+      "text": "^No nomination: the owner dropped it|^Not built: a link inside the game is a change to the app itself|^Dropped\\. The live 1\\.0\\.1 product page",
+      "why": "a decision recorded once (the owner's, or the Never rules), not a fault"
+    }
+  ]
+}

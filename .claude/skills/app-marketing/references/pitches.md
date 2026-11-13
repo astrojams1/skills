@@ -119,6 +119,12 @@ One JSON object per line, appended, never edited. Every line has `type`, `ts` an
 
 ## Each run, for every app's `pitches` item
 
+Answers go first (James, 2026-11-13: "No, replies should be ultra prioritized, not a 20 email buffer"): the sender sends
+a `reply` line before any follow-up or first email, never holds it for the mailbox ceiling or pace, and runs replies-only
+around the clock; only a live Gmail 429 delays one (`repliesWaiting`). A `Reply waiting` issue in `astrojams1/app-sites`
+starts a reply pass at any hour ([SKILL.md](../SKILL.md#three-cloud-runs-a-day)); the pass closes it once every reply
+is answered and sent.
+
 A cloud midday or reply pass ([Three cloud runs a day](../SKILL.md#three-cloud-runs-a-day)) does steps 1 and 2 as
 `all/pitch-replies`; a midday pass also does steps 5 and 6 as `all/pitch-top-up` while today's first pitches are under
 the daily target. Each logs one action with app `all`, counts per app as `evidence`. Steps 3, 4 and 7 are the full
