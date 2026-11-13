@@ -389,9 +389,12 @@ export const ownerOptions = profile => (profile.ideas || []).filter(i => i.needs
 // rank orders the open items across apps by expected downloads per unit of work. Each app's `weight` is its share of
 // attention, and an app that was worked on recently waits behind one that was not, so no app starves.
 // A channel the kill rule stopped for an app gets no more work there (SKILL.md, Learn).
+// Only a live product gets work (James, 2026-11-12: "we need to market everything", clarified "every app/service that
+// is live, i mean"): a profile whose `stage` is not `live` lists no item, invent and judge items included.
 export function rank(profiles, events, { runner, now = Date.now(), registry } = {}) {
   const items = [];
   for (const profile of profiles) {
+    if (profile.stage !== 'live') continue;
     const appEvents = events.filter(e => e.event === 'action' && e.app === profile.id && e.item && e.status === 'ok');
     const lastWorked = appEvents.length ? Date.parse(appEvents[appEvents.length - 1].ts) : 0;
     const idleDays = lastWorked ? Math.min((now - lastWorked) / DAY, 7) : 7;
@@ -603,7 +606,11 @@ export function appendEvent(root, input, { registry } = {}) {
   const problems = eventProblems(event);
   if (event.event === 'end') problems.push(...endProblems(event, loadProfiles(root), loadEvents(root), { now: Date.parse(event.ts), registry }));
   // check refuses an app with no profile, so log refuses it first; name another business in targets instead.
-  if (event.app && event.app !== 'all' && !loadProfiles(root).some(p => p.id === event.app)) problems.push(`unknown app ${event.app} (no marketing profile; name it in targets)`);
+  const known = event.app && event.app !== 'all' ? loadProfiles(root).find(p => p.id === event.app) : null;
+  if (event.app && event.app !== 'all' && !known) problems.push(`unknown app ${event.app} (no marketing profile; name it in targets)`);
+  // Work goes only to live products (James, 2026-11-12, SKILL.md "Market every live product"); a product not yet live
+  // gets nothing until its profile's stage is live.
+  if (known && known.stage !== 'live' && event.event === 'action' && event.item) problems.push(`${event.app} is not live (stage ${known.stage}): no marketing work until it is`);
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
