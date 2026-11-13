@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.11.1"
+  version: "2.12.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -149,6 +149,10 @@ Repository rules and approval holds outrank this skill.
   the end card gives the exact store name and says it is on the App Store: "Hanzi Cards: Learn Mandarin, on the App
   Store." `shorts.mjs phrase <app>` gives the one to use (`ending`, `endCard`), and the profile's `searchPhrase`
   holds it (a `rank`, or `null` for the store name). `app-marketing`'s daily phrase check owns finding a phrase.
+  A web product (profile `platform: "web"`) is never on the App Store: it ends on its own address, "Open
+  lob-game.vercel.app in your browser.", and `phrase` returns that (`ending: "address"`). Never end one on an
+  unverified search phrase: the first LOB Short ended on "Search 'LOB artillery game'", which web search answers with
+  other games (2026-11-13).
   The words and the design are the Short's own; the ending is not optional. This rule lives only here; profiles
   point to it.
 - **No pricing lines** in a Short, its cover or its title.
@@ -179,7 +183,12 @@ When a scheduled pass runs this skill (the `app-marketing` Mac pass), the run ru
 - **The store's search can miss a new app for days (2026-11-12).** Data Center went on sale 2026-11-11, and the next
   day no phrase found it. `phrase` then returns the exact store name with `rank: null` and `ending: "name"`. End on
   that name, and let `app-marketing`'s daily check replace it.
-- **Makers run in parallel (2026-11-12).** Two Shorts made side by side picked the same music loop. Claim the beds
+- **Count helpers on the Mac (James, 2026-11-12).** Six subagents plus builds and renders at once took the Claude
+  app down on the owner's Mac ("you crashed my computer"). At most three subagents are alive at once, nested ones
+  included, and one render or recording runs at a time. A maker that is itself a helper runs its panel's three
+  reviewers one after another, so it and its reviewer make two. The 2026-11-13 Mac pass had four makers and up to
+  eleven subagents alive at once.
+- **Makers may run side by side within that count (2026-11-12).** Two Shorts made side by side picked the same music loop. Claim the beds
   with `claim` at plan time. Write commands lock the registry, and `upload` re-reads it before it writes.
 - **Reviewers missed written rules twice (2026-11-12).** The panel passed an Importron Short whose results screens
   lacked "not medical advice". The rules checklist is the gate now; the panel judges taste only.

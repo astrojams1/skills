@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -602,6 +602,25 @@ test('visits: each source has a channel, each view a product, and totals leave a
   const lines = visitSnapshot([hanzi, lob], report, '2026-11-30T20:00:00Z');
   assert.deepEqual(lines[0].values, { siteVisits7: 3, siteVisits28: 5, sitePageViews7: 8, sitePageViews28: 10 });
   assert.equal(latestVisits([...lines, { ...lines[0], through: '2026-12-01' }], 'hanzi-cards').through, '2026-12-01');
+});
+
+test('visits subtracts untagged agent test loads recorded in visits-excluded.jsonl', () => {
+  const profiles = [profile({ id: 'lob', site: 'astrojams', siteSlug: 'lob', platform: 'web' }), profile({ id: 'eggaduppa', platform: 'web' })];
+  const report = { today: '2026-11-13', first: '2026-11-12', rows: [
+    { day: '2026-11-12', site: 'lob', section: '', source: 'direct', n: 2 },
+    { day: '2026-11-12', site: 'eggaduppa', section: '', source: 'direct', n: 1 },
+    { day: '2026-11-13', site: 'lob', section: '', source: 'direct', n: 2 },
+  ] };
+  const excluded = [
+    { day: '2026-11-12', site: 'lob', section: '', source: 'direct', n: 1, reason: 'counter check', run_id: 'r' },
+    { day: '2026-11-12', site: 'eggaduppa', section: '', source: 'direct', n: 1, reason: 'counter check', run_id: 'r' },
+  ];
+  const totals = Object.fromEntries(visitTotals(report, profiles, excluded).map(t => [t.app, t]));
+  assert.deepEqual(totals.lob.visits, { d7: 3, d28: 3 }, 'one of the 11-12 loads was the agent');
+  assert.deepEqual(totals.eggaduppa.visits, { d7: 0, d28: 0 }, 'a fully excluded product still gets its zero line');
+  assert.deepEqual(visitTotals(report, profiles).find(t => t.app === 'lob').visits, { d7: 4, d28: 4 }, 'nothing subtracted without the file');
+  assert.deepEqual(excludedVisitProblems(excluded), []);
+  assert.match(excludedVisitProblems([{ day: '11/12', site: 'lob', source: 'direct', n: 0 }])[0], /day .*section .*n .*reason and run_id/);
 });
 
 test('log refuses an app with no profile, which check would fail', async () => {

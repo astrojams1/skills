@@ -48,6 +48,19 @@ SKILL.md's Rules hold here, "Fix what you find" included. In short:
   leave one open, logged `deferred` with a reason and a `retry_after`. The `end` event lists each in `left_open`, and
   `log` refuses an `end` while `next --runner mac` still lists an item.
 
+**Helpers on this Mac (James, 2026-11-12).** Six subagents plus builds and renders at once took the Claude app down
+("you crashed my computer"). At most three subagents are alive at any moment, a helper's own helpers included, and
+only one heavy job runs at a time (a render, a browser or Simulator recording, a build). Count before each start. The
+2026-11-13 pass broke this: four helpers at 13:45, then a carried job's three Short makers, each with a three-reviewer
+panel, beside the LOB maker, up to eleven at once.
+
+**The pass ends with its report, after every helper has reported.** A scheduled task ends when its last turn ends.
+On 2026-11-13 the lead ended its turn waiting on the Vegas Microworks helper, which had ended its own turn waiting on
+a Short maker. The maker's render was finished but never uploaded, the weekly pass logged no `end`, and no report was
+written. So: never end a turn while a helper runs. Wait on it (the Monitor tool on its output file),
+or do the work yourself. A helper gets the same rule in its brief and never hands back while a helper of its own
+runs. A carried job's Shorts are made by the pass's own Shorts stage, one at a time, never by the job's helper.
+
 The pass runs in two logged stages. **The core stage** (steps 0 to 8) measures, learns, does every item but Shorts,
 makes every scheduled Short that passes `check` public, ships and logs its `end`, then starts the carried jobs. **The Shorts stage** (step 9)
 makes Shorts after that, as its own run. Making Shorts took most of the 2026-11-12 pass (over two hours), and
@@ -56,7 +69,7 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
 0. **Setup.** Read `skills/app-marketing/SKILL.md` and follow "A run" with runner `mac`, from
    `/Volumes/ssd/code/app-sites`, with `RUN_ID=mkt-mac-<UTC time>`. If that checkout is dirty, use a new worktree under
    `/Volumes/ssd/projects/app-marketing/worktrees/`.
-1. **Measure.** `marketing.mjs public --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
+1. **Measure.** `marketing.mjs public --write`, `visits --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
    public Shorts only. Never total the registry by hand. Then the business sites: run the query from
@@ -66,7 +79,8 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    judges Vegas Microworks Shorts on. Run `evaluate.mjs` and read its decisions. Then
    `marketing.mjs learn --write` (SKILL.md, Learn).
 2. **Check the search phrase, then publish every scheduled Short.** The `search-phrase` item runs `shorts.mjs phrase <app>`
-   for every live app and writes the result to the profile as `searchPhrase: { phrase, rank, checked }`. When no
+   for every live app, web products included, and writes the result to the profile as `searchPhrase: { phrase, rank,
+   checked }`. A web product's phrase is its address (`ending: "address"`). When no
    phrase finds the app, `phrase` returns the exact store name with `rank: null`; write that. Then run
    `shorts.mjs check`. It reads every `scheduled` Short in the registry, with or without a marketing profile, before
    it goes public: on sale, a title that names the app within its first 40 characters, the profile's phrase on the
@@ -115,8 +129,10 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
      Short yet come next. An app
      whose profile `stopped` holds `youtube-shorts` gets none (the kill rule).
    - **Skip only stale content.** Skip a format whose content would be stale by the time it is public.
-   - **Make them in parallel safely.** Each maker claims its music beds at plan time (`shorts.mjs claim`), so two
-     Shorts never share a loop.
+   - **One maker at a time.** Make the due Shorts one after another, the carried jobs' due Shorts included (Vegas
+     Microworks names them in its report; the stage makes them under app id `vegas-microworks`). A maker that is a
+     helper runs its reviewers one after another (the helper count above). Each maker claims its music beds at plan
+     time (`shorts.mjs claim`), so two Shorts never share a loop.
    - **Rules first, then review.** Each Short's rules checklist passes before the reviewer panel starts. An
      independent reviewer subagent checks the hook and payoff frames and each caption against the take
      (`app-shorts`, A run, step 5).
@@ -126,6 +142,10 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
      deferring a Short, use the unattended routes in `app-shorts/references/recording.md` ("When the Simulator tool
      refuses"). Name each route tried and why it failed in the `deferred` event (`blocked_by: outside`). A route that
      needs work, such as a missing `ShortsTakes` UI test, is work for this run, not a blocker.
+   - **Test loads.** A page the pass opens to check or record a web product carries `?utm_source=agent-test`. A load
+     that could not carry it (a recording, a game that drops the query) is appended to
+     `marketing/visits-excluded.jsonl` as `{day, site, section, source, n, reason, run_id}` (day in Pacific time);
+     `visits` subtracts it.
    - **Ship the stage.** Run `shorts.mjs check` again (it must list no Short scheduled ahead), then step 7's `board`, `mirror`
      and PR for this stage's events, and log its `end`.
 
@@ -135,6 +155,10 @@ pass's report is three lines: what shipped with URLs, the headline number change
 covers both stages. The final message is that report, then the report of each carried job that ran.
 
 The pass runs only while the Claude app is open and the SSD is mounted. A missed run happens at the next launch.
+
+**A carried job that did not log its `end`** (the helper was lost) is finished by the next pass before anything new
+starts: read its run folder and ledger events, finish or log what it left (a rendered Short goes to the Shorts stage),
+and log its `end` as `partial` with what was lost.
 
 ## Other Mac jobs this task carries
 
