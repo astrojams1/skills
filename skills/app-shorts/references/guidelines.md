@@ -106,7 +106,8 @@ lists every public Short still missing a step under "After it is public".
 ### TikTok (the same run)
 
 29. **Cross-post every public Short to TikTok in the run that makes it public,** from the rendered master on
-    `/Volumes/ssd` (never a download from YouTube), on the account `astrojams`. Caption it for TikTok: the hook line,
+    `/Volumes/ssd` (a Short made before masters were kept: Studio, Content → ⋮ → Download), on the account
+    `astrojams`. Caption it for TikTok: the hook line,
     where to get it in words (the search phrase, or the address for a web product; caption links do not click), then
     three hashtags. Record it with `shorts.mjs mark ID --tiktok URL`; `due` lists every public Short without one.
     _Owner's request (2026-11-13). Platform fact: reused material with nothing new is kept off the For You feed, so
