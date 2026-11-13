@@ -592,7 +592,9 @@ test('visits: each source has a channel, each view a product, and totals leave a
     { day: '2026-11-29', site: 'lob', section: '', source: 'direct', n: 1 },
     { day: '2026-11-29', site: 'astrojams', section: 'lob', source: 'p:lob-pitch-1', n: 1 },
   ] };
-  const [hanzi, lob] = visitTotals(report, profiles);
+  const [hanzi, lob, quiet] = visitTotals(report, [...profiles, profile({ id: 'quiet' }), profile({ id: 'soon', stage: 'prelaunch' })]);
+  assert.deepEqual(quiet, { app: 'quiet', visits: { d7: 0, d28: 0 }, pageViews: { d7: 0, d28: 0 }, surfaces: {}, channels: {} });
+  assert.ok(!visitTotals(report, [...profiles, profile({ id: 'soon', stage: 'prelaunch' })]).some(t => t.app === 'soon'));
   assert.deepEqual(hanzi.visits, { d7: 3, d28: 5 });
   assert.deepEqual(hanzi.pageViews, { d7: 8, d28: 10 });
   assert.deepEqual(hanzi.channels, { 'search google.com': { d7: 3, d28: 3 }, 'cross-promo xp-astrojams-lob': { d7: 0, d28: 2 } });
