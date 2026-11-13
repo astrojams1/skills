@@ -62,8 +62,16 @@ publicly. Captions cost 400 quota units through the API; burned-in text usually 
 `yt-api.mjs update --episode <id> --description-file F --search-phrase P --confirm` replaces a posted Short's
 description and keeps the old one in the registry as `wasDescription`.
 
-**Not operable (2026-11-12):** the API cannot pin a comment or set a Related video, and Studio needs the owner's
-sign-in. The pipeline does not use either, and a run does not log them as skipped or open.
+## Comment, pin and Related video (the same hour; guidelines 22 to 24)
+
+1. `yt-api.mjs comment --episode ID --text "Search 'Füd family' on the App Store. What meal should we try next?"
+   --confirm` posts the channel's comment (no URL: links in Shorts comments do not click) and records it.
+2. **Pin it** in Claude in Chrome: open `https://www.youtube.com/shorts/<videoId>`, open the comments, the comment's
+   ⋮ menu → Pin → Pin. Then `shorts.mjs mark ID --pinned <commentId>`.
+3. **Related video:** Studio → Content → the Short → Related video (right column) → choose the video →
+   Save. The target is in guideline 23. Then `shorts.mjs mark ID --related <videoId>`.
+
+All three need Chrome signed in to the channel; it was on 2026-11-13. Never sign in.
 
 ## Through YouTube Studio in Chrome (only if the API is down)
 
@@ -103,8 +111,8 @@ no-effect Shorts. Post the moment a Short is ready; never hold one for a better 
   sits over the app. Upload a caption track only when it adds something (spoken words or sound descriptions).
   Otherwise make it match the burned-in text exactly and accept the duplication for accessibility. The first Füd series
   uploaded duplicates.
-- **Shorts description links don't click.** Put the App Store link (with a campaign token, `shorts.mjs link`) in
-  the channel's links and in any long video's description. In a Short, give the search phrase ("Find the app"
-  above). The Importron and Data Center Shorts uploaded in early November had only a dead link;
+- **Shorts description and comment links don't click** (since 2023-08-31). The clickable paths are the Related
+  video and the channel's links. Put the App Store link (with a campaign token, `shorts.mjs link`) in the channel's
+  links and in any long video's description. In a Short, give the search phrase ("Find the app" above). The Importron and Data Center Shorts uploaded in early November had only a dead link;
   their descriptions were fixed through the API on 2026-11-12.
 - **A corrected Short is a new video.** Its views start from zero; fix it before posting.

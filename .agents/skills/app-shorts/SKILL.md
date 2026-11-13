@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.12.0"
+  version: "2.13.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -26,6 +26,8 @@ The craft is in `youtube-shorts`. The follow-up is in `youtube-growth`.
 | `assets/rule-sources.json` | Where each app's or business's written rules live, for `shorts.mjs rules` |
 | `ledger/verdicts.md` | The owner's verdicts on past Shorts: what he rejected and why, what worked |
 | App profiles | `/Volumes/ssd/code/app-sites/marketing/apps/<id>.json` (owned by `app-marketing`): stage, `searchPhrase`, `rules` |
+| `references/guidelines.md` | **The one-page guidelines**: what to do, each with its source and its status in our testing |
+| `references/research-2026-11.md` | The evidence behind the guidelines, with sources |
 | `references/creative.md` | The creative plan, the bar every Short is scored against, sound, type and colour |
 | `references/formats.md` | Idea starters per app; never a template |
 | `ledger/experiments.md` | Every Short's idea, look, sound and result, so no experiment repeats |
@@ -60,7 +62,8 @@ Repository rules and approval holds outrank this skill.
    latest decisions (`evaluate.mjs`): make Shorts for the apps it lists to `produce`, never for a retired app or
    format. A `double-down` format goes first, as does any app whose Shorts `lifted` downloads.
    Run `node $S/shorts.mjs rules <app>` and read every line: they bind the plan, the cut and the review.
-2. **Start from what worked, then a blank page.** Watch the channel's best Shorts first (`references/creative.md`,
+2. **Start from what worked, then a blank page.** Read `references/guidelines.md` first: it is the checklist the cut
+   is held to, and the experiments in `ledger/experiments.md` say which arm this Short is in. Watch the channel's best Shorts first (`references/creative.md`,
    "Start from what already worked"). Read the app's listing and website, then write the episode's creative plan
    (`references/creative.md`) before touching footage: the one-line idea, the experiment it tests and how we will
    know, the look, the sound, the type, the structure, and how the ending shows the search phrase. Read `experiments.md` in this skill's `ledger/` and change at
@@ -90,16 +93,16 @@ Repository rules and approval holds outrank this skill.
    At most three rounds, each driven by the panel's feedback. Then fix every concrete fault it named and post. A
    breach of a written rule is a concrete fault, never a taste note. The owner does not review cuts, and the panel
    is not a pass mark.
-6. **Package** the upload: a title that says what the app is or does in the searcher's words; a description whose
-   first line names the app, what it does and the service it works with, and gives the search phrase ("Search
-   'Importron health' on the App Store."); three hashtags; a JPEG cover made for the cover, not a frame grab. See
-   "Find the app" in `references/posting.md`.
+6. **Package** the upload by guidelines 15 to 20: title, description's first two lines, three hashtags, tags, cover,
+   not made for kids.
 7. **Post after the rounds, without asking.** Upload it public at once (`yt-api.mjs upload --episode ID --confirm`
    never schedules), as many a day as are ready. Never give it a future time or wait for a slot or an hour.
    `record` the episode with `videoId`, `status`, `searchPhrase` and `postedAt` immediately, and add its row to
    `ledger/experiments.md`. `record` refuses a made episode whose phrase is not the profile's, or whose
    description's first line lacks it. It also refuses a rendered or scheduled one whose music was not claimed, or
    whose rules checklist has a rule failed, unmarked or missing. `yt-api.mjs upload` refuses the same checklist.
+   The same hour, do guidelines 22 and 23: the channel's first comment (`yt-api.mjs comment`), pinned, and the
+   Related video, each recorded (`shorts.mjs mark`). `due` lists every public Short still missing one (`followUp`).
 8. **Hand over to `youtube-growth`.** It reads views at 3, 7 and 28 days and downloads in the 72 hours after a Short
    goes public, and decides what the next episode changes.
 9. **Log** to the app repository's run notes, the activity ledger, and this ledger for anything reusable.
@@ -128,21 +131,12 @@ Repository rules and approval holds outrank this skill.
   back only when something changes that could plausibly change the result: a new version, or a format that lifted
   elsewhere. Record that as `shortsReturn: { at, why }` on the app. The owner (2026-11-12): "I hope that we
   decommission shorts that are not proving working."
-- **Start from the format that worked.** The Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, the best
-  1,145) were followed by downloads and purchases while no other marketing ran (James, 2026-11-12: "we DO have
-  evidence they work"). Begin each app's next Short from that format (`ledger/verdicts.md`).
-- **Say what the app is, by name of what it works with.** Within the first three seconds a stranger must know the
-  problem and what the app does about it, in the words they would search. An app built around someone else's service
-  names it on screen and in the title: "Function Health labs → Apple Health", not "Uploaded the same lab report
-  twice?". A side feature is never the subject of an app's first Shorts. The App Store's naming limits are for the
-  store listing (`app-release`, `references/ios.md`); they do not apply on YouTube.
-- **Show what the product can do.** Staged, scripted, edited and composited footage is fine. Don't show a feature
-  it doesn't have.
+- **Name what the app works with.** An app built around someone else's service names it on screen and in the title
+  ("Function Health labs → Apple Health"). A side feature is never the subject of an app's first Shorts. The App
+  Store's naming limits are for the store listing; they do not apply on YouTube (2026-11-11).
 - **No private data on camera,** including the owner's own: no real journals, labs, contacts or notifications.
-- **Newsworthy shows the real news, whole.** Its Shorts show real headlines and scores exactly as the shipped app
-  shows them, including national stories that name public figures. Nothing is cropped, blurred or avoided because a
-  story is serious or names someone. The owner (James, 2026-11-12), on a Short cut off above such a story: "what is
-  this? its a national news story". A reviewer note asking to hide a real headline is not a fault.
+- **Newsworthy shows the real news, whole,** exactly as the app shows it, public figures included (James,
+  2026-11-12: "what is this? its a national news story"). A reviewer note asking to hide a real headline is not a fault.
 - **Every Short says how to find the app.** Links in Shorts do not click, so the last beat says it on screen,
   readable, and so does the description's first line. When the App Store's search finds the app with its verified
   phrase, the Short ends on that phrase: "Search 'Importron health' on the App Store." When no phrase finds it yet,
@@ -156,8 +150,7 @@ Repository rules and approval holds outrank this skill.
   The words and the design are the Short's own; the ending is not optional. This rule lives only here; profiles
   point to it.
 - **No pricing lines** in a Short, its cover or its title.
-- **Always "not made for kids".** The owner's rule (2026-11-12): "made for kids" turns comments off. Pitch every
-  Short to parents and players. Never film children.
+- **Never film children.** Pitch every Short to parents and players.
 - **Vary the inputs, keep the shape.** A series of real, different moments is a series. The same clip re-cut with new
   captions is the "inauthentic, mass-produced" content YouTube demonetises and buries (`youtube-growth`,
   `references/policy.md`).
@@ -178,8 +171,10 @@ When a scheduled pass runs this skill (the `app-marketing` Mac pass), the run ru
 
 ## Gotchas
 
-- **Pinning a comment and setting a Related video are not possible (2026-11-12).** The API has neither, and Studio
-  needs the owner's sign-in. The pipeline does not use them. Do not log them as skipped or open.
+- **Pinning and Related video work through Chrome (2026-11-13).** The Mac's Chrome is signed in to Studio for the
+  channel, so the 2026-11-12 note calling them "not operable" was wrong. Neither has an API: pin on the Short's page,
+  set Related video in Studio. If Chrome ever shows a sign-in page, never sign in: post the comment by API and leave
+  the pin and the link; they are not open items.
 - **The store's search can miss a new app for days (2026-11-12).** Data Center went on sale 2026-11-11, and the next
   day no phrase found it. `phrase` then returns the exact store name with `rank: null` and `ending: "name"`. End on
   that name, and let `app-marketing`'s daily check replace it.

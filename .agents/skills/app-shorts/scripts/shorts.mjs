@@ -29,7 +29,10 @@
 //                                                  checklist each rule is marked pass or fail in, with its evidence;
 //                                                  with --episode it also points that episode's rulesChecklist at FILE
 //   node shorts.mjs due                            live Shorts due a metrics read (3, 7, 28 days), scheduled ones now live,
-//                                                  scheduled ones to hold (app not on sale) and held ones to re-check
+//                                                  scheduled ones to hold (app not on sale), held ones to re-check, and
+//                                                  public ones missing the pinned comment or Related video (followUp)
+//   node shorts.mjs mark <episode> [--pinned COMMENT_ID] [--related VIDEO_ID]   record a comment pinned or a Related
+//                                                  video set in Studio (guidelines.md, "After it is public")
 //   node shorts.mjs link <app> <campaign>          the app's App Store link with a campaign token, for attribution
 //   node shorts.mjs status                         per app: episodes by status, last post, next due (none for an app
 //                                                  retired from Shorts: youtube-growth evaluate.mjs --record)
@@ -165,6 +168,7 @@ export function ruleItems(text) {
   for (const line of String(text).split('\n')) {
     if (/^#+\s/.test(line)) { heading = line.toLowerCase(); current = null; continue; }
     if (/^- /.test(line)) { current = line.slice(2).trim(); items.push(current); continue; }
+    if (/^\d+\.\s/.test(line)) { current = line.replace(/^\d+\.\s+/, '').trim(); items.push(current); continue; }
     if (current !== null && /^\s+\S/.test(line)) { items[items.length - 1] = `${items.at(-1)} ${line.trim()}`; continue; }
     current = null;
     if (/^\|/.test(line) && !heading.includes('worked')) {
@@ -263,10 +267,14 @@ export function record(registry, episode, { recent = 6, profile = null, checkRul
 // listed to hold instead (`yt-api.mjs unschedule --hold`), and a held one whose app is now on sale to re-check
 // against the current rules before it is given a publish time.
 export function due(registry, { now = new Date(), profiles = [] } = {}) {
-  const live = [], reads = [], hold = [], recheck = [];
+  const live = [], reads = [], hold = [], recheck = [], followUp = [];
   const selling = slug => onSale(registry.apps[slug], profileFor(profiles, slug));
   for (const e of registry.episodes) {
     if (e.status === 'held' && selling(e.app)) recheck.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null });
+    if (PUBLIC.includes(e.status) && e.videoId && selling(e.app)) {
+      const missing = followUpMissing(e);
+      if (missing.length) followUp.push({ episode: e.id, app: e.app, videoId: e.videoId, missing });
+    }
     if (e.status === 'scheduled' && !e.legacy && !selling(e.app)) { hold.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null, publishAt: e.publishAt ?? null }); continue; }
     const at = postedAt(e);
     if (!at) continue;
@@ -279,7 +287,31 @@ export function due(registry, { now = new Date(), profiles = [] } = {}) {
       if (!done) { reads.push({ episode: e.id, app: e.app, videoId: e.videoId ?? null, read: `${read}d`, age: Math.floor(age) }); break; }
     }
   }
-  return { live, reads, hold, recheck };
+  return { live, reads, hold, recheck, followUp };
+}
+
+// What a public Short still lacks from "After it is public" in references/guidelines.md: the channel's first comment,
+// pinned, and a Related video (the one link on a Short that clicks). `yt-api.mjs comment` records the comment;
+// `mark` records the pin and the Related video set in Studio.
+export function followUpMissing(e) {
+  return [!e.comment?.id && 'comment', !e.comment?.pinnedAt && 'pin', !e.relatedVideo?.videoId && 'related video'].filter(Boolean);
+}
+
+// Records what was done by hand in Studio or on the Short's page: the comment pinned, the Related video set.
+export function mark(registry, id, { pinned = null, related = null, now = new Date() } = {}) {
+  const e = registry.episodes.find(x => x.id === id);
+  if (!e) throw new Error(`No episode "${id}" in the registry`);
+  if (!pinned && !related) throw new Error('Nothing to mark: pass --pinned COMMENT_ID and/or --related VIDEO_ID');
+  const at = new Date(now).toISOString();
+  if (pinned) {
+    if (e.comment?.id && e.comment.id !== pinned) throw new Error(`${id}'s recorded comment is ${e.comment.id}, not ${pinned}`);
+    e.comment = { ...(e.comment ?? {}), id: pinned, pinnedAt: at };
+  }
+  if (related) {
+    if (related === e.videoId) throw new Error(`${id} cannot be its own Related video`);
+    e.relatedVideo = { videoId: related, at, ...(e.relatedVideo?.videoId && e.relatedVideo.videoId !== related ? { was: e.relatedVideo.videoId } : {}) };
+  }
+  return { episode: id, comment: e.comment ?? null, relatedVideo: e.relatedVideo ?? null };
 }
 
 // An App Store link that App Store Connect can attribute: pt is the team's provider token, ct the campaign (both
@@ -491,9 +523,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tries = (option('--try', '') ?? '').split('|').filter(Boolean);
   const checklistFile = option('--checklist', null), episodeId = option('--episode', null);
   const claimApp = option('--app', null), music = option('--music', null);
+  const pinned = option('--pinned', null), related = option('--related', null);
   if (args.includes('--publish-at')) { console.error('Shorts are never scheduled: a finished Short that passes check goes public now'); process.exit(2); }
   const [command, ...rest] = args;
-  const writes = ['sync', 'record', 'claim'].includes(command) || (command === 'rules' && checklistFile && episodeId);
+  const writes = ['sync', 'record', 'claim', 'mark'].includes(command) || (command === 'rules' && checklistFile && episodeId);
   const unlock = writes ? lock(path) : () => {};
   const registry = load(path);
   const print = value => console.log(JSON.stringify(value, null, 2));
@@ -507,6 +540,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const app = episode.app ?? registry.episodes.find(e => e.id === episode.id)?.app;
       const result = record(registry, episode, { profile: profileFor(profiles, app), checkRules }); save(path, registry); print(result); break;
     }
+    case 'mark': { const result = mark(registry, rest[0], { pinned, related, now }); save(path, registry); print(result); break; }
     case 'claim': { const result = claimMusic(registry, { id: rest[0], app: claimApp, music, now }); save(path, registry); print(result); break; }
     case 'check': {
       const results = check(registry, { profiles, now });
@@ -536,7 +570,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'link': print(link(registry, rest[0], rest[1] ?? 'youtube-shorts')); break;
     case 'status': print(status(registry, { now, profiles })); break;
     default:
-      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|due|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
+      console.error('usage: node shorts.mjs roster|sync|record <episode.json>|phrase <app> [--try "a|b"]|claim <episode> --app A --music "a|b"|check|views|rules <app> [--checklist FILE --episode ID]|due|mark <episode> [--pinned ID] [--related VIDEO]|link <app> <campaign>|status [--registry PATH] [--profiles DIR] [--now ISO]');
       process.exitCode = 2;
   }
   } catch (error) {
