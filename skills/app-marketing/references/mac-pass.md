@@ -54,12 +54,10 @@ only one heavy job runs at a time (a render, a browser or Simulator recording, a
 2026-11-13 pass broke this: four helpers at 13:45, then a carried job's three Short makers, each with a three-reviewer
 panel, beside the LOB maker, up to eleven at once.
 
-**The pass ends with its report, after every helper has reported.** A scheduled task ends when its last turn ends.
-On 2026-11-13 the lead ended its turn waiting on the Vegas Microworks helper, which had ended its own turn waiting on
-a Short maker. The maker's render was finished but never uploaded, the weekly pass logged no `end`, and no report was
-written. So: never end a turn while a helper runs. Wait on it (the Monitor tool on its output file),
-or do the work yourself. A helper gets the same rule in its brief and never hands back while a helper of its own
-runs. A carried job's Shorts are made by the pass's own Shorts stage, one at a time, never by the job's helper.
+**Carried jobs' Shorts go to the Shorts stage.** A carried job's helper lists the Shorts it would make; the pass's
+own Shorts stage makes them one at a time. On 2026-11-13 the Vegas Microworks helper started three makers at once,
+then a fourth, each with its own three-reviewer panel, beside the LOB maker. Helpers nested two deep also kept the
+pass open for over two hours after its core stage shipped. The final report still waits for every helper.
 
 The pass runs in two logged stages. **The core stage** (steps 0 to 8) measures, learns, does every item but Shorts,
 makes every scheduled Short that passes `check` public, ships and logs its `end`, then starts the carried jobs. **The Shorts stage** (step 9)
@@ -155,10 +153,6 @@ pass's report is three lines: what shipped with URLs, the headline number change
 covers both stages. The final message is that report, then the report of each carried job that ran.
 
 The pass runs only while the Claude app is open and the SSD is mounted. A missed run happens at the next launch.
-
-**A carried job that did not log its `end`** (the helper was lost) is finished by the next pass before anything new
-starts: read its run folder and ledger events, finish or log what it left (a rendered Short goes to the Shorts stage),
-and log its `end` as `partial` with what was lost.
 
 ## Other Mac jobs this task carries
 
