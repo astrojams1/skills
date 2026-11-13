@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a daily cloud routine (planning, search content, site changes); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.23.1"
+  version: "1.24.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -69,8 +69,8 @@ also holds the app's `rules` and the owner's `decisions`.
 - **Add an app** by writing `marketing/apps/<id>.json`. `check` validates it and `next` starts offering its items.
 - **Market every live product, web ones too (James, 2026-11-12):** "we need to market everything .... every
   app/service that is live". A product that runs only in a browser gets `"platform": "web"` and its `webUrl`. It is
-  judged on visits and plays, through the pitch link's visit counter, and has no store items. Its first pitches go only
-  to addresses in the no-link arm, since the other arm needs an App Store link. Its astrojams page lives in
+  judged on visits and plays, through the pitch link's visit counter, and has no store items. Its first pitches go to
+  both arms. In the one-link arm its one link is its own `webUrl`, plain. Its astrojams page lives in
   `sites/astrojams/public/<slug>/`, listed on `/play/`.
 - **Keep backlogs alive.** When an idea appears, add it with honest `impact` and `effort` (1 to 5).
 

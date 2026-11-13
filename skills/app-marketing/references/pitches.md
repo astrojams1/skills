@@ -44,7 +44,11 @@ lacks the deployed commit: `git fetch origin main` and run it again.
 - **Links by arm (from 2026-11-13).** The address's arm is `none` when the first hex digit of
   md5(lower(trim(address))) is 0 to 7, else `one`. `none`: no link at all, and one line saying you'll send the App
   Store link and press kit on a reply. `one`: exactly one link, the plain App Store link
-  (`https://apps.apple.com/app/id<appStoreId>`), no query string. The `?p=` page link and the press page go in the
+  (`https://apps.apple.com/app/id<appStoreId>`), no query string. A web product (`platform: "web"`) has no App Store
+  page, so its one link is its own `webUrl`, plain, with no query string, and its `none` email says the link comes on
+  a reply. The queue check pins the link to the profile's `webUrl`; the sender accepts one plain link off the brand
+  sites. Before 2026-11-13 web pitches went only to the `none` arm and about 50 usable addresses were skipped: pitch
+  them now. The `?p=` page link and the press page go in the
   reply or the follow-up, never the first email; the signature has no URL. The sender refuses a pitch that breaks its
   arm. Why: on 2026-11-12 three senders shared the owner's personal Gmail and sent about 62 cold emails in bursts, each
   with 3 or 4 links on shared `*.vercel.app` hosts with tracking parameters; one was refused as spam and no link was
