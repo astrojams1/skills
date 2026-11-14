@@ -363,9 +363,11 @@ only when the intended review scope changes after provider readback, never to by
    same name. Use the reply's **Attach File** control for correspondence attachments. Inspect its supported
    chooser before introducing an exporter; see “Attach the owner's recording” below. Keep large media
    outside the repository (`/Volumes/ssd/projects/<slug>/`).
-4. **Resubmit** with the owner's approval: `submit --confirm` marks the rejected items resolved and sends the
-   submission again, or — when a rejected submission must gain items Apple will not add to it (leaderboards,
-   409 "does not allow adding more items") — cancels it, waits for it to settle and opens a new one. A posted
+4. **Follow Apple's next step.** If the message says to reply without resubmitting, send the verified answers
+   and wait for Apple. Use the [review evidence checklist](review-evidence.md) for 4.3/4.2.6 questions or a repeated
+   rejection whose cause is unclear. Otherwise, with the owner's approval, `submit --confirm` marks rejected items
+   resolved and sends the submission again, or — when a rejected submission must gain items Apple will not add
+   to it (leaderboards, 409 "does not allow adding more items") — cancels it, waits for it to settle and opens a new one. A posted
    reply alone does not resubmit; the owner's request to resubmit authorizes these steps, nothing earlier does.
    Keep a receipt in the repository (submission id, build, what changed) and record `apple.review`.
 5. **Prevent a repeat.** With the root cause established, follow [ledger](ledger.md), “Rejection recovery and
@@ -535,7 +537,9 @@ requires inspecting provider state before retrying. [Apple review-details API](h
 
 #### Respond to the actual review message
 
-Read the rejection or information-request text before proposing fixes. A version
+Read the complete rejection or information-request text before proposing fixes. If
+the accessibility text ends mid-sentence or skips numbered questions, scroll through
+the rendered message and inspect screenshots. Record each requested answer. A version
 state alone does not identify a defect. A user-pasted review message is sufficient
 input to prepare a factual response when signed-in correspondence is inaccessible.
 

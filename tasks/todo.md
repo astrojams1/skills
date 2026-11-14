@@ -4,6 +4,24 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+## app-release 2.29.2: follow reply-only rejection instructions
+
+- [x] Read Apple requests, source guidance, skill-writing and the current skill specification.
+- [x] Add conditional evidence guidance for full messages, originality answers and repeated unclear rejections.
+- [x] Check consumers, refresh discovery and run required repository checks.
+- [x] Publish the shared PR and verify configured checks; report merge and app adoption separately.
+
+Plan: Keep app-specific answers and facts in app repositories. Correct the shared resubmission step and link a
+small checklist. No command, config, schema, credential or store mutation changes.
+
+Review: 293 release tests, 6 Ouro and 10 astrojams website tests, 10 Shorts tests, 347 spec checks,
+76 management checks, five cap tests, identity, readability and discovery checks pass. The bundled Python
+runs all eight screenshot-fit checks after system Python skipped for missing image dependencies.
+All 16 consumer configs need no migration. Manual recovery scenarios cover a reply-only originality request,
+a truncated question list and a repeated purchase complaint without a reproducible path.
+Published: https://github.com/astrojams1/skills/pull/252. Configured checks passed; merge and app adoption have separate receipts.
+
+
 ## Move Mac-only skills into the skills repository
 
 - [x] Show the local skill and scheduled task inventory before making changes.
