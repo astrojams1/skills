@@ -454,8 +454,8 @@
         "2026-11-12 app-sites#64: 1 bounce",
         "2026-11-13 app-sites#83: bounces at 3"
       ],
-      "cause": "published addresses that no longer take mail: 5 of 175 first emails, 3 of them a named person's address on a publication page and 2 role addresses at sites whose page still shows them",
-      "fix": "app-sites#67 and app-sites#78 refuse placeholders, typos, domains with no MX and sources that bounced; still open: the 2026-11-13 bounces came after them"
+      "cause": "published addresses that no longer take mail: 7 of 231 first emails by 2026-11-14, on domains with working MX, at addresses their own pages still show; no check before sending can see a dead mailbox, and nothing bounded how many could bounce, which is what costs the mailbox its reputation",
+      "fix": "app-sites#67 and app-sites#78 refuse placeholders, typos, domains with no MX and sources that bounced; app-sites#135 brakes first emails while 5% or more of 3 days' cold mail bounced. A bounce under the brake is the sender's to suppress, not a problem line: log pitch-bounces only when /api/pitches reports bounceBrake (pitches.md)"
     },
     {
       "key": "gmail-labels-no-scope",
