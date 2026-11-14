@@ -1164,12 +1164,26 @@ async function reviewAttachment(file) {
   console.log(plan.action === 'keep' ? 'kept attachment' : 'attachment ready:', basename(path), 'COMPLETE');
 }
 
+// App Review notes hold at most 4,000 characters; App Store Connect answers a longer PATCH with a 409 after the run has
+// already read the contact (Newsworthy 1.0.3, 2026-11-14: 4,216 characters). reviewNotesProblem refuses before writing.
+export const REVIEW_NOTES_LIMIT = 4000;
+export function reviewNotesProblem(notes) {
+  if (typeof notes !== 'string') return null;
+  const length = Array.from(notes).length;
+  return length > REVIEW_NOTES_LIMIT
+    ? 'review.notes is ' + length + ' characters; App Store Connect takes at most ' + REVIEW_NOTES_LIMIT
+      + '. Shorten the store data\'s review.notes (cut ' + (length - REVIEW_NOTES_LIMIT) + '), then run `review-details` again; nothing was written.'
+    : null;
+}
+
 // reviewDetails retains this version's authorized contact when omitted from store data. First creation
 // requires a complete explicit identity and runtime phone; no account-wide contact lookup is performed.
 export async function reviewDetails() {
   const ctx = await context();
   const contact = STORE.review;
   if (!contact || typeof contact !== 'object' || Array.isArray(contact)) throw new Error('store data review must be an object.');
+  const notesProblem = reviewNotesProblem(contact.notes);
+  if (notesProblem) throw new Error(notesProblem);
   const current = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   const existing = current.data?.attributes || {};
   const attributes = {};
