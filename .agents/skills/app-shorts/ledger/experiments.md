@@ -152,6 +152,17 @@ Panel notes across all four: "stops the scroll" scored 4 to 7 of 10; open on the
 | 2026-11-13 | newsworthy-loop-01b (q_BbmY4s-PM), 12.0 s; replaces newsworthy-loop-01 (MeHxUEJaWug, private: non-square pixels made YouTube class it a regular video) | today's front page (6/10), the week scrolled down to where it stops and back up; the last frame is the first | E4 arm A only; E2 arm A by accident (4th new Short, got its comment and Related video pC0acfD0ZPc at once), so the 5th is arm B and the 6th arm A; TikTok 7707780366668434701 (E6) | full-screen reader with a drawn status bar, white-on-dark pills under the header | Apple Loops 07 Chillwave Lifting Off Synth, Lifting Off Bass, Doubledown Beat 01 as one 4 s cell played three times (seamless) | |
 | 2026-11-13 | sw-giant-e5-01 (hWQyMWdTMTQ), 8.4 s | staged in the developer arena: the size 3,449 leader crashes into our size 107 worm (offline vs bots), bursts, and ours eats its way to #1 (take h15 of the unposted sw-giant-kill-03) | E5 arm A, the Space Worms arm (7 to 10 s); E2 arm B (comment and Related video held to 2026-11-16T22:29Z); TikTok 7707787135948033310 (E6) | full-bleed game, Avenir Next Condensed Heavy caps on ice blue, dark end card with the icon | Apple Loops 02 Electro House Big Snare Roll Topper, Basic Core Beat, Big Anthem Synth (128 bpm); synthesised impact | |
 
+## The Mac pass of 2026-11-14 (mkt-mac-shorts-20261114T141229Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-14 | fud-taco-tuesday-01 (s03Gf93RJTg), 9.2 s, public 14:51:03Z | Taco Tuesday typed into Füd as one sentence; it opens on the three foods landing, ticks Leo and Maya, shows all three journals, and ends on the sentence being typed and "Working out your meal", which loops into frame 0 | E1 arm A for Füd (22 words, at most 5 at once; control fud-thanksgiving-01); E2 arm A (6th new Short: comment pinned and Related video within the hour); first Füd loop ending | Simulator iPhone 16 Pro on a marigold field (#F4AA00), American Typewriter Condensed Bold in cream on one ink plate, fixed place; whole phone then closer frames with the bezels kept | Apple Loops Latin Day (150 bpm, F major): Conga 01, Horns 03, Guiro 04, Horns 05, Bongo 05; key and tap clicks from filtered noise | |
+
+**Panel lesson (2026-11-14).** Six reviewers in three rounds kept pulling between two faults: the whole iPhone makes the rows
+tiny (guideline 7), and a close crop with the caption plate over the phone's top reads as a cropped UI slab or a caption
+"on the app". What settled it: whole iPhone only for the first beat and the end, closer frames that keep both side bezels
+in frame (phone about 1040 px wide), the plate placed in the app's own empty gap, and no mask band over the phone.
+
 ## Experiments that change the guidelines (set 2026-11-13)
 
 Each experiment changes one thing, using Shorts that are due anyway; each new Short sits in one arm of one

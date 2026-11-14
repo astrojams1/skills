@@ -1257,7 +1257,7 @@ export function learnApp(profile, events, metrics, registry, now = Date.now(), p
   for (const [item, list] of Object.entries(byItem)) verdicts[item] = killVerdict(list);
   const lookups = metrics.filter(m => m.app === profile.id && m.source === 'itunes-lookup');
   const experiments = (profile.experiments || []).map(x => ({ id: x.id, idea: x.idea, pattern: x.pattern, measure: x.measure, url: x.url, judge: x.judge, ...experimentState(x, now) }));
-  return { app: profile.id, experiments, options: ownerOptions(profile), funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
+  return { app: profile.id, stageOf: profile.stage, experiments, options: ownerOptions(profile), funnel: funnel(days, discovery), stage: funnelStage(days, discovery),
     listingTests: listingTestResults(profile.listingTests, days, discovery, lookups, now), referrers: totalsOf(refDays, 'referrers'), shorts, guides, directories, coverage, store: changes, verdicts,
     shortsRead: registry ? 'registry read' : 'no registry on this machine: Shorts not judged' };
 }
@@ -1307,7 +1307,9 @@ function cmdLearn(root, args) {
       const said = x.state === 'due' ? `DUE since ${x.judge}: judge it on ${x.measure}` : x.state === 'in flight' ? `in flight, judge on ${x.judge} (${x.measure})` : `${x.state} on ${x.last.on}: ${x.last.evidence}`;
       console.log(`  experiment ${x.id} [${x.pattern}] ${said}`);
     }
-    if (!r.experiments.some(x => ['due', 'in flight'].includes(x.state))) console.log('  experiment: none in flight, so invent is due (references/invent.md)');
+    // Only live products get work (SKILL.md), so a product out of marketing is never told invent is due.
+    if (r.stageOf && r.stageOf !== 'live') console.log(`  experiment: none in flight; stage ${r.stageOf}, so no invent until it is live`);
+    else if (!r.experiments.some(x => ['due', 'in flight'].includes(x.state))) console.log('  experiment: none in flight, so invent is due (references/invent.md)');
     for (const o of r.options) console.log(`  owner option ${o.id}: ${o.title} (needs a ${o.needs}; cost ${o.cost}; likely ${o.returns})`);
     if (r.newStops) console.log(`  STOP ${r.newStops.join(', ')}${args.write ? ': written to the profile' : ': rerun with --write to record it in the profile'}`);
   }
@@ -1487,6 +1489,7 @@ const SITE_HOSTS = { 'astrojams-apps.vercel.app': 'astrojams', 'ouro-apps.vercel
 // experimentPages: every experiment with a page URL, as the counter keys it (site, path, first path segment).
 export function experimentPages(profiles) {
   return profiles.flatMap(p => (p.experiments || []).flatMap(e => {
+    if (e.verdicts?.at(-1)?.verdict === 'retire') return []; // a retired page is gone; counting it reads as a live test
     let u; try { u = new URL(e.url || ''); } catch { return []; }
     const site = SITE_HOSTS[u.host] || (p.webUrl && new URL(p.webUrl).host === u.host ? p.id : null);
     if (!site) return [];

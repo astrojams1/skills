@@ -57,6 +57,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.2 | 2026-11-13 | The go-ahead wording rule skips closing lines (`closes`) | The `waits-on-owner` fixed line names the problem it closed, and `check` refused it |
 | 1.32.3 | 2026-11-13 | SKILL.md no longer calls Room Planner held: app-sites#114 released the hold after the AI features were removed, and its profile stage is `live` | The midday cloud pass found the skill and the profile disagreeing |
 | 1.32.4 | 2026-11-14 | `recurring` and `log` read skills git history from the first checkout with a `.git`: the scripts' own copy, `$SKILLS_GIT`, then `/Volumes/ssd/code/skills` (`skillsGitRoot`) | The Mac pass runs the scripts from a `git archive` export with no `.git`, so every `skills#N` fix read as not landed: 22 families open from the export against 4 from the checkout |
+| 1.32.5 | 2026-11-14 | Start unshallows both cloud clones before `recurring`; `learn` no longer says invent is due for a product that is not live; `visits` leaves retired experiment pages out | The cloud's shallow clones showed 5 fixed families as PENDING (8 open against 3), and the morning output told runs to invent for World Sim, Universe of Sound and three more products out of marketing |
 
 ## Lessons
 
@@ -80,3 +81,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 - 2026-11-13: A counter's first read is only as good as its exclusions. Untagged verification loads must be written down where the read subtracts them, not in a ledger sentence a later run has to remember.
 - 2026-11-13: A problem logged in a sentence is never counted. Each run wrote its own words for the same gap, so nothing added the days up and the same deferral came back for a week. Give each problem one key, count the days, and refuse an end that meets a recurring one and fixes nothing.
 - 2026-11-14: A check that reads git history must say where the history is. Run from an export it saw none, and called every merged fix unlanded without an error.
+- 2026-11-14: A shallow clone is history too short to judge by. The landing check treated a missing commit as not landed; unshallow before reading, in the cloud as on the Mac.

@@ -659,6 +659,8 @@ test('experiment pages are counted on their own, and a top-level one belongs to 
   const [winter, rings] = experimentVisits(report, profiles, [{ day: '2026-11-10', site: 'astrojams', section: 'winter-sun', source: 'direct', n: 1 }]);
   assert.deepEqual(winter.visits, { d7: 4, d28: 5 });
   assert.equal(rings.pageViews28, 3);
+  const gone = profile({ id: 'uos', experiments: [{ id: 'recap', url: 'https://astrojams-apps.vercel.app/what-genre-is-that/', verdicts: [{ on: '2026-11-13', verdict: 'retire', evidence: 'removed' }] }] });
+  assert.deepEqual(experimentPages([gone]), [], 'a retired experiment page is not counted');
 });
 
 test('only live products get work: next lists nothing for a prelaunch profile, and log refuses an item action for one', async () => {
