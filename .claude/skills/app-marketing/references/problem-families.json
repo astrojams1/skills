@@ -400,6 +400,11 @@
         "refused the sender",
         "source page answered 403"
       ],
+      "not_text": [
+        "removed before (the )?merge",
+        "before merging",
+        "caught by (the )?preflight"
+      ],
       "history": [
         "2026-11-12 app-sites#54: 3 fetch failures, a Cloudflare 403",
         "2026-11-12 app-sites#57: a replacement page hit the same challenge",

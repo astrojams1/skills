@@ -58,6 +58,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.3 | 2026-11-13 | SKILL.md no longer calls Room Planner held: app-sites#114 released the hold after the AI features were removed, and its profile stage is `live` | The midday cloud pass found the skill and the profile disagreeing |
 | 1.32.4 | 2026-11-14 | `recurring` and `log` read skills git history from the first checkout with a `.git`: the scripts' own copy, `$SKILLS_GIT`, then `/Volumes/ssd/code/skills` (`skillsGitRoot`) | The Mac pass runs the scripts from a `git archive` export with no `.git`, so every `skills#N` fix read as not landed: 22 families open from the export against 4 from the checkout |
 | 1.32.5 | 2026-11-14 | Start unshallows both cloud clones before `recurring`; `learn` no longer says invent is due for a product that is not live; `visits` leaves retired experiment pages out | The cloud's shallow clones showed 5 fixed families as PENDING (8 open against 3), and the morning output told runs to invent for World Sim, Universe of Sound and three more products out of marketing |
+| 1.32.6 | 2026-11-14 | `source-page-refused` no longer counts a line that reports a pitch removed before the merge: that is app-sites#118's preflight catching the page, not a refused send | The morning run's end was refused as REOPENED after CI's preflight caught three bot-challenge pages and the run removed them before merging; no send was refused after app-sites#118 landed |
 
 ## Lessons
 
