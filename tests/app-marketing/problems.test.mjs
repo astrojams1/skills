@@ -30,6 +30,10 @@ test('a line meets a family by its problem key or its words, never a not_text li
   assert.deepEqual([...familiesOf(ev({ operation: 'next: space-worms/campaign provider token from 2026-11-12' }), fams)], []);
   assert.deepEqual([...familiesOf(ev({ left_open: [{ issue: 'x', needs: 'y', problem: 'pin-comment' }] }), fams)], ['pin-comment']);
   assert.deepEqual([...familiesOf(ev({ problem: 'token', closes: 'fixed', operation: 'provider token' }), fams)], []);
+  // A bot challenge the pre-merge preflight caught is the fix working, not a refused send (2026-11-14).
+  const real = loadFamilies();
+  assert.deepEqual([...familiesOf(ev({ operation: 'one source page served the CI preflight a bot challenge and its line was removed before the merge' }), real)], []);
+  assert.deepEqual([...familiesOf(ev({ operation: 'first failed: the source page answered 403 (a bot challenge)' }), real)], ['source-page-refused']);
 });
 
 test('three days with no closing line is RECURRING; one or two is seen; history days count', () => {
