@@ -891,3 +891,14 @@ them, were on `giraffe-stretch-test-1.vercel.app`, beside the test-named bundle 
 identifiers, which a waiver must excuse when they cannot change, so the addresses (which can) went unchecked. Unit
 tests cover the Giraffe address and the waiver not excusing it. Adoption: Giraffe Stretch build 9 links to
 `ouro-apps.vercel.app/giraffe-stretch/privacy/` and `/support/`, and its listing names the same pages.
+
+
+### 2026-11-14 — Reply-only originality requests and repeated unclear rejections
+
+Version 2.29.2 makes the rejection path follow the current message before resubmitting. A 4.3/4.2.6 request asked for
+nine evidenced answers and explicitly said to reply without resubmitting when disputing it. Accessibility text omitted
+most questions, although screenshots showed them. The new checklist covers the whole message, exact-build workflow,
+real beta feedback, shared components and content-provider facts. A repeated 2.1(b) rejection after a web-sheet fix
+also needs a fresh diagnosis; the old fix or a different guideline does not prove approval. If the remaining cause
+cannot be reproduced, request Apple's screen or steps while leaving the issue open. Adoption is recorded by each app;
+this source change neither resubmits nor resolves a provider finding.
