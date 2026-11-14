@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.32.4"
+  version: "1.32.5"
   ledger: ledger/LEDGER.md
 ---
 
@@ -165,7 +165,9 @@ Set `R` to this skill's `scripts/`, `RUN_ID=mkt-<runner>-<UTC timestamp>`, and w
 cloud run started at 10 Pacific or later is a pass: `RUN_ID=mkt-cloud-midday-…` or `mkt-cloud-reply-…`, and it does
 only the steps [Three cloud runs a day](#three-cloud-runs-a-day) names.
 
-1. **Start.** In both the skills and app-sites checkouts, `git checkout main && git pull --ff-only`. Read
+1. **Start.** In both the skills and app-sites checkouts, `git checkout main && git pull --ff-only`. A cloud clone is
+   shallow: run `git fetch --unshallow origin main` in both first, since `recurring` reads when each fix landed from
+   history (on 2026-11-14 a shallow clone showed five fixed families as PENDING). Read
    [channels](references/channels.md) and [content](references/content.md) in full. In app-sites, `npm ci`, then a
    branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`, then
    `node $R/marketing.mjs recurring` and print its first line ([Repeating problems](#repeating-problems)). Log a `start` event. Merge or close any
