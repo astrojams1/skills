@@ -114,6 +114,13 @@ export function archiveSigningMode(ios) {
   const mode = ios.archiveSigning === undefined ? 'archive' : ios.archiveSigning;
   if (!['archive', 'export'].includes(mode)) throw new Error('ios.archiveSigning must be "archive" or "export"');
   if (mode === 'export' && signingSettings(ios.signing).style !== 'automatic') throw new Error('ios.archiveSigning "export" needs automatic signing');
+  // An unsigned archive carries no entitlements, and the export signs only what the archive has: Füd's build 251
+  // (2026-11-14) exported without Sign in with Apple. So an app that needs any entitlement or app group signs at archive.
+  const needs = Object.keys(ios.requiredEntitlements || {}).concat(ios.appGroup ? ['app group ' + ios.appGroup] : []);
+  if (mode === 'export' && needs.length) {
+    throw new Error('ios.archiveSigning "export" drops entitlements (the unsigned archive carries none), so the .ipa would lack ' + needs.join(', ') +
+      '; sign at archive instead, with automatic signing on a team with registered devices or the team\'s distribution identity (manual)');
+  }
   return mode;
 }
 
