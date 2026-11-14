@@ -67,4 +67,5 @@ payoff row, the confirmation. The edit spec is built from those times.
 Record longer and pick moments: a near-miss, a win, a satisfying chain or a calm loop. A loop that returns to its
 first frame invites rewatches. The channel's best Short so far (about 1.3K views, 207% average viewed on day 3) is a
 7-second calm alphabet loop. Stage the moment you want (a developer arena, a scripted round, seeded state) rather
-than hunting hours of autopilot for it, and don't add "autopilot" or "staged" disclaimers.
+than hunting hours of autopilot for it, and don't add "autopilot" or "staged" disclaimers: not in the description, the TikTok caption or the on-screen
+captions (owner's rule, 2026-11-12).

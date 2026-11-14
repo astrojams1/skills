@@ -21,6 +21,7 @@
 //                                               refuses one for an app not on sale, with no search phrase on its
 //                                               description's first line, or without a rules checklist that passes
 //                                               every written rule (shorts.mjs rules <app> --checklist)
+//   node yt-api.mjs thumbnail --episode ID [--confirm]   set or retry the episode's cover; prints YouTube's answer
 //   node yt-api.mjs publish --episode ID [--confirm]   make a scheduled Short public now: privacy public, publishAt
 //                                               cleared, read back until YouTube shows it; the registry marks it live
 //                                               with postedAt at that moment. Refuses what upload refuses
@@ -129,6 +130,21 @@ export function uploadRequest(episode) {
       categoryId: episode.categoryId ?? '28', defaultLanguage: 'en', defaultAudioLanguage: 'en' },
     status: { privacyStatus: 'public', selfDeclaredMadeForKids: episode.madeForKids === true, containsSyntheticMedia: episode.syntheticMedia === true, embeddable: true },
   };
+}
+
+// A file whose pixels are not square (sample aspect ratio far from 1:1) has a display shape YouTube reads instead of
+// its pixel size: newsworthy-loop-01 (2026-11-13) was 1080x1920 pixels with SAR 1994213:30672 from an ffmpeg vstack,
+// so YouTube classed it a regular video, not a Short. Refuse such a file; `setsar=1` in the filter graph fixes it.
+export function sarProblem(sar, file = 'the file') {
+  if (!sar || sar === 'N/A' || sar === '0:1') return null;
+  const [a, b] = sar.split(':').map(Number);
+  if (!a || !b || Math.abs(a / b - 1) < 0.01) return null;
+  return `${file} has non-square pixels (sample aspect ratio ${sar}); YouTube would show and class it by that shape. Re-render with setsar=1`;
+}
+function pixelAspectProblem(file) {
+  const got = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=sample_aspect_ratio', '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  if (got.status !== 0) return null;
+  return sarProblem(got.stdout.trim().replace(/,$/, ''), file);
 }
 
 // The comments a run should consider answering: top-level, not the channel's own, with no reply from the channel.
@@ -409,6 +425,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (refused) throw new Error(refused);
       const unmet = checklistProblems(episode, rules(episode.app, { profiles }).text);
       if (unmet.length) throw new Error(unmet.join('\n'));
+      const geometry = pixelAspectProblem(episode.file);
+      if (geometry) throw new Error(geometry);
       const request = uploadRequest(episode);
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
       const result = await upload(await accessToken(), episode);
@@ -417,6 +435,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       Object.assign(fresh.episodes.find(e => e.id === id), { videoId: result.videoId, status: 'live', postedAt: new Date().toISOString(), publishAt: null });
       writeFileSync(registryPath, JSON.stringify(fresh, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'thumbnail') {
+      // Sets (or retries) an episode's cover after upload; YouTube can refuse a Short's custom thumbnail, so print its answer.
+      const id = option('--episode', null), confirm = args.includes('--confirm');
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const episode = registry.episodes.find(e => e.id === id);
+      if (!episode?.videoId || !episode.cover) throw new Error(`${id} needs a videoId and a cover`);
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, cover: episode.cover })); process.exit(0); }
+      const res = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${episode.videoId}`, {
+        method: 'POST', headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'image/jpeg' }, body: readFileSync(episode.cover) });
+      const body = await res.json().catch(() => ({}));
+      console.log(JSON.stringify({ episode: id, status: res.status, ok: res.ok, error: body.error?.message ?? null, reason: body.error?.errors?.[0]?.reason ?? null }));
+      if (!res.ok) process.exitCode = 1;
     } else if (command === 'publish') {
       const id = option('--episode', null), confirm = args.includes('--confirm');
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));

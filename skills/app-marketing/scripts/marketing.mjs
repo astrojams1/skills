@@ -60,7 +60,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ON_CHANNEL, views } from '../../app-shorts/scripts/shorts.mjs';
-import { SKILLS_ROOT, familyProblems, gitLandings, loadFamilies, logProblems, printRecurring, recurring, unmapped } from './problems.mjs';
+import { SKILLS_GIT_ROOT, familyProblems, gitLandings, loadFamilies, logProblems, printRecurring, recurring, unmapped } from './problems.mjs';
 
 export const EVENTS = ['start', 'action', 'finding', 'verify', 'end'];
 export const STATUSES = ['running', 'ok', 'failed', 'skipped', 'deferred', 'partial'];
@@ -713,7 +713,7 @@ export function appendEvent(root, input, { registry } = {}) {
   // A correction must name an earlier line, as check requires; log refuses what check would later fail.
   if (event.corrects && !loadEvents(root).some(e => e.run_id === event.run_id && e.event === event.event && e.ts === event.corrects)) problems.push(`corrects names no earlier ${event.event} of ${event.run_id} at ${event.corrects}`);
   // Repeating problems (SKILL.md): the family key, valid closing lines, and no recurring family met and left as it was.
-  problems.push(...logProblems(event, loadEvents(root), loadFamilies(), { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_ROOT, 'app-sites': root }) }));
+  problems.push(...logProblems(event, loadEvents(root), loadFamilies(), { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_GIT_ROOT, 'app-sites': root }) }));
   if (problems.length) throw new Error('Not logged: ' + problems.join('; '));
   appendFileSync(join(dirOf(root), 'ledger.jsonl'), JSON.stringify(event) + '\n');
   return event;
@@ -1628,7 +1628,7 @@ function cmdRecurring(root, args) {
     for (const r of rows) console.log(`  ${r.day} line ${r.line} ${r.app ? r.app + ' ' : ''}${r.text.slice(0, 150)}`);
     return;
   }
-  let rows = recurring(events, families, { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_ROOT, 'app-sites': root }) });
+  let rows = recurring(events, families, { metrics: loadJsonl(join(dirOf(root), 'metrics.jsonl'), 'metrics').records, git: gitLandings({ skills: SKILLS_GIT_ROOT, 'app-sites': root }) });
   if (args.family) rows = rows.filter(r => r.family === args.family);
   if (args.json) return console.log(JSON.stringify(rows, null, 2));
   printRecurring(rows, { lines: !!args.lines });

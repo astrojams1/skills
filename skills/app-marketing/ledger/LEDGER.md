@@ -56,6 +56,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.1 | 2026-11-13 | The problem-line rules start at 2026-11-13T20:00Z, not 21:00Z; `recurring` reads a corrected line through its correction | The first run under 1.32.0 logged its closing lines before 21:00Z, so log validated none of them and took one fixed line whose change landed before the family's last sighting |
 | 1.32.2 | 2026-11-13 | The go-ahead wording rule skips closing lines (`closes`) | The `waits-on-owner` fixed line names the problem it closed, and `check` refused it |
 | 1.32.3 | 2026-11-13 | SKILL.md no longer calls Room Planner held: app-sites#114 released the hold after the AI features were removed, and its profile stage is `live` | The midday cloud pass found the skill and the profile disagreeing |
+| 1.32.4 | 2026-11-14 | `recurring` and `log` read skills git history from the first checkout with a `.git`: the scripts' own copy, `$SKILLS_GIT`, then `/Volumes/ssd/code/skills` (`skillsGitRoot`) | The Mac pass runs the scripts from a `git archive` export with no `.git`, so every `skills#N` fix read as not landed: 22 families open from the export against 4 from the checkout |
 
 ## Lessons
 
@@ -78,3 +79,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 - 2026-11-13: Read a live transcript's file times before calling work lost. A review read a maker's transcript at 15:02 and called its Short abandoned; the maker was still rendering and reviewing at 15:15 (1.27.1 removes the rule built on that).
 - 2026-11-13: A counter's first read is only as good as its exclusions. Untagged verification loads must be written down where the read subtracts them, not in a ledger sentence a later run has to remember.
 - 2026-11-13: A problem logged in a sentence is never counted. Each run wrote its own words for the same gap, so nothing added the days up and the same deferral came back for a week. Give each problem one key, count the days, and refuse an end that meets a recurring one and fixes nothing.
+- 2026-11-14: A check that reads git history must say where the history is. Run from an export it saw none, and called every merged fix unlanded without an error.
