@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.32.6"
+  version: "1.32.7"
   ledger: ledger/LEDGER.md
 ---
 
@@ -392,6 +392,9 @@ need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of 
 - **Hosts drop a bot-only user agent (2026-11-12).** Four of the first 22 source pages refused the sender, and one
   source was a 404 page. The sender now reads pages as a browser that names itself. One page still meets a Cloudflare
   challenge from Vercel's network; the sender never works around one. Prefer a source page that is not behind one.
+- **Some bounces cannot be prevented (2026-11-14).** 7 of 231 first emails bounced at addresses their own pages
+  still show, on domains with working mail servers. The sender bounds the rate with a brake at 5% over 3 days; a
+  bounce under it is not a problem line ([Pitch emails](references/pitches.md), step 1).
 - **Shorts links do not click.** Give a search phrase, and check that it finds the app.
 
 ## Ledger
