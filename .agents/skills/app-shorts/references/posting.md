@@ -73,6 +73,9 @@ description and keeps the old one in the registry as `wasDescription`.
 
 All three need Chrome signed in to the channel; it was on 2026-11-13. Never sign in.
 
+A Short in E2's control arm (the 2nd, 4th and 6th new Shorts) gets `followUpAfter` (posted + 72 h) in the registry;
+`due` holds its comment and Related video until then, and still lists its TikTok cross-post.
+
 ## The walkthrough per app (the Related video's target)
 
 Each app gets one regular video (guideline 23): 16:9 so YouTube does not class it as a Short (a Short is up to 3
@@ -139,6 +142,10 @@ and act on it, not on how many the channel posts (`youtube-growth/references/met
 no-effect Shorts. Post the moment a Short is ready; never hold one for a better hour.
 
 ## Gotchas
+
+- **Square pixels or it is not a Short (2026-11-13).** A file whose sample aspect ratio is not 1:1 is shown and
+  classed by its display shape; end every filter graph with `setsar=1`. `yt-api.mjs upload` refuses such a file.
+- **A custom cover can fail right after upload** (403). Retry with `yt-api.mjs thumbnail --episode ID --confirm`.
 
 - **Burned-in captions plus an uploaded `.srt` show twice** for viewers who turn captions on, and the second copy
   sits over the app. Upload a caption track only when it adds something (spoken words or sound descriptions).

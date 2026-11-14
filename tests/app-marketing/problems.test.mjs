@@ -1,6 +1,9 @@
+import { mkdtempSync, mkdirSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { changeRefs, closeProblems, compileFamilies, familiesOf, familyProblems, judge, familyRecords, landedAt, loadFamilies, logProblems, pitchOccurrences, recurring, reportLine, unmapped } from '../../skills/app-marketing/scripts/problems.mjs';
+import { changeRefs, closeProblems, compileFamilies, familiesOf, familyProblems, judge, familyRecords, landedAt, loadFamilies, skillsGitRoot, SKILLS_ROOT, logProblems, pitchOccurrences, recurring, reportLine, unmapped } from '../../skills/app-marketing/scripts/problems.mjs';
 import { eventProblems, leftOpenProblems, missingProfiles, profileProblems, rank } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const fams = compileFamilies([
@@ -173,4 +176,11 @@ test('not-live-product-marketed: an experiment for a product not live must be re
 
 test('eventProblems carries the new rules for check', () => {
   assert.ok(eventProblems(base({ status: 'deferred', blocked_by: 'owner', reason: 'r' })).length > 0);
+});
+
+test('an export with no .git reads skills history from a checkout that has one', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'export-'));
+  assert.equal(skillsGitRoot([tmp]), SKILLS_ROOT);
+  mkdirSync(join(tmp, '.git'));
+  assert.equal(skillsGitRoot([join(tmp, 'missing'), tmp]), tmp);
 });

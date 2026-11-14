@@ -25,6 +25,13 @@ import { fileURLToPath } from 'node:url';
 
 export const FAMILIES_FILE = fileURLToPath(new URL('../references/problem-families.json', import.meta.url));
 export const SKILLS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+// The skills checkout whose git history says when a skills#N change landed. The Mac pass runs the scripts from a
+// `git archive` export with no .git (mac-pass.md, Start), which made every skills#N fix read as "has not landed" and
+// left 18 fixed families PENDING (2026-11-14). The first candidate with a .git wins: this copy, $SKILLS_GIT, then the
+// Mac's main checkout, which the pass fetches before it exports.
+export const skillsGitRoot = (candidates = [SKILLS_ROOT, process.env.SKILLS_GIT, '/Volumes/ssd/code/skills']) =>
+  candidates.find(c => c && existsSync(join(c, '.git'))) ?? SKILLS_ROOT;
+export const SKILLS_GIT_ROOT = skillsGitRoot();
 export const RECURRING_DAYS = 3;       // distinct days that make a family RECURRING (the owner, 2026-11-13)
 export const PROBLEM_KEYS_FROM = Date.parse('2026-11-13T20:00:00Z'); // lines from here on carry `problem`
 export const OPEN = ['RECURRING', 'REOPENED', 'PENDING', 'seen'];
