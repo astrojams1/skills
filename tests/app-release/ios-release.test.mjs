@@ -61,6 +61,15 @@ test('archive and export use Apple-managed signing through the API key, and alto
   assert.match(echoed, /-authenticationKeyID <hidden>.*--api-issuer <hidden>/);
 });
 
+test('export-time signing is refused for an app that needs entitlements, which an unsigned archive cannot carry', () => {
+  const base = { scheme: 'App', signing: { style: 'automatic' }, archiveSigning: 'export' };
+  assert.equal(ios.archiveSigningMode(base), 'export');
+  assert.throws(() => ios.archiveSigningMode({ ...base, requiredEntitlements: { 'com.apple.developer.applesignin': ['Default'] } }),
+    /drops entitlements.*com\.apple\.developer\.applesignin/);
+  assert.throws(() => ios.archiveSigningMode({ ...base, appGroup: 'group.x' }), /app group group\.x/);
+  assert.equal(ios.archiveSigningMode({ scheme: 'App', signing: { style: 'automatic' }, requiredEntitlements: { 'aps-environment': 'production' } }), 'archive');
+});
+
 test('entitlements are read as booleans, strings or arrays', () => {
   const xml = '<plist><dict><key>aps-environment</key><string>production</string><key>com.apple.developer.game-center</key><true/>' +
     '<key>com.apple.security.application-groups</key><array><string>group.a</string><string>group.b</string></array></dict></plist>';

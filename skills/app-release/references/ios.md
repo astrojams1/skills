@@ -119,7 +119,10 @@ synchronized folders) shipped build 1 this way.
 only to a team with registered devices: Xcode stops with "Your team has no devices from which to generate a
 provisioning profile". Forcing `CODE_SIGN_IDENTITY=Apple Distribution` conflicts with automatic signing. Set
 `ios.archiveSigning: "export"`: the archive is built unsigned and the `app-store-connect` export signs it with the
-team's distribution certificate and an App Store profile, which need no devices.
+team's distribution certificate and an App Store profile, which need no devices. It suits only an app with no entitlements: the unsigned archive carries none, so the export signs
+without them (Füd's build 251 lost Sign in with Apple, 2026-11-14), and `archive` refuses `export` when
+`requiredEntitlements` or `appGroup` is set. Such an app on a team with no devices signs at archive with the team's
+distribution identity (`signing.style: "manual"`); keep that identity's keychain where the app's repository says.
 
 **A brand-new app's TestFlight group.** A new record has no beta groups. When the app has no internal group at all,
 `testers` creates `ios.testflightGroup` through the API, reads it back and adds the build; an app that already has

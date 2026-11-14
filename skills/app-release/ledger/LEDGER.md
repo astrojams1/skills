@@ -1,8 +1,16 @@
 # App release skill ledger
 
-Skill version **2.29.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.29.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.29.3 (2026-11-14)
+
+- Füd 1.3.1 had moved to `archiveSigning: "export"` because its manual identity was not in the login keychain. The
+  unsigned archive carried no entitlements, so the export signed build 251 without Sign in with Apple and `archive`'s
+  verify refused it after a full build. The identity was in Füd's private signing keychain all along. `archive` now
+  refuses `export` before building when the app needs any entitlement or app group, with a unit test; Füd went back
+  to manual signing (FSRN_Subs#189).
 
 ## Lessons incorporated into v2.29.1 (2026-11-13)
 
