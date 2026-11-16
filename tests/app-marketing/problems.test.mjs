@@ -34,6 +34,9 @@ test('a line meets a family by its problem key or its words, never a not_text li
   const real = loadFamilies();
   assert.deepEqual([...familiesOf(ev({ operation: 'one source page served the CI preflight a bot challenge and its line was removed before the merge' }), real)], []);
   assert.deepEqual([...familiesOf(ev({ operation: 'first failed: the source page answered 403 (a bot challenge)' }), real)], ['source-page-refused']);
+  // The cloud's pitch lines name pre-merge drops this way (2026-11-15): the preflight caught them, nothing failed at send.
+  assert.deepEqual([...familiesOf(ev({ operation: '6 new first pitches queued and merged; short of 10: 3 dropped for sender-network bot challenges' }), real)], []);
+  assert.deepEqual([...familiesOf(ev({ operation: '8 new first pitches queued and merged; short of 10: 2 dropped when CI read their source pages from the sender network (bot challenge)' }), real)], []);
 });
 
 test('three days with no closing line is RECURRING; one or two is seen; history days count', () => {
