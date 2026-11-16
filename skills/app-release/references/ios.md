@@ -624,6 +624,11 @@ verify each one required by the reviewer's request. Preserve matching evidence
 references in Notes and correspondence. A chosen file, completed upload, saved
 draft or sent reply does not establish an accepted resubmission.
 
+**Check the attachment slot before adding another file.** Plenty's review-information API accepted one PNG, then
+rejected a second with HTTP 409, "There can be max of 1 attachment" (2026-11-16). Keep the completed file while
+planning a replacement. When several images are required, combine them into one clearly labelled evidence file or
+use the supported reply attachment control. Verify the final file and describe only what actually reached Apple.
+
 #### TestFlight preparation is not physical QA
 
 `READY_FOR_BETA_TESTING`, a build attached to an internal group, an invitation,

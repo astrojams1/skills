@@ -911,3 +911,10 @@ clarification. Its account-free path mainly showed sample limits and widget prev
 pace planning and accessible local history; adoption and Apple review remain separate app-ledger gates. A live
 check that only printed missing sessions falsely passed. The checklist now requires a failed check when a required
 session or usable result is absent; Plenty regression verification detected both missing sessions.
+
+### 2026-11-16 — Review information may allow only one attachment
+
+Version 2.29.4 records Apple's observed one-file limit for Plenty: the first planner PNG read COMPLETE, while a
+second PNG reservation returned HTTP 409 with a maximum of one attachment. Keep completed evidence while preparing
+a replacement, combine required coverage if needed, and describe only the verified file in Notes/replies. The optional
+second screenshot was not sent; the app's correction and submission do not depend on it.
