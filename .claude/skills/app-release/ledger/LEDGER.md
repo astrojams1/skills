@@ -918,3 +918,5 @@ Version 2.29.4 records Apple's observed one-file limit for Plenty: the first pla
 second PNG reservation returned HTTP 409 with a maximum of one attachment. Keep completed evidence while preparing
 a replacement, combine required coverage if needed, and describe only the verified file in Notes/replies. The optional
 second screenshot was not sent; the app's correction and submission do not depend on it.
+
+| 2026-11-16 | 2.29.5 | Full-screen Rhythm previews had flat native background edges and falsely failed the device-frame heuristic. Render now writes a SHA-256-bound framing receipt; check accepts a verified full-screen render, still rejects framed renders and stale receipts. Native-footage inspection stays separate. Regression uses a solid-background source, a device frame and a mismatched receipt. |

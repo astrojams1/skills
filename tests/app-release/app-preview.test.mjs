@@ -99,7 +99,8 @@ test('check flags a device frame and passes a full-screen capture', {
   const dir = mkdtempSync(join(tmpdir(), 'app-preview-frame-'));
   try {
     const source = join(dir, 'source.mov');
-    const made = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=90x194:rate=30', '-t', '4', '-pix_fmt', 'yuv420p', source]);
+    // A genuine full-screen app can have a flat background all the way to its edges (Rhythm did).
+    const made = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=red:size=90x194:rate=30', '-t', '4', '-pix_fmt', 'yuv420p', source]);
     assert.equal(made.status, 0, String(made.stderr));
     const run = (name, extra) => {
       const spec = { output: join(dir, name + '.mov'), size: [216, 468], fps: 30, background: '#F4EEE1', crossfade: 0,
@@ -110,7 +111,13 @@ test('check flags a device frame and passes a full-screen capture', {
       return spawnSync('xcrun', ['swift', script, 'check', spec.output], { encoding: 'utf8' }).stdout;
     };
     assert.match(run('framed', { screen: { x: 30, y: 60, width: 156, height: 336, radius: 16, bezel: 4 } }), /device frame/);
-    assert.doesNotMatch(run('full', {}), /device frame/);
+    const full = JSON.parse(run('full', {}));
+    assert.equal(full.fullScreenRenderVerified, true);
+    assert.ok(full.problems.every(problem => !problem.includes('device frame')));
+    // A receipt for other bytes must never waive the border check.
+    writeFileSync(join(dir, 'full.mov.render.json'), JSON.stringify({ schemaVersion: 1, fullScreen: true, outputSHA256: '0'.repeat(64) }));
+    const stale = spawnSync('xcrun', ['swift', script, 'check', join(dir, 'full.mov')], { encoding: 'utf8' });
+    assert.match(stale.stdout, /device frame/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
