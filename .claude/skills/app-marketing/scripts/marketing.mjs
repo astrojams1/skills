@@ -338,6 +338,17 @@ export function itemState(item, events, app, now = Date.now(), shorts) {
   if (item.channel === 'youtube-shorts' && shorts?.cadenceDays) item = { ...item, repeat_days: shorts.cadenceDays };
   const mine = events.filter(e => e.event === 'action' && e.app === app && e.item === item.id && e.status !== 'running');
   const last = mine[mine.length - 1];
+  // A Short made under another item or run (an app-shorts run, a carried job) still rests the item for the cadence:
+  // on 2026-11-16 Newsworthy's item showed open because its newest `shorts` action was an 11-10 deferral, though
+  // its Short of 2026-11-13 was live with a 7-day cadence.
+  if (item.channel === 'youtube-shorts' && Array.isArray(episodes) && item.repeat_days) {
+    const posted = episodes.filter(e => ON_CHANNEL.includes(e.status)).map(e => Date.parse(e.postedAt || e.publishAt || 0)).filter(t => t > 0 && t <= now);
+    const newest = posted.length ? Math.max(...posted) : 0;
+    const rest = item.repeat_days * DAY;
+    if (newest && (!last || newest > Date.parse(last.ts)) && now - newest < rest - Math.min(DAY / 2, rest / 2)) {
+      return { state: 'resting', last, why: 'a Short made outside this item is on the channel' };
+    }
+  }
   if (!last) return { state: 'open', last: null };
   const at = Date.parse(last.ts);
   if (last.status === 'skipped' && last.dropped) return { state: 'dropped', last };

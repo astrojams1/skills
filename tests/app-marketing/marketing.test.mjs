@@ -370,6 +370,12 @@ test('a Shorts item rests for the registry\'s cadence, which youtube-growth owns
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: live, cadenceDays: 7 }).state, 'resting');
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: live, cadenceDays: 2 }).state, 'open', 'a doubled-down app comes back sooner');
   assert.equal(itemState(i, [made], 'x', NOW, { episodes: [], cadenceDays: 7 }).state, 'open');
+  // A Short logged under another item still rests it (Newsworthy, 2026-11-16); an older one does not.
+  const deferred = event({ app: 'x', item: 'shorts', ts: ago(6), status: 'deferred', blocked_by: 'outside', reason: 'r', retry_after: new Date(NOW - 3 * 86400000).toISOString() });
+  assert.equal(itemState(i, [deferred], 'x', NOW, { episodes: [{ id: 'other', status: 'live', postedAt: ago(3) }], cadenceDays: 7 }).state, 'resting');
+  assert.equal(itemState(i, [], 'x', NOW, { episodes: [{ id: 'other', status: 'live', postedAt: ago(3) }], cadenceDays: 7 }).state, 'resting');
+  assert.equal(itemState(i, [deferred], 'x', NOW, { episodes: [{ id: 'other', status: 'live', postedAt: ago(8) }], cadenceDays: 7 }).state, 'open');
+  assert.equal(itemState(i, [deferred], 'x', NOW, { episodes: [{ id: 'other', status: 'pulled', postedAt: ago(3) }], cadenceDays: 7 }).state, 'open');
 });
 
 test('a pitch approach with 30 sent and no positive reply is retired; one positive keeps it working', () => {
