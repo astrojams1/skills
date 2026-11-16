@@ -416,8 +416,14 @@ its final bundle ID, before the first build.
 recording on the latest iOS that starts on the Home Screen, launches the app and shows every feature and the
 in-app privacy policy and contact; and notes covering purpose and audience, setup (no login), external
 services, regions, and regulated services or third-party content. Follow the actual request each time.
-**Guideline 4.2 (minimum functionality)** was answered for Newsworthy by shipping more on-device function
-(the timeline on by default), not by argument alone.
+**Guideline 4.2 (minimum functionality)** needs a useful workflow in the submitted app. Test a fresh install without
+accounts, cached content or sample data. Record what the user can do and save, and how to find it. If the reviewer
+finds too little utility, improve that workflow before resubmitting; extra marketing claims do not prove a fix.
+For Newsworthy the correction was an on-device timeline. For Plenty, the account-free path initially offered
+mostly sample readings and widget previews. Its correction adds local usage planning with saved budgets, daily
+and per-session allowances, and accessible history. Check inputs, persistence, offline use and sample labels on
+the new build, and give App Review exact steps. These are app-specific corrections, not proof of approval.
+See the [minimum-functionality check](review-evidence.md#minimum-functionality) for the evidence to keep.
 
 ## Game Center
 
