@@ -41,6 +41,7 @@ import AVFoundation
 import CoreGraphics
 import CoreImage
 import CoreText
+import CryptoKit
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -453,10 +454,36 @@ func render(_ specPath: String) async throws {
   }
   await writer.finishWriting()
   if writer.status != .completed { throw Failure(description: "Writing failed: " + String(describing: writer.error)) }
+  // A flat app background also has a flat border. Bind the renderer's actual framing choice to these exact bytes,
+  // so `check` can distinguish that case from a device frame without trusting a receipt for a different video.
+  let receipt = RenderReceipt(schemaVersion: 1, outputSHA256: try fileSHA256(outputURL), fullScreen: spec.screen == nil && spec.fade == nil)
+  try JSONEncoder().encode(receipt).write(to: URL(fileURLWithPath: outputURL.path + ".render.json"), options: .atomic)
   print("wrote \(outputURL.path): \(frames) frames, \(String(format: "%.2f", total)) s at \(fps) fps, \(width)x\(height)")
 }
 
 // MARK: Check
+
+struct RenderReceipt: Codable {
+  let schemaVersion: Int
+  let outputSHA256: String
+  let fullScreen: Bool
+}
+
+func fileSHA256(_ url: URL) throws -> String {
+  let file = try FileHandle(forReadingFrom: url)
+  defer { try? file.close() }
+  var digest = SHA256()
+  while let chunk = try file.read(upToCount: 1_048_576), !chunk.isEmpty { digest.update(data: chunk) }
+  return digest.finalize().map { String(format: "%02x", $0) }.joined()
+}
+
+func fullScreenRender(_ url: URL) throws -> Bool {
+  let receiptURL = URL(fileURLWithPath: url.path + ".render.json")
+  guard let data = try? Data(contentsOf: receiptURL),
+        let receipt = try? JSONDecoder().decode(RenderReceipt.self, from: data),
+        receipt.schemaVersion == 1, receipt.fullScreen else { return false }
+  return receipt.outputSHA256 == (try fileSHA256(url))
+}
 
 func fourCC(_ code: FourCharCode) -> String {
   String(bytes: [24, 16, 8, 0].map { UInt8((code >> $0) & 255) }, encoding: .ascii) ?? String(code)
@@ -505,7 +532,12 @@ func check(_ path: String, type: String?) async throws {
     problems.append("no audio track; add a stereo AAC track (silent is fine)")
   }
   if try await framed(asset) {
-    problems.append("the border is one flat colour in every frame: a device frame or background band. App Review rejects App Store previews that are not full-screen captures of the app (Guideline 2.3.4); render without \"screen\"")
+    if try fullScreenRender(url) {
+      facts["flatAppBackground"] = true
+      facts["fullScreenRenderVerified"] = true
+    } else {
+      problems.append("the border is one flat colour in every frame: a device frame or background band, or an app background without a matching full-screen render receipt. Inspect the native source, then render without \"screen\" or \"fade\". App Review rejects device frames (Guideline 2.3.4)")
+    }
   }
   facts["problems"] = problems
   let json = try JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys])
@@ -513,8 +545,8 @@ func check(_ path: String, type: String?) async throws {
   if !problems.isEmpty { exit(2) }
 }
 
-// framed says whether every sampled frame has the same flat colour all round its edge, which a full-screen capture
-// never does (its status bar and content reach the edges) and a device frame on a background always does.
+// A flat border can come from a device frame or from the app itself. The render receipt resolves the latter case;
+// source-footage inspection remains separate from verifying that this renderer added no frame or background band.
 func framed(_ asset: AVURLAsset) async throws -> Bool {
   let duration = try await asset.load(.duration).seconds
   let generator = AVAssetImageGenerator(asset: asset)

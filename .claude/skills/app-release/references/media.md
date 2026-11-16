@@ -257,6 +257,10 @@ exposes duplicate labels. A stalled/failed capture is rehearsal evidence, not a 
    `swift $S/app-preview.swift render <spec.json>`. Keep real waiting time real; cut idle stretches, never speed up
    the app's own processing.
 4. `swift $S/app-preview.swift check <preview.mov> <legacy preview type such as IPHONE_61>` must report no problems;
+   keep the renderer's `.render.json` receipt beside the video. Its hash binds the framing choice to that file.
+   A full-screen app with a flat background can have flat edges, as Rhythm did. The receipt distinguishes that
+   from a frame this renderer added. Inspect the native source and final frames separately; the receipt does not
+   prove what the input footage shows. A missing or stale receipt leaves the border check in force.
    then look at a `sheet` of the whole cut and full-size `frame`s, and choose the poster frame (Apple's default is
    5 s, which may land on a keyboard or a transition).
 5. Add it to store data's `assetLibrary` (`APP_PREVIEW`, its profile, `previewFrame`), keep the video and raw take in
