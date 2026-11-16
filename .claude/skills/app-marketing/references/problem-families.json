@@ -485,6 +485,20 @@
       ],
       "cause": "the Neon connector answered server errors for about two hours on 2026-11-13, an outage on its side",
       "fix": "the next run of the day reads it (it recovered at 15:33Z the same day); no change needed while it stays one day"
+    },
+    {
+      "key": "listing-test-release-gate",
+      "title": "A merged listing test waits behind an app-release gate",
+      "text": [
+        "listing test .*(?:held|waits) (?:at|behind) app-release",
+        "Send Feedback gate"
+      ],
+      "history": [
+        "2026-11-15 mkt-mac-20261115T133522Z: Importron keyword test (importron#44) waits at app-release Send Feedback gate",
+        "2026-11-16 mkt-mac-20261116T133513Z: same, STALE after 3 days"
+      ],
+      "cause": "Apple takes keywords only with a new version, and app-release will not submit Importron while its standards audit finds no in-app Send Feedback address (issue.standard.feedback), a change to the app this skill never makes",
+      "fix": "app-release clears issue.standard.feedback (an in-app feedback address) and ships the metadata-only 1.0.1; until then the test is logged deferred with blocked_by store-gate and a retry_after of the next app-release run"
     }
   ],
   "expected": [
