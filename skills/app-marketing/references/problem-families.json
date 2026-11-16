@@ -403,7 +403,9 @@
       "not_text": [
         "removed before (the )?merge",
         "before merging",
-        "caught by (the )?preflight"
+        "caught by (the )?preflight",
+        "dropped (?:when CI read|for (?:a )?sender-network)",
+        "short of \\d+: .*dropped"
       ],
       "history": [
         "2026-11-12 app-sites#54: 3 fetch failures, a Cloudflare 403",
@@ -485,6 +487,32 @@
       ],
       "cause": "the Neon connector answered server errors for about two hours on 2026-11-13, an outage on its side",
       "fix": "the next run of the day reads it (it recovered at 15:33Z the same day); no change needed while it stays one day"
+    },
+    {
+      "key": "listing-test-release-gate",
+      "title": "A merged listing test waits behind an app-release gate",
+      "text": [
+        "listing test .*(?:held|waits) (?:at|behind) app-release",
+        "Send Feedback gate"
+      ],
+      "history": [
+        "2026-11-15 mkt-mac-20261115T133522Z: Importron keyword test (importron#44) waits at app-release Send Feedback gate",
+        "2026-11-16 mkt-mac-20261116T133513Z: same, STALE after 3 days"
+      ],
+      "cause": "Apple takes keywords only with a new version, and app-release will not submit Importron while its standards audit finds no in-app Send Feedback address (issue.standard.feedback), a change to the app this skill never makes",
+      "fix": "app-release clears issue.standard.feedback (an in-app feedback address) and ships the metadata-only 1.0.1; until then the test is logged deferred with blocked_by store-gate and a retry_after of the next app-release run"
+    },
+    {
+      "key": "fud-repo-push-refused",
+      "title": "An unattended session refused a push to the Füd repository",
+      "text": [
+        "refused the push and PR to wendigo124/FSRN_Subs"
+      ],
+      "history": [
+        "2026-11-16 mkt-mac-20261116T133513Z: Füd keyword test prepared, push and PR to wendigo124/FSRN_Subs refused by the auto-mode classifier"
+      ],
+      "cause": "Füd lives in wendigo124/FSRN_Subs, another GitHub account than astrojams1; on 2026-11-16 the Mac pass auto-mode classifier refused pushing there as unsanctioned communication, although runs on 2026-11-13 (#187) and app-release on 2026-11-14 (#188 to #191) pushed to it",
+      "fix": "the next Mac pass retries from the prepared branch store/keywords-calorie-20261116 in /Volumes/ssd/projects/app-marketing/worktrees/fsrn-kw; never works around the classifier; if it is refused on a second day, write the standing line naming the owner step (an allow rule for pushes to wendigo124/FSRN_Subs, or moving Füd under astrojams1)"
     }
   ],
   "expected": [
