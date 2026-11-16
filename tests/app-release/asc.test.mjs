@@ -414,3 +414,10 @@ test('a listing that names AI services is refused while China mainland is a stor
   // Whole words only: "Claudette" or "gptools" are not the services.
   assert.equal(asc.chinaAiProblem({ description: 'Claudette loves gptools.' }, true), null);
 });
+
+test('review notes over 4,000 characters are refused before anything is written', () => {
+  assert.equal(asc.reviewNotesProblem(undefined), null);
+  assert.equal(asc.reviewNotesProblem('a'.repeat(4000)), null);
+  assert.equal(asc.reviewNotesProblem('é'.repeat(4000)), null);
+  assert.match(asc.reviewNotesProblem('a'.repeat(4216)), /4216 characters.*at most 4000.*cut 216/);
+});

@@ -1,8 +1,15 @@
 # App release skill ledger
 
-Skill version **2.29.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.29.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.29.3 (2026-11-14)
+
+- Newsworthy 1.0.3's review notes were 4,216 characters and App Store Connect refused `review-details` with a 409
+  (limit 4,000); nothing was written. `asc.mjs review-details` now refuses notes over 4,000 characters before any
+  write and says how many to cut, with a regression test (daily run app-review-daily-20261114T170544Z; newsworthy#276
+  also runs the app's own store validator in CI).
 
 ## Lessons incorporated into v2.29.1 (2026-11-13)
 
