@@ -163,6 +163,17 @@ tiny (guideline 7), and a close crop with the caption plate over the phone's top
 "on the app". What settled it: whole iPhone only for the first beat and the end, closer frames that keep both side bezels
 in frame (phone about 1040 px wide), the plate placed in the app's own empty gap, and no mask band over the phone.
 
+## The Mac pass of 2026-11-16 (mkt-mac-shorts-20261116T140200Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-16 | fud-lunchbox-01 (kHx6xh-ImcY), 8.8 s, public 14:27:15Z | a school lunchbox typed into Füd as one sentence ("Lunchbox: PB&J, apple slices, goldfish crackers and a juice box"); it opens on the four foods landing, Maya ticked (from Leo's journal), Leo's then Maya's journal, an App Store search field types "Füd family", and the phone slides back into frame 0 | ending test for Füd: a search-field end card plus slide-back loop vs fud-taco-tuesday-01's typed-sentence loop (avg % viewed, viewedRate, 72 h downloads); E1 rules (21 words, at most 5 at once); comment pinned and Related video x1SwJJUI8mc within the hour | Simulator iPhone 16 Pro on brown lunch-bag kraft paper with a fold crease, Noteworthy Bold in ink on an off-white taped note set in the app's own gaps; end card: Füd icon over a white App Store-style search pill (SF) | Apple Loops 105 bpm D: Brazilian Cavaquinho 01/02, Latin Danza Drumset 01/03, Snare Drum Fill 01; key and tap clicks from filtered noise | |
+
+**Panel lesson (2026-11-16).** Opening on the typed sentence read as setup (editor: guideline 4) and left an empty app screen
+below the field; the loading list ("Lunchbox: PB" / "J") reads as the app failing, so cut the wait whole. Opening on the
+result with the typed sentence still visible above it carries both. A caption plate placed across app UI is called a
+mistake every time: map the plate onto the app's own empty gaps per shot (src y between the field and "Your meal").
+
 ## Experiments that change the guidelines (set 2026-11-13)
 
 Each experiment changes one thing, using Shorts that are due anyway; each new Short sits in one arm of one

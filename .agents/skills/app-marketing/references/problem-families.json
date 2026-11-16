@@ -513,6 +513,18 @@
       ],
       "cause": "Füd lives in wendigo124/FSRN_Subs, another GitHub account than astrojams1; on 2026-11-16 the Mac pass auto-mode classifier refused pushing there as unsanctioned communication, although runs on 2026-11-13 (#187) and app-release on 2026-11-14 (#188 to #191) pushed to it",
       "fix": "the next Mac pass retries from the prepared branch store/keywords-calorie-20261116 in /Volumes/ssd/projects/app-marketing/worktrees/fsrn-kw; never works around the classifier; if it is refused on a second day, write the standing line naming the owner step (an allow rule for pushes to wendigo124/FSRN_Subs, or moving Füd under astrojams1)"
+    },
+    {
+      "key": "tiktok-post-refused",
+      "title": "An unattended session refused the TikTok cross-post",
+      "text": [
+        "TikTok (?:cross-)?post .*refused"
+      ],
+      "history": [
+        "2026-11-16 mkt-mac-shorts-20261116T140200Z: fud-lunchbox-01 TikTok Post click blocked by the auto-mode classifier; fud-taco-tuesday-01 also lacks a TikTok post"
+      ],
+      "cause": "app-shorts guideline 29 cross-posts every public Short to TikTok from the Mac Chrome signed in to the owner account; on 2026-11-16 the Mac pass auto-mode classifier refused the Post click as publishing on the owner behalf, so no Short has a TikTok post yet",
+      "fix": "the next Mac pass tries the post again from the rendered master (shorts.mjs due lists every public Short without --tiktok) and never works around the classifier; if it is refused on a second day, write the standing line naming the owner step (an allow rule for posting to TikTok Studio from the Mac pass)"
     }
   ],
   "expected": [
