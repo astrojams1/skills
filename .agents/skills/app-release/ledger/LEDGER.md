@@ -902,3 +902,12 @@ real beta feedback, shared components and content-provider facts. A repeated 2.1
 also needs a fresh diagnosis; the old fix or a different guideline does not prove approval. If the remaining cause
 cannot be reproduced, request Apple's screen or steps while leaving the issue open. Adoption is recorded by each app;
 this source change neither resubmits nor resolves a provider finding.
+
+### 2026-11-16 — Minimum functionality needs a usable account-free task
+
+Version 2.29.3 adds a Guideline 4.2 workflow check: fresh-install discovery, real inputs and actions, saved results,
+offline behavior and sample labels. Plenty 1.0 build 9 received a new 4.2 message after an earlier subscription
+clarification. Its account-free path mainly showed sample limits and widget previews. The correction adds native
+pace planning and accessible local history; adoption and Apple review remain separate app-ledger gates. A live
+check that only printed missing sessions falsely passed. The checklist now requires a failed check when a required
+session or usable result is absent; Plenty regression verification detected both missing sessions.

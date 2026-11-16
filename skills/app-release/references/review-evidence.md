@@ -48,3 +48,21 @@ and observed behavior. Do not present a suspected cause as Apple's finding.
 If the new message gives no reproducible path and the cause remains unknown after these checks, reply with the
 verified behavior and ask Apple for the screen, steps or screenshot needed to reproduce it. Keep the issue open.
 Do not create unrelated purchases, claim an earlier guideline is cleared, or blindly resubmit the same package.
+
+## Minimum functionality
+
+For Guideline 4.2, check the app's value with no account and no cached content. Follow Apple's current
+[minimum-functionality rule](https://developer.apple.com/app-store/review/guidelines/#minimum-functionality),
+then record the specific weakness and correction. A demo with sample numbers only shows presentation.
+
+- Exercise a real task from a fresh install: enter or fetch inputs, take an action, save its result, relaunch and
+  retrieve it. Check the offline or unavailable-service path where the task supports it.
+- Keep a promised account-free feature usable without sign-in. Put its entry point where a new user can find it.
+- Label sample inputs, charts and saved examples. Keep estimates separate from actual account data.
+- Test the calculation and storage boundaries, including expired data, zero values and incomplete setup.
+- Retain native evidence for the corrected build and exact review steps. Simulator evidence is valid for this
+  check unless Apple specifically requests a physical-device recording.
+- Live-data verification must fail when the required session or result is missing. A skipped test or a print-only
+  check cannot establish that an account-dependent feature works.
+
+Read the latest message again before resubmitting. A changed guideline does not establish clearance of an older one.
