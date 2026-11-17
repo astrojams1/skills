@@ -69,6 +69,7 @@ export function familyProblems(families) {
     keys.add(f.key);
     for (const k of ['title', 'cause', 'fix']) if (!String(f[k] || '').trim()) problems.push(`family ${f.key}: missing ${k}`);
     for (const h of f.history || []) if (!/^\d{4}-\d{2}-\d{2} \S+: \S/.test(h)) problems.push(`family ${f.key}: history "${h}" must read "YYYY-MM-DD <where>: <what>"`);
+    if (f.channels !== undefined && !(Array.isArray(f.channels) && f.channels.length)) problems.push(`family ${f.key}: channels must be a list of channels`);
     for (const t of [...(f.text || []), ...(f.not_text || [])]) { try { new RegExp(t); } catch { problems.push(`family ${f.key}: bad pattern ${t}`); } }
   }
   return problems;
@@ -92,7 +93,10 @@ export function familiesOf(e, families) {
   const keys = [e.problem, ...(Array.isArray(e.left_open) ? e.left_open.map(o => o?.problem) : [])].filter(Boolean);
   for (const k of keys) if (families.some(f => f.key === k)) found.add(k);
   const text = lineText(e);
-  for (const f of families) if (!found.has(f.key) && f._text.some(t => t.test(text)) && !f._not.some(t => t.test(text))) found.add(f.key);
+  // A family with `channels` matches text only on lines of those channels (or with no channel): source-page-refused is
+  // about pitch source pages, so a directory site's bot check on a submit form is not a sighting (2026-11-17).
+  const inScope = f => !f.channels || !e.channel || f.channels.includes(e.channel);
+  for (const f of families) if (!found.has(f.key) && inScope(f) && f._text.some(t => t.test(text)) && !f._not.some(t => t.test(text))) found.add(f.key);
   return found;
 }
 
