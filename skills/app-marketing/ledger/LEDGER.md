@@ -63,6 +63,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.8 | 2026-11-17 | New problem family `gmail-auth-refused`: Gmail refused the mailbox's token mid-call and the sender spent an attempt on every pending first email; the sender now treats a 401 or a refused token refresh as mailbox-wide (message waits, call stops) | 43 first emails failed with 401 in one Pitches call at 00:55Z on 2026-11-17 |
 | 1.32.9 | 2026-11-17 | `replies-unanswered` counts only replies the sender could still answer: the pitches snapshot keeps the sender's `waiting: false` on a reply whose app is out of marketing (app-sites summarize), and `pitches --replies` no longer lists it | Eggaduppa's interested reply (not-marketed, outcome recorded) showed as unanswered in every snapshot and reopened the family on 2026-11-17 |
 | 1.32.10 | 2026-11-17 | A problem family can list `channels`: its words match only lines of those channels (or with none). `source-page-refused` is scoped to pitches | A directory submit form behind a Cloudflare page reopened `source-page-refused`, a family about pitch source pages |
+| 1.32.11 | 2026-11-17 | Problem family `store-lookup-stale`: Apple's developer lookup can answer from an older cache; app-sites store sync now re-checks a missing app by its own id and never rolls a version back | The 18:28Z store sync called Plenty (released that day) missing and set Space Worms back to 1.0.2, opening app-sites#175 |
 
 ## Lessons
 
