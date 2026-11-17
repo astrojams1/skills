@@ -97,12 +97,13 @@ export function familiesOf(e, families) {
 }
 
 // pitchOccurrences: a human reply still unanswered at a pitches snapshot although an earlier snapshot already saw it,
-// so a whole run passed it by.
+// so a whole run passed it by. A reply the sender says it can never answer (`waiting: false`: its app is out of
+// marketing, app-sites summarize) has its outcome recorded instead and is not counted.
 export function pitchOccurrences(metrics) {
   const snaps = new Map();
   for (const m of metrics) if (m.source === 'pitches' && Array.isArray(m.pitches)) {
     const s = snaps.get(m.at) || snaps.set(m.at, []).get(m.at);
-    for (const p of m.pitches) for (const r of p.replies || []) if (r.kind === 'other' && !r.answered) s.push(`${p.id}@${r.at}`);
+    for (const p of m.pitches) for (const r of p.replies || []) if (r.kind === 'other' && !r.answered && r.waiting !== false) s.push(`${p.id}@${r.at}`);
   }
   const ats = [...snaps.keys()].sort(), out = [];
   ats.forEach((at, i) => {
