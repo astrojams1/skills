@@ -385,7 +385,7 @@ need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of 
 - **Hacker News bans vote rings and automated posts.** One Show HN a month across all apps, at most one repost,
   and none after a story got real attention. `hn` enforces all three, so do not work around it.
 - **The claude.ai Gmail connector is the wrong account (2026-11-12).** It is signed in to Clean Streets. Pitches go
-  only through `/api/pitches`, which sends from the owner's Gmail.
+  only through `/api/pitches`, which sends from the owner's Gmail. No cold pitch goes from it since Google disabled it on 2026-11-16 (`references/pitches.md`, step 5).
 - **A cloud session refuses the call that sends (2026-11-12).** Its safety check blocked the run's `curl` to
   `/api/pitches`, so 22 merged pitches sat unsent. The merge now starts the Pitches workflow, which sends. A run only
   reads, with `pitches --write`.
