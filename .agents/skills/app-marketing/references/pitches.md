@@ -155,7 +155,14 @@ run's.
 3. **Look for coverage.** Search the web for each pitched outlet and the app's name. A piece that covers the app is
    an `outcome` with `kind: coverage` and its `url`.
 4. **Learn.** `node $R/marketing.mjs learn --write`. A retired approach gets no more pitches. Write a different one.
-5. **Write.** For every app, research people who fit "Who to pitch" and whom the queue has not pitched for that app.
+5. **Write.** **Paused while the sender is a personal Gmail (2026-11-16).** Google disabled the owner's personal
+   Gmail that day while the three senders mailed about 280 cold emails a day from it, and Gmail's Program Policies
+   say "Don't use Gmail to distribute spam or unsolicited commercial mail". The sender now refuses every cold pitch
+   and cold follow-up from a @gmail.com mailbox (`mailbox-budget.mjs`, `cold: "off: personal gmail"` in its answer;
+   the owner's words: "make any adjustments that might be needed to prevent this from happening in the future").
+   So while `/api/pitches` reports that, write no new pitches: answer replies (step 2), look for coverage, and spend
+   the run on the other channels in `channels.md`. The text below applies again only once pitches send from a
+   business-domain mailbox. For every app, research people who fit "Who to pitch" and whom the queue has not pitched for that app.
    Write a pitch for each one the standard allows, each from what that person published. **Daily target: about 10
    new first pitches per live app, about 75 a day in all,** each with its day 3 and day 7 follow-up texts. It is a
    floor, not a cap: with more real recipients, write more, up to the room the sender reports. Why: the mailbox's 300

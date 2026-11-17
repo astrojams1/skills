@@ -47,7 +47,7 @@ Write it in the episode folder (`plan.md`) before recording. Short and specific:
 |---|---|
 | Premise | demo, skit, parody (nature documentary, infomercial, true crime, sports commentary), confession, challenge, ASMR, time-lapse, tutorial, myth-buster, POV, unboxing, mock trailer, text-message drama |
 | Point of view | the app's mascot speaks, a parent's diary, a narrator, the data's own view, a rival, no one |
-| Footage | the real app full screen, the app inside a staged scene, split screen with the problem, the screen's elements pulled out and animated, macro of a device, photographed props |
+| Footage | a 3D scene built in Blender from the product's own picture (`../../youtube-shorts/references/blender.md`), the real app full screen, the app inside a staged scene, split screen with the problem, the screen's elements pulled out and animated, macro of a device, photographed props |
 | Type | a typeface chosen for this Short, its size, case, weight, where it sits, how it moves (kinetic, typed, stamped, handwritten) |
 | Colour | a palette chosen for this Short; app colours, the opposite, monochrome, one accent |
 | Sound | music arranged from scratch in a genre chosen for this Short, the app's own sounds as the score, foley, a voice, silence and one hit |

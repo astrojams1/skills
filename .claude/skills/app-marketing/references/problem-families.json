@@ -525,6 +525,21 @@
       ],
       "cause": "app-shorts guideline 29 cross-posts every public Short to TikTok from the Mac Chrome signed in to the owner account; on 2026-11-16 the Mac pass auto-mode classifier refused the Post click as publishing on the owner behalf, so no Short has a TikTok post yet",
       "fix": "the next Mac pass tries the post again from the rendered master (shorts.mjs due lists every public Short without --tiktok) and never works around the classifier; if it is refused on a second day, write the standing line naming the owner step (an allow rule for posting to TikTok Studio from the Mac pass)"
+    },
+    {
+      "key": "gmail-auth-refused",
+      "title": "Gmail refused the mailbox's credentials, so pitches could not send",
+      "text": [
+        "401 Request had invalid authentication",
+        "gmail token refresh failed",
+        "invalid_grant",
+        "gmail auth"
+      ],
+      "history": [
+        "2026-11-17 pitches-run-507: 43 first emails failed with 401 in one call at 00:55Z; the next call answered 500"
+      ],
+      "cause": "the GMAIL_REFRESH_TOKEN in Vercel stopped being accepted between 00:54:48Z (a send succeeded) and seconds later on 2026-11-17 (a revoked or expired grant); the sender spent an attempt on every pending first email because a 401 counted as a per-message failure",
+      "fix": "the sender treats 401 and a refused token refresh as mailbox-wide: the message waits, no attempt is spent and the call stops (authError, send.mjs). A new token comes from node packages/pitches/scripts/vercel-env.mjs on the Mac; if Google refuses the refresh token itself, the Mac pass re-runs the Gmail consent with the owner's signed-in Chrome"
     }
   ],
   "expected": [

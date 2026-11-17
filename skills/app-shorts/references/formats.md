@@ -34,6 +34,11 @@ numbers. Each line below is a starting point, not a script.
 - **Importron** (lab PDF → Apple Health): before and after with a synthetic lab report only, never real results.
 - **Space Worms** (game): near-misses and wins, "Can you beat this level?"
 
+## In 3D
+
+Experiment E7 (`../ledger/experiments.md`) builds its Shorts in Blender. `youtube-shorts/references/blender.md` has a
+3D starting point per product, and what a 3D Short must not be (a phone turntable, a mascot).
+
 ## Rules
 
 - **Only for apps on sale.** A seed for an app not on sale waits; there is no "coming soon" format.
