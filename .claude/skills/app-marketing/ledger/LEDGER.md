@@ -62,6 +62,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.7 | 2026-11-14 | `pitch-bounces` is about the bounce rate, not a single bounce: the sender brakes first emails at 5% of 3 days' cold mail (app-sites#135), and a run logs the family only when the brake or the 3-day rate shows it | Two more first emails bounced on 2026-11-14 at published addresses on domains with working MX; the family went RECURRING although no check before sending can see a dead mailbox |
 | 1.32.8 | 2026-11-17 | New problem family `gmail-auth-refused`: Gmail refused the mailbox's token mid-call and the sender spent an attempt on every pending first email; the sender now treats a 401 or a refused token refresh as mailbox-wide (message waits, call stops) | 43 first emails failed with 401 in one Pitches call at 00:55Z on 2026-11-17 |
 | 1.32.9 | 2026-11-17 | `replies-unanswered` counts only replies the sender could still answer: the pitches snapshot keeps the sender's `waiting: false` on a reply whose app is out of marketing (app-sites summarize), and `pitches --replies` no longer lists it | Eggaduppa's interested reply (not-marketed, outcome recorded) showed as unanswered in every snapshot and reopened the family on 2026-11-17 |
+| 1.32.10 | 2026-11-17 | A problem family can list `channels`: its words match only lines of those channels (or with none). `source-page-refused` is scoped to pitches | A directory submit form behind a Cloudflare page reopened `source-page-refused`, a family about pitch source pages |
 
 ## Lessons
 

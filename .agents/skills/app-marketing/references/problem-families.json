@@ -394,6 +394,9 @@
     {
       "key": "source-page-refused",
       "title": "A pitch's source page refused the sender (bot challenge), so the pitch failed",
+      "channels": [
+        "pitches"
+      ],
       "text": [
         "bot challenge",
         "Cloudflare challenge",

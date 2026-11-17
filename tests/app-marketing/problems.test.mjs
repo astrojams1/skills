@@ -128,6 +128,15 @@ test('a human reply still unanswered a run later is an occurrence of replies-una
   assert.equal(familyRecords([], f, [snap(at(12, 11), false), snap(at(12, 18), false)])['replies-unanswered'].occ.length, 1);
 });
 
+test('a family with channels matches text only on lines of those channels', () => {
+  const f = compileFamilies([{ key: 'src', title: 't', text: ['bot challenge'], channels: ['pitches'], cause: 'c', fix: 'f' }]);
+  assert.ok(familiesOf(ev({ ts: at(5), channel: 'pitches', operation: 'page behind a bot challenge' }), f).has('src'));
+  assert.ok(familiesOf(ev({ ts: at(5), operation: 'page behind a bot challenge' }), f).has('src'), 'a line with no channel still counts');
+  assert.ok(!familiesOf(ev({ ts: at(5), channel: 'directories', operation: 'submit form behind a bot challenge' }), f).has('src'));
+  assert.ok(familiesOf(ev({ ts: at(5), channel: 'directories', problem: 'src', operation: 'x' }), f).has('src'), 'naming the family always counts');
+  assert.ok(familyProblems([{ key: 'k', title: 't', cause: 'c', fix: 'f', channels: [] }]).length);
+});
+
 test('unmapped lists problem lines in no family, not expected waits', () => {
   const f = compileFamilies([{ key: 'a', title: 't', text: ['alpha'], cause: 'c', fix: 'f' }]);
   f.expected = [{ _re: /first report takes a day/i }];
