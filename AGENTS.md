@@ -111,8 +111,9 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, experiments and lessons
   youtube-shorts/
     SKILL.md                               # Frame, check and post Shorts inside YouTube's measured safe zone
-    references/{safe-zone,posting}.md      # The measurement and layout rules; the upload package
+    references/{safe-zone,posting,blender}.md   # The measurement and layout rules; the upload package; Shorts in 3D
     scripts/safe-zone.mjs, scripts/fit-screenshot.py   # Contact-sheet checker (ffmpeg); screenshot-to-frame fit (numpy, Pillow)
+    scripts/blender-short.sh, scripts/blender/          # Shorts as 3D Blender scenes: kit, worked example, self-test; headless render to MP4
     assets/zones.json                      # Keep-out zones and safe box in 1080x1920 frame pixels
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)

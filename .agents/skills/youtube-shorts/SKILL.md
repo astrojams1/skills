@@ -2,7 +2,7 @@
 name: youtube-shorts
 description: Make, check and post YouTube Shorts (vertical 9:16 video, 1080x1920) that frame well on a phone, where YouTube's own controls cover the top, the right edge and the bottom of the video and the player crops the sides. Plan every title, number, face, product screen and call to action inside the measured safe zone, check each frame with a safe-zone contact sheet before uploading, prepare the upload package (title, description, hashtags, captions, cover, settings), and re-measure from a phone screenshot when something is hidden. Use whenever making, rendering, editing, reviewing or posting a YouTube Short, a vertical trailer, promo or app video for Shorts, TikTok or Reels, or when a Short "doesn't frame well", text sits behind YouTube's buttons, or someone sends a screenshot of a Short playing.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -32,8 +32,10 @@ still have its headline under the search icon.
 | `scripts/safe-zone.mjs` | Draws the zones over a video (a contact sheet), one frame (`--at`) or a still. Node 22 and ffmpeg |
 | `scripts/soundtrack.mjs` | Cued sound effects (typing, tap, pop, whoosh, ding) mixed under a cut at about -14 LUFS. Its synth music is retired: score music from scratch per Short (`app-shorts/references/creative.md`). Node 22; ffmpeg for the mix |
 | `scripts/legibility.swift` | Finds every caption word in the frames with Vision and fails any under 4.5:1 contrast against what is behind it. `swift legibility.swift <video> --every 0.5` |
+| `scripts/blender-short.sh`, `scripts/blender/` | Builds a Short as a 3D Blender scene, placed by frame pixels, safe-zone checked before rendering, encoded to MP4. `references/blender.md` |
 | `scripts/fit-screenshot.py` | Maps a phone screenshot of a playing Short onto the frame's pixels, to measure the zones again, and with `--preview` lays its YouTube controls over new frames. numpy and Pillow |
 | `references/safe-zone.md` | The measurement, layout rules, the published (ad) figures and how to re-measure |
+| `references/blender.md` | When a Short should be 3D, the kit, a worked example, render times and gotchas |
 | `references/posting.md` | The upload package: file, title, description, hashtags, cover, captions, settings, after upload |
 | `ledger/LEDGER.md` | Versions, measurements, runs and open issues. Read before starting |
 
@@ -127,6 +129,13 @@ app-release's `app-preview.swift render` at `size: [1080, 1920]`:
 - **Open on the product already moving and end where it began**, so the loop is seamless.
 
 Füd's spec (`store/source/shorts/fud-short.json` in its repository) is a worked example.
+
+## Shorts in 3D
+
+When the idea needs depth, a moving camera or physics, build it in Blender (`references/blender.md`): the product's
+own picture breaks apart and lands, a game's world becomes a diorama, a card drops onto a stack. Place every caption
+by frame pixels (`at_pixel`) and mark it `safe`; the kit refuses to render when one leaves the safe box or slips behind
+the scene. Then check and score the cut like any other. A phone spinning on a studio floor is not a 3D idea.
 
 ## Gotchas
 

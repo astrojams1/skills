@@ -191,12 +191,15 @@ week, once; then call it inconclusive and leave the guideline untested.
 | E3 | Open on the payoff, already moving (4) | the next three Vegas Microworks Shorts (1st: vmw-software-cost-02, WpjE6uJNc84) open on the tool's result already lit and moving at frame 0 | the twelve Vegas Microworks Shorts public on 2026-11-12/13, which open on a calm, static frame (panel: "stops the scroll" 3 to 7) | viewedRate first; then avg % viewed, site visits in 72 h | 2026-11-27 | |
 | E4 | Loop ending (6) | the next Short of Data Center, Importron and Newsworthy (Newsworthy: newsworthy-loop-01b, q_BbmY4s-PM) ends on a frame that cuts seamlessly into its first | dc-first-01b (N4OVQ7qiO6E), importron-calm-v5c (jIXBfd1UzH0), newsworthy-today-rated-01b (fUif0yqsz80), which end on an end card | avg % viewed (over 100 % means rewatches), avg view duration, verdicts | 2026-11-27 | |
 | E5 | Length 7 to 10 s (3) | lob-cut-02 (fDEMazEVG8k, 7.0 s, public 2026-11-13): a new 8 to 10 s cut of a different moment from the existing lob-rings-01 take (the hit on Sister Odile, cold-opened), plus the next Space Worms Short at 7 to 10 s | lob-rings-01 (cA7wBs5P_Gs, 17 s); the channel's 14 to 17 s Shorts | avg % viewed, 7-day views, site visits (LOB) | 2026-11-27 | |
+| E7 | Shorts built in Blender: depth, a moving camera, focus and motion blur, physics (owner's request, 2026-11-16) | the next Short of Space Worms, Newsworthy and Füd, each a 3D scene built in Blender from the product's own picture (`youtube-shorts/references/blender.md`), each kept out of every other content arm | each app's latest 2D Short: sw-giant-e5-01 (hWQyMWdTMTQ), newsworthy-loop-01b (q_BbmY4s-PM), fud-lunchbox-01 (kHx6xh-ImcY) | viewedRate, avg % viewed, 7-day views, 72-hour verdicts. **Keep** Blender if at least two of the three beat their control on both viewedRate and 7-day views. **Retire** it if two or more lose on both: no new Blender Short until something changes that could change the result. Anything else: inconclusive, run three more | 2026-11-30 | |
 | E6 | TikTok cross-post (29) | every public Short of a cleared product, posted to TikTok (`astrojams`) from its master from 2026-11-13, best YouTube performers first, no daily cap | the same Short on YouTube | views at 72 hours on each platform (TikTok post analytics vs `yt-api.mjs pull`), then App Store search or site visits in the 72 hours after the TikTok post | 2026-11-27 | |
 
 **Queued for the next Shorts stage (one render at a time; never in parallel with another render).**
 
 1. lob-cut-02 (E5): a new cut from the existing lob-rings-01 recording; no new recording needed.
 2. The E1, E3 and E4 arms above, as each app's next due Short (`evaluate.mjs` `produce` order).
-3. For E2 and guideline 23, a long walkthrough per app (16:9, 1 to 3 minutes, a real use of the app, its
+3. E7: the next Short of Space Worms, Newsworthy and Füd, each built in Blender. E7 changes no guideline; its
+   verdict keeps or retires the Blender route (`../SKILL.md` step 4 and `youtube-shorts/references/blender.md`).
+4. For E2 and guideline 23, a long walkthrough per app (16:9, 1 to 3 minutes, a real use of the app, its
    description's first line the attributed store link from `shorts.mjs link`), first Space Worms and Newsworthy.
    Once one exists, it becomes that app's Shorts' Related video (`shorts.mjs mark --related`).

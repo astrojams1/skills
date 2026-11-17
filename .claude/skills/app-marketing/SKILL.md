@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.32.7"
+  version: "1.32.8"
   ledger: ledger/LEDGER.md
 ---
 
@@ -385,7 +385,7 @@ need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of 
 - **Hacker News bans vote rings and automated posts.** One Show HN a month across all apps, at most one repost,
   and none after a story got real attention. `hn` enforces all three, so do not work around it.
 - **The claude.ai Gmail connector is the wrong account (2026-11-12).** It is signed in to Clean Streets. Pitches go
-  only through `/api/pitches`, which sends from the owner's Gmail.
+  only through `/api/pitches`, which sends from the owner's Gmail. No cold pitch goes from it since Google disabled it on 2026-11-16 (`references/pitches.md`, step 5).
 - **A cloud session refuses the call that sends (2026-11-12).** Its safety check blocked the run's `curl` to
   `/api/pitches`, so 22 merged pitches sat unsent. The merge now starts the Pitches workflow, which sends. A run only
   reads, with `pitches --write`.

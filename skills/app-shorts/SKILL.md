@@ -2,7 +2,7 @@
 name: app-shorts
 description: Keep every app the owner ships on YouTube with a Shorts series, for both App Store teams (Ouro and the personal James Thompson team): real-app recordings cut to 10–20 s, made public on the owner's channel the moment they pass review (never scheduled), with links back to the App Store and the marketing websites, and retired when they do not lift downloads. Use whenever the owner asks for Shorts, a YouTube video, TikTok/Reels-style promo or "marketing videos" for any app; when app-release ships a visible feature; when `evaluate.mjs` lists an app to produce; and to post a rendered episode.
 metadata:
-  version: "2.15.0"
+  version: "2.16.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -75,7 +75,8 @@ Repository rules and approval holds outrank this skill.
    fastest. Use synthetic data.
 4. **Build the cut with whatever tool the idea needs:** `app-preview.swift render`, ffmpeg filter graphs, a
    Remotion or HTML/canvas scene rendered frame by frame, motion type, split screens, real-world props
-   photographed or generated as stills. The tool follows the idea. Score the sound from scratch for this Short
+   photographed or generated as stills, or a 3D scene in Blender (`youtube-shorts/references/blender.md`). An
+   E7 arm Short (`ledger/experiments.md`) is built in Blender. The tool follows the idea. Score the sound from scratch for this Short
    (`references/creative.md`, "Sound"). `soundtrack.mjs` is for sound effects only, never the music.
 5. **Watch it, then fix it, at least twice.** Each round:
    - Render, then look at every frame at 0.5 s (`safe-zone.mjs --every 0.5`) and the key frames full size.
