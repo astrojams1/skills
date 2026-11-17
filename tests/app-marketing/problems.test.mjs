@@ -121,6 +121,9 @@ test('a human reply still unanswered a run later is an occurrence of replies-una
   assert.equal(pitchOccurrences([snap(at(12, 11), false)]).length, 0);
   assert.equal(pitchOccurrences([snap(at(12, 11), false), snap(at(12, 18), false)]).length, 1);
   assert.equal(pitchOccurrences([snap(at(12, 11), false), snap(at(12, 18), true)]).length, 0);
+  // A reply the sender can never answer (its app is out of marketing) is not waiting, so it is not counted.
+  const held = when => ({ at: when, source: 'pitches', pitches: [{ id: 'p1', replies: [{ kind: 'other', at: at(12, 10), answered: false, waiting: false }] }] });
+  assert.equal(pitchOccurrences([held(at(12, 11)), held(at(12, 18))]).length, 0);
   const f = compileFamilies([{ key: 'replies-unanswered', title: 't', cause: 'c', fix: 'f' }]);
   assert.equal(familyRecords([], f, [snap(at(12, 11), false), snap(at(12, 18), false)])['replies-unanswered'].occ.length, 1);
 });

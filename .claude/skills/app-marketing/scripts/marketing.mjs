@@ -1391,7 +1391,7 @@ export function pitchSnapshot(detail, at = new Date().toISOString()) {
     if (p.replies.some(r => r.kind === 'no')) v.pitchOptOuts += 1;
     v.pitchVisits += p.visits || 0;
     line.pitches.push({ id: p.id, approach: p.approach, first: p.first && { status: p.first.status, at: p.first.at }, followUp: p.followUp && { status: p.followUp.status, at: p.followUp.at },
-      replies: p.replies.map(r => ({ kind: r.kind, at: r.at, answered: r.answered })), visits: p.visits || 0 });
+      replies: p.replies.map(r => ({ kind: r.kind, at: r.at, answered: r.answered, ...(r.waiting === false ? { waiting: false } : {}) })), visits: p.visits || 0 });
   }
   return [...apps.values()];
 }
@@ -1430,7 +1430,7 @@ async function cmdPitches(root, args) {
   for (const p of body.pitches || []) {
     console.log(`${p.app}/${p.id} [${p.approach}] first ${p.first?.status || 'not yet'}${p.first?.error ? ` (${p.first.error})` : ''}, follow-up ${p.followUp?.status || 'not yet'}, ${p.visits} visits`);
     for (const r of p.replies) {
-      if (r.kind !== 'other' || r.answered) continue;
+      if (r.kind !== 'other' || r.answered || r.waiting === false) continue;
       console.log(`  unanswered reply ${r.id} (${r.at}, from ${r.fromDomain || 'unknown'})${r.body !== undefined ? `:\n    ${String(r.body).replace(/\n/g, '\n    ')}` : ''}`);
     }
   }
