@@ -280,6 +280,26 @@ const HN_PER_YEAR = 2;       // the first post and at most one repost per app in
 // stories count toward the monthly limit even when no run posted them: on 2026-11-18 the pass posted Plenty 15 days
 // after the owner had posted Data Center by hand, because only the ledger was read.
 export const HN_ACCOUNT = '4stro';
+// A story Hacker News killed on arrival is `dead`: only its signed-in author still sees it, so the Mac's Chrome shows
+// a normal post while no reader ever does. Search (hn.algolia.com) does not list dead stories; the item API does.
+// On 2026-11-18 every story the account had ever posted (3 of 3, back to 2025-12-31) was dead, and two Show HNs had
+// been logged as posted and live.
+const HN_DEAD_RUN = 2;       // this many newest stories in a row dead: the account's posts reach no one
+
+// hnAccountStories shapes the item API's records of the owner's account into what hnVerdict reads.
+export function hnAccountStories(items) {
+  return items.filter(i => i && i.type === 'story' && !i.deleted)
+    .map(i => ({ objectID: String(i.id), created_at: new Date(i.time * 1000).toISOString(), dead: i.dead === true, points: i.score ?? 0, num_comments: i.descendants ?? 0, title: i.title || '' }))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
+// hnDeadRun is how many of the account's newest stories in a row are dead (0 when the newest is alive).
+export function hnDeadRun(accountStories) {
+  const newestFirst = [...accountStories].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  let run = 0;
+  for (const s of newestFirst) { if (!s.dead) break; run++; }
+  return run;
+}
 
 // hnTitleProblems returns what is wrong with a Show HN title.
 export function hnTitleProblems(title) {
@@ -314,6 +334,10 @@ export function hnVerdict(profile, stories, events, now = Date.now(), accountSto
   const no = reason => ({ due: false, reason });
   if (!profile.hackerNews) return no('not marked as a developer tool for Hacker News (no hackerNews in the profile)');
   if (profile.stage !== 'live') return no('not live yet: Show HN is for things people can try now');
+  const deadRun = hnDeadRun(accountStories);
+  if (deadRun >= HN_DEAD_RUN) {
+    return { due: false, dead: true, reason: `the owner's account's ${deadRun} newest stories are dead (killed on arrival, newest news.ycombinator.com/item?id=${[...accountStories].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0].objectID}); a post reaches no one until Hacker News's moderators clear the account (problem family hn-posts-dead)` };
+  }
   const posts = events.filter(e => e.event === 'action' && e.channel === 'hacker-news' && e.status === 'ok');
   const lastPost = posts[posts.length - 1];
   if (lastPost && now - Date.parse(lastPost.ts) < HN_GAP_DAYS * DAY) {
@@ -1618,16 +1642,23 @@ async function cmdHn(root, args) {
       ...await search(`query=${encodeURIComponent(profile.name)}`)
     ];
     stories = hnStories(profile, hits);
-    const own = await fetch(`https://hn.algolia.com/api/v1/search_by_date?tags=story,author_${HN_ACCOUNT}&hitsPerPage=50`);
-    if (!own.ok) throw new Error(`Hacker News search answered ${own.status}; try again later`);
-    accountStories = (await own.json()).hits;
+    // The item API, not search: search leaves dead stories out, and a dead story is the one that matters here.
+    const item = async path => {
+      const response = await fetch(`https://hacker-news.firebaseio.com/v0/${path}.json`);
+      if (!response.ok) throw new Error(`Hacker News's item API answered ${response.status}; try again later`);
+      return response.json();
+    };
+    const user = await item(`user/${HN_ACCOUNT}`);
+    accountStories = hnAccountStories(await Promise.all((user?.submitted || []).slice(0, 30).map(id => item(`item/${id}`))));
   }
   const verdict = hnVerdict(profile, stories, loadEvents(root), Date.now(), accountStories);
-  const out = { app: profile.id, ...verdict, stories: stories.map(s => ({ id: s.objectID, at: s.created_at, title: s.title, points: s.points, comments: s.num_comments })) };
+  const out = { app: profile.id, ...verdict, stories: stories.map(s => ({ id: s.objectID, at: s.created_at, title: s.title, points: s.points, comments: s.num_comments })),
+    account: accountStories.map(s => ({ id: s.objectID, at: s.created_at, dead: s.dead, points: s.points, comments: s.num_comments })) };
   if (verdict.due) Object.assign(out, { title: profile.hackerNews.title, url: profile.hackerNews.url, tryIt: profile.hackerNews.tryIt, submit: hnSubmitLink(profile.hackerNews.url, profile.hackerNews.title) });
   if (args.json) return console.log(JSON.stringify(out, null, 2));
   console.log(`${profile.name}: ${verdict.due ? 'due' : 'not due'}: ${verdict.reason}`);
   for (const s of out.stories) console.log(`  ${s.at.slice(0, 10)}  ${s.points} points, ${s.comments} comments  https://news.ycombinator.com/item?id=${s.id}  ${s.title}`);
+  for (const s of out.account) console.log(`  account ${HN_ACCOUNT}: ${s.at.slice(0, 10)}  ${s.dead ? 'DEAD (no reader sees it)' : 'alive'}  ${s.points} points, ${s.comments} comments  https://news.ycombinator.com/item?id=${s.id}`);
   if (verdict.due) console.log(`  ${out.title}\n  ${out.url}\n  submit: ${out.submit}`);
 }
 

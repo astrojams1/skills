@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -171,6 +171,23 @@ test('Show HN is due once for a live developer tool, and never spammed', () => {
   // a story the owner's account posted by hand counts too (2026-11-18: Data Center by hand, 15 days before Plenty)
   assert.match(hnVerdict(app, [], [], NOW, [{ objectID: '9', created_at: ago(15) }]).reason, /owner's account posted .* 15 days ago; one a month/);
   assert.equal(hnVerdict(app, [], [], NOW, [{ objectID: '9', created_at: ago(31) }]).due, true);
+  // an account whose newest stories are dead posts to no one (2026-11-18: all 3 of the owner's stories were dead)
+  const mine = hnAccountStories([
+    { id: 3, type: 'story', time: Date.parse(ago(40)) / 1000, dead: true, score: 1 },
+    { id: 4, type: 'story', time: Date.parse(ago(35)) / 1000, dead: true, score: 1 },
+    { id: 5, type: 'comment', time: Date.parse(ago(34)) / 1000, dead: true },
+    { id: 6, type: 'story', time: Date.parse(ago(33)) / 1000, deleted: true }
+  ]);
+  assert.deepEqual(mine.map(s => s.objectID), ['4', '3'], 'stories only, newest first, deleted ones left out');
+  assert.equal(hnDeadRun(mine), 2);
+  const deadVerdict = hnVerdict(app, [], [], NOW, mine);
+  assert.equal(deadVerdict.due, false);
+  assert.equal(deadVerdict.dead, true);
+  assert.match(deadVerdict.reason, /2 newest stories are dead .*item\?id=4.*hn-posts-dead/);
+  const revived = hnAccountStories([{ id: 3, type: 'story', time: Date.parse(ago(40)) / 1000, dead: true }, { id: 7, type: 'story', time: Date.parse(ago(32)) / 1000, score: 4 }]);
+  assert.equal(hnDeadRun(revived), 0, 'an alive newest story ends the run');
+  assert.equal(hnVerdict(app, [], [], NOW, revived).due, true);
+  assert.equal(hnVerdict(app, [], [], NOW, hnAccountStories([{ id: 8, type: 'story', time: Date.parse(ago(40)) / 1000, dead: true }])).due, true, 'one dead story alone is not a pattern');
   // a story with real attention ends it for a year; a quiet one allows one repost after two weeks
   assert.match(hnVerdict(app, [story(100, { points: 40 })], [], NOW).reason, /already discussed/);
   assert.equal(hnVerdict(app, [story(400, { points: 40 })], [], NOW).due, true);
