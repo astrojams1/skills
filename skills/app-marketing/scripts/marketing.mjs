@@ -16,6 +16,8 @@
 //                                                   pass's own work (all/pitch-replies, and midday all/pitch-top-up)
 //   node marketing.mjs log [FILE]                   append one event (JSON from FILE or stdin), adding v, ts, skill
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
+//   node marketing.mjs lifetime [--write]           Mac only: first-time downloads since launch per live app and in all, from
+//                                                   Apple's one-time historical snapshot plus the daily pulls (the goal's count)
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
 //                                                   referrer, impressions and product page views; --recount re-reads every
 //                                                   instance Apple still holds and appends corrected totals
@@ -1013,6 +1015,78 @@ async function reportInstances(api, requestId, spec, processedAfter) {
   return { instances, none: fresh.length ? null : 'no new instance since the last pull' };
 }
 
+// lifetimeDownloads adds up an app's first-time downloads since launch (the owner's goal of 2026-11-18 counts
+// "Lifetime, all apps": 1,000 across Ouro and astrojams). `daily` and `monthly` are the days of Apple's one-time
+// historical snapshot at each granularity ({ date: { first } }), and `ongoing` the days the daily pulls hold. A day is
+// counted once: the snapshot's daily value, or the ongoing value for a day the snapshot lacks. A month counts from the
+// monthly rows only where no day of it is known; the month the daily days begin in counts for what the days miss.
+export function lifetimeDownloads(daily = {}, monthly = {}, ongoing = {}) {
+  const days = { ...ongoing, ...daily };
+  const dates = Object.keys(days).sort();
+  const dayTotal = dates.reduce((n, d) => n + (days[d].first || 0), 0);
+  const byMonth = {};
+  for (const d of dates) byMonth[d.slice(0, 7)] = (byMonth[d.slice(0, 7)] || 0) + (days[d].first || 0);
+  const firstMonth = dates.length ? dates[0].slice(0, 7) : null;
+  let monthTotal = 0, monthsCounted = 0;
+  const monthSums = {};
+  for (const [date, row] of Object.entries(monthly)) monthSums[date.slice(0, 7)] = (monthSums[date.slice(0, 7)] || 0) + (row.first || 0);
+  for (const [month, n] of Object.entries(monthSums)) {
+    if (firstMonth === null || month < firstMonth) { monthTotal += n; monthsCounted++; }
+    else if (month === firstMonth && n > byMonth[month]) { monthTotal += n - byMonth[month]; monthsCounted++; }
+  }
+  const months = Object.keys(monthSums).sort();
+  const from = [months[0] && (firstMonth === null || months[0] < firstMonth) ? months[0] : null, dates[0]].filter(Boolean).sort()[0] || null;
+  return { downloads: dayTotal + monthTotal, from, through: dates[dates.length - 1] || months[months.length - 1] || null, days: dates.length, monthsBeforeDays: monthsCounted };
+}
+
+// snapshotDays reads every instance of the snapshot's downloads report at one granularity into days.
+async function snapshotDays(api, requestId, granularity) {
+  const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent('App Downloads Standard')}&limit=5`)).data || [];
+  if (!reports.length) return null;
+  const instances = [];
+  let next = `/v1/analyticsReports/${reports[0].id}/instances?filter[granularity]=${granularity}&limit=200`;
+  while (next) {
+    const page = await api(next);
+    instances.push(...(page.data || []));
+    next = page.links?.next ? page.links.next.replace('https://api.appstoreconnect.apple.com', '') : null;
+  }
+  if (!instances.length) return null;
+  const read = [];
+  for (const instance of instances) {
+    const segments = (await api(`/v1/analyticsReportInstances/${instance.id}/segments?limit=50`)).data || [];
+    for (const segment of segments) {
+      const res = await fetch(segment.attributes.url);
+      if (!res.ok) throw new Error(`snapshot segment download returned ${res.status}`);
+      read.push({ processingDate: instance.attributes.processingDate, days: downloadRows(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8')).days });
+    }
+  }
+  return newestPerDay(read);
+}
+
+// cmdLifetime: lifetime first-time downloads per live app and in all, from Apple's one-time historical snapshot (made
+// on first use; Apple takes a day or two to produce it) plus the days the daily pulls hold. Never fails a run over a
+// snapshot that is not ready: it says so and counts what the daily pulls have.
+async function cmdLifetime(root, args) {
+  const profiles = loadProfiles(root).filter(p => p.appStoreId && p.ascVault && p.stage === 'live');
+  const metrics = loadMetrics(root);
+  let total = 0, waiting = 0;
+  for (const p of profiles) {
+    const api = ascClient(p.ascVault);
+    const requests = (await api(`/v1/apps/${p.appStoreId}/analyticsReportRequests?limit=20`)).data || [];
+    let snapshot = requests.find(r => r.attributes.accessType === 'ONE_TIME_SNAPSHOT');
+    if (!snapshot) snapshot = (await api('/v1/analyticsReportRequests', 'POST', { data: { type: 'analyticsReportRequests', attributes: { accessType: 'ONE_TIME_SNAPSHOT' }, relationships: { app: { data: { type: 'apps', id: p.appStoreId } } } } })).data;
+    const daily = await snapshotDays(api, snapshot.id, 'DAILY'), monthly = await snapshotDays(api, snapshot.id, 'MONTHLY');
+    const ready = Boolean(daily || monthly);
+    if (!ready) waiting++;
+    const life = lifetimeDownloads(daily || {}, monthly || {}, mergedDays(metrics, p.id));
+    total += life.downloads;
+    const values = { lifetimeDownloads: life.downloads, lifetimeFrom: life.from, lifetimeThrough: life.through, lifetimeSnapshot: ready };
+    console.log(`${p.id}: ${life.downloads} first-time downloads${life.from ? ` from ${life.from} to ${life.through}` : ''}${ready ? ` (snapshot: ${life.days} days${life.monthsBeforeDays ? `, ${life.monthsBeforeDays} earlier months` : ''})` : ' (snapshot not ready: only the days the daily pulls hold)'}`);
+    if (args.write) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify({ at: new Date().toISOString(), app: p.id, source: 'asc-lifetime', values }) + '\n');
+  }
+  console.log(`Lifetime first-time downloads, all live apps: ${total} of the goal of 1,000${waiting ? ` (${waiting} of ${profiles.length} apps still wait for Apple's historical snapshot, so this is a floor)` : ''}`);
+}
+
 async function cmdPull(root, args) {
   const profiles = loadProfiles(root).filter(p => p.appStoreId && p.ascVault && p.stage === 'live');
   const metrics = loadMetrics(root);
@@ -1766,7 +1840,7 @@ async function main() {
   const root = rootOf(args);
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
-    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
+    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), lifetime: () => cmdLifetime(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
     youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), recurring: () => cmdRecurring(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
