@@ -103,6 +103,13 @@ their own language cannot match an English-only listing.
 - **Keep or retire.** Provisional until proven (James, 2026-11-13). An effect is the channel table's: at least 2 more
   downloads than expected and half again as many. A language with no download from its countries in 28 days is
   rewritten once (other search words), then left as it is: a listing in a language costs nothing to keep.
+- **Screenshots.** A language's screenshots can carry headlines in its own words (`localizedScreenshots` in store
+  data; `app-release`, iOS, "Screenshots per language"). The captures of the app stay as they are. Tried first on
+  Hanzi Cards in Indonesian, Russian and Thai, the countries that saw its listing most (2026-11-18, experiment
+  `localized-screenshots`, judge 2026-12-23). Its 21 other languages keep English screenshots and are the comparison.
+  Render more languages or apps only once that verdict says it brings downloads. A reviewer who reads the language
+  checks each headline and its rendered image before it merges: the first drafts said "for everyone" where the
+  English meant a profile per person, and mixed two fonts in one Russian headline.
 
 ## Open
 

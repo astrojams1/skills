@@ -72,6 +72,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.17 | 2026-11-18 | Problem family `release-live-read-gate`: a prepared release that waits on a live sign-in only the owner can give | Plenty 1.1 was built and held on 2026-11-18 because the Claude session in the release simulator had ended, which also holds its listing test and its 24 new listing languages |
 | 1.32.18 | 2026-11-18 | channels.md Listing languages: status, upkeep (a change to the English listing changes every language in the same pull request; keyword fields stay full) and what a review of a draft checks | Reviews of the first nine apps' drafts removed keywords the English listings do not support (breaking news, idle game, name stickers, another game's genre), and nothing yet said who keeps 24 languages true when the English text changes |
 | 1.32.19 | 2026-11-18 | `marketing.mjs lifetime`: first-time downloads since launch per live app and in all, from Apple's one-time historical snapshot plus the daily pulls; the Mac pass runs it and the report carries its total | The owner's goal of 2026-11-18 counts lifetime downloads across all apps (1,000), and the tool knew only the days since each app's analytics request began (62 in all) |
+| 1.32.20 | 2026-11-18 | channels.md Listing languages: screenshots with translated headlines are an experiment on Hanzi Cards in three languages; more languages or apps wait for its verdict; a reader of the language reviews each headline and its image first |
 
 ## Lessons
 
