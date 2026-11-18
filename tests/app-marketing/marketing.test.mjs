@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { territoryShare, hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -105,6 +105,19 @@ test('Apple downloads reports total first-time downloads by day and source', () 
   assert.deepEqual(out.days['2026-11-03'], { first: 5, re: 4, sources: { 'App Store search': 3, 'Web referrer': 2 } });
   assert.deepEqual(out.days['2026-11-04'], { first: 0, re: 0 });
   assert.deepEqual(out.sources, { 'App Store search': 3, 'Web referrer': 2 });
+});
+
+test('first-time downloads and impressions are kept by territory when Apple names one', () => {
+  const tsv = ['Date\tApp Name\tDownload Type\tSource Type\tTerritory\tCounts', '2026-11-12\tH\tFirst-time download\tApp Store search\tID\t2', '2026-11-12\tH\tFirst-time download\tApp Store search\tUS\t1',
+    '2026-11-12\tH\tRedownload\tApp Store search\tUS\t4', '2026-11-13\tH\tFirst-time download\tApp Store browse\tIL\t2', '2026-11-13\tH\tFirst-time download\tApp Store browse\tID\t1'].join('\n');
+  const out = downloadRows(tsv);
+  assert.deepEqual(out.days['2026-11-12'].territories, { ID: 2, US: 1 }, 'redownloads are not counted by territory');
+  assert.deepEqual(reportValues('asc-analytics', out.days).territories, { ID: 3, US: 1, IL: 2 });
+  assert.deepEqual(territoryShare(out.days, '2026-11-12', '2026-11-13'), { named: 6, home: 1, abroad: 5, byTerritory: { ID: 3, IL: 2 } });
+  assert.deepEqual(territoryShare(out.days, '2026-11-13', '2026-11-13'), { named: 3, home: 0, abroad: 3, byTerritory: { IL: 2, ID: 1 } });
+  assert.equal('territories' in reportValues('asc-analytics', { '2026-11-01': { first: 2, re: 0 } }), false, 'older lines without a territory add no key');
+  const seen = ['Date\tEvent\tPage Type\tSource Type\tTerritory\tCounts\tUnique Counts', '2026-11-12\tImpression\tNo page\tApp Store search\tVN\t8\t8', '2026-11-12\tPage view\tProduct page\tApp Store search\tVN\t3\t3'].join('\n');
+  assert.deepEqual(reportValues('asc-discovery', discoveryRows(seen).days).impressionTerritories, { VN: 8 });
 });
 
 test('a report without the expected columns is an error, not a zero', () => {
