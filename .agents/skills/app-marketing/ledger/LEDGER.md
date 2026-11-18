@@ -69,6 +69,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.14 | 2026-11-18 | From 2026-11-13T20:00Z `recurring` counts only problem lines and lines that name a family; an ok start or finding that only mentions a family's words is no sighting | The cloud run's start line quoted recurring ("downloads-double-counted REOPENED") and kept the family open after skills#271 |
 | 1.32.15 | 2026-11-18 | `hn` reads the owner account's stories from Hacker News's item API, shows which are dead, and says not due while the two newest are dead; the verify step logs a dead story `failed`; problem family `hn-posts-dead` | Plenty's Show HN (item 50546315) was logged posted and live, but was dead with 1 point, like the account's two earlier stories: search does not list dead stories and the author's browser shows them as normal |
 | 1.32.16 | 2026-11-18 | `pull` keeps first-time downloads and impressions by territory; `learn` prints a `countries` line; channels.md gains Listing languages, with its measure and keep-or-retire rule | Every listing was en-US only while 35 of 62 first-time downloads (2026-11-04 to 11-17) came from outside the US, and no metrics line stored the country |
+| 1.32.17 | 2026-11-18 | Problem family `release-live-read-gate`: a prepared release that waits on a live sign-in only the owner can give | Plenty 1.1 was built and held on 2026-11-18 because the Claude session in the release simulator had ended, which also holds its listing test and its 24 new listing languages |
 
 ## Lessons
 
