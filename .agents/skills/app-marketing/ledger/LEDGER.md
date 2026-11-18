@@ -68,6 +68,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.13 | 2026-11-18 | `recurring` counts a line logged from 2026-11-13T20:00Z that names its families (`problem`, or a `left_open` entry's) only under those names; its words add none | The Mac pass's end line said "recurring double-count fixed" and reopened `downloads-double-counted`, the same morning a deferral's words reopened `shorts-recording-unattended` |
 | 1.32.14 | 2026-11-18 | From 2026-11-13T20:00Z `recurring` counts only problem lines and lines that name a family; an ok start or finding that only mentions a family's words is no sighting | The cloud run's start line quoted recurring ("downloads-double-counted REOPENED") and kept the family open after skills#271 |
 | 1.32.15 | 2026-11-18 | `hn` reads the owner account's stories from Hacker News's item API, shows which are dead, and says not due while the two newest are dead; the verify step logs a dead story `failed`; problem family `hn-posts-dead` | Plenty's Show HN (item 50546315) was logged posted and live, but was dead with 1 point, like the account's two earlier stories: search does not list dead stories and the author's browser shows them as normal |
+| 1.32.16 | 2026-11-18 | `pull` keeps first-time downloads and impressions by territory; `learn` prints a `countries` line; channels.md gains Listing languages, with its measure and keep-or-retire rule | Every listing was en-US only while 35 of 62 first-time downloads (2026-11-04 to 11-17) came from outside the US, and no metrics line stored the country |
 
 ## Lessons
 
@@ -97,3 +98,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 - 2026-11-18: Once a line names its problem, stop reading its words for one. A run's summary of what it fixed reads like a sighting, so a named line matched by text reopened a closed family twice in one morning.
 - 2026-11-18: A report about a problem is not the problem. Reading every line's words for sightings made each run that quoted the count a new sighting.
 - 2026-11-18: Verify a post as a stranger, not as its author. A signed-in author sees a killed Hacker News story as live; two Show HNs were counted as launches that no reader ever saw.
+- 2026-11-18: Read every column Apple sends before deciding where the reach is. The download report named the country all along; the tool summed it away, so two weeks of work aimed at one storefront.

@@ -553,6 +553,8 @@ const bump = (map, key, n) => { map[key] = (map[key] || 0) + n; };
 
 // downloadRows reads "App Downloads Standard": first-time downloads and redownloads by day, and first-time downloads by
 // source type (App Store search, App Store browse, Web referrer, App referrer, Unavailable...) by day and in all.
+// When the report names the storefront (Territory, a country code), first-time downloads are also kept by territory:
+// on 2026-11-18 35 of 62 came from outside the United States while every listing was en-US only, and nothing stored it.
 export function downloadRows(tsv) {
   const out = { days: {}, sources: {} };
   for (const row of tsvTable(tsv, 'downloads')) {
@@ -563,6 +565,7 @@ export function downloadRows(tsv) {
       const from = row['source type'] || 'Unknown';
       bump((day.sources ||= {}), from, count);
       bump(out.sources, from, count);
+      if (row.territory) bump((day.territories ||= {}), row.territory, count);
     } else if (kind.includes('redownload')) day.re += count;
   }
   return out;
@@ -590,7 +593,10 @@ export function discoveryRows(tsv) {
   for (const row of tsvTable(tsv, 'discovery')) {
     const count = Number(row.counts) || 0;
     const day = (out.days[row.date] ||= { impressions: 0, pageViews: 0, taps: 0 });
-    if (row.event === 'Impression') day.impressions += count;
+    if (row.event === 'Impression') {
+      day.impressions += count;
+      if (row.territory) bump((day.impressionTerritories ||= {}), row.territory, count);
+    }
     else if (row.event === 'Tap') day.taps += count;
     else if (row.event === 'Page view') {
       day.pageViews += count;
@@ -646,11 +652,25 @@ function totalsOf(days, key) {
   return out;
 }
 
+// withTerritories adds a by-territory total only when the days carry one (lines pulled before 1.32.16 do not).
+const withTerritories = (values, key, totals) => (Object.keys(totals).length ? { ...values, [key]: totals } : values);
+
+// territoryShare reads first-time downloads by territory between two days (inclusive): the total that names a
+// territory, how many came from `home`, and the rest by territory, largest first. It is how a listing-language
+// experiment is judged: the same window before and after the language went live.
+export function territoryShare(days, from, to, home = 'US') {
+  const totals = {};
+  for (const [date, d] of Object.entries(days)) if (date >= from && date <= to) for (const [k, n] of Object.entries(d.territories || {})) bump(totals, k, n);
+  const named = Object.values(totals).reduce((a, b) => a + b, 0);
+  const abroad = Object.entries(totals).filter(([k]) => k !== home).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return { named, home: totals[home] || 0, abroad: named - (totals[home] || 0), byTerritory: Object.fromEntries(abroad) };
+}
+
 // reportValues turns an app's merged days for one report into the values a metrics line carries. Totals come only from
 // unique days, so a date Apple repeats in a later instance is counted once.
 export function reportValues(source, days) {
-  if (source === 'asc-analytics') return { downloads: sumOf(days, 'first'), redownloads: sumOf(days, 're'), sources: totalsOf(days, 'sources') };
-  if (source === 'asc-discovery') return { impressions: sumOf(days, 'impressions'), pageViews: sumOf(days, 'pageViews'), pageViewSources: totalsOf(days, 'pageViewSources') };
+  if (source === 'asc-analytics') return withTerritories({ downloads: sumOf(days, 'first'), redownloads: sumOf(days, 're'), sources: totalsOf(days, 'sources') }, 'territories', totalsOf(days, 'territories'));
+  if (source === 'asc-discovery') return withTerritories({ impressions: sumOf(days, 'impressions'), pageViews: sumOf(days, 'pageViews'), pageViewSources: totalsOf(days, 'pageViewSources') }, 'impressionTerritories', totalsOf(days, 'impressionTerritories'));
   if (source === 'asc-downloads-detailed') return { downloadReferrers: totalsOf(days, 'referrers') };
   if (source === 'asc-discovery-detailed') return { pageViewReferrers: totalsOf(days, 'referrers') };
   return {};
@@ -1342,6 +1362,12 @@ function cmdLearn(root, args) {
   for (const r of out) {
     const f = r.funnel;
     console.log(`${r.app}: ${f ? `last 7 days to ${f.through}: ${f.last7.impressions} impressions, ${f.last7.pageViews} page views, ${f.last7.downloads} search+browse downloads, ${f.last7.web} web-referrer (week before: ${f.previous7.impressions}, ${f.previous7.pageViews}, ${f.previous7.downloads}, ${f.previous7.web})` : 'no Apple numbers yet'}`);
+    // Where the downloads came from, once a pull has stored territories: the first read of a listing-language change.
+    const byDay = mergedDays(metrics, r.app), dated = Object.keys(byDay).filter(d => byDay[d].territories).sort();
+    if (dated.length) {
+      const share = territoryShare(byDay, dated[0], dated[dated.length - 1]);
+      console.log(`  countries ${dated[0]} to ${dated[dated.length - 1]}: ${share.named} first-time downloads, ${share.home} US, ${share.abroad} elsewhere${share.abroad ? ` (${Object.entries(share.byTerritory).slice(0, 8).map(([k, n]) => `${k} ${n}`).join(', ')}${Object.keys(share.byTerritory).length > 8 ? ', ...' : ''})` : ''}`);
+    }
     const sv = latestVisits(metrics, r.app);
     console.log(`  site visits ${sv ? `to ${sv.through}: ${sv.values.siteVisits7} in 7 days, ${sv.values.siteVisits28} in 28 (${channelLine(sv.channels) || 'no channel yet'})` : 'not read yet: run visits --write in the measure step'}`);
     const s = r.stage;
