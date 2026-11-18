@@ -132,6 +132,9 @@ export function familyRecords(events, families, metrics = []) {
     if (corrected.has(`${e.run_id} ${e.event} ${e.ts}`)) return;
     const at = Date.parse(e.ts);
     if (isClose(e)) { if (recs[e.problem]) recs[e.problem].closes.push({ ...e, at, line: i + 1 }); return; }
+    // From PROBLEM_KEYS_FROM a problem is a problem line or a line naming its family; a start or finding that only
+    // mentions a family's words (a run reporting what recurring printed) is not a sighting (2026-11-18).
+    if (at >= PROBLEM_KEYS_FROM && !e.problem && !isProblemLine(e)) return;
     for (const key of familiesOf(e, families)) {
       recs[key].occ.push({ at, day: pacificDay(at), source: `${e.run_id} ${e.event}`, text: lineText(e), note: FIX_NOTE.test(e.operation || '') });
     }
