@@ -155,12 +155,16 @@
         "blocked in this scheduled pass by the same refusal"
       ],
       "history": [
-        "2026-11-10 skills#161: the iOS Simulator tool refused the scheduled session; fallbacks added"
+        "2026-11-10 skills#161: the iOS Simulator tool refused the scheduled session; fallbacks added",
+        "2026-11-18 skills: scoped to youtube-shorts lines after Plenty's app-store Home Screen capture line (its own family) matched 'Simulator tool refuses' and reopened this one"
       ],
       "cause": "the iOS Simulator tool refuses scheduled sessions, and native apps had no other way to drive the app for a take",
       "fix": "skills#161: recording.md's 'When the Simulator tool refuses' route: the app's own XCTest UI test (ShortsTakes) or its web build drives the take, so no step needs the Simulator tool (Füd's test merged in wendigo124/FSRN_Subs#185)",
       "not_text": [
         "[Dd]riven by a new ShortsTakes UI test"
+      ],
+      "channels": [
+        "youtube-shorts"
       ]
     },
     {
