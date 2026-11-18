@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { opRead, pem } from './lib/vault.mjs';
 import { UNATTENDED_ENV, liveVersion, occupancy, versionStateOf } from './lib/review-state.mjs';
 import { localizationChanges, localizationSummary } from './lib/listing-localizations.mjs';
+import { localizedScreenshotChanges, localizedScreenshotEntries, localizedScreenshotGroups, localizedScreenshotProblems, localizedScreenshotSummary, md5,
+  readLiveScreenshots, resolveGroups } from './lib/screenshot-localizations.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const CODE_ROOT = '/Volumes/ssd/code';
@@ -131,6 +133,12 @@ function client(team) {
 const git = (dir, ...args) => {
   const result = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return result.status === 0 ? result.stdout.trim() : null;
+};
+
+// gitBytes reads one file at a commit as bytes, or null when it is not there.
+const gitBytes = (dir, commit, path) => {
+  const result = spawnSync('git', ['-C', dir, 'show', commit + ':' + path.replace(/^\.\//, '')], { maxBuffer: 256 * 1024 * 1024 });
+  return result.status === 0 ? result.stdout : null;
 };
 
 const remoteKey = url => String(url || '').replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '').toLowerCase();
@@ -250,8 +258,9 @@ async function classify(api, app, team, index, stateRoot) {
   return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' };
 }
 
-// listingReason says why a listing ships: a primary field that differs, or an extra language that is missing live or
-// differs in name, subtitle, keywords or description. Empty when nothing does. A product candidate that is not
+// listingReason says why a listing ships: a primary field that differs, an extra language that is missing live or
+// differs in name, subtitle, keywords or description, or a language in localizedScreenshots whose listed screenshots
+// are missing live or differ. Empty when nothing does. A product candidate that is not
 // material reads the same (daily-review-run.md, step 2).
 export function listingReason(listing) {
   if (!listing || listing.problem) return '';
@@ -259,6 +268,8 @@ export function listingReason(listing) {
   if (listing.fields?.length) parts.push(listing.fields.join(', '));
   const languages = listing.localizations ? localizationSummary(listing.localizations) : '';
   if (languages) parts.push(languages);
+  const screenshots = listing.screenshots && !listing.screenshots.problems?.length ? localizedScreenshotSummary(listing.screenshots) : '';
+  if (screenshots) parts.push(screenshots);
   return parts.join('; ');
 }
 
@@ -268,7 +279,8 @@ async function pendingListing(api, app, live, repo, head) {
   try {
     const raw = repo.config.storeData && git(repo.dir, 'show', head + ':' + repo.config.storeData);
     if (!raw) return { problem: 'no store data at ' + (repo.config.storeData || '(storeData unset)') };
-    const wanted = JSON.parse(raw).listing || {};
+    const store = JSON.parse(raw);
+    const wanted = store.listing || {};
     const locale = wanted.locale || 'en-US';
     const info = liveAppInfo(await api.all('/v1/apps/' + app.id + '/appInfos'));
     if (!info) return { problem: 'no live App Info' };
@@ -280,10 +292,40 @@ async function pendingListing(api, app, live, repo, head) {
     const fields = listingChanges(wanted, { ...versionText.attributes, ...infoText.attributes });
     // Extra languages: missing live or different ships the app; live but absent from store data is only reported.
     const localizations = localizationChanges(wanted, infoLocalizations, versionLocalizations);
-    return { locale, fields, wanted: Object.fromEntries(fields.map(field => [field, wanted[field]])), localizations };
+    // Screenshots per language: missing or different ships the app, as a listing language does.
+    const screenshots = await pendingScreenshots(api, store, versionLocalizations, locale, repo, head);
+    return { locale, fields, wanted: Object.fromEntries(fields.map(field => [field, wanted[field]])), localizations, ...(screenshots ? { screenshots } : {}) };
   } catch (error) {
     return { problem: error.message };
   }
+}
+
+// pendingScreenshots compares localizedScreenshots on the release branch with the live version's screenshot sets per
+// language, reading files from that commit, never the working tree. Undefined when store data lists none; problems in
+// store data are returned beside the comparison and do not make a candidate.
+export async function pendingScreenshots(api, store, versionLocalizations, primary, repo, head, readBytes = gitBytes) {
+  if (!localizedScreenshotEntries(store).length) return undefined;
+  const readFile = file => readBytes(repo.dir, head, file);
+  const readJson = file => {
+    const bytes = readFile(file);
+    if (!bytes) throw new Error(file + ' is not at ' + head.slice(0, 8));
+    return JSON.parse(bytes.toString('utf8'));
+  };
+  let primaryGroups = [];
+  try {
+    primaryGroups = resolveGroups(store.screenshots, readJson) || [];
+  } catch (error) {
+    return { problems: ['screenshots: ' + error.message], missing: [], changed: [], unlisted: [] };
+  }
+  const problems = localizedScreenshotProblems(store, primaryGroups, { readFile, readJson });
+  if (problems.length) return { problems, missing: [], changed: [], unlisted: [] };
+  const languages = localizedScreenshotGroups(store, readJson);
+  const live = await readLiveScreenshots(versionLocalizations, primary, path => api.all(path));
+  const checksum = file => {
+    const bytes = readFile(file);
+    return bytes ? md5(bytes) : null;
+  };
+  return { problems: [], ...localizedScreenshotChanges(languages, live, checksum) };
 }
 
 async function sweep(options) {
