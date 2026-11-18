@@ -70,11 +70,35 @@ before relying on a figure: they were checked on 2026-11-12.
   `submitted`; set `submitted` (a date) when `asc.mjs status` shows its version in review. A stale test is this
   run's to fix: read that day's app-release evidence and close the gate it names.
 
+## Listing languages
+
+Found 2026-11-18: every live app's listing existed only in en-US, yet 35 of the 62 first-time downloads Apple
+reported for 2026-11-04 to 11-17 came from outside the United States (Hanzi Cards: 15 of 16). A person searching in
+their own language cannot match an English-only listing.
+
+- **What Apple reads.** Apple's [App Store localizations](https://developer.apple.com/help/app-store-connect/reference/app-information/app-store-localizations)
+  table lists the languages each storefront supports. The United States storefront lists English (US) plus Arabic,
+  Chinese (Simplified), Chinese (Traditional), French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and
+  Vietnamese (read 2026-11-18). That a storefront's search matches keywords from each of its languages is what ASO
+  firms report, not a sentence of Apple's; the experiment below is how this skill finds out.
+- **Where it lives.** `listing.localizations` in the app's store data, one entry per locale (name, subtitle,
+  keywords, description, promotional text, what's new). `app-release` ships it as a metadata-only version, like any
+  listing change. Drafts and their notes are in `/Volumes/ssd/projects/app-marketing/localization/`.
+- **Truth.** A localized listing says plainly, in that language, when the app itself is in English. It keeps every
+  legal, credit and affiliation line of the en-US listing. No competitor names or trademarks in keywords.
+- **The measure.** `learn`'s `countries` line: first-time downloads by territory, from `pull`. For each app, the 14
+  days after its languages go live against the 14 before: downloads outside the US, and downloads in the US (whose
+  search gains nine languages of keywords). Record it in the profile's `experiments` with the live date.
+- **Keep or retire.** Provisional until proven (James, 2026-11-13). An effect is the channel table's: at least 2 more
+  downloads than expected and half again as many. A language with no download from its countries in 28 days is
+  rewritten once (other search words), then left as it is: a listing in a language costs nothing to keep.
+
 ## Open
 
 | Channel | Runner | How |
 |---|---|---|
 | YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, public the moment each passes review (never scheduled), with no posting cap. Judged as above; an app or format with 3 no-effect Shorts in a row is retired (`youtube-growth`). Shorts work: the Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, best 1,145) were followed by downloads and purchases while no other marketing ran, per the owner (James, 2026-11-12); start from that format |
+| Listing languages | cloud writes, app-release ships | The listing in the languages people search in ([Listing languages](#listing-languages)). Judged by country |
 | App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords and subtitle ship as a metadata-only version the morning after they merge; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
 | Featuring nominations | mac | Free, and indie apps are eligible. Three weeks' notice, for real updates only |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |
