@@ -75,6 +75,25 @@
       ],
       "fix": "Limit every web view to the job it is there for (signing in, a privacy page): refuse links to pages outside that job rather than opening them; refuse pricing, upgrade, subscription and checkout pages even on allowed hosts; cover any other page with the app's own screen; and hide any part of an allowed page that shows prices or plans, which sign-in pages now do. Put the comment `app-standard: web-sheet` in the file that does this, with tests that replay the page App Review would reach. Plenty's SignInPolicy.swift is a worked example.",
       "verify": "Open each web view on a simulator, scroll every allowed page to the bottom and tap each link that is not part of the job: no price, plan, subscription or upgrade offer appears and nothing else opens."
+    },
+    {
+      "id": "rating",
+      "title": "Ask for a rating in the app",
+      "doc": "references/standards.md#ask-for-a-rating",
+      "checks": [
+        { "type": "marker", "text": "app-standard: rating",
+          "problem": "no app source file carries the marker comment `app-standard: rating`" },
+        { "type": "source", "in": "marker", "anyOf": ["requestReview", "StoreReview", "InAppReview", "ReviewManager"],
+          "problem": "the marked file never reaches the store's own rating prompt (requestReview, StoreReview or InAppReview)" },
+        { "type": "source", "in": "marker", "anyOf": ["daysBetweenAsks"],
+          "problem": "the marked file does not carry the shared rule (good moments, days, and the wait between asks)" },
+        { "type": "wired", "names": ["RatingPrompt", "ratingGoodMoment"],
+          "problem": "the marked file is in the repository but nothing calls it after a good moment" },
+        { "type": "kidsGate", "anyOf": ["parent", "grown", "adult"],
+          "problem": "this Kids Category app asks for a rating where no parental gate is evident" }
+      ],
+      "fix": "Copy assets/rating/RatingPrompt.swift (native) or assets/rating/rating.ts (Expo, React Native, Capacitor) into the app and call it right after the app's good moment (references/standards.md, Ask for a rating): `if RatingPrompt.goodMoment() { requestReview() }` in SwiftUI, RatingPrompt.askIfDue() elsewhere, ratingGoodMoment(version, platform) in TypeScript. In a Kids Category app call it only behind the parental gate. Test the app's own call site where the app has tests.",
+      "verify": "In a debug build on a simulator, reach the good moment three times across two days (move the device date, or seed the stored state in a UI test) and see the system rating prompt once; reach it again and see nothing. Read the stored state back: the count restarted and the version is recorded."
     }
   ]
 }

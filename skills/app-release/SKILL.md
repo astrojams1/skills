@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac, with local Xcode and Gradle builds, store API scripts, 1Password credentials and a persistent release ledger. Covers TestFlight, App Review and rejections, Play tracks and listings, Game Center and pricing. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.30.3"
+  version: "2.31.0"
 ---
 
 # App release
@@ -57,7 +57,7 @@ For an app with none of this yet, follow "Onboarding a new app" in [config](refe
 | App record | Create or reuse it in an authorized signed-in browser or Xcode, verify it and save `ios.ascAppId` ([ios](references/ios.md)) |
 | Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments. Shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
-| App standards | `standards.mjs audit` passes: Send Feedback and in-app privacy and support links. `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
+| App standards | `standards.mjs audit` passes: Send Feedback, in-app privacy and support links, and the rating prompt. `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
 | Listing and media | Store data copy, real captures, required sizes, and an app preview video made from the build going to review, before `submit` ([media](references/media.md)) |

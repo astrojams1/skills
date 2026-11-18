@@ -1,8 +1,17 @@
 # App release skill ledger
 
-Skill version **2.30.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.31.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.31.0 (2026-11-18)
+
+- Nine of the ten live apps had no App Store rating and none asked for one. The owner approved a shared rating
+  prompt for every app ("Yes, every app", 2026-11-18). New standard `rating`: the store's own prompt only, right
+  after a good moment the app names, on one rule (3 good moments on 2 days; never twice for a version; 90 days
+  between asks; the count restarts after asking), behind the parental gate in a Kids Category app. Reference
+  code in `assets/rating/` for Swift and TypeScript, both tested. A new standard stops each app's next build until
+  it is met, so it merged only after the live apps had it ([standards](../references/standards.md), "Ask for a rating").
 
 ## Lessons incorporated into v2.30.0 (2026-11-18)
 
@@ -936,3 +945,4 @@ second screenshot was not sent; the app's correction and submission do not depen
 | 2026-11-18 | 2.30.1 | A localization's keywords are checked at 100 characters (UTF-16 units), not 100 UTF-8 bytes. 2.30.0 followed the help page's "100 bytes"; Apple's API error says "cannot be longer than 100 characters" and live Japanese, Chinese and Russian fields exceed 100 bytes, so the byte check would have cut those languages to a third or half of their keywords |
 | 2026-11-18 | 2.30.2 | Release notes are rewritten in every listing language for every version, product releases included; a language never says "no changes to the app" while the version changes it. Found before any language shipped: the first drafts' notes all said the app was unchanged, and Plenty 1.1 and Hanzi Cards' next version both change the app |
 | 2026-11-18 | 2.30.3 | iOS, Listing localizations: what to do when a language's first write fails (a taken name, a trimmed readback, a refused field), since no language had yet been written to Apple and the first daily run with nine apps' languages is also the first test |
+| 2026-11-18 | 2.31.0 | New app standard `rating`: every app asks for a rating through the store's own prompt after a good moment, on one shared rule, with reference code for Swift and TypeScript (`assets/rating/`). Approved by the owner on 2026-11-18 ("Yes, every app"). `rating.ts` uses no optional chaining or nullish coalescing: Space Worms bans both and its reviewer held the change over the shared file |
