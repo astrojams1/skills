@@ -234,8 +234,10 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information),
   [Required, localizable and editable properties](https://developer.apple.com/help/app-store-connect/reference/app-information/required-localizable-and-editable-properties)),
   and Privacy Policy URL required and localized. So store data must give each language a name, description and
-  keywords, and `listing` copies the URLs from the primary listing. Keywords are limited to "100 bytes", so `listing`
-  counts UTF-8 bytes: about 33 Chinese, Korean or Arabic characters.
+  keywords, and `listing` copies the URLs from the primary listing. Keywords are limited to 100 characters in every language. Apple's
+  help page says "100 bytes", but its API error reads "Keywords for Thai cannot be longer than 100 characters"
+  ([forum thread](https://developer.apple.com/forums/thread/705360)) and live Japanese, Chinese and Russian fields
+  run past 100 bytes (checked 2026-11-18). `listing` counts UTF-16 units, so a combining mark counts as one.
 - **Media falls back.** [Localize app information](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-store-information)
   says that when you add a language, "screenshots and the properties for the new language default to those of the
   primary language, except for the description and keywords". [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
