@@ -64,6 +64,11 @@ test('FIXED needs a landed change and no sighting after it; a sighting after is 
   // A line that reports the fix itself never reopens it.
   const note = ev({ ts: at(13), operation: 'Fixed: the API cannot pin, so Studio pins now' });
   assert.equal(recurring([...pins, fix, note], fams, { git }).find(r => r.family === 'pin-comment').status, 'FIXED');
+  // From the key rule on, an ok line that only mentions the words (a start quoting recurring) is not a sighting.
+  const quoted = ev({ ts: at(18), event: 'start', operation: 'recurring: pin-comment, the API cannot pin, REOPENED' });
+  assert.equal(recurring([...pins, fix, quoted], fams, { git }).find(r => r.family === 'pin-comment').status, 'FIXED');
+  const deferred = ev({ ts: at(18), status: 'deferred', blocked_by: 'outside', operation: 'the API cannot pin' });
+  assert.equal(recurring([...pins, fix, deferred], fams, { git }).find(r => r.family === 'pin-comment').status, 'REOPENED');
 });
 
 test('PENDING until the change lands; another repository needs landed; a shallow clone takes a stated date before its floor', () => {
