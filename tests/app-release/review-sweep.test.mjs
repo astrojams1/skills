@@ -4,7 +4,7 @@ import { mkdtempSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { archiveProvenance, claim, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
+import { archiveProvenance, changes, claim, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
 import { liveVersion, occupancy, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
 const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
@@ -138,4 +138,31 @@ test('the live App Info is the one the storefront shows, not the draft', () => {
   assert.equal(liveAppInfo([info('draft', 'PREPARE_FOR_SUBMISSION'), info('live', 'READY_FOR_DISTRIBUTION')]).id, 'live');
   assert.equal(liveAppInfo([{ id: 'old', attributes: { appStoreState: 'READY_FOR_SALE' } }]).id, 'old');
   assert.equal(liveAppInfo([info('a', 'PREPARE_FOR_SUBMISSION'), info('b', 'WAITING_FOR_REVIEW')]), null);
+});
+
+test('a build from a release branch that was later squash-merged is compared by its tree, not rejected', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'sweep-squash-'));
+  const run = (...args) => {
+    const result = spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const write = (path, text) => spawnSync('sh', ['-c', 'mkdir -p "$(dirname "$1")" && printf %s "$2" > "$1"', 'sh', join(dir, path), text]);
+  run('init', '-q', '-b', 'main');
+  write('src/App.swift', 'one'); run('add', '.'); run('commit', '-q', '-m', 'base');
+  run('checkout', '-q', '-b', 'release');
+  write('src/App.swift', 'two'); run('commit', '-qam', 'fix on release branch');
+  const built = run('rev-parse', 'HEAD');
+  run('checkout', '-q', 'main');
+  write('src/App.swift', 'two'); run('commit', '-qam', 'squash of the release branch');
+  write('docs/notes.md', 'later'); run('add', '.'); run('commit', '-qm', 'docs');
+  const repo = { dir, config: { projectDir: '.' } };
+  const same = changes(repo, built, run('rev-parse', 'HEAD'));
+  assert.equal(same.problem, undefined);
+  assert.equal(same.ancestor, false);
+  assert.deepEqual(same.product, []);
+  write('src/App.swift', 'three'); run('commit', '-qam', 'real change');
+  const moved = changes(repo, built, run('rev-parse', 'HEAD'));
+  assert.deepEqual(moved.product, ['src/App.swift']);
+  assert.ok(moved.commits.some(line => line.endsWith('real change')));
 });
