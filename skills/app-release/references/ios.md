@@ -238,6 +238,16 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   help page says "100 bytes", but its API error reads "Keywords for Thai cannot be longer than 100 characters"
   ([forum thread](https://developer.apple.com/forums/thread/705360)) and live Japanese, Chinese and Russian fields
   run past 100 bytes (checked 2026-11-18). `listing` counts UTF-16 units, so a combining mark counts as one.
+- **The first write per app is unproven until seen.** No language had been written to Apple when this shipped
+  (2026-11-18), so the first `listing` with languages in each app is also the test. `listing` is safe to run again:
+  it lists what Apple has and creates or patches only what differs. When a language's write fails, read Apple's
+  message and fix that language in store data, in the app's pull request, then run `listing` again:
+  - **A name Apple says is taken** in that language: use the primary `listing.name` for that language.
+  - **A readback that differs only by spaces or line ends** Apple trimmed: make store data match what Apple saved.
+  - **A field Apple refuses** (a character, a length): fix the text; never drop the language to get past it.
+  Record what failed and what fixed it in the app's release ledger and add the case here. One language's failure
+  never holds the release: if it cannot be fixed in the run, take that one language out of store data in the same
+  pull request, say so in the run's report, and ship the rest.
 - **Release notes are per language and per version.** Each language's `whatsNew` is this version's notes in that
   language, never a line left from the version before. A languages-only update says so; a version that changes the
   app says what changed ([daily review run](daily-review-run.md), "A listing change ships").
