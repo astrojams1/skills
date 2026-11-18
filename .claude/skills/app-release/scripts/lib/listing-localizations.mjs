@@ -18,8 +18,11 @@ export const APP_STORE_LOCALES = [
 // The fields one localization carries. Support, marketing and privacy policy URLs come from the primary listing.
 export const LOCALIZATION_FIELDS = ['name', 'subtitle', 'keywords', 'description', 'promotionalText', 'whatsNew'];
 
-// LOCALIZATION_LIMITS are Apple's maximums in characters, except keywords, which Apple limits to "up to 100 bytes"
-// (Platform version information); in Arabic, Chinese, Korean, Russian or Vietnamese that is far fewer characters.
+// LOCALIZATION_LIMITS are Apple's maximums in characters. Apple's help page says keywords take "up to 100 bytes"
+// (Platform version information), but what Apple enforces is 100 characters in every language: its own API error
+// reads "Keywords for Thai cannot be longer than 100 characters" (developer.apple.com/forums/thread/705360), and live
+// Japanese, Chinese and Russian keyword fields run past 100 bytes at 100 characters or fewer (checked 2026-11-18).
+// Keywords are counted in UTF-16 units, the strictest reading of "characters": a combining mark counts as one.
 export const LOCALIZATION_LIMITS = { name: 30, subtitle: 30, keywords: 100, promotionalText: 170, description: 4000, whatsNew: 4000 };
 
 // Apple requires a name on every new App Info localization (AppInfoLocalizationCreateRequest) and marks Description
@@ -31,7 +34,6 @@ export const SHIPPING_LOCALIZATION_FIELDS = ['name', 'subtitle', 'keywords', 'de
 
 const text = value => typeof value === 'string' ? value.trim() : '';
 const characters = value => [...value].length;
-const bytes = value => Buffer.byteLength(value, 'utf8');
 
 // localizationEntries returns the store data's localizations as [locale, copy] pairs, in the order written.
 export function localizationEntries(listing) {
@@ -72,10 +74,8 @@ export function localizationProblems(listing, characterProblems) {
     for (const field of LOCALIZATION_FIELDS) {
       const value = text(copy[field]);
       if (!value) continue;
-      const size = field === 'keywords' ? bytes(value) : characters(value);
-      if (size > LOCALIZATION_LIMITS[field]) {
-        problems.push(where + '.' + field + ' is ' + size + (field === 'keywords' ? ' bytes (UTF-8)' : ' characters') + '; Apple allows ' + LOCALIZATION_LIMITS[field]);
-      }
+      const size = field === 'keywords' ? value.length : characters(value);
+      if (size > LOCALIZATION_LIMITS[field]) problems.push(where + '.' + field + ' is ' + size + ' characters; Apple allows ' + LOCALIZATION_LIMITS[field]);
     }
     if (characterProblems) for (const problem of characterProblems(copy)) problems.push(where + '.' + problem);
   }

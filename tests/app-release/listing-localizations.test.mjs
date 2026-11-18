@@ -37,10 +37,13 @@ test('required fields, unknown fields and limits are checked', () => {
   }
 });
 
-test('keywords are limited in UTF-8 bytes, so 34 Chinese characters are too many', () => {
-  const chinese = { ...spanish, keywords: '倒'.repeat(34) };
-  assert.match(localizationProblems({ ...primary, localizations: { 'zh-Hans': chinese } })[0], /keywords is 102 bytes \(UTF-8\); Apple allows 100/);
-  assert.deepEqual(localizationProblems({ ...primary, localizations: { 'zh-Hans': { ...chinese, keywords: '倒'.repeat(33) } } }), []);
+test('keywords are limited to 100 characters in every language, as Apple enforces, not 100 bytes', () => {
+  const chinese = { ...spanish, keywords: '倒'.repeat(101) };
+  assert.match(localizationProblems({ ...primary, localizations: { 'zh-Hans': chinese } })[0], /keywords is 101 characters; Apple allows 100/);
+  assert.deepEqual(localizationProblems({ ...primary, localizations: { 'zh-Hans': { ...chinese, keywords: '倒'.repeat(100) } } }), [], '300 bytes, 100 characters');
+  assert.deepEqual(localizationProblems({ ...primary, localizations: { ru: { ...spanish, keywords: 'я'.repeat(100) } } }), []);
+  // a Thai combining mark counts as a character of its own
+  assert.match(localizationProblems({ ...primary, localizations: { th: { ...spanish, keywords: 'กิ'.repeat(51) } } })[0], /keywords is 102 characters/);
   assert.deepEqual(localizationProblems({ ...primary, localizations: { 'zh-Hans': { ...spanish, name: '倒'.repeat(30) } } }), [], 'names count characters');
 });
 
