@@ -65,6 +65,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.10 | 2026-11-17 | A problem family can list `channels`: its words match only lines of those channels (or with none). `source-page-refused` is scoped to pitches | A directory submit form behind a Cloudflare page reopened `source-page-refused`, a family about pitch source pages |
 | 1.32.11 | 2026-11-17 | Problem family `store-lookup-stale`: Apple's developer lookup can answer from an older cache; app-sites store sync now re-checks a missing app by its own id and never rolls a version back | The 18:28Z store sync called Plenty (released that day) missing and set Space Worms back to 1.0.2, opening app-sites#175 |
 | 1.32.12 | 2026-11-18 | `hn` counts every story the owner's Hacker News account (`HN_ACCOUNT`) posted in the last 30 days toward the one-a-month limit, not only the ledger's posts | The Mac pass posted Plenty's Show HN on 2026-11-18, 15 days after the owner had posted Data Center by hand, because `hn` read only the ledger |
+| 1.32.13 | 2026-11-18 | `recurring` counts a line logged from 2026-11-13T20:00Z that names its families (`problem`, or a `left_open` entry's) only under those names; its words add none | The Mac pass's end line said "recurring double-count fixed" and reopened `downloads-double-counted`, the same morning a deferral's words reopened `shorts-recording-unattended` |
 
 ## Lessons
 
@@ -91,3 +92,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 - 2026-11-14: A shallow clone is history too short to judge by. The landing check treated a missing commit as not landed; unshallow before reading, in the cloud as on the Mac.
 - 2026-11-14: Fix the harm when the cause is outside. A dead mailbox on a live page cannot be seen before sending, so bound what bounces cost (the rate) and stop counting each one as a fault.
 - 2026-11-18: A limit across all of the owner's posts must read all of them. The ledger knew only the runs' posts, so one the owner made by hand went uncounted.
+- 2026-11-18: Once a line names its problem, stop reading its words for one. A run's summary of what it fixed reads like a sighting, so a named line matched by text reopened a closed family twice in one morning.

@@ -29,6 +29,8 @@ test('a line meets a family by its problem key or its words, never a not_text li
   assert.deepEqual([...familiesOf(ev({ operation: 'Looked for the provider token' }), fams)], ['token']);
   assert.deepEqual([...familiesOf(ev({ operation: 'next: space-worms/campaign provider token from 2026-11-12' }), fams)], []);
   assert.deepEqual([...familiesOf(ev({ left_open: [{ issue: 'x', needs: 'y', problem: 'pin-comment' }] }), fams)], ['pin-comment']);
+  assert.deepEqual([...familiesOf(ev({ ts: '2026-11-18T14:11:03Z', operation: 'Looked for the provider token', left_open: [{ issue: 'x', needs: 'y', problem: 'pin-comment' }] }), fams)], ['pin-comment'], 'a keyed line after the key rule is counted only under its keys');
+  assert.deepEqual([...familiesOf(ev({ ts: '2026-11-18T14:11:03Z', operation: 'Looked for the provider token' }), fams)], ['token'], 'an unkeyed line is still read by its words');
   assert.deepEqual([...familiesOf(ev({ problem: 'token', closes: 'fixed', operation: 'provider token' }), fams)], []);
   // A bot challenge the pre-merge preflight caught is the fix working, not a refused send (2026-11-14).
   const real = loadFamilies();

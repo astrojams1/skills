@@ -92,6 +92,10 @@ export function familiesOf(e, families) {
   const found = new Set();
   const keys = [e.problem, ...(Array.isArray(e.left_open) ? e.left_open.map(o => o?.problem) : [])].filter(Boolean);
   for (const k of keys) if (families.some(f => f.key === k)) found.add(k);
+  // From PROBLEM_KEYS_FROM a line names its own families, so its words add none: an end line's summary of what the run
+  // fixed ("recurring double-count fixed") reopened downloads-double-counted on 2026-11-18, as a deferral's words had
+  // reopened shorts-recording-unattended the same morning.
+  if (found.size && Date.parse(e.ts) >= PROBLEM_KEYS_FROM) return found;
   const text = lineText(e);
   // A family with `channels` matches text only on lines of those channels (or with no channel): source-page-refused is
   // about pitch source pages, so a directory site's bot check on a submit form is not a sighting (2026-11-17).
