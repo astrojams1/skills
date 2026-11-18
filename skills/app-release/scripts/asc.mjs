@@ -15,6 +15,7 @@ import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './l
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
+import { localizationChanges, localizationEntries, localizationProblems, localizationSummary, localizationText } from './lib/listing-localizations.mjs';
 import { RELEASE_TYPE, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
@@ -547,6 +548,27 @@ export function whatsNewPlan(live, whatsNew) {
   return { send: true, whatsNew: notes };
 }
 
+// localizationWritePlan decides the writes for one extra listing language: the App Info localization (name, subtitle
+// and the primary privacy policy URL) and the version localization (description, keywords, promotional text, the
+// primary support and marketing URLs, and release notes by the whatsNewPlan rule). Each is created when Apple lacks
+// the locale and patched otherwise; a create sends `locale` and only the text it has. `existing` holds the App Info
+// and version localization resources Apple listed.
+export function localizationWritePlan(locale, copy, primary, live, existing = {}) {
+  const wanted = localizationText(copy);
+  let notes;
+  try {
+    notes = whatsNewPlan(live, wanted.whatsNew);
+  } catch {
+    throw new Error('This version is an update: write release notes in listing.localizations.' + locale + '.whatsNew (store data) before `listing`.');
+  }
+  const pick = (source, fields) => Object.fromEntries(fields.filter(field => typeof source[field] === 'string' && source[field]).map(field => [field, source[field]]));
+  const infoAttributes = { ...pick(wanted, ['name', 'subtitle']), ...pick(primary, ['privacyPolicyUrl']) };
+  const versionAttributes = { ...pick(wanted, ['description', 'keywords', 'promotionalText']), ...pick(primary, ['supportUrl', 'marketingUrl']) };
+  if (notes.send) versionAttributes.whatsNew = notes.whatsNew;
+  const step = (found, attributes) => found ? { action: 'update', id: found.id, attributes } : { action: 'create', attributes: { locale, ...attributes } };
+  return { locale, info: step(existing.info, infoAttributes), version: step(existing.version, versionAttributes) };
+}
+
 // manualTestflightGroups returns the configured internal group when it needs the build added; a group with access to
 // all builds receives every build on its own and rejects a manual add, and other groups are left alone.
 export function manualTestflightGroups(groups, name) {
@@ -657,6 +679,7 @@ async function status() {
     console.log('No', STORE.listing.locale, 'version localization yet; `listing` creates it.');
     return;
   }
+  await localizationStatus(version, localizations);
   const sets = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/appScreenshotSets');
   for (const set of sets) {
     const shots = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
@@ -673,6 +696,23 @@ async function status() {
     }
   }
   if (STORE.gameCenter) await gameCenterStatus(ctx.version.id);
+}
+
+// localizationStatus compares listing.localizations with the version's languages and its App Info (the editable one
+// when a version is being prepared): what `listing` would create or change, and live languages store data omits.
+async function localizationStatus(version, versionLocalizations) {
+  const problems = localizationProblems(STORE.listing, listingCharacterProblems);
+  for (const problem of problems) console.log('  localization problem:', problem);
+  const infos = await listAll('/v1/apps/' + IOS.ascAppId + '/appInfos');
+  const info = editableAppInfo(infos) || infos[0];
+  const infoLocalizations = info ? await listAll('/v1/appInfos/' + info.id + '/appInfoLocalizations') : [];
+  const changes = localizationChanges(STORE.listing, infoLocalizations, versionLocalizations);
+  const named = localizationEntries(STORE.listing).length;
+  if (named || changes.unlisted.length) {
+    const summary = localizationSummary(changes);
+    console.log('  localizations', version.attributes.versionString + ':', summary || (named ? 'all ' + named + ' match store data' : 'none in store data'));
+  }
+  if (changes.unlisted.length) console.log('  localizations live but not in store data (kept, never deleted):', changes.unlisted.join(', '));
 }
 
 // describeItem names what a review submission item carries.
@@ -717,14 +757,19 @@ export function categoryRelationships(copy) {
   return relationships;
 }
 
-// listing saves the name, subtitle, privacy URL, categories, content rights, copyright and version copy.
+// listing saves the name, subtitle, privacy URL, categories, content rights, copyright and version copy, then each
+// extra language in listing.localizations.
 async function listing() {
   // Checked before context(true), which may already create or rename the version.
-  const symbols = listingCharacterProblems(STORE.listing);
+  const symbols = [...listingCharacterProblems(STORE.listing), ...localizationProblems(STORE.listing, listingCharacterProblems)];
   if (symbols.length) throw new Error('Store copy cannot be sent: ' + symbols.join('; '));
   const ctx = await context(true);
   requireEditableInfo(ctx);
   const copy = STORE.listing;
+  const live = (await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS')).some(item => LIVE_STATES.includes(versionState(item)));
+  // Every language's release notes are checked before the first write, so a missing one changes nothing.
+  whatsNewPlan(live, copy.whatsNew);
+  for (const [locale, text] of localizationEntries(copy)) localizationWritePlan(locale, text, copy, live);
   const infoLocalizations = await listAll('/v1/appInfos/' + ctx.info.id + '/appInfoLocalizations');
   const infoLocalization = infoLocalizations.find(item => item.attributes.locale === copy.locale);
   if (!infoLocalization) throw new Error('No ' + copy.locale + ' App Info localization; add the locale in App Store Connect first.');
@@ -748,12 +793,41 @@ async function listing() {
   assertSaved('Version', versionAttributes, savedVersion.data.attributes);
   const localization = await versionLocalization(ctx.version.id, true);
   const copyAttributes = { description: copy.description, keywords: copy.keywords, promotionalText: copy.promotionalText, supportUrl: copy.supportUrl, marketingUrl: copy.marketingUrl };
-  const live = (await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS')).some(item => LIVE_STATES.includes(versionState(item)));
   const notes = whatsNewPlan(live, copy.whatsNew);
   if (notes.send) copyAttributes.whatsNew = notes.whatsNew;
   const savedCopy = await api('/v1/appStoreVersionLocalizations/' + localization.id, 'PATCH', { data: { type: 'appStoreVersionLocalizations', id: localization.id, attributes: copyAttributes } });
   assertSaved('Version localization', copyAttributes, savedCopy.data.attributes);
   console.log('Saved and verified name, subtitle, privacy URL, categories, content rights, copyright and listing copy.');
+  await listingLocalizations(ctx, copy, live);
+}
+
+// listingLocalizations writes each extra language in listing.localizations after the primary one, creating the App
+// Info and version localizations Apple lacks, and reads every write back. A locale live but absent from store data is
+// named and left alone; nothing here deletes a language.
+async function listingLocalizations(ctx, copy, live) {
+  const entries = localizationEntries(copy);
+  for (const [locale, text] of entries) {
+    const infos = await listAll('/v1/appInfos/' + ctx.info.id + '/appInfoLocalizations');
+    const info = infos.find(item => item.attributes.locale === locale);
+    const planned = localizationWritePlan(locale, text, copy, live, { info });
+    const savedInfo = planned.info.action === 'create'
+      ? await api('/v1/appInfoLocalizations', 'POST', { data: { type: 'appInfoLocalizations', attributes: planned.info.attributes, relationships: { appInfo: relation('appInfos', ctx.info.id) } } })
+      : await api('/v1/appInfoLocalizations/' + planned.info.id, 'PATCH', { data: { type: 'appInfoLocalizations', id: planned.info.id, attributes: planned.info.attributes } });
+    assertSaved(locale + ' App Info localization', planned.info.attributes, savedInfo.data.attributes);
+    // Listed after the App Info write: Apple may add the language to the version along with it.
+    const versions = await listAll('/v1/appStoreVersions/' + ctx.version.id + '/appStoreVersionLocalizations');
+    const version = versions.find(item => item.attributes.locale === locale);
+    const step = localizationWritePlan(locale, text, copy, live, { info: savedInfo.data, version }).version;
+    const savedVersion = step.action === 'create'
+      ? await api('/v1/appStoreVersionLocalizations', 'POST', { data: { type: 'appStoreVersionLocalizations', attributes: step.attributes, relationships: { appStoreVersion: relation('appStoreVersions', ctx.version.id) } } })
+      : await api('/v1/appStoreVersionLocalizations/' + step.id, 'PATCH', { data: { type: 'appStoreVersionLocalizations', id: step.id, attributes: step.attributes } });
+    assertSaved(locale + ' version localization', step.attributes, savedVersion.data.attributes);
+    console.log('Saved and verified the', locale, 'listing (' + planned.info.action + ' App Info, ' + step.action + ' version localization).');
+  }
+  const infos = await listAll('/v1/appInfos/' + ctx.info.id + '/appInfoLocalizations');
+  const versions = await listAll('/v1/appStoreVersions/' + ctx.version.id + '/appStoreVersionLocalizations');
+  const { unlisted } = localizationChanges(copy, infos, versions);
+  if (unlisted.length) console.log('Live but not in store data, left unchanged:', unlisted.join(', '));
 }
 
 // ageRating answers the age-rating questionnaire from store.json, sending only attributes Apple currently accepts.
@@ -815,7 +889,9 @@ export const AI_SERVICE_NAMES = ['ChatGPT', 'OpenAI', 'GPT', 'Codex', 'Claude', 
 // chinaAiProblem names the AI services the listing mentions when the app is sold in China mainland, or returns null.
 export function chinaAiProblem(listing, chinaAvailable) {
   if (!chinaAvailable) return null;
-  const text = ['name', 'subtitle', 'promotionalText', 'description', 'keywords'].map(key => (listing && listing[key]) || '').join(' ');
+  // Every language counts: a zh-Hans listing is what China mainland shows.
+  const copies = [listing || {}, ...localizationEntries(listing).map(([, copy]) => copy || {})];
+  const text = copies.flatMap(copy => ['name', 'subtitle', 'promotionalText', 'description', 'keywords'].map(key => copy[key] || '')).join(' ');
   const named = AI_SERVICE_NAMES.filter(name => new RegExp('\\b' + name + '\\b', 'i').test(text));
   if (!named.length) return null;
   return 'The listing names ' + named.join(', ') + ' and the app is available in China mainland, where those services lack the required licence '

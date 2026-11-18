@@ -203,6 +203,50 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    Record provider distribution state and actual public App Store availability separately.
 9. **Record** each step in the ledger as it happens (see [ledger](ledger.md)).
 
+## Listing localizations
+
+Store data's `listing.localizations` adds App Store listings in more languages ([config](config.md), the `listing`
+row). The owner's goal is downloads, App Store search is the channel with proven downloads, and Apple reported 35 of
+62 first-time downloads for 2026-11-04 to 11-17 from outside the US while every listing was English only. Apple's
+[App Store localizations](https://developer.apple.com/help/app-store-connect/reference/app-information/app-store-localizations)
+lists, for the United States storefront, English (US) plus Arabic, Chinese (Simplified), Chinese (Traditional),
+French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `ar-SA`, `zh-Hans`, `zh-Hant`,
+`fr-FR`, `ko`, `pt-BR`, `ru`, `es-MX`, `vi`.
+
+- **Commands.** `asc.mjs listing` checks every language before any write (locale code, required fields, limits,
+  pictographic symbols, release notes), saves the primary language, then for each language creates or patches the
+  App Info localization (name, subtitle, primary privacy policy URL) and the version localization (description,
+  keywords, promotional text, primary support and marketing URLs, `whatsNew` once a version is live) and reads each
+  back. A field left out of store data is not cleared. `asc.mjs status` prints which languages `listing` would
+  create or change, and live languages store data omits. `review-sweep.mjs sweep` makes a missing or different
+  language a `listing` candidate ([the daily review run](daily-review-run.md), "A listing change ships"). No
+  command deletes a language: one live but absent from store data is only reported. `submit`'s China mainland check
+  for AI service names reads every language.
+- **Locale codes** are Apple's API shortcodes, copied into `APP_STORE_LOCALES` from
+  [Managing metadata in your app by using locale shortcodes](https://developer.apple.com/documentation/appstoreconnectapi/managing-metadata-in-your-app-by-using-locale-shortcodes)
+  (read 2026-11-18). Some carry a region (`es-MX`, `fr-FR`, `ar-SA`, `pt-BR`) and some do not (`ko`, `ru`, `vi`).
+- **What a new language needs** (checked 2026-11-18). A new App Info localization requires `locale` and `name`;
+  `subtitle`, `privacyPolicyUrl`, `privacyPolicyText` and `privacyChoicesUrl` are optional
+  ([AppInfoLocalizationCreateRequest.Data.Attributes](https://developer.apple.com/documentation/appstoreconnectapi/appinfolocalizationcreaterequest/data-data.dictionary/attributes-data.dictionary)).
+  A new version localization requires only `locale` in the API
+  ([AppStoreVersionLocalizationCreateRequest.Data.Attributes](https://developer.apple.com/documentation/appstoreconnectapi/appstoreversionlocalizationcreaterequest/data-data.dictionary/attributes-data.dictionary)),
+  but Apple marks Description, Keywords and Support URL required and localized for submission
+  ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information),
+  [Required, localizable and editable properties](https://developer.apple.com/help/app-store-connect/reference/app-information/required-localizable-and-editable-properties)),
+  and Privacy Policy URL required and localized. So store data must give each language a name, description and
+  keywords, and `listing` copies the URLs from the primary listing. Keywords are limited to "100 bytes", so `listing`
+  counts UTF-8 bytes: about 33 Chinese, Korean or Arabic characters.
+- **Media falls back.** [Localize app information](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-store-information)
+  says that when you add a language, "screenshots and the properties for the new language default to those of the
+  primary language, except for the description and keywords". [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
+  says a language with no app preview shows "the preview in the next best available language". No language needs
+  its own screenshots or preview; `screenshots`, `assets` and `submit` keep working on the primary language. Apple
+  describes the App Store Connect page, not the API; that an API-created language falls back the same way is
+  unverified until the first one goes live.
+- **Who sees it.** A customer whose language setting matches sees that localization; with no match, "the next most
+  relevant localization is used", otherwise the primary language. Deleting a language reverts its storefronts to the
+  primary language ([Localize app information](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-store-information)).
+
 ## Unattended review submissions
 
 The daily Mac task's own steps, approvals and Never list are in [the daily review run](daily-review-run.md).
@@ -216,7 +260,7 @@ it), `deferred`,
 `no_product_change` or `candidate`. A `product` candidate is only a list of files: read the diff and decide whether
 the shipped app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse. A
 `listing` candidate has no product change, but its merged store data differs from the live name, subtitle, keywords,
-description or URLs. Apple takes those only with a new version and build, so the run ships it as a metadata-only
+description or URLs, or names a listing language that is missing live or differs ([listing localizations](#listing-localizations)). Apple takes those only with a new version and build, so the run ships it as a metadata-only
 version ([the daily review run](daily-review-run.md), "A listing change ships").
 
 Provenance is the build's `summary.json` from `ios-release.mjs archive`. A build without one (a cloud build) needs
