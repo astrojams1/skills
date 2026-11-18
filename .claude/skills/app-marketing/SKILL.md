@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.32.18"
+  version: "1.32.19"
   ledger: ledger/LEDGER.md
 ---
 
@@ -353,7 +353,8 @@ Six lines, for someone who wasn't watching:
 
 0. The first line of `recurring`: how many problem families are open.
 1. What shipped and what was fixed, with URLs.
-2. The headline number change.
+2. The headline number change, and on the Mac the last line of `lifetime`: downloads since launch against the
+   owner's goal of 1,000 (2026-11-18).
 3. Invented this week: each experiment shipped, its URL, its measure and its judge date, and any verdicts given.
 4. The owner's options: each idea that needs a person or money, with its cost and likely return (`learn` prints them
    as `owner option`), or "none this week".
