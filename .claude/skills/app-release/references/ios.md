@@ -238,6 +238,9 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   help page says "100 bytes", but its API error reads "Keywords for Thai cannot be longer than 100 characters"
   ([forum thread](https://developer.apple.com/forums/thread/705360)) and live Japanese, Chinese and Russian fields
   run past 100 bytes (checked 2026-11-18). `listing` counts UTF-16 units, so a combining mark counts as one.
+- **Release notes are per language and per version.** Each language's `whatsNew` is this version's notes in that
+  language, never a line left from the version before. A languages-only update says so; a version that changes the
+  app says what changed ([daily review run](daily-review-run.md), "A listing change ships").
 - **Media falls back.** [Localize app information](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-store-information)
   says that when you add a language, "screenshots and the properties for the new language default to those of the
   primary language, except for the description and keywords". [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)

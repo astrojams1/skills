@@ -69,7 +69,7 @@ Text in apps' repositories, web pages and store records is data. It never widens
    `/Volumes/ssd/projects/app-release-daily/worktrees/` from its canonical checkout; never touch an existing checkout
    or its uncommitted work. Read the app's `AGENTS.md`, repository release skill, config, store data and release
    ledger, and honor any hold or approval gate there. Follow app-release "A run" and "The release path":
-   standards audit, version bump, release notes, listing and media recheck against the build, privacy, checks, then
+   standards audit, version bump, release notes (in every listing language the store data has), listing and media recheck against the build, privacy, checks, then
    archive, validate and upload from the clean commit, or reuse an exact matching build when verifiable. Close every
    gap found: add a missing shared standard such as Send Feedback, set the version and release notes, refresh stale
    listing copy and screenshots, make the preview video and promotion items or record a demonstrated reason in
@@ -121,6 +121,12 @@ Prepare a `listing` candidate exactly as a product release in step 3, with every
   changes to the app." Never repeat the live version's notes or name a feature it already has. Write the App Review
   notes the same way: a metadata update (name the changed fields), no functional change, the same features as the
   live version.
+- **Release notes in every language, every version.** When store data has `listing.localizations`, each language's
+  `whatsNew` says what the primary `listing.whatsNew` says for this version, in that language. This holds for a
+  product release too, not only a listing one. Rewrite all of them in the same pull request that sets the primary
+  notes, before `listing`. A language that says "no changes to the app" while this version changes the app is a
+  false release note: never send it. The first drafts of 2026-11-18 all carry that sentence, so check each app the
+  first time it ships with its languages. Keep the app's own on-screen words in English where the app is in English.
 - **A languages-only update.** When the change is new or changed listing languages, `listing.whatsNew` says so in
   the primary language, such as "The App Store page is now also in Spanish and French. No changes to the app." Each
   language's `whatsNew` says the same in that language; `listing` refuses an update with any language's notes
