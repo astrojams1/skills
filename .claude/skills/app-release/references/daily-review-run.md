@@ -104,7 +104,8 @@ keywords, description or URL that differs from the live one. The extra languages
 the same way: a language that is not live yet, or whose name, subtitle, keywords or description differs, makes the
 app a `listing` candidate (`listing.localizations.missing` and `.changed` in the sweep's JSON, summed up in
 `listing.ships`). A language that is live but absent from store data is listed in `listing.localizations.unlisted`
-and left alone; no command deletes a language. Apple's App Store Connect Help does not mark Subtitle
+and left alone; no command deletes a language. A language in `localizedScreenshots` whose listed screenshots are not live or differ counts
+the same way (`listing.screenshots`); its live sets for a language store data does not list are only reported. Apple's App Store Connect Help does not mark Subtitle
 as editable without a new version, and lists Keywords as a version property. Only promotional text changes "without
 requiring an updated submission". Each version needs a build chosen for it, so a listing change needs a new version
 and a new build

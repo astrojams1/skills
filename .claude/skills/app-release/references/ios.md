@@ -255,12 +255,71 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   says that when you add a language, "screenshots and the properties for the new language default to those of the
   primary language, except for the description and keywords". [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)
   says a language with no app preview shows "the preview in the next best available language". No language needs
-  its own screenshots or preview; `screenshots`, `assets` and `submit` keep working on the primary language. Apple
-  describes the App Store Connect page, not the API; that an API-created language falls back the same way is
-  unverified until the first one goes live.
+  its own screenshots or preview. A language can carry its own screenshots with translated captions
+  ([Screenshots per language](#screenshots-per-language)); `assets` and `submit` keep working on the primary
+  language. Apple describes the App Store Connect page, not the API; that an API-created language falls back the
+  same way is unverified until the first one goes live.
 - **Who sees it.** A customer whose language setting matches sees that localization; with no match, "the next most
   relevant localization is used", otherwise the primary language. Deleting a language reverts its storefronts to the
   primary language ([Localize app information](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-store-information)).
+
+## Screenshots per language
+
+A language can show its own screenshots, so its captions are in its own words. The app's own screens stay as they are:
+the listing already says the app is in English, so only the caption text around each screen is translated.
+
+- **Store data.** `localizedScreenshots` sits beside `screenshots` and is keyed by locale. Each language uses either
+  shape `screenshots` takes: a list of `{ displayType, files }`, or `{ manifest, base }` to read an asset manifest's
+  `ios` entries. Paths are relative to the repository root.
+
+  ```json
+  "localizedScreenshots": {
+    "es-MX": [{ "displayType": "APP_IPHONE_67", "files": ["store/screenshots/es-MX/1-flap.png"] }],
+    "ja": { "manifest": "store/screenshots/ja/manifest.json", "base": "store/screenshots/ja" }
+  }
+  ```
+
+- **Optional per language.** A language left out keeps Apple's fallback to the primary screenshots, and nothing is
+  uploaded or deleted for it. A language may list fewer display types than the primary.
+- **Checked before any write.** `screenshots` stops and names the locale and file when:
+  - the locale is not in `listing.localizations` (the primary's own are `screenshots`);
+  - a file is missing, or is not a PNG or JPEG;
+  - a display type is one the primary does not list;
+  - two files in a set share a name;
+  - a set holds fewer than 1 or more than 10 files;
+  - an image's pixel size is not one the primary uses for that display type.
+
+  Apple's
+  rule: "at least one screenshot and … up to 10 screenshots per device size in .jpeg, .jpg, or .png formats"
+  ([Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications),
+  read 2026-11-18). Matching the primary's sizes was asked for with this feature (2026-11-18): a language follows
+  the same size rules as the primary, whose sizes Apple has already taken.
+- **What `screenshots` does.** It syncs the primary language first. Then it syncs each listed language on that
+  language's version localization, with the same code. It checks each file's MD5 and keeps a match. It replaces an
+  unfinished upload and refuses to overwrite a finished file whose bytes changed. `ios.pruneScreenshots` decides
+  stale files and sets. It reads the listed order back. A language live with its own sets but not in store data is reported and never deleted, even with pruning on.
+  A set belongs to one version localization: `POST /v1/appScreenshotSets` takes `screenshotDisplayType` and the
+  `appStoreVersionLocalization` relationship
+  ([Create an app screenshot set](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-appscreenshotsets),
+  [List all screenshot sets for a localization](https://developer.apple.com/documentation/appstoreconnectapi/get-v1-appstoreversionlocalizations-_id_-appscreenshotsets),
+  [Create an app screenshot](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-appscreenshots)).
+  App Store Connect's own page uploads "assets for other localizations" by choosing the language at the top right
+  ([Upload app previews and screenshots](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots)).
+  Run `listing` first: it makes the language's version localization.
+- **Status and the sweep.** `status` says per language whether its live screenshots match store data. `sweep` marks
+  the app a `listing` candidate when a listed language's screenshots are not live, are out of order or have other
+  bytes (`listing.screenshots` in its JSON, summed up in `listing.ships`). Store data the check refuses is shown in
+  `listing.screenshots.problems` and ships nothing.
+- **Not yet run against Apple** (2026-11-18). On the first real run, check in App Store Connect that the language's
+  page shows its own screenshots and the other languages still show the primary's; that `status` then reads the
+  language as matching; and that a new version keeps the language's sets (Apple copies a version's media forward, but
+  that is unverified for API-made language sets). Record what you saw in the app's release ledger and here.
+- **When a language fails.** `screenshots` names it, saves the others and the primary, and exits non-zero. Read
+  Apple's message and fix that language's files or store data in the app's pull request, then run `screenshots`
+  again; it only sends what differs. A file Apple already holds with other bytes must be deleted in App Store Connect
+  or given a new file name. One language never holds the release: if it cannot be fixed in the run, take that
+  language out of `localizedScreenshots` in the same pull request (it falls back to the primary), say so in the
+  run's report, and ship the rest.
 
 ## Unattended review submissions
 

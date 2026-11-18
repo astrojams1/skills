@@ -304,7 +304,8 @@ Withdrawing gives up the place in the queue, so it is the owner's decision, neve
 `asc.mjs screenshots` uploads missing files, keeps finished identical ones, replaces unfinished uploads, and —
 only when `ios.pruneScreenshots` is true — **removes** files and whole sets the store data no longer lists
 (otherwise it reports them and leaves them), refuses to overwrite a finished file whose bytes changed (delete it in App Store
-Connect first), and puts each set in the listed order. Run `asc.mjs status` until every screenshot reads
+Connect first), and puts each set in the listed order. It does the same for each language in `localizedScreenshots`
+([iOS](ios.md), "Screenshots per language"). Run `asc.mjs status` until every screenshot reads
 `COMPLETE`. `play.mjs images` replaces each listed Play image type in order and commits only when Play's
 SHA-256 of every image matches the repository's. App previews upload through the Asset Library (`asc.mjs assets
 upload`, then `assets place`); Apple deprecated `appPreviewSets` in API 4.5.1, so there is no other path.

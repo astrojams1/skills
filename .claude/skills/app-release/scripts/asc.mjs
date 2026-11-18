@@ -16,6 +16,8 @@ import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
 import { localizationChanges, localizationEntries, localizationProblems, localizationSummary, localizationText } from './lib/listing-localizations.mjs';
+import { localizedScreenshotChanges, localizedScreenshotEntries, localizedScreenshotGroups, localizedScreenshotProblems, localizedScreenshotSummary, md5, readLiveScreenshots, screenshotAction,
+  staleScreenshotSets, staleScreenshots, syncLocalizedScreenshots, syncScreenshotGroups } from './lib/screenshot-localizations.mjs';
 import { RELEASE_TYPE, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
@@ -158,19 +160,9 @@ export function assertSaved(label, wanted, saved) {
   }
 }
 
-// screenshotAction decides what to do with one listed file given the set's current screenshots: upload it when
-// absent, keep a finished copy with the same checksum, replace one whose upload never finished, and refuse to
-// overwrite a finished copy whose bytes differ.
-export function screenshotAction(existing, fileName, checksum) {
-  const found = existing.find(item => item.attributes.fileName === fileName);
-  if (!found) return { action: 'upload' };
-  const delivery = found.attributes.assetDeliveryState;
-  const state = delivery ? delivery.state : '';
-  const finished = state === 'COMPLETE' || state === 'UPLOAD_COMPLETE';
-  if (!found.attributes.sourceFileChecksum || !finished) return { action: 'replace', id: found.id };
-  if (found.attributes.sourceFileChecksum === checksum) return { action: 'keep', id: found.id };
-  return { action: 'conflict', id: found.id };
-}
+// screenshotAction, staleScreenshotSets and staleScreenshots live in lib/screenshot-localizations.mjs, shared by every
+// language's screenshots; they are re-exported here for the tests and callers that import them from asc.mjs.
+export { screenshotAction, staleScreenshotSets, staleScreenshots };
 
 // attachmentPlan reconciles every App Review attachment with this file name: keep a finished copy with the same
 // checksum, wait for an identical copy still processing, or upload; `remove` lists the other same-name copies, which
@@ -277,18 +269,6 @@ export function submissionPlan(items, versionId, reviewTargets = []) {
   const plan = reviewItemPlan(items, versionId, reviewTargets);
   if (plan.conflict) return { action: 'conflict' };
   return { action: plan.hasVersion && !plan.missing.length ? 'submit' : 'add' };
-}
-
-// staleScreenshotSets returns the sets whose display type the manifest no longer lists.
-export function staleScreenshotSets(sets, manifest) {
-  const types = manifest.map(group => group.displayType);
-  return sets.filter(set => !types.includes(set.attributes.screenshotDisplayType));
-}
-
-// staleScreenshots returns the screenshots in a listed set whose file names its manifest group no longer lists.
-export function staleScreenshots(existing, files) {
-  const listed = files.map(file => basename(file));
-  return existing.filter(item => !listed.includes(item.attributes.fileName));
 }
 
 // pickBuild returns the single build a lookup found, refusing an ambiguous or empty result.
@@ -685,6 +665,7 @@ async function status() {
     const shots = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
     console.log('  screenshots', set.attributes.screenshotDisplayType, shots.map(shot => shot.attributes.assetDeliveryState.state).join(','));
   }
+  await screenshotLanguageStatus(localizations);
   for (const item of await versionPromotion(ctx.version.id)) {
     console.log('  promotion', item.id, item.state + (item.detail ? ': ' + item.detail : item.reason ? ': ' + item.reason : ''));
   }
@@ -713,6 +694,31 @@ async function localizationStatus(version, versionLocalizations) {
     console.log('  localizations', version.attributes.versionString + ':', summary || (named ? 'all ' + named + ' match store data' : 'none in store data'));
   }
   if (changes.unlisted.length) console.log('  localizations live but not in store data (kept, never deleted):', changes.unlisted.join(', '));
+}
+
+// screenshotLanguageStatus says, per language in localizedScreenshots, whether its live screenshots match store data,
+// and names live languages with their own sets that store data does not list.
+async function screenshotLanguageStatus(localizations) {
+  const files = storeFiles();
+  const languages = localizedScreenshotEntries(STORE);
+  const problems = localizedScreenshotProblems(STORE, screenshotGroups(CONFIG, STORE.screenshots), files);
+  for (const problem of problems) console.log('  screenshot language problem:', problem);
+  const live = await readLiveScreenshots(localizations, STORE.listing.locale, path => listAll(path));
+  const resolved = problems.length ? [] : localizedScreenshotGroups(STORE, files.readJson);
+  const checksum = file => {
+    const bytes = files.readFile(file);
+    return bytes ? md5(bytes) : null;
+  };
+  const changes = localizedScreenshotChanges(resolved, live, checksum);
+  if (resolved.length) {
+    const summary = localizedScreenshotSummary(changes);
+    const differs = new Set([...changes.missing, ...changes.changed.map(entry => entry.locale)]);
+    console.log('  screenshot languages:', summary || 'all ' + resolved.length + ' match store data');
+    for (const { locale } of resolved) if (!differs.has(locale)) console.log('    ' + locale, 'screenshots match store data');
+  } else if (languages.length && problems.length) {
+    console.log('  screenshot languages: not compared until the problems above are fixed');
+  }
+  if (changes.unlisted.length) console.log('  screenshot languages live but not in store data (kept, never deleted):', changes.unlisted.join(', '));
 }
 
 // describeItem names what a review submission item carries.
@@ -972,65 +978,44 @@ async function pricing() {
   console.log('Requested', target.territory, target.price, 'and availability in', territories.length, 'territories; confirm under Pricing and Availability.');
 }
 
-// screenshots uploads each listed image that is missing from its display-type set, verifying Apple's checksum.
+// storeFiles reads store data's files relative to the app repository: bytes (null when absent) and manifests.
+function storeFiles() {
+  const readFile = file => {
+    const path = resolve(CONFIG.root, file);
+    try {
+      return statSync(path).isFile() ? readFileSync(path) : null;
+    } catch {
+      return null;
+    }
+  };
+  return { readFile, readJson: file => JSON.parse(readFileSync(resolve(CONFIG.root, file), 'utf8')) };
+}
+
+// screenshots uploads each listed image that is missing from its display-type set, verifying Apple's checksum: first
+// the primary language's `screenshots`, then each language in `localizedScreenshots` on that language's localization.
+// Every language is checked before the first write. One language's failure is reported and the rest go on; a
+// language store data does not list is never touched.
 async function screenshots() {
-  const ctx = await context();
-  const localization = await versionLocalization(ctx.version.id);
-  const sets = await listAll('/v1/appStoreVersionLocalizations/' + localization.id + '/appScreenshotSets');
+  const files = storeFiles();
   const groups = screenshotGroups(CONFIG, STORE.screenshots);
   if (!groups.length) throw new Error('The store data lists no screenshots');
-  // With ios.pruneScreenshots, remove whole sets for display types the manifest no longer lists, so their screenshots
-  // leave the product page; otherwise report them and leave them alone.
-  for (const stale of staleScreenshotSets(sets, groups)) {
-    if (!IOS.pruneScreenshots) {
-      console.log('left set', stale.attributes.screenshotDisplayType, 'in place (not in the store data; ios.pruneScreenshots removes it)');
-      continue;
-    }
-    await api('/v1/appScreenshotSets/' + stale.id, 'DELETE');
-    console.log('removed set', stale.attributes.screenshotDisplayType, '(not in the manifest)');
+  const problems = localizedScreenshotProblems(STORE, groups, files);
+  if (problems.length) throw new Error('Screenshots cannot be sent: ' + problems.join('; '));
+  const languages = localizedScreenshotGroups(STORE, files.readJson);
+  const ctx = await context();
+  const localization = await versionLocalization(ctx.version.id);
+  const shared = { prune: IOS.pruneScreenshots, request: api, readAll: path => listAll(path), readFile: files.readFile, upload: uploadParts };
+  await syncScreenshotGroups({ ...shared, localizationId: localization.id, groups, label: '' });
+  const localizations = await listAll('/v1/appStoreVersions/' + ctx.version.id + '/appStoreVersionLocalizations');
+  const result = await syncLocalizedScreenshots({ ...shared, languages, localizations, primary: STORE.listing.locale });
+  for (const entry of result.unlisted) {
+    console.log(entry.locale, 'has its own screenshot sets (' + entry.displayTypes.join(', ') + ') that store data does not list; left in place');
   }
-  for (const group of groups) {
-    let set = sets.find(item => item.attributes.screenshotDisplayType === group.displayType);
-    if (!set) {
-      set = (await api('/v1/appScreenshotSets', 'POST', { data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: group.displayType }, relationships: { appStoreVersionLocalization: relation('appStoreVersionLocalizations', localization.id) } } })).data;
-    }
-    const existing = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
-    const ordered = [];
-    // With ios.pruneScreenshots the store data is canonical: remove screenshots it no longer lists.
-    const kept = IOS.pruneScreenshots ? [] : staleScreenshots(existing, group.files).map(item => item.id);
-    for (const stale of staleScreenshots(existing, group.files)) {
-      if (!IOS.pruneScreenshots) {
-        console.log('left', group.displayType, stale.attributes.fileName, 'in place (not in the store data; ios.pruneScreenshots removes it)');
-        continue;
-      }
-      await api('/v1/appScreenshots/' + stale.id, 'DELETE');
-      console.log('removed', group.displayType, stale.attributes.fileName, '(not in the manifest)');
-    }
-    for (const file of group.files) {
-      const path = resolve(CONFIG.root, file);
-      const bytes = readFileSync(path);
-      const checksum = createHash('md5').update(bytes).digest('hex');
-      const plan = screenshotAction(existing, basename(path), checksum);
-      if (plan.action === 'conflict') throw new Error(basename(path) + ' differs from the uploaded copy; delete it in App Store Connect to replace it.');
-      if (plan.action === 'keep') {
-        ordered.push(plan.id);
-        console.log('kept', group.displayType, basename(path));
-        continue;
-      }
-      // An upload that never finished leaves a reservation without a checksum; drop it and upload again.
-      if (plan.action === 'replace') await api('/v1/appScreenshots/' + plan.id, 'DELETE');
-      const reserved = (await api('/v1/appScreenshots', 'POST', { data: { type: 'appScreenshots', attributes: { fileName: basename(path), fileSize: statSync(path).size }, relationships: { appScreenshotSet: relation('appScreenshotSets', set.id) } } })).data;
-      await uploadParts(reserved.attributes.uploadOperations, bytes, basename(path));
-      await api('/v1/appScreenshots/' + reserved.id, 'PATCH', { data: { type: 'appScreenshots', id: reserved.id, attributes: { uploaded: true, sourceFileChecksum: checksum } } });
-      ordered.push(reserved.id);
-      console.log('uploaded', group.displayType, basename(path));
-    }
-    // Put the set in the manifest's order, which a rerun that only reorders files would otherwise leave unchanged.
-    // Screenshots left in place because pruning is off keep their places after the listed ones.
-    const order = ordered.concat(kept);
-    await api('/v1/appScreenshotSets/' + set.id + '/relationships/appScreenshots', 'PATCH', { data: order.map(id => ({ type: 'appScreenshots', id: id })) });
-    const after = await listAll('/v1/appScreenshotSets/' + set.id + '/appScreenshots');
-    if (after.map(item => item.id).join() !== order.join()) throw new Error('Screenshot order did not read back for ' + group.displayType);
+  if (languages.length) console.log('Screenshot languages done:', result.done.join(', ') || 'none');
+  if (result.failed.length) {
+    process.exitCode = 1;
+    console.log('Screenshot languages that failed (fix each in store data and rerun; the others are saved):');
+    for (const entry of result.failed) console.log('  ' + entry.locale + ': ' + entry.error);
   }
   console.log('Run `status` until every screenshot reads COMPLETE.');
 }
