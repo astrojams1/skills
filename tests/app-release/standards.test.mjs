@@ -351,6 +351,13 @@ test('a Kids Category app asks for a rating only behind its parental gate', t =>
   assert.equal(status(auditApp(repo(t, { store, files: gated }).config()), 'rating').status, 'pass');
 });
 
+test('rating.ts copies unchanged into a repository that bans optional chaining and nullish coalescing', () => {
+  // Space Worms' AGENTS.md bans both operators; its reviewer held the rating change over the shared file (2026-11-18).
+  const source = readFileSync(tsRating, 'utf8');
+  assert.doesNotMatch(source, /\?\?/);
+  assert.doesNotMatch(source, /\?\.[A-Za-z_$\[(]/);
+});
+
 test('rating.ts asks once after three good moments on two days, then waits for a new version and 90 days', async t => {
   const dir = mkdtempSync(join(tmpdir(), 'rating-ts-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));

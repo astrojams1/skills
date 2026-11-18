@@ -69,6 +69,11 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    `/Volumes/ssd/projects/app-marketing/worktrees/`.
 1. **Measure.** `marketing.mjs public --write`, `visits --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
+   Then `marketing.mjs lifetime --write`: first-time downloads since launch per live app and in all, the count the
+   owner's goal uses (2026-11-18: "Lifetime, all apps", 1,000 across Ouro and astrojams). It reads Apple's one-time
+   historical snapshot plus the daily pulls, and says "a floor" while a snapshot is not ready. The first time a
+   snapshot is ready, compare its first date with the app's release date before trusting the total; the monthly
+   rows were written before any real snapshot could be read (2026-11-18).
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
    public Shorts only. Never total the registry by hand. Then the business sites: run the query from
    `marketing.mjs site-visits --sql` with the Neon connector's `run_sql` on project `lucky-hat-15341181` (Vegas

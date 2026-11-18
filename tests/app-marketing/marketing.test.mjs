@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { territoryShare, hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { lifetimeDownloads, territoryShare, hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -774,4 +774,17 @@ test('a midday or reply pass lists only today\'s deferred items and its own work
   assert.deepEqual(passProblems(act({ app: 'all', item: 'pitch-top-up' }), [p], events, { now: MIDDAY }), []);
   assert.match(passProblems(act({ run_id: 'mkt-cloud-reply-20261114T011000Z', app: 'all', item: 'pitch-top-up' }), [p], events, { now: MIDDAY })[0], /reply pass/);
   assert.deepEqual(passProblems(act({ run_id: 'mkt-cloud-20261113T150101Z', app: 'x', item: 'guides' }), [p], events, { now: MIDDAY }), [], 'a full run is unchanged');
+});
+
+test('lifetime downloads count each day once and earlier months from the monthly rows', () => {
+  const daily = { '2026-10-15': { first: 2 }, '2026-10-16': { first: 1 }, '2026-11-01': { first: 4 } };
+  const monthly = { '2026-08-01': { first: 10 }, '2026-09-01': { first: 5 }, '2026-10-01': { first: 9 }, '2026-11-01': { first: 4 } };
+  const ongoing = { '2026-11-01': { first: 3 }, '2026-11-02': { first: 6 } };
+  // days: 2 + 1 + 4 (the snapshot wins 11-01) + 6 = 13; August and September 15; October's monthly 9 holds 6 the days miss
+  assert.deepEqual(lifetimeDownloads(daily, monthly, ongoing), { downloads: 13 + 15 + 6, from: '2026-08', through: '2026-11-02', days: 4, monthsBeforeDays: 3 });
+  // no snapshot yet: only the days the daily pulls hold
+  assert.deepEqual(lifetimeDownloads({}, {}, ongoing), { downloads: 9, from: '2026-11-01', through: '2026-11-02', days: 2, monthsBeforeDays: 0 });
+  // a monthly figure smaller than its known days adds nothing (never subtracts)
+  assert.equal(lifetimeDownloads({ '2026-10-15': { first: 5 } }, { '2026-10-01': { first: 3 } }).downloads, 5);
+  assert.deepEqual(lifetimeDownloads(), { downloads: 0, from: null, through: null, days: 0, monthsBeforeDays: 0 });
 });

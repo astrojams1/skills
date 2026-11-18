@@ -590,6 +590,23 @@
       ],
       "cause": "Hacker News marks the account's stories dead as they are posted (the account has karma 1 and three dead stories; the reason is the moderators' to say). The author's signed-in browser shows a dead story as normal and search leaves it out, so the run's verify step saw a live post",
       "fix": "hn reads the account's stories from the item API and says not due while the two newest are dead, and the verify step logs a dead story failed (skills, 1.32.15). The cause itself is lifted only by Hacker News's moderators at the owner's own request to hn@ycombinator.com: write the standing line once, then no run posts or reports on it until hn shows a story alive"
+    },
+    {
+      "key": "release-live-read-gate",
+      "title": "A release waits on a live sign-in only the owner can give",
+      "text": [
+        "live-read gate",
+        "live read could not be proven",
+        "Prove the live reads"
+      ],
+      "channels": [
+        "app-store"
+      ],
+      "history": [
+        "2026-11-18 mkt-goal-downloads-20261118T1708Z: Plenty 1.1 (build 11) is prepared but not submitted: the repository's release gate 'Prove the live reads' failed because the saved Claude session on the iPhone 17 simulator had ended (HTTP 403), so the keyword and subtitle test, the Flap screenshot and the 24 listing languages wait"
+      ],
+      "cause": "Plenty's release gate proves a live read of both services from a signed-in simulator before each submission; the Claude session there is the owner's own sign-in, and it expires",
+      "fix": "Only the owner can sign in to his Claude account: he opens Plenty on the named simulator and signs in again, and the next daily app-release run passes LiveTests and submits. Write the standing line once per expiry; a run never signs in, and never asks app-release to waive the gate"
     }
   ],
   "expected": [

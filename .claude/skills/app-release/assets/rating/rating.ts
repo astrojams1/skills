@@ -6,7 +6,7 @@
 // app, call it only from a screen behind the parental gate. It imports nothing; the screen passes the platform's calls.
 //
 // Expo (expo-store-review, AsyncStorage):
-//   ratingGoodMoment(Application.nativeApplicationVersion ?? '?', {
+//   ratingGoodMoment(Application.nativeApplicationVersion || '?', {
 //     read: () => AsyncStorage.getItem(RATING_STORAGE_KEY), write: text => AsyncStorage.setItem(RATING_STORAGE_KEY, text),
 //     requestReview: async () => { if (await StoreReview.isAvailableAsync()) await StoreReview.requestReview(); } });
 //
@@ -16,6 +16,7 @@
 // Only the store's own prompt is used. There is no screen of the app's own in front of it and no reward for rating
 // (App Review Guideline 5.6.1; Google Play's in-app review rules). The store decides whether the prompt appears.
 // Nothing leaves the device: the counts live in the app's own storage.
+// Written without optional chaining or nullish coalescing, which some of the app repositories ban, so the copy stays unchanged.
 
 export const RATING_STORAGE_KEY = 'app-standard.rating.state';
 
@@ -70,8 +71,8 @@ export function ratingShouldAsk(state: RatingState, version: string, now: Date, 
 
 export function parseRatingState(text: string | null): RatingState {
   try {
-    const value = JSON.parse(text ?? '');
-    if (typeof value?.moments === 'number' && Array.isArray(value.days)) {
+    const value = JSON.parse(text === null ? '' : text);
+    if (value && typeof value.moments === 'number' && Array.isArray(value.days)) {
       return { moments: value.moments, days: value.days.map(String), lastAsk: typeof value.lastAsk === 'number' ? value.lastAsk : null,
         lastAskVersion: typeof value.lastAskVersion === 'string' ? value.lastAskVersion : null };
     }
