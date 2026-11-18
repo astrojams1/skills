@@ -190,16 +190,18 @@ function readProvenance(repo, app, version, build, stateRoot) {
   return { problem: archive.problem + ' at ' + path };
 }
 
-// changes lists what moved on the release branch since the public build's commit.
-function changes(repo, commit, head) {
+// changes lists what differs on the release branch from the public build's commit. The tree diff is the answer
+// whether or not that commit is an ancestor: a build made from a release branch that was later squash-merged is not,
+// and the diff still shows every shipped file that differs, including any the build had that the branch lacks.
+export function changes(repo, commit, head) {
   if (git(repo.dir, 'cat-file', '-e', commit + '^{commit}') === null) return { problem: 'commit ' + commit + ' is not in ' + repo.dir };
-  if (spawnSync('git', ['-C', repo.dir, 'merge-base', '--is-ancestor', commit, head]).status !== 0) {
-    return { problem: 'commit ' + commit + ' is not an ancestor of ' + head };
-  }
+  const ancestor = spawnSync('git', ['-C', repo.dir, 'merge-base', '--is-ancestor', commit, head]).status === 0;
+  const base = ancestor ? commit : git(repo.dir, 'merge-base', commit, head);
+  if (!base) return { problem: 'commit ' + commit + ' shares no history with ' + head };
   const paths = (git(repo.dir, 'diff', '--name-only', commit, head) || '').split('\n').filter(Boolean);
   const { product, other } = splitPaths(paths, repo.config.projectDir);
-  const commits = product.length ? (git(repo.dir, 'log', '--no-merges', '--format=%h %s', '-n', '40', commit + '..' + head, '--', ...product.slice(0, 200)) || '').split('\n').filter(Boolean) : [];
-  return { product, otherCount: other.length, commits };
+  const commits = product.length ? (git(repo.dir, 'log', '--no-merges', '--format=%h %s', '-n', '40', base + '..' + head, '--', ...product.slice(0, 200)) || '').split('\n').filter(Boolean) : [];
+  return { product, otherCount: other.length, commits, ancestor };
 }
 
 async function publicVersion(appId) {
@@ -238,7 +240,7 @@ async function classify(api, app, team, index, stateRoot) {
   row.provenance = provenance;
   const diff = changes(repo, provenance.commit, row.head);
   if (diff.problem) return { ...row, status: 'deferred', reason: diff.problem };
-  row.changes = { productFiles: diff.product.length, otherFiles: diff.otherCount, sample: diff.product.slice(0, 30), commits: diff.commits };
+  row.changes = { productFiles: diff.product.length, otherFiles: diff.otherCount, sample: diff.product.slice(0, 30), commits: diff.commits, ancestor: diff.ancestor };
   row.listing = await pendingListing(api, app, live, repo, row.head);
   const dedupeKey = live.attributes.versionString + '-' + row.head.slice(0, 12);
   if (diff.product.length) return { ...row, status: 'candidate', kind: 'product', reason: diff.product.length + ' product files changed; read the diff before treating it as material', dedupeKey };

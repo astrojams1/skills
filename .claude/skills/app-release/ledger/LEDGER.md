@@ -920,3 +920,5 @@ a replacement, combine required coverage if needed, and describe only the verifi
 second screenshot was not sent; the app's correction and submission do not depend on it.
 
 | 2026-11-16 | 2.29.5 | Full-screen Rhythm previews had flat native background edges and falsely failed the device-frame heuristic. Render now writes a SHA-256-bound framing receipt; check accepts a verified full-screen render, still rejects framed renders and stale receipts. Native-footage inspection stays separate. Regression uses a solid-background source, a device frame and a mismatched receipt. |
+
+| 2026-11-18 | 2.29.6 | The daily sweep deferred Rhythm 0.16.0 every day: its live build 24 came from `release/app-store-review-23`, which reached main as a squash merge, so the build commit was "not an ancestor" of main although no shipped file differed. `review-sweep.mjs` now compares the build commit and the release head by tree whatever their ancestry (that diff also shows any file only the build had) and lists commits from their merge base; a regression test covers a squash-merged build. |
