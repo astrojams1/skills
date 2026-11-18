@@ -89,6 +89,17 @@ their own language cannot match an English-only listing.
 - **The measure.** `learn`'s `countries` line: first-time downloads by territory, from `pull`. For each app, the 14
   days after its languages go live against the 14 before: downloads outside the US, and downloads in the US (whose
   search gains nine languages of keywords). Record it in the profile's `experiments` with the live date.
+- **Status, 2026-11-18.** Nine of the ten live apps carry 24 more languages in store data (Importron 9). Füd's draft
+  is written and not applied: its repository refuses these sessions' pull requests (family `fud-repo-push-refused`).
+- **Upkeep.** A change to an app's en-US description, name or subtitle changes each language in the same pull
+  request, so no language keeps a claim the English listing dropped. A new app gets its languages with its first
+  listing. Each language's keyword field uses its 100 characters: words in that language the en-US listing supports,
+  none the locale's name or subtitle already carries. Follow the app repository's own copy rules first: Space Worms
+  bans naming any other game, which removed every snake-game word there.
+- **What a review of a draft checks.** Each claim traces to the en-US listing. No word promises what the app lacks
+  (the first drafts had "breaking news" for a calm news app, "idle game" for a game played by checking in, and name
+  stickers for an on-screen badge). No test, brand or service the listing does not name. Nothing that could read as
+  making light of a real war or a real illness.
 - **Keep or retire.** Provisional until proven (James, 2026-11-13). An effect is the channel table's: at least 2 more
   downloads than expected and half again as many. A language with no download from its countries in 28 days is
   rewritten once (other search words), then left as it is: a listing in a language costs nothing to keep.

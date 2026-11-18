@@ -70,6 +70,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.15 | 2026-11-18 | `hn` reads the owner account's stories from Hacker News's item API, shows which are dead, and says not due while the two newest are dead; the verify step logs a dead story `failed`; problem family `hn-posts-dead` | Plenty's Show HN (item 50546315) was logged posted and live, but was dead with 1 point, like the account's two earlier stories: search does not list dead stories and the author's browser shows them as normal |
 | 1.32.16 | 2026-11-18 | `pull` keeps first-time downloads and impressions by territory; `learn` prints a `countries` line; channels.md gains Listing languages, with its measure and keep-or-retire rule | Every listing was en-US only while 35 of 62 first-time downloads (2026-11-04 to 11-17) came from outside the US, and no metrics line stored the country |
 | 1.32.17 | 2026-11-18 | Problem family `release-live-read-gate`: a prepared release that waits on a live sign-in only the owner can give | Plenty 1.1 was built and held on 2026-11-18 because the Claude session in the release simulator had ended, which also holds its listing test and its 24 new listing languages |
+| 1.32.18 | 2026-11-18 | channels.md Listing languages: status, upkeep (a change to the English listing changes every language in the same pull request; keyword fields stay full) and what a review of a draft checks | Reviews of the first nine apps' drafts removed keywords the English listings do not support (breaking news, idle game, name stickers, another game's genre), and nothing yet said who keeps 24 languages true when the English text changes |
 
 ## Lessons
 
@@ -100,3 +101,4 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 - 2026-11-18: A report about a problem is not the problem. Reading every line's words for sightings made each run that quoted the count a new sighting.
 - 2026-11-18: Verify a post as a stranger, not as its author. A signed-in author sees a killed Hacker News story as live; two Show HNs were counted as launches that no reader ever saw.
 - 2026-11-18: Read every column Apple sends before deciding where the reach is. The download report named the country all along; the tool summed it away, so two weeks of work aimed at one storefront.
+- 2026-11-18: A translated keyword list drifts toward what people search, not what the app is. Review each language against the English listing for promises, not only for length.
