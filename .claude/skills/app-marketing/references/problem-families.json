@@ -543,6 +543,19 @@
       ],
       "cause": "the GMAIL_REFRESH_TOKEN in Vercel stopped being accepted between 00:54:48Z (a send succeeded) and seconds later on 2026-11-17 (a revoked or expired grant); the sender spent an attempt on every pending first email because a 401 counted as a per-message failure",
       "fix": "the sender treats 401 and a refused token refresh as mailbox-wide: the message waits, no attempt is spent and the call stops (authError, send.mjs). A new token comes from node packages/pitches/scripts/vercel-env.mjs on the Mac; if Google refuses the refresh token itself, the Mac pass re-runs the Gmail consent with the owner's signed-in Chrome"
+    },
+    {
+      "key": "store-lookup-stale",
+      "title": "Apple's developer lookup answered with an older snapshot, so the store sync called a live app missing or rolled a version back",
+      "text": [
+        "listed as live but not found",
+        "rolled .* back from"
+      ],
+      "history": [
+        "2026-11-17 app-sites#175: the 18:28Z store sync dropped Plenty (released that day) and set Space Worms back from 1.0.3 to 1.0.2; both lookups by id showed them live and current"
+      ],
+      "cause": "itunes.apple.com/lookup by developer id is served from a cache that can lag the per-app lookup by hours; sync-store trusted one developer answer, so an app missing from it was flagged and an older version overwrote a newer one",
+      "fix": "sync-store.mjs looks up by its own id any listed app the developer answer left out before calling it missing, and keeps the previous entry when an answer's currentVersionReleaseDate is older (test in packages/showcase/tests/catalog.test.mjs)"
     }
   ],
   "expected": [

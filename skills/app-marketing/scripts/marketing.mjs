@@ -276,6 +276,10 @@ const HN_ATTENTION = { points: 10, comments: 5 };
 const HN_GAP_DAYS = 30;      // one post across all apps per month: own work "part of the time"
 const HN_REPOST_DAYS = 14;   // a repost waits at least two weeks after the last submission
 const HN_PER_YEAR = 2;       // the first post and at most one repost per app in any 365 days
+// HN_ACCOUNT is the owner's own Hacker News account, the one signed in to the Mac's Chrome (seen 2026-11-18). Its
+// stories count toward the monthly limit even when no run posted them: on 2026-11-18 the pass posted Plenty 15 days
+// after the owner had posted Data Center by hand, because only the ledger was read.
+export const HN_ACCOUNT = '4stro';
 
 // hnTitleProblems returns what is wrong with a Show HN title.
 export function hnTitleProblems(title) {
@@ -304,7 +308,9 @@ export function hnStories(profile, hits) {
 }
 
 // hnVerdict says whether this app's Show HN is due now, from its profile, its stories on HN and the ledger.
-export function hnVerdict(profile, stories, events, now = Date.now()) {
+// accountStories are the owner account's stories (any app, posted by a run or by hand): each one is a post for the
+// monthly limit, like a ledger post.
+export function hnVerdict(profile, stories, events, now = Date.now(), accountStories = []) {
   const no = reason => ({ due: false, reason });
   if (!profile.hackerNews) return no('not marked as a developer tool for Hacker News (no hackerNews in the profile)');
   if (profile.stage !== 'live') return no('not live yet: Show HN is for things people can try now');
@@ -312,6 +318,10 @@ export function hnVerdict(profile, stories, events, now = Date.now()) {
   const lastPost = posts[posts.length - 1];
   if (lastPost && now - Date.parse(lastPost.ts) < HN_GAP_DAYS * DAY) {
     return no(`a Hacker News post (${lastPost.app}) was ${Math.floor((now - Date.parse(lastPost.ts)) / DAY)} days ago; one a month across all apps`);
+  }
+  const lastOwn = accountStories.filter(s => now - Date.parse(s.created_at) < HN_GAP_DAYS * DAY).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+  if (lastOwn) {
+    return no(`the owner's account posted news.ycombinator.com/item?id=${lastOwn.objectID} ${Math.floor((now - Date.parse(lastOwn.created_at)) / DAY)} days ago; one a month across all apps`);
   }
   const recent = stories.filter(s => now - Date.parse(s.created_at) < 365 * DAY);
   const noticed = recent.find(s => s.points >= HN_ATTENTION.points || s.num_comments >= HN_ATTENTION.comments);
@@ -1595,6 +1605,7 @@ async function cmdHn(root, args) {
   const profile = loadProfiles(root).find(p => p.id === args.app);
   if (!profile) throw new Error('Pass --app with an app id from marketing/apps/');
   let stories = [];
+  let accountStories = [];
   if (profile.hackerNews) {
     const search = async params => {
       const response = await fetch(`https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=50&${params}`);
@@ -1607,8 +1618,11 @@ async function cmdHn(root, args) {
       ...await search(`query=${encodeURIComponent(profile.name)}`)
     ];
     stories = hnStories(profile, hits);
+    const own = await fetch(`https://hn.algolia.com/api/v1/search_by_date?tags=story,author_${HN_ACCOUNT}&hitsPerPage=50`);
+    if (!own.ok) throw new Error(`Hacker News search answered ${own.status}; try again later`);
+    accountStories = (await own.json()).hits;
   }
-  const verdict = hnVerdict(profile, stories, loadEvents(root));
+  const verdict = hnVerdict(profile, stories, loadEvents(root), Date.now(), accountStories);
   const out = { app: profile.id, ...verdict, stories: stories.map(s => ({ id: s.objectID, at: s.created_at, title: s.title, points: s.points, comments: s.num_comments })) };
   if (verdict.due) Object.assign(out, { title: profile.hackerNews.title, url: profile.hackerNews.url, tryIt: profile.hackerNews.tryIt, submit: hnSubmitLink(profile.hackerNews.url, profile.hackerNews.title) });
   if (args.json) return console.log(JSON.stringify(out, null, 2));

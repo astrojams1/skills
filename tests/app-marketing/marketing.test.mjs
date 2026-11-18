@@ -168,6 +168,9 @@ test('Show HN is due once for a live developer tool, and never spammed', () => {
   // one post a month across every app
   assert.match(hnVerdict(app, [], [event({ app: 'other', channel: 'hacker-news', ts: ago(10) })], NOW).reason, /one a month/);
   assert.equal(hnVerdict(app, [], [event({ app: 'other', channel: 'hacker-news', ts: ago(31) })], NOW).due, true);
+  // a story the owner's account posted by hand counts too (2026-11-18: Data Center by hand, 15 days before Plenty)
+  assert.match(hnVerdict(app, [], [], NOW, [{ objectID: '9', created_at: ago(15) }]).reason, /owner's account posted .* 15 days ago; one a month/);
+  assert.equal(hnVerdict(app, [], [], NOW, [{ objectID: '9', created_at: ago(31) }]).due, true);
   // a story with real attention ends it for a year; a quiet one allows one repost after two weeks
   assert.match(hnVerdict(app, [story(100, { points: 40 })], [], NOW).reason, /already discussed/);
   assert.equal(hnVerdict(app, [story(400, { points: 40 })], [], NOW).due, true);

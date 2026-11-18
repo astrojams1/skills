@@ -130,7 +130,8 @@ command, no task list, no ledger event.
 
 ## Limits `hn` enforces
 
-- **One post a month, across all apps.** Hacker News says posting your own work is fine "part of the time".
+- **One post a month, across all apps.** Hacker News says posting your own work is fine "part of the time". Every
+  story the owner's account posted counts, by a run or by hand (`HN_ACCOUNT` in `marketing.mjs`).
 - **No second try after real attention.** If a story about the app got 10 or more points, or 5 or more comments, in
   the last year, there is no repost.
 - **At most one repost.** It is allowed only when the earlier story got no real attention, and only 14 days or more
