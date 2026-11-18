@@ -110,6 +110,12 @@ their own language cannot match an English-only listing.
   Render more languages or apps only once that verdict says it brings downloads. A reviewer who reads the language
   checks each headline and its rendered image before it merges: the first drafts said "for everyone" where the
   English meant a profile per person, and mixed two fonts in one Russian headline.
+- **Categories.** Apple lets an app name two categories and says only what the primary one does: it is where the
+  app shows when people browse or filter search ([Choosing a category](https://developer.apple.com/app-store/categories/),
+  read 2026-11-18). It is silent on the secondary one. Eight of ten live apps had none, so seven named one that fits
+  (`listing.secondaryCategory` in store data; experiment `secondary-category`, judge 2026-12-23) and Space Worms keeps
+  none as the comparison. A new app names a secondary category with its first listing when one fits; never one the
+  listing does not support, which App Review's guidelines forbid.
 
 ## Open
 
