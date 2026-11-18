@@ -10,6 +10,7 @@ is the machine-readable catalog, `scripts/standards.mjs` audits against it, and 
 | [Privacy link](#privacy-and-support-links) | The privacy policy, linked from inside the app | `privacy-link` |
 | [Support link](#privacy-and-support-links) | The support page, linked from inside the app | `support-link` |
 | [Embedded web pages](#embedded-web-pages) | Any web view shows only what it is for, and never a price, plan or upgrade offer | `web-sheet` |
+| [Ask for a rating](#ask-for-a-rating) | The store's own rating prompt, after a good moment, on a shared rule | `rating` |
 
 ## The audit in a run
 
@@ -131,6 +132,44 @@ the form, with a Pricing link in the footer. The reviewer only scrolled.
 **Check it.** On a simulator, open each web view, scroll every allowed page to the bottom and tap each link that is not
 part of the job. No price, plan or upgrade offer appears and nothing else opens. Recheck at every release: these pages
 belong to someone else and change without notice.
+
+## Ask for a rating
+
+The owner approved it on 2026-11-18. Asked "Should I add Apple's standard rating prompt (shown after a good moment, at
+most three times a year by Apple's rule) to every app as a shared release standard, like Send Feedback?", he answered
+"Yes, every app". Nine of the ten live apps had no rating that day and none asked for one. Ratings lift both search
+rank and the share of visitors who download.
+
+| Rule | Detail |
+|---|---|
+| The prompt | Only the store's own: StoreKit's `requestReview` on iOS, Play In-App Review on Android. No screen of the app's own in front of it ("Enjoying the app?"), which Apple disallows (Guideline 5.6.1) |
+| No reward | Nothing is given or unlocked for rating, and nothing asks for a good one |
+| No button | No control promises the prompt: the store may show nothing. A "Rate this app" row that opens the App Store's write-review page is allowed beside Send Feedback, and is not this standard |
+| When | Right after a good moment the app names: a finished round, a saved entry, a completed set. Never at launch, in the middle of a task, or after an error or a loss |
+| The shared rule | At least 3 good moments on at least 2 different days; never twice for one app version; at least 90 days after the last ask. The store adds its own limit (Apple: three prompts in 365 days) |
+| After asking | The count starts again, so the next ask also follows fresh good moments |
+| Kids apps | Called only from a screen behind the parental gate: the good moment is a parent's (a saved setting, a finished setup), never a child's |
+| Data | Counts live in the app's own storage. Nothing leaves the device, so App Privacy and Data safety answers do not change |
+| Marker | The source file implementing it carries the comment `app-standard: rating` |
+
+Copy the reference rather than rewriting it, so every app behaves the same:
+[RatingPrompt.swift](../assets/rating/RatingPrompt.swift) for native apps, or
+[rating.ts](../assets/rating/rating.ts) for Expo, React Native and Capacitor (its header has the calls for each).
+Both carry the marker and the rule. The app supplies one thing: where its good moment is.
+
+**The good moment, by kind of app** ([app types](app-types.md)): a game, a round the player finished and did well in,
+on the results screen; a tracker or utility, the entry that completes a day or a streak; a learning app, a finished
+session; a reader, an article read to the end. Pick the moment a person would call a small win. When in doubt, pick
+the later, rarer one.
+
+**Check it.** A debug build always shows the prompt when the app calls it; TestFlight builds never do
+([Apple: requesting App Store reviews](https://developer.apple.com/documentation/storekit/requesting-app-store-reviews),
+read it again before relying on this). On a simulator, reach the good moment three times across two days (move the
+device date, or seed the stored state in a UI test) and see the prompt once; reach it again and see nothing. Record
+what was seen. A unit test covers the app's own call site where the app has tests.
+
+**What can be said truthfully.** Review notes need nothing. If asked: "The app asks for a rating through the system
+prompt only, after <the moment>, on the system's limits. It offers nothing in return."
 
 ## Adding a standard
 

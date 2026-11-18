@@ -14,9 +14,12 @@ import { discoverApps, parseArgs, table } from '../../skills/app-release/scripts
 const skill = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'skills', 'app-release');
 const swiftReference = join(skill, 'assets', 'feedback', 'FeedbackButton.swift');
 const tsReference = join(skill, 'assets', 'feedback', 'feedback.ts');
+const swiftRating = join(skill, 'assets', 'rating', 'RatingPrompt.swift');
+const tsRating = join(skill, 'assets', 'rating', 'rating.ts');
 const script = join(skill, 'scripts', 'standards.mjs');
 const address = 'astrojams1@gmail.com';
-const settings = 'import SwiftUI\nstruct SettingsView: View { var body: some View { List { FeedbackButton(); Link("Privacy policy", destination: privacyURL); Link("Support", destination: supportURL) } } }\n'
+const settings = 'import SwiftUI\nstruct SettingsView: View { var body: some View { List { FeedbackButton(); Link("Privacy policy", destination: privacyURL); Link("Support", destination: supportURL) } }\n'
+  + '  func saved() { RatingPrompt.askIfDue() } }\n'
   + 'let privacyURL = URL(string: "https://example.test/privacy")!\nlet supportURL = URL(string: "https://example.test/support")!\n';
 
 function repo(t, { config = {}, store = {}, files = {} } = {}) {
@@ -32,19 +35,21 @@ function repo(t, { config = {}, store = {}, files = {} } = {}) {
   git('init', '-q'); git('config', 'user.email', 'qa@example.test'); git('config', 'user.name', 'QA'); git('add', '.'); git('commit', '-qm', 'fixture');
   return { root, git, config: () => normalizeConfig(JSON.parse(readFileSync(join(root, 'app-release.config.json'), 'utf8')), join(root, 'app-release.config.json')) };
 }
-const native = () => ({ 'App/FeedbackButton.swift': readFileSync(swiftReference, 'utf8'), 'App/SettingsView.swift': settings });
+const native = () => ({ 'App/FeedbackButton.swift': readFileSync(swiftReference, 'utf8'), 'App/RatingPrompt.swift': readFileSync(swiftRating, 'utf8'), 'App/SettingsView.swift': settings });
 const status = (result, id) => result.standards.find(item => item.id === id);
 
 test('the Swift reference, placed on a screen, passes every standard', t => {
   const result = auditApp(repo(t, { files: native() }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
-  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable']);
+  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable', 'pass']);
+  assert.ok(status(result, 'rating').evidence.includes('App/RatingPrompt.swift'));
   assert.ok(status(result, 'feedback').evidence.includes('App/FeedbackButton.swift'));
 });
 
 test('the TypeScript reference passes once a screen labels and calls it', t => {
-  const screen = 'import { sendFeedback } from "./feedback";\n<Button title="Send Feedback" onPress={() => sendFeedback(info, platform)} />;\nconst privacyUrl = "/privacy"; const supportUrl = "/support";\n';
-  const result = auditApp(repo(t, { files: { 'src/feedback.ts': readFileSync(tsReference, 'utf8'), 'src/Settings.tsx': screen } }).config());
+  const screen = 'import { sendFeedback } from "./feedback";\nimport { ratingGoodMoment } from "./rating";\n<Button title="Send Feedback" onPress={() => sendFeedback(info, platform)} />;\nconst privacyUrl = "/privacy"; const supportUrl = "/support";\n'
+    + 'const onSaved = () => ratingGoodMoment(version, ratingPlatform);\n';
+  const result = auditApp(repo(t, { files: { 'src/feedback.ts': readFileSync(tsReference, 'utf8'), 'src/rating.ts': readFileSync(tsRating, 'utf8'), 'src/Settings.tsx': screen } }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
 });
 
@@ -133,7 +138,7 @@ test('a Kids Category app needs the control behind its parental gate', t => {
 
 test('an opt-out needs a recorded reason, stays visible, and an unknown id is flagged', t => {
   const reason = 'A watch-only app has no screen to hold the control.';
-  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, feedbak: reason } } } }).config());
+  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, rating: reason, feedbak: reason } } } }).config());
   assert.equal(out.ok, true);
   assert.equal(status(out, 'feedback').status, 'opted-out');
   assert.equal(status(out, 'feedback').reason, reason);
@@ -322,4 +327,90 @@ test("a web view showing only the app's own bundled page is not covered", t => {
   const swift = 'import WebKit\nlet view = WKWebView()\nfunc show() { view.loadFileURL(index, allowingReadAccessTo: folder) }\n';
   const result = auditApp(repo(t, { files: { ...native(), 'src/Game.tsx': game, 'App/Local.swift': swift } }).config());
   assert.equal(status(result, 'web-sheet').status, 'not-applicable');
+});
+
+// Ask for a rating (owner, 2026-11-18): the store's own prompt, after a good moment, on one shared rule.
+test('an app that never asks for a rating is told how, and a copied file nothing calls is not asking', t => {
+  const none = status(auditApp(repo(t, { files: { 'App/FeedbackButton.swift': readFileSync(swiftReference, 'utf8'), 'App/SettingsView.swift': settings.replace('RatingPrompt.askIfDue()', '') } }).config()), 'rating');
+  assert.equal(none.status, 'missing');
+  assert.equal(none.gate, 'issue.standard.rating');
+  assert.match(none.problems.join('|'), /app-standard: rating/);
+  assert.match(none.fix, /RatingPrompt\.swift/);
+  assert.match(none.verify, /system rating prompt once/);
+  const unused = { ...native(), 'App/SettingsView.swift': settings.replace('RatingPrompt.askIfDue()', '') };
+  assert.match(status(auditApp(repo(t, { files: unused }).config()), 'rating').problems.join(), /nothing calls it/);
+  const homemade = { ...native(), 'App/RatingPrompt.swift': '// app-standard: rating\nstruct RatingPrompt { static func askIfDue() { showOurOwnDialog() } }\n' };
+  assert.match(status(auditApp(repo(t, { files: homemade }).config()), 'rating').problems.join('|'), /store's own rating prompt.*\|.*shared rule/);
+});
+
+test('a Kids Category app asks for a rating only behind its parental gate', t => {
+  const store = { ageRating: { kidsAgeBand: 'FIVE_AND_UNDER' } };
+  assert.match(status(auditApp(repo(t, { store, files: native() }).config()), 'rating').problems.join(), /parental gate/);
+  const gated = { ...native(), 'App/GrownUpsView.swift': settings.replace('SettingsView', 'GrownUpsView') };
+  delete gated['App/SettingsView.swift'];
+  assert.equal(status(auditApp(repo(t, { store, files: gated }).config()), 'rating').status, 'pass');
+});
+
+test('rating.ts asks once after three good moments on two days, then waits for a new version and 90 days', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'rating-ts-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const module = join(dir, 'rating.mjs');
+  writeFileSync(module, stripTypeScriptTypes(readFileSync(tsRating, 'utf8')));
+  const { ratingGoodMoment, parseRatingState, RATING_POLICY } = await import(module);
+  assert.deepEqual(RATING_POLICY, { momentsNeeded: 3, daysNeeded: 2, daysBetweenAsks: 90 });
+  let stored = null, asks = 0;
+  const platform = { read: async () => stored, write: async text => { stored = text; }, requestReview: async () => { asks++; } };
+  const at = (day, hour = 12) => new Date(2026, 10, day, hour);
+  assert.equal(await ratingGoodMoment('1.0', platform, at(1)), false);
+  assert.equal(await ratingGoodMoment('1.0', platform, at(1, 13)), false);
+  assert.equal(await ratingGoodMoment('1.0', platform, at(1, 14)), false, 'three moments on one day are not enough');
+  assert.equal(await ratingGoodMoment('1.0', platform, at(2)), true, 'the second day makes it due');
+  assert.equal(asks, 1);
+  assert.deepEqual(parseRatingState(stored), { moments: 0, days: [], lastAsk: at(2).getTime(), lastAskVersion: '1.0' }, 'the count starts again');
+  for (const day of [3, 4, 5, 6]) assert.equal(await ratingGoodMoment('1.0', platform, at(day)), false, 'never twice for one version');
+  assert.equal(await ratingGoodMoment('1.1', platform, at(20)), false, 'a new version still waits 90 days');
+  assert.equal(await ratingGoodMoment('1.1', platform, new Date(2027, 1, 5)), true, 'a new version, 90 days on');
+  assert.equal(asks, 2);
+  // no store prompt (a browser build): moments are counted and nothing is asked
+  stored = null;
+  const web = { read: platform.read, write: platform.write };
+  for (const day of [1, 2, 3, 4]) assert.equal(await ratingGoodMoment('1.0', web, at(day)), false);
+  assert.equal(parseRatingState(stored).moments, 4);
+  // storage that fails or holds something else never reaches the user
+  assert.equal(await ratingGoodMoment('1.0', { read: async () => { throw new Error('locked'); }, write: platform.write, requestReview: platform.requestReview }, at(1)), false);
+  assert.deepEqual(parseRatingState('not json'), { moments: 0, days: [], lastAsk: null, lastAskVersion: null });
+});
+
+test('RatingPrompt.swift compiles for iOS', { skip: !sdk }, () => {
+  const result = spawnSync('xcrun', ['swiftc', '-typecheck', '-parse-as-library', '-sdk', sdk, '-target', 'arm64-apple-ios15.0-simulator', swiftRating], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /warning:/);
+});
+
+test('RatingPolicy asks once after three good moments on two days, then waits for a new version and 90 days', { skip: !sdk }, t => {
+  const dir = mkdtempSync(join(tmpdir(), 'rating-swift-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  copyFileSync(swiftRating, join(dir, 'RatingPrompt.swift'));
+  writeFileSync(join(dir, 'main.swift'), `import Foundation
+let defaults = UserDefaults(suiteName: "rating-probe-\\(UUID().uuidString)")!
+var calendar = Calendar(identifier: .gregorian)
+func at(_ day: Int, _ hour: Int = 12, month: Int = 11, year: Int = 2026) -> Date { calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))! }
+var out: [Bool] = []
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.0", now: at(1)))
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.0", now: at(1, 13)))
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.0", now: at(1, 14)))
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.0", now: at(2)))
+let afterAsk = RatingPrompt.load(defaults)
+for day in [3, 4, 5, 6] { out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.0", now: at(day))) }
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.1", now: at(20)))
+out.append(RatingPrompt.goodMoment(defaults: defaults, version: "1.1", now: at(5, month: 2, year: 2027)))
+let report: [String: Any] = ["asks": out, "momentsAfterAsk": afterAsk.moments, "versionAfterAsk": afterAsk.lastAskVersion ?? ""]
+print(String(decoding: try! JSONSerialization.data(withJSONObject: report), as: UTF8.self))
+`);
+  const built = spawnSync('xcrun', ['swiftc', join(dir, 'main.swift'), join(dir, 'RatingPrompt.swift'), '-o', join(dir, 'probe')], { encoding: 'utf8' });
+  assert.equal(built.status, 0, built.stderr);
+  const out = JSON.parse(execFileSync(join(dir, 'probe'), { encoding: 'utf8' }));
+  assert.deepEqual(out.asks.map(Boolean), [false, false, false, true, false, false, false, false, false, true]);
+  assert.equal(out.momentsAfterAsk, 0);
+  assert.equal(out.versionAfterAsk, '1.0');
 });
