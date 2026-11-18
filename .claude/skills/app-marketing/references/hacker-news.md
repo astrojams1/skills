@@ -105,7 +105,10 @@ and "never" lives in this file, so a change here reaches the next run without to
    submit once. Hacker News may refuse the post (rate limit, duplicate, "you're posting too fast"), or the page may be
    unexpected. Then do not retry, and do not change the title to get past it. Log `failed` with the message. If
    Chrome cannot be reached or is not signed in, drop it as in "Never sign in" above.
-5. **Verify.** Open the new item, or find it with `hn`, and confirm the title, URL and the owner's username. Book the
+5. **Verify.** Open the new item and confirm the title, URL and the owner's username. Then run `hn` again and read
+   its `account` lines: the new story must say `alive`. The signed-in browser cannot tell you this
+   ([When the account's posts are dead](#when-the-accounts-posts-are-dead)). A dead story is logged `failed` with
+   `problem: "hn-posts-dead"`, never `ok`, and no "Show HN is live" event is booked. Book the
    "Show HN is live" event (Timing) with the item URL in its description. Log an `action` with `channel: "hacker-news"`,
    `status: "ok"`, `operation: "Show HN posted"` and the item URL as `evidence`. Lead the report with "Show HN is live,
    answer the thread:", the item URL and the `notes`.
@@ -127,6 +130,25 @@ Its stored prompt still points here:
 
 If that prompt starts a run, reply only "Paused: the Mac pass posts Show HN now" and stop. Run nothing else: no
 command, no task list, no ledger event.
+
+## When the account's posts are dead
+
+Hacker News can kill a story the moment it is posted. A killed story is `dead`: its signed-in author still sees it
+as normal, and no one else sees it at all. Search (`hn.algolia.com`) leaves dead stories out. Only the item API shows
+them (`https://hacker-news.firebaseio.com/v0/item/<id>.json`, field `dead`), and `hn` reads it for every story the
+owner's account posted.
+
+- **Found 2026-11-18.** All three stories the account `4stro` ever posted were dead: 2025-12-31, Data Center on
+  2026-11-02 and Plenty's Show HN on 2026-11-18. Each had 1 point and no comments. The Plenty post had been logged
+  `ok` and put on the owner's calendar as live.
+- **`hn` says not due** while the account's two newest stories are both dead. Posting again would reach no one.
+- **Only the moderators can lift it,** and only the account's owner can ask. Hacker News's FAQ gives the address:
+  hn@ycombinator.com. The ask is the owner's own email, in his words: the account name, the item link, that he made
+  the app and is around to answer. A run never sends it and never writes it as him. This is the standing line of
+  problem family `hn-posts-dead`.
+- **Never post around it.** No second account, no delete and resubmit, no different link to get past a filter
+  ([Never](#never)).
+- **When a later `hn` shows the newest story alive,** the family is over and the usual limits decide again.
 
 ## Limits `hn` enforces
 

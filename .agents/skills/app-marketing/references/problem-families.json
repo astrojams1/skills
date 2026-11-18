@@ -573,6 +573,23 @@
       ],
       "cause": "Changing a Home Screen widget's configuration needs Springboard input, which only the iOS Simulator tool (attended sessions only) or a UI test can give, and Plenty has no UI test target",
       "fix": "Add a UI test target to Plenty whose test drives Springboard (long-press the widget, Edit Widget, Style: Flap) on the store simulator, then capture with simctl io and frame with tools/frames.swift"
+    },
+    {
+      "key": "hn-posts-dead",
+      "title": "Hacker News kills the owner account's stories on arrival",
+      "text": [
+        "Show HN .*dead",
+        "stories are dead",
+        "hn-posts-dead"
+      ],
+      "channels": [
+        "hacker-news"
+      ],
+      "history": [
+        "2026-11-18 mkt-goal-downloads-20261118T1708Z: item 50546315 (Plenty's Show HN, logged ok at 13:52Z) is dead with 1 point, as are 50339071 (Data Center, 2026-11-02) and 46440980 (2025-12-31), every story the account 4stro has posted"
+      ],
+      "cause": "Hacker News marks the account's stories dead as they are posted (the account has karma 1 and three dead stories; the reason is the moderators' to say). The author's signed-in browser shows a dead story as normal and search leaves it out, so the run's verify step saw a live post",
+      "fix": "hn reads the account's stories from the item API and says not due while the two newest are dead, and the verify step logs a dead story failed (skills, 1.32.15). The cause itself is lifted only by Hacker News's moderators at the owner's own request to hn@ycombinator.com: write the standing line once, then no run posts or reports on it until hn shows a story alive"
     }
   ],
   "expected": [

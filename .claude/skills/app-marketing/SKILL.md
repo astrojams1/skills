@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.32.14"
+  version: "1.32.15"
   ledger: ledger/LEDGER.md
 ---
 
@@ -93,7 +93,7 @@ Some apps are for people who write or run software, and anyone can try them with
 `hackerNews` block and a `show-hn` item (the owner, 2026-11-07). Read [Hacker News](references/hacker-news.md) before
 giving an app the block or posting.
 
-- The Mac pass checks earlier submissions and limits with `marketing.mjs hn`. Today no app has the block.
+- The Mac pass checks earlier submissions and limits with `marketing.mjs hn`. Plenty has the block (2026-11-17).
 - **A ready Show HN posts in the run that readies it** (James, 2026-11-12: release tests now, never schedule them into
   the future). The only wait is the owner's own rule (2026-11-07): he must be free to answer, so `gcal.mjs now` must
   show his calendar free for the next two hours. If it does not, the item is `deferred` to the next run, never booked
@@ -382,6 +382,9 @@ need it, and log the rest `deferred` (`blocked_by: outside`) so the next run of 
   site's `apps.json` (problem family `downloads-not-attributable`, STANDING). Until then, referrers attribute.
 - **Apple's lookup API never lists in-app purchases (2026-11-10).** Read the product page before calling a price claim
   wrong. A cloud run once called Füd's correct "Free · In-app purchases" stale.
+- **A Hacker News post can be dead while it looks live (2026-11-18).** The signed-in author sees a killed story as
+  normal. All three stories from the owner's account were dead, Plenty's Show HN among them. `hn` reads the item API
+  and will not post into a dead account ([Hacker News](references/hacker-news.md)).
 - **Hacker News bans vote rings and automated posts.** One Show HN a month across all apps, at most one repost,
   and none after a story got real attention. `hn` enforces all three, so do not work around it.
 - **The claude.ai Gmail connector is the wrong account (2026-11-12).** It is signed in to Clean Streets. Pitches go
