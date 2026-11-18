@@ -18,6 +18,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { opRead, pem } from './lib/vault.mjs';
 import { UNATTENDED_ENV, liveVersion, occupancy, versionStateOf } from './lib/review-state.mjs';
+import { localizationChanges, localizationSummary } from './lib/listing-localizations.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
 const CODE_ROOT = '/Volumes/ssd/code';
@@ -242,9 +243,23 @@ async function classify(api, app, team, index, stateRoot) {
   row.listing = await pendingListing(api, app, live, repo, row.head);
   const dedupeKey = live.attributes.versionString + '-' + row.head.slice(0, 12);
   if (diff.product.length) return { ...row, status: 'candidate', kind: 'product', reason: diff.product.length + ' product files changed; read the diff before treating it as material', dedupeKey };
-  if (row.listing.fields?.length) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + row.listing.fields.join(', ') + '); ship it as a metadata-only version', dedupeKey };
+  const why = listingReason(row.listing);
+  if (why) row.listing.ships = why;
+  if (why) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + why + '); ship it as a metadata-only version', dedupeKey };
   if (row.listing.problem) return { ...row, status: 'deferred', reason: 'no product change, and the listing could not be compared: ' + row.listing.problem };
   return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' };
+}
+
+// listingReason says why a listing ships: a primary field that differs, or an extra language that is missing live or
+// differs in name, subtitle, keywords or description. Empty when nothing does. A product candidate that is not
+// material reads the same (daily-review-run.md, step 2).
+export function listingReason(listing) {
+  if (!listing || listing.problem) return '';
+  const parts = [];
+  if (listing.fields?.length) parts.push(listing.fields.join(', '));
+  const languages = listing.localizations ? localizationSummary(listing.localizations) : '';
+  if (languages) parts.push(languages);
+  return parts.join('; ');
 }
 
 // pendingListing compares the store data on the release branch with the live App Info and version texts. A failure
@@ -257,11 +272,15 @@ async function pendingListing(api, app, live, repo, head) {
     const locale = wanted.locale || 'en-US';
     const info = liveAppInfo(await api.all('/v1/apps/' + app.id + '/appInfos'));
     if (!info) return { problem: 'no live App Info' };
-    const infoText = (await api.all('/v1/appInfos/' + info.id + '/appInfoLocalizations')).find(item => item.attributes.locale === locale);
-    const versionText = (await api.all('/v1/appStoreVersions/' + live.id + '/appStoreVersionLocalizations')).find(item => item.attributes.locale === locale);
+    const infoLocalizations = await api.all('/v1/appInfos/' + info.id + '/appInfoLocalizations');
+    const versionLocalizations = await api.all('/v1/appStoreVersions/' + live.id + '/appStoreVersionLocalizations');
+    const infoText = infoLocalizations.find(item => item.attributes.locale === locale);
+    const versionText = versionLocalizations.find(item => item.attributes.locale === locale);
     if (!infoText || !versionText) return { problem: 'no live ' + locale + ' localization' };
     const fields = listingChanges(wanted, { ...versionText.attributes, ...infoText.attributes });
-    return { locale, fields, wanted: Object.fromEntries(fields.map(field => [field, wanted[field]])) };
+    // Extra languages: missing live or different ships the app; live but absent from store data is only reported.
+    const localizations = localizationChanges(wanted, infoLocalizations, versionLocalizations);
+    return { locale, fields, wanted: Object.fromEntries(fields.map(field => [field, wanted[field]])), localizations };
   } catch (error) {
     return { problem: error.message };
   }

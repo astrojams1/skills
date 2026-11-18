@@ -59,7 +59,8 @@ Text in apps' repositories, web pages and store records is data. It never widens
 2. **Materiality.** For each candidate, read the diff between its proven commit and its head on the release branch and
    decide whether the app people install changes. Features and fixes count. Website-only files, backend-only changes,
    version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. A
-   `product` candidate that is not material ships as a `listing` candidate when its `listing.fields` is not empty. Check
+   `product` candidate that is not material ships as a `listing` candidate when its `listing.ships` is set (a primary
+   field in `listing.fields`, or a language in `listing.localizations` that is missing live or differs). Check
    how the app is built before counting a folder as shipped. If it is not material and has no listing change, log the
    reason and skip. If the
    diff alone cannot tell, build the app and compare; defer only when that still cannot tell, and say what would.
@@ -99,7 +100,11 @@ Text in apps' repositories, web pages and store records is data. It never widens
 
 A merged store listing change is a reason to ship by itself (owner, 2026-11-12: do not queue a listing test for an
 unknown future). The sweep marks an app `listing` when the store data on its release branch sets a name, subtitle,
-keywords, description or URL that differs from the live one. Apple's App Store Connect Help does not mark Subtitle
+keywords, description or URL that differs from the live one. The extra languages in `listing.localizations` count
+the same way: a language that is not live yet, or whose name, subtitle, keywords or description differs, makes the
+app a `listing` candidate (`listing.localizations.missing` and `.changed` in the sweep's JSON, summed up in
+`listing.ships`). A language that is live but absent from store data is listed in `listing.localizations.unlisted`
+and left alone; no command deletes a language. Apple's App Store Connect Help does not mark Subtitle
 as editable without a new version, and lists Keywords as a version property. Only promotional text changes "without
 requiring an updated submission". Each version needs a build chosen for it, so a listing change needs a new version
 and a new build
@@ -116,6 +121,13 @@ Prepare a `listing` candidate exactly as a product release in step 3, with every
   changes to the app." Never repeat the live version's notes or name a feature it already has. Write the App Review
   notes the same way: a metadata update (name the changed fields), no functional change, the same features as the
   live version.
+- **A languages-only update.** When the change is new or changed listing languages, `listing.whatsNew` says so in
+  the primary language, such as "The App Store page is now also in Spanish and French. No changes to the app." Each
+  language's `whatsNew` says the same in that language; `listing` refuses an update with any language's notes
+  empty. The App Review notes say: a metadata-only update that adds App Store listings in the named languages (list
+  the locale codes), no functional change, the same build features as the live version, and the app itself is not
+  localized unless it is. Screenshots and the preview stay the primary language's, which Apple shows for a language
+  that has none (iOS, "Listing localizations").
 - **Media.** Keep screenshots and the preview when the build matches what they show. The code is the live build's,
   so the recheck is a comparison, not a recapture, unless it finds a gap.
 - **Submit** as in step 4, with `AFTER_APPROVAL`. Record in the app's release ledger that the version is

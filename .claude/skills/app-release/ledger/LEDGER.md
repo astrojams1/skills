@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.29.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.30.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.30.0 (2026-11-18)
+
+- Every App Store listing was English only, while Apple reported 35 of 62 first-time downloads for 2026-11-04 to
+  11-17 from outside the US. Store data's `listing.localizations` (keyed by Apple's locale shortcodes) now ships more
+  languages: `asc.mjs listing` checks them before any write and creates, patches and reads back each App Info and
+  version localization; `status` and `review-sweep.mjs sweep` treat a language missing live or different in name,
+  subtitle, keywords or description as a listing change, so the daily run ships it as a metadata-only version. A
+  live language absent from store data is reported, never deleted. Apple limits keywords to 100 bytes, not
+  characters, so the check counts UTF-8 bytes. Apple's help says a new language's screenshots default to the
+  primary language's; that this holds for an API-created language is unverified until the first one is live
+  ([iOS](../references/ios.md), "Listing localizations").
 
 ## Lessons incorporated into v2.29.1 (2026-11-13)
 
@@ -920,3 +932,4 @@ a replacement, combine required coverage if needed, and describe only the verifi
 second screenshot was not sent; the app's correction and submission do not depend on it.
 
 | 2026-11-16 | 2.29.5 | Full-screen Rhythm previews had flat native background edges and falsely failed the device-frame heuristic. Render now writes a SHA-256-bound framing receipt; check accepts a verified full-screen render, still rejects framed renders and stale receipts. Native-footage inspection stays separate. Regression uses a solid-background source, a device frame and a mismatched receipt. |
+| 2026-11-18 | 2.30.0 | Listings ship in more languages: store data's `listing.localizations` (Apple locale shortcodes, each name, subtitle, keywords, description, promotional text, release notes) is checked before any write, created or patched and read back by `asc.mjs listing`, reported by `status`, and a missing or different language makes `review-sweep.mjs sweep` mark the app a `listing` candidate. Live languages absent from store data are reported, never deleted. Keywords count UTF-8 bytes, as Apple limits them. |
