@@ -788,3 +788,23 @@ test('lifetime downloads count each day once and earlier months from the monthly
   assert.equal(lifetimeDownloads({ '2026-10-15': { first: 5 } }, { '2026-10-01': { first: 3 } }).downloads, 5);
   assert.deepEqual(lifetimeDownloads(), { downloads: 0, from: null, through: null, days: 0, monthsBeforeDays: 0 });
 });
+
+test('launches sets store first opens beside Apple downloads per day, and judges agreement from the first report', async () => {
+  const { launchDays, launchAgreement } = await import('../../skills/app-marketing/scripts/marketing.mjs');
+  const profiles = [{ id: 'plenty', stage: 'live', appStoreId: '1' }, { id: 'quiet', stage: 'live', appStoreId: '2' }, { id: 'web', stage: 'live' }];
+  const report = { today: '2026-11-25', first: '2026-11-21', rows: [
+    { day: '2026-11-21', app: 'plenty', version: '1.1', platform: 'ios', channel: 'store', n: 4 },
+    { day: '2026-11-22', app: 'plenty', version: '1.1', platform: 'ipados', channel: 'unknown', n: 3 },
+    { day: '2026-11-22', app: 'plenty', version: '1.1', platform: 'ios', channel: 'testflight', n: 2 },
+    { day: '2026-11-23', app: 'plenty', version: '1.1', platform: 'ios', channel: 'debug', n: 1 },
+    { day: '2026-10-01', app: 'plenty', version: '1.0', platform: 'ios', channel: 'store', n: 50 }] };
+  const metrics = [{ app: 'plenty', source: 'asc-analytics', days: { '2026-11-20': { first: 9 }, '2026-11-21': { first: 4 }, '2026-11-22': { first: 4 } } }];
+  const [plenty, quiet] = launchDays(report, profiles, metrics, 7);
+  assert.deepEqual(plenty.days['2026-11-22'], { firstOpens: 3, testflight: 2, debug: 0, appleDownloads: 4 });
+  assert.equal(plenty.days['2026-11-23'].debug, 1);
+  assert.equal(plenty.days['2026-11-24'].appleDownloads, undefined, 'a day Apple has not read is not zero');
+  const a = launchAgreement(plenty);
+  assert.deepEqual([a.since, a.days, a.firstOpens, a.appleDownloads, a.within], ['2026-11-21', 2, 7, 8, true], 'the 20th is before the first report and does not count');
+  assert.deepEqual(launchAgreement(quiet), { since: null, days: 0, firstOpens: 0, appleDownloads: 0, ratio: null, within: null });
+  assert.equal(launchAgreement({ days: { '2026-11-21': { firstOpens: 1, testflight: 0, debug: 0, appleDownloads: 4 } } }).within, false);
+});

@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.34.1"
+  version: "1.35.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -172,7 +172,8 @@ only the steps [Three cloud runs a day](#three-cloud-runs-a-day) names.
    branch `marketing-run/<RUN_ID>`. Run `node $R/marketing.mjs check`, then
    `node $R/marketing.mjs recurring` and print its first line ([Repeating problems](#repeating-problems)). Log a `start` event. Merge or close any
    `marketing-run/` PR left open by an earlier run.
-2. **Measure.** `node $R/marketing.mjs public --write`, then `visits --write` (visits to both apps sites and every web
+2. **Measure.** `node $R/marketing.mjs public --write`, then `launches --write` (first opens per app per day from the
+   first-launch app standard, beside Apple's first-time downloads; they arrive in minutes, Apple's in two days), then `visits --write` (visits to both apps sites and every web
    product, per app and per channel tag, from the sites' own counter). It leaves out agent test loads: tagged ones
    (`?utm_source=agent-test`) and untagged ones recorded in `marketing/visits-excluded.jsonl`. A run that opens a
    counted page without the tag appends its loads there the same day. On the Mac also `pull --write`, then `yt-api.mjs pull` and

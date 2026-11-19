@@ -1,8 +1,22 @@
 # App release skill ledger
 
-Skill version **2.31.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.37.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.37.0 (2026-11-19)
+
+- The owner approved two more standards for every app ("Yes, every app" to both, 2026-11-19). `more-apps`: a row on
+  the settings or about screen listing the owner's other live App Store apps (both teams), generated into the app
+  from astrojams1/app-sites by `scripts/more-apps.mjs` and bundled with small icons, so it works offline; iOS and Mac
+  only. `first-launch`: one anonymous event (app, version, platform, channel) on the first open, counted per day by
+  app-sites `/api/launch`, read by `marketing.mjs launches` beside Apple's first-time downloads. Apple counts app
+  launches sent to a server as Usage Data > Product Interaction, so each app declares it (Analytics, not linked, not
+  tracking) in its privacy manifest, its privacy policy and, by hand, its App Store Connect App Privacy answers; the
+  server stores no country, which would add Coarse Location ([standards](../references/standards.md)). As with
+  `rating`, the skill merged after the app pull requests had it, Füd's included. A send forced to check the standard
+  (`-firstLaunchSend`) always reports `debug`, so it never counts as an install (a Codex review found a forced send
+  from a store build kept its store channel).
 
 ## Lessons incorporated into v2.31.0 (2026-11-18)
 

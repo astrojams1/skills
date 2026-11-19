@@ -64,7 +64,7 @@
       "id": "web-sheet",
       "title": "Embedded web pages sell nothing",
       "doc": "references/standards.md#embedded-web-pages",
-      "appliesWhen": { "anyOf": ["\\.load\\(\\s*URLRequest\\(", "source=\\{\\{\\s*uri:", "loadRequest\\(\\s*Uri\\.parse", "\\bInAppBrowser\\.(?:open|create)\\("] },
+      "appliesWhen": { "anyOf": ["\\.load\\(\\s*URLRequest\\(", "<WebView\\b[^>]*\\bsource=\\{\\{\\s*uri:", "loadRequest\\(\\s*Uri\\.parse", "\\bInAppBrowser\\.(?:open|create)\\("] },
       "checks": [
         { "type": "marker", "text": "app-standard: web-sheet",
           "problem": "the app embeds a web view, and no source file carries the marker comment `app-standard: web-sheet` beside the code that limits what it shows" },
@@ -94,6 +94,42 @@
       ],
       "fix": "Copy assets/rating/RatingPrompt.swift (native) or assets/rating/rating.ts (Expo, React Native, Capacitor) into the app and call it right after the app's good moment (references/standards.md, Ask for a rating): `if RatingPrompt.goodMoment() { requestReview() }` in SwiftUI, RatingPrompt.askIfDue() elsewhere, ratingGoodMoment(version, platform) in TypeScript. In a Kids Category app call it only behind the parental gate. Test the app's own call site where the app has tests.",
       "verify": "In a debug build on a simulator, reach the good moment three times across two days (move the device date, or seed the stored state in a UI test) and see the system rating prompt once; reach it again and see nothing. Read the stored state back: the count restarted and the version is recorded."
+    },
+    {
+      "id": "more-apps",
+      "title": "More apps row in the app",
+      "doc": "references/standards.md#more-apps",
+      "checks": [
+        { "type": "marker", "text": "app-standard: more-apps",
+          "problem": "no app source file carries the marker comment `app-standard: more-apps`" },
+        { "type": "source", "in": "marker", "anyOf": ["apps\\.apple\\.com/app/id"],
+          "problem": "the marked file opens no App Store page (https://apps.apple.com/app/id<id>)" },
+        { "type": "moreAppsCatalog", "maxAgeDays": 60,
+          "problem": "no generated list carries the marker `app-standard catalogue: more-apps`; write it with scripts/more-apps.mjs" },
+        { "type": "wired", "names": ["MoreAppsSection", "MoreAppsLink", "moreAppsFor"], "any": true,
+          "problem": "the marked file is in the repository but no screen shows the row" }
+      ],
+      "fix": "Copy assets/more-apps/MoreApps.swift (native) or assets/more-apps/moreApps.ts (Expo, React Native, Capacitor) into the app unchanged, write the list beside it with `node $S/more-apps.mjs write --swift <folder>/MoreAppsCatalog.swift` (or `--ts <folder>/moreAppsCatalog.ts`) from the app repository, and show the row on the settings or about screen near Send Feedback (MoreAppsSection or MoreAppsLink in SwiftUI; moreAppsFor(platform, bundleId) drawn with the app's own rows elsewhere). iOS only: hide it on Android and the web. When the audit says the list is out of date, run the same write again in this run's build.",
+      "verify": "On a simulator, open the settings or about screen, see the More apps row with every listed app's icon, name and line and not this app, tap one and see its App Store page open (a simulator without the App Store app shows the page in Safari)."
+    },
+    {
+      "id": "first-launch",
+      "title": "First-launch count",
+      "doc": "references/standards.md#first-launch-count",
+      "checks": [
+        { "type": "marker", "text": "app-standard: first-launch",
+          "problem": "no app source file carries the marker comment `app-standard: first-launch`" },
+        { "type": "source", "in": "marker", "anyOf": ["astrojams-apps\\.vercel\\.app/api/launch"],
+          "problem": "the marked file does not send to the owner's endpoint https://astrojams-apps.vercel.app/api/launch" },
+        { "type": "absent", "anyOf": ["identifierForVendor", "advertisingIdentifier", "ASIdentifierManager", "getIosIdForVendor", "getAndroidId", "androidId", "deviceName", "modelName", "\\buuid\\(", "randomUUID"],
+          "problem": "the marked file reads or makes an identifier; the event carries only app, version, platform and channel" },
+        { "type": "wired", "names": ["FirstLaunch", "reportFirstLaunch"],
+          "problem": "the marked file is in the repository but nothing calls it when the app starts" },
+        { "type": "privacyManifest", "anyOf": ["NSPrivacyCollectedDataTypeProductInteraction", "NSPrivacyCollectedDataTypePurposeAnalytics"],
+          "problem": "no privacy manifest (PrivacyInfo.xcprivacy, or an Expo config's ios.privacyManifests) declares Product Interaction collected for Analytics" }
+      ],
+      "fix": "Copy assets/first-launch/FirstLaunch.swift (native, and Capacitor apps from their AppDelegate) or assets/first-launch/firstLaunch.ts (Expo, React Native) into the app unchanged and call it once at startup with the app's catalogue id (marketing/apps/<id>.json in app-sites): `.task { FirstLaunch.report(app: \"<id>\") }` on the root view, `FirstLaunch.report(app:)` in didFinishLaunching, or reportFirstLaunch('<id>', platform) in a startup effect. Declare Product Interaction (not linked, not tracking, Analytics) in the app's privacy manifest, say it in the privacy policy, and record the App Privacy change for App Store Connect (references/standards.md).",
+      "verify": "Launch a build with -firstLaunchSend on a simulator: one POST reaches /api/launch (the endpoint answers 204) and `marketing.mjs launches` shows it under debug; relaunch and see no second request. Read the privacy manifest in the built app and the live privacy policy."
     }
   ]
 }
