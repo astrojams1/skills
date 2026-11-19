@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac, with local Xcode and Gradle builds, store API scripts, 1Password credentials and a persistent release ledger. Covers TestFlight, App Review and rejections, Play tracks and listings, Game Center and pricing. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.32.0"
+  version: "2.33.0"
 ---
 
 # App release
@@ -62,7 +62,7 @@ For an app with none of this yet, follow "Onboarding a new app" in [config](refe
 | Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
 | Listing and media | Store data copy, real captures, required sizes, and an app preview video made from the build going to review, before `submit` ([media](references/media.md)) |
 | Presentation and promotion | Every release: preview, header and search creative, featuring nomination, promotional text. `asc.mjs status` shows them and `submit --confirm` refuses until each has a result or a reason in `promotion.waived`. When they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
-| iOS build and upload | `ios-release.mjs archive`, `validate`, `upload`, `testers` ([ios](references/ios.md)) |
+| iOS build and TestFlight | `ios-release.mjs archive`, `validate`, `upload`, `testers`, `beta-group` for each external group; no asking ([ios](references/ios.md)) |
 | iOS store data and review | `asc.mjs listing … screenshots`, `review-details`, `attach-build`, `submit --confirm`; explicit first-subscription review targets supported; more listing languages in `listing.localizations`, their screenshots in `localizedScreenshots` ([ios](references/ios.md)) |
 | Android build and tracks | `android-release.mjs release --track internal`, `promote` ([android](references/android.md)) |
 | Play listing and console | `play.mjs listing`, `images`; App content and production access in the console ([android](references/android.md)) |
@@ -102,9 +102,13 @@ Repository rules and approval holds outrank this skill.
 
 - **Do reversible work without asking.** Builds, checks, store data, listing drafts, repository changes, and app
   records in an authorized signed-in browser or Xcode. A public API limit does not make a task owner-only.
-- **Get authorization for outward steps.** Uploads, track promotions, listing commits, `submit --confirm`,
+- **TestFlight never waits on the owner.** His rule (James, 2026-11-19): "why is uploading to testflight waiting on
+  me? it shouldnt be." Once a build is archived and validated and its checks pass, `upload` it. Then put it in front
+  of its testers without asking: `testers` for the internal group, and `beta-group` for each external group, which
+  sets What to Test and submits for Beta App Review. Then report. This covers TestFlight only.
+- **Get authorization for outward steps.** Play uploads, track promotions, listing commits, `submit --confirm`,
   `withdraw --confirm`, `release --confirm`, production releases and support messages. Honor scope already given in
-  this session; ask only beyond it. An upload request does not authorize a public release.
+  this session; ask only beyond it. A TestFlight upload does not authorize App Review or a public release.
 - **No app is manual.** This is the owner's rule for every app and run. `listing` writes `AFTER_APPROVAL` whatever
   older store data says. `submit --confirm` refuses anything else, and Apple publishes on approval. With no device
   check before release, everything comes before submitting. If an older version shows `PENDING_DEVELOPER_RELEASE`, run

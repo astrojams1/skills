@@ -176,8 +176,10 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    during the build (exporting with `app-store-connect` already reserves the number as an `AWAITING_UPLOAD`
    record, so an archive never uploaded skips a number; that is harmless), and writes `summary.json` (version, Xcode, SDK, commit, dirty flag, SHA-256). About
    6–7 minutes on the M4 Mac.
-4. **Validate, then upload, with the owner's OK.** `validate <N>` asks Apple to check the `.ipa` without
-   uploading. `upload <N>` refuses a dirty or changed archive, sends it with `altool --upload-package --wait` (the
+4. **Validate, then upload, without asking.** TestFlight never waits on the owner (James, 2026-11-19: "why is
+   uploading to testflight waiting on me? it shouldnt be."), so a validated build whose checks pass goes up, and to
+   its internal and external groups, in the same run; report it afterwards. `validate <N>` asks Apple to check the
+   `.ipa` without uploading. `upload <N>` refuses a dirty or changed archive, sends it with `altool --upload-package --wait` (the
    form that uploaded Newsworthy's first local build, 28, on 2026-10-14) and polls Apple's upload record until
    `COMPLETE` or `FAILED` (5–30 minutes), retrying a status read that fails. Use Transporter if `altool` breaks.
 5. **TestFlight.** `ios-release.mjs testers <N>` waits for `VALID` and adds the build to the internal group
@@ -186,6 +188,19 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    `IN_BETA_TESTING`. `VALID` alone can still mean `MISSING_EXPORT_COMPLIANCE`; resolve the verified
    technical classification separately, never infer it from group access. A member's historical installed
    state is not evidence they tested this build. `release` runs archive, upload and testers in one go.
+
+   **External groups.** `ios-release.mjs beta-group <N> --group "<name>" --what-to-test <file>` puts build N in
+   front of one named group in one step. It waits for `VALID`, then sets What to Test (`betaBuildLocalizations`, the
+   listing locale, at most 4000 characters) from the file, adds the build to the group unless it is already there or
+   the group gets every build, and, for an external group, submits it for Beta App Review
+   (`betaAppReviewSubmissions`) unless the build already has a submission or reads `WAITING_FOR_BETA_REVIEW`,
+   `IN_BETA_REVIEW`, `BETA_APPROVED`, `READY_FOR_BETA_TESTING` or `IN_BETA_TESTING`. It reads each write back and
+   prints the build's internal and external states, the Beta App Review state and the group's tester count. It stops
+   on `MISSING_EXPORT_COMPLIANCE` (answer it from the app's verified encryption use, then rerun) and on a rejected or
+   expired build, which needs a new build. An external group refuses a build with no What to Test. Beta App Review
+   also needs the app's Test Information (beta description, feedback email, review contact) once per app; Apple's
+   error names a missing field. It never touches the App Store version or App Review. Approval usually takes under a
+   day; rerun the command or `asc.mjs status` to read it.
 6. **Store data.** `asc.mjs listing`, `age-rating`, `pricing` (first release, or when the price changes),
    `screenshots`, `review-details`; then `status` until every screenshot reads `COMPLETE`. Every attribute
    write is read back and a mismatch fails the command. Before patching copy on a version Apple has seen,
