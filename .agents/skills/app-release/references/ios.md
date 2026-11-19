@@ -271,8 +271,12 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   UTILITIES, Newsworthy LIFESTYLE). The one fault was in store data: the 2026-11-18 language drafts' `whatsNew`
   said the app had not changed, false for a release carrying the rating prompt, and Hanzi Cards, LOB, Newsworthy and
   Nametag rewrote all 24 in their release pull requests. Write each language's notes for the version being shipped.
-  Not yet seen: a language on the public store page, and whether Apple keeps an API-made language on the next
-  version.
+  The run's last three apps did the same: Space Worms 1.0.4 (b17), Data Center 0.1.2 (b57) and Rhythm 0.17.0
+  (b25) each wrote 24 languages on the first `listing` with none refused. A GET read at about 19:56Z showed 25
+  locales on the editable App Info and on the version, every `whatsNew` filled, `WAITING_FOR_REVIEW` with
+  `AFTER_APPROVAL`, and ENTERTAINMENT as secondary for Data Center and Rhythm (Space Worms has none on purpose).
+  So nine apps and 201 languages went up with no refusal. Not yet seen: a language on the public store page, and
+  whether Apple keeps an API-made language on the next version.
 - **The first write per app is unproven until seen.** No language had been written to Apple when this shipped
   (2026-11-18), so the first `listing` with languages in each app is also the test. `listing` is safe to run again:
   it lists what Apple has and creates or patches only what differs. When a language's write fails, read Apple's
