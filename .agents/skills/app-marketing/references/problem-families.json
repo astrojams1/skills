@@ -496,6 +496,19 @@
       "fix": "the next run of the day reads it (it recovered at 15:33Z the same day); no change needed while it stays one day"
     },
     {
+      "key": "other-run-in-progress",
+      "title": "An item waits on the result of another run still in progress",
+      "text": [
+        "still running in app-review-daily",
+        "still in the release run"
+      ],
+      "history": [
+        "2026-11-19 mkt-goal-release-read-20261119T1849Z: three releases still running; read by mkt-goal-release-read2-20261119T1958Z the same day"
+      ],
+      "cause": "an item reads what another scheduled run produces (a release run, a Mac pass) while that run is still going; nothing is wrong, the result does not exist yet",
+      "fix": "log it blocked_by outside with this family, and the next run that day reads the result; no change needed while it clears the same day. Never file it under work-left-undone, which is for work a run chose not to do"
+    },
+    {
       "key": "listing-test-release-gate",
       "title": "A merged listing test waits behind an app-release gate",
       "text": [
