@@ -103,7 +103,11 @@ export function parsePlist(xml) {
   }
   let first = next();
   while (first !== undefined && (first === '<plist>' || /^<plist\s/.test(first) || !first.trim())) first = next();
-  return first === undefined ? {} : value(first);
+  if (first === undefined) return {};
+  const root = value(first);
+  const rest = tokens.slice(index).filter(token => token.trim() && token !== '</plist>');
+  if (rest.length) throw new Error('unexpected ' + rest[0] + ' after the property list');
+  return root;
 }
 
 // collectedFrom turns a manifest's NSPrivacyCollectedDataTypes into entries; problems name what cannot be read.

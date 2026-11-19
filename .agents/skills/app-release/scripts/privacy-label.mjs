@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './lib/config.mjs';
 import { loadCatalog } from './lib/standards.mjs';
-import { CONFIRMATION_DAYS, CONFIRMATION_ROOT, describeType, expectedLabel, labelGate, manifestCollection, readPublishedLabel, storeShape, writeConfirmation } from './lib/privacy-label.mjs';
+import { CONFIRMATION_DAYS, CONFIRMATION_ROOT, describeType, purposeOf, expectedLabel, labelGate, manifestCollection, readPublishedLabel, storeShape, writeConfirmation } from './lib/privacy-label.mjs';
 
 const USAGE = 'Usage: node skills/skills/app-release/scripts/privacy-label.mjs <command>\n'
   + '  check [--json]             manifest, appPrivacy.collected and the published label agree; nonzero exit when they do not\n'
@@ -20,7 +20,7 @@ const USAGE = 'Usage: node skills/skills/app-release/scripts/privacy-label.mjs <
   + '                             the expected answers are published, for the hours before the public page shows them\n'
   + '                             (kept ' + CONFIRMATION_DAYS + ' days in ' + CONFIRMATION_ROOT + ')';
 
-const line = entry => describeType(entry.type) + ': ' + entry.purposes.join(', ') + '; ' + (entry.linked ? 'linked' : 'not linked') + '; ' + (entry.tracking ? 'tracking' : 'not tracking')
+const line = entry => describeType(entry.type) + ': ' + entry.purposes.map(key => purposeOf(key)?.name || key).join(', ') + '; ' + (entry.linked ? 'linked' : 'not linked') + '; ' + (entry.tracking ? 'tracking' : 'not tracking')
   + (entry.notInManifest ? ' (not in manifest: ' + entry.notInManifest + ')' : '');
 const block = entries => (entries.length ? entries.map(entry => '    ' + line(entry)).join('\n') : '    Data Not Collected');
 

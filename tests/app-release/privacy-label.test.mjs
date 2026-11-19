@@ -55,6 +55,7 @@ test('a privacy manifest reads as data types with purposes, linked and tracking'
   const { entries, problems } = collectedFrom(parsed, 'App/PrivacyInfo.xcprivacy');
   assert.deepEqual(problems, []);
   assert.deepEqual(entries.map(({ source, ...entry }) => entry), [firstLaunch, { type: 'UserID', linked: true, tracking: false, purposes: ['AppFunctionality', 'Analytics'] }]);
+  assert.throws(() => parsePlist(plist([['ProductInteraction', false, ['Analytics']]]).replace('</array></dict></array>', '</array></dict></array></array>')), /unexpected|expected/);
   assert.match(collectedFrom({ NSPrivacyCollectedDataTypes: [{ NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeTelepathy', NSPrivacyCollectedDataTypePurposes: [] }] }, 'x').problems[0], /unknown data type/);
 });
 
