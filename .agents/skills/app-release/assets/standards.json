@@ -130,6 +130,17 @@
       ],
       "fix": "Copy assets/first-launch/FirstLaunch.swift (native, and Capacitor apps from their AppDelegate) or assets/first-launch/firstLaunch.ts (Expo, React Native) into the app unchanged and call it once at startup with the app's catalogue id (marketing/apps/<id>.json in app-sites): `.task { FirstLaunch.report(app: \"<id>\") }` on the root view, `FirstLaunch.report(app:)` in didFinishLaunching, or reportFirstLaunch('<id>', platform) in a startup effect. Declare Product Interaction (not linked, not tracking, Analytics) in the app's privacy manifest, say it in the privacy policy, and record the App Privacy change for App Store Connect (references/standards.md).",
       "verify": "Launch a build with -firstLaunchSend on a simulator: one POST reaches /api/launch (the endpoint answers 204) and `marketing.mjs launches` shows it under debug; relaunch and see no second request. Read the privacy manifest in the built app and the live privacy policy."
+    },
+    {
+      "id": "privacy-label",
+      "title": "App Privacy answers match the privacy manifest",
+      "doc": "references/privacy.md#the-privacy-label-gate",
+      "checks": [
+        { "type": "privacyLabel",
+          "problem": "the store data has no appPrivacy, so nothing says what App Store Connect's App Privacy must show" }
+      ],
+      "fix": "Write the App Privacy answers in the store data as appPrivacy.collected, in App Store Connect's names (type, purposes, linked, tracking; [] for Data Not Collected), the same as every privacy manifest the app builds with: `node $S/privacy-label.mjs init` writes them from the manifest. Change the manifest or the answers until they agree; a type collected outside the app's code carries `notInManifest` with the reason. Then `node $S/privacy-label.mjs check` reads the published label and says what App Store Connect must change.",
+      "verify": "`node $S/privacy-label.mjs check` passes: the App Store page's App Privacy section shows every type, purpose, linked and tracking answer the manifest and appPrivacy.collected declare."
     }
   ]
 }

@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.37.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.38.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.38.0 (2026-11-19)
+
+- `first-launch` put Product Interaction in every app's privacy manifest, but eight of the ten live labels still said
+  less (Data Not Collected, or no Product Interaction), and nothing stopped a build that sends the event from going to
+  App Review. Apple has no API for App Privacy answers. New standard `privacy-label` and `scripts/privacy-label.mjs`:
+  the store data's `appPrivacy.collected` holds the answers and must match the privacy manifests; the published label
+  is read from the App Store page's own JSON (`serialized-server-data`), verified on all ten live apps; `asc.mjs
+  submit --confirm` refuses while that label lacks what the build declares, and says what to add. The release run
+  changes App Privacy through Claude in Chrome with 1Password autofill and reads it back; a record of that read-back
+  covers the public page's lag for 3 days ([privacy](../references/privacy.md#the-privacy-label-gate)). The app pull
+  requests adding `appPrivacy` merged before the skill, as for `rating`.
 
 ## Lessons incorporated into v2.37.0 (2026-11-19)
 

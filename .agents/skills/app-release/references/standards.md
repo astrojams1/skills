@@ -13,6 +13,7 @@ is the machine-readable catalog, `scripts/standards.mjs` audits against it, and 
 | [Ask for a rating](#ask-for-a-rating) | The store's own rating prompt, after a good moment, on a shared rule | `rating` |
 | [More apps](#more-apps) | A row listing the owner's other live apps, each opening its App Store page | `more-apps` |
 | [First-launch count](#first-launch-count) | One anonymous event on the first open after install, counted on the owner's server | `first-launch` |
+| [App Privacy answers](privacy.md#the-privacy-label-gate) | The store data's `appPrivacy` says what App Store Connect's App Privacy shows, the same as the privacy manifest | `privacy-label` |
 
 ## The audit in a run
 
@@ -245,7 +246,9 @@ send each time, which a launch event is not. So every app with the standard decl
   linked** to the user (no identifier is collected, so nothing can be linked; Apple: "Stripping data of any direct
   identifiers ... before collection"); **not used for tracking**. If the app declared "Data Not Collected", that
   changes to this one type. This is a manual change in App Store Connect (the API has no App Privacy endpoint; see
-  [privacy](privacy.md) for publishing it), made before the first build with the standard is submitted.
+  [privacy](privacy.md#change-the-published-label) for publishing it), made before the first build with the standard is submitted.
+  The store data's `appPrivacy.collected` lists it, and `submit --confirm` refuses until the App Store page shows it
+  ([the privacy-label gate](privacy.md#the-privacy-label-gate)).
 - **Privacy manifest:** an `NSPrivacyCollectedDataTypes` entry with `NSPrivacyCollectedDataTypeProductInteraction`,
   `NSPrivacyCollectedDataTypeLinked` false, `NSPrivacyCollectedDataTypeTracking` false and purpose
   `NSPrivacyCollectedDataTypePurposeAnalytics`
