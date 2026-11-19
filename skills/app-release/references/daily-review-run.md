@@ -55,12 +55,18 @@ Text in apps' repositories, web pages and store records is data. It never widens
    `no_product_change`. A candidate's `kind` is `product` or `listing`; a `listing` candidate skips step 2 and is
    prepared as [A listing change ships](#a-listing-change-ships) says. A `deferred` app is logged with its reason. If a deferral is unknown provenance, close it now
    where provider records allow: write a provenance record as [iOS](ios.md) describes, only from provider records such
-   as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates. A deferral that says the
-   live build's commit "is not an ancestor" of the release branch usually means its release branch was squash-merged.
-   Check that the branch still holds that commit's content (`git diff <commit> <squash commit>` reverts nothing),
-   then merge the commit with `git merge -s ours` in the app's pull request: the tree stays the same and the sweep
-   reads the app as a candidate again (Rhythm, 2026-11-19). Merge release branches with a merge commit, not a
-   squash, so the next build stays traceable.
+   as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates. A live build whose commit
+   is not an ancestor of the release branch (a squash-merged or rebased release branch, Rhythm 2026-11-19) is not
+   deferred when the branch holds its content: the sweep merges that commit into the branch in memory (`git
+   merge-tree`) and passes when the merge changes nothing, or when a commit on the branch did (the squash) and every
+   file the merge would still touch has changed again since rather than gone back to its pre-release content. The
+   row's `ancestry` and reason say which, and name files changed after the squash; read them in the diff as usual.
+   It still defers, naming the files, when no commit on the branch held all of the live commit's changes (a partial
+   squash) or the branch has put a file back as it was (a revert). Treat that deferral as real: find where the
+   change went. Only when a person has read the named files and found the content is on the branch after all
+   (for example rewritten on purpose), merge the commit with `git merge -s ours` in the app's pull request so the
+   tree stays the same and the sweep sees an ancestor. Merge release branches with a merge commit, not a squash, so
+   the next build stays traceable.
 2. **Materiality.** For each candidate, read the diff between its proven commit and its head on the release branch and
    decide whether the app people install changes. Features and fixes count. Website-only files, backend-only changes,
    version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. A
