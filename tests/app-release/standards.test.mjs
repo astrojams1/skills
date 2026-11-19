@@ -29,6 +29,8 @@ const listed = [{ id: 'other', name: 'Other', subtitle: 'Another app', appStoreI
 const manifest = '<plist><dict><key>NSPrivacyCollectedDataTypes</key><array><dict><key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeProductInteraction</string>'
   + '<key>NSPrivacyCollectedDataTypePurposes</key><array><string>NSPrivacyCollectedDataTypePurposeAnalytics</string></array></dict></array></dict></plist>\n';
 const script = join(skill, 'scripts', 'standards.mjs');
+// The fixture manifest's one data type, as the store data's App Privacy answers (privacy-label standard).
+const appPrivacy = { collected: [{ type: 'Product Interaction', purposes: ['Analytics'], linked: false, tracking: false }] };
 const address = 'astrojams1@gmail.com';
 const settings = 'import SwiftUI\nstruct SettingsView: View { var body: some View { List { FeedbackButton(); MoreAppsSection(); Link("Privacy policy", destination: privacyURL); Link("Support", destination: supportURL) }.task { FirstLaunch.report(app: "example") } }\n'
   + '  func saved() { RatingPrompt.askIfDue() } }\n'
@@ -38,7 +40,7 @@ function repo(t, { config = {}, store = {}, files = {} } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'standards-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   writeFileSync(join(root, 'app-release.config.json'), JSON.stringify({ app: 'Example', slug: 'example', storeData: 'store.json', ledger: { gates: 'l.json', view: 'l.md' }, feedback: { email: address }, ...config }));
-  writeFileSync(join(root, 'store.json'), JSON.stringify(store));
+  writeFileSync(join(root, 'store.json'), JSON.stringify({ appPrivacy, ...store }));
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
@@ -55,7 +57,7 @@ const status = (result, id) => result.standards.find(item => item.id === id);
 test('the Swift reference, placed on a screen, passes every standard', t => {
   const result = auditApp(repo(t, { files: native() }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
-  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable', 'pass', 'pass', 'pass']);
+  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable', 'pass', 'pass', 'pass', 'pass']);
   assert.ok(status(result, 'rating').evidence.includes('App/RatingPrompt.swift'));
   assert.ok(status(result, 'feedback').evidence.includes('App/FeedbackButton.swift'));
 });
@@ -154,7 +156,7 @@ test('a Kids Category app needs the control behind its parental gate', t => {
 
 test('an opt-out needs a recorded reason, stays visible, and an unknown id is flagged', t => {
   const reason = 'A watch-only app has no screen to hold the control.';
-  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, rating: reason, 'more-apps': reason, 'first-launch': reason, feedbak: reason } } } }).config());
+  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, rating: reason, 'more-apps': reason, 'first-launch': reason, 'privacy-label': reason, feedbak: reason } } } }).config());
   assert.equal(out.ok, true);
   assert.equal(status(out, 'feedback').status, 'opted-out');
   assert.equal(status(out, 'feedback').reason, reason);

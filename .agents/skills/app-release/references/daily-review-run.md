@@ -86,7 +86,19 @@ Text in apps' repositories, web pages and store records is data. It never widens
    listing copy and screenshots, make the preview video and promotion items or record a demonstrated reason in
    `promotion.waived`, and fix what the app's checks report. App changes go through that repository's own rules,
    including its pull request and merge rules, and the build then comes from the merged commit. Store listing text is
-   this run's decision. Before simulator work, run
+   this run's decision.
+
+   **App Privacy, before the build is submitted.** From the worktree run `node $S/privacy-label.mjs check`. It compares
+   the app's privacy manifests, the store data's `appPrivacy.collected` and the label the App Store page publishes
+   ([privacy](privacy.md#the-privacy-label-gate)). When the manifest and `appPrivacy` disagree, fix the repository
+   in the app's pull request. When the published label lacks something, change App Privacy in App Store Connect
+   through Claude in Chrome with 1Password autofill, publish it and read it back, exactly as
+   [Change the published label](privacy.md#change-the-published-label) says, then run `check` again (or record the
+   App Store Connect read-back with `privacy-label.mjs confirm` while the public page catches up). This is the only
+   App Store Connect change made in the browser, and the release run is where it happens. If the change cannot be
+   finished (a sign-in only the owner can pass, 1Password not connected, a page that will not publish), defer that app
+   with the gate's message and what unblocks it, and go on. `submit --confirm` refuses the same gaps; never submit
+   around it. Before simulator work, run
    `python3 "/Users/astro/Library/Application Support/SimulatorStorage/mount.py"` and follow the simulator storage
    reference.
 
@@ -94,7 +106,9 @@ Text in apps' repositories, web pages and store records is data. It never widens
    `node $S/review-sweep.mjs run -- node $S/asc.mjs <command>`. Never call them any other way. The guard supplies vault
    access, forces `AFTER_APPROVAL` in `listing`, and refuses release, withdraw, pricing and replacing a submission.
 4. **Submit.** Reread live state immediately before writing: if `asc.mjs status` shows anything new in review or
-   unresolved, stop that app. `asc.mjs attach-build <N>` and read the attached build back, confirm the version's
+   unresolved, stop that app. `submit --confirm` also refuses while the published App Privacy label lacks what the
+   build's privacy manifest or `appPrivacy` declares; that is step 3's App Privacy work, not a reason to retry.
+   `asc.mjs attach-build <N>` and read the attached build back, confirm the version's
    `releaseType` is `AFTER_APPROVAL`. When store data lists `events`, run `asc.mjs events --confirm` first: it creates
    or updates each In-App Event draft and its images, and `submit` refuses while one that ships with this version is
    missing ([promotion](promotion.md#in-app-events)). An event is the owner's approved marketing once it is in merged
@@ -106,7 +120,8 @@ Text in apps' repositories, web pages and store records is data. It never widens
 5. **Blocked.** Keep the evidence in the app's release ledger and in `/Volumes/ssd/projects/app-release-daily/evidence/`,
    run `finish … --result deferred` so tomorrow can retry, and go on to the next candidate. A deferred app may be left
    with a draft next version, but never with a partly sent submission that was not read back.
-6. **Finish** with: both teams' inventory counts; each app submitted with version, build, source commit and Apple's
+6. **Finish** with: both teams' inventory counts; each App Privacy label changed (app, what was added, published and
+   read back where); each app deferred on the privacy-label gate with its exact message; each app submitted with version, build, source commit and Apple's
    state; each app skipped with its reason; "Left open:" with each deferred app, its exact gate and what unblocks it,
    or "nothing left open"; and the evidence path. If nothing qualified, say so.
 

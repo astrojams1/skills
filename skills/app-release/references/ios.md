@@ -86,6 +86,10 @@ A failed UI route cannot block CLI builds or listing preparation that still work
 - **App Privacy:** publish answers from the [privacy evidence](privacy.md) through an authorized
   signed-in browser or the documented Fastlane alternative described there. Saved and published
   answers are separate observations; the public API key does not authenticate the Fastlane action.
+  The store data's `appPrivacy.collected` holds the answers, `privacy-label.mjs check` reads the label the App Store
+  publishes, and `submit --confirm` refuses while that label lacks what the build's privacy manifest declares
+  ([the privacy-label gate](privacy.md#the-privacy-label-gate)). The browser steps, through Claude in Chrome with
+  1Password autofill, are in [Change the published label](privacy.md#change-the-published-label).
 - **Business gates:** use [accounts](accounts.md) to distinguish work agents can prepare or enter from
   legal certifications, facts and security steps that require the owner.
 - **Submission and release:** honor existing explicit authorization for `submit --confirm`; approval then
@@ -375,7 +379,7 @@ The daily Mac task's own steps, approvals and Never list are in [the daily revie
 
 A scheduled run works every eligible app, not just the first, and takes each update to `WAITING_FOR_REVIEW` with
 `AFTER_APPROVAL`, so Apple publishes on approval with nothing further from the run. It closes the gaps a release has
-(standards, version, notes, listing, media, privacy) and then submits; an app's own hold is met first or defers the app. `review-sweep.mjs sweep` reads both
+(standards, version, notes, listing, media, privacy, including the published App Privacy label) and then submits; an app's own hold is met first or defers the app. `review-sweep.mjs sweep` reads both
 teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
 one, or a submission sent or with `UNRESOLVED_ISSUES`; an unsent `READY_FOR_REVIEW` draft is not, because `submit` reuses
 it), `deferred`,

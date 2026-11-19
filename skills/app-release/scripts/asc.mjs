@@ -14,7 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig, loadStoreData, requireSection, screenshotGroups } from './lib/config.mjs';
 import { opRead, pem } from './lib/vault.mjs';
 import { reviewItemsQuery, itemResource, resourceKey, reviewItemPlan, verifyPurchaseReviewTargets } from './lib/review-items.mjs';
-import { standardsRefusal } from './lib/standards.mjs';
+import { loadCatalog, standardsRefusal } from './lib/standards.mjs';
+import { labelRefusal } from './lib/privacy-label.mjs';
 import { localizationChanges, localizationEntries, localizationProblems, localizationSummary, localizationText } from './lib/listing-localizations.mjs';
 import { localizedScreenshotChanges, localizedScreenshotEntries, localizedScreenshotGroups, localizedScreenshotProblems, localizedScreenshotSummary, md5, readLiveScreenshots, screenshotAction,
   staleScreenshotSets, staleScreenshots, syncLocalizedScreenshots, syncScreenshotGroups } from './lib/screenshot-localizations.mjs';
@@ -1683,6 +1684,10 @@ export async function submit(flag) {
   // Every app ships the shared standards; the source is audited, so a build without them never reaches App Review.
   const refusal = standardsRefusal(CONFIG);
   if (refusal) throw new Error(refusal + ' Then build, attach the new build and submit again; nothing was submitted.');
+  // What the build collects (its privacy manifests and the store data's appPrivacy) must be on the published App
+  // Privacy label, read from the App Store page because Apple has no API for it (references/privacy.md).
+  const privacy = await labelRefusal(CONFIG, STORE, loadCatalog().scan);
+  if (privacy) throw new Error(privacy);
   // A Kids Category app is held for Guideline 1.3 answers; the saved notes are what App Review reads, so they are checked.
   if (STORE.ageRating && STORE.ageRating.kidsAgeBand) {
     const detail = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');

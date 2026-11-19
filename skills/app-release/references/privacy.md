@@ -33,6 +33,85 @@ personal log entries out of the repository.
   submission while the privacy gate is unchanged. Publish and read back the intended answers first, then retry the
   authorized submission. A new login attempt or prepared JSON does not change that gate.
 
+### The privacy-label gate
+
+Apple has no API for App Privacy answers, so three records are kept in step and checked against each other:
+
+| Record | Where | Read by |
+|---|---|---|
+| What the build collects | Every privacy manifest the app builds with: `PrivacyInfo.xcprivacy`, an Expo config's `ios.privacyManifests` | `standards.mjs audit`, `privacy-label.mjs check`, `asc.mjs submit` |
+| What App Privacy must say | Store data `appPrivacy.collected` ([config](config.md#store-data)), in App Store Connect's own names | the same |
+| What App Store Connect publishes | The App Privacy section of the app's US App Store page | `privacy-label.mjs check`, `standards.mjs audit`, `asc.mjs submit` |
+
+```json
+"appPrivacy": {
+  "collected": [
+    { "type": "Product Interaction", "purposes": ["Analytics"], "linked": false, "tracking": false,
+      "why": "first-launch: one anonymous first-open count (standards.md)" }
+  ]
+}
+```
+
+`[]` means Data Not Collected. A type the app's code does not collect (a provider's logs around a request) can be listed
+only with `notInManifest` saying why; everything else must match the manifest exactly.
+
+- **The offline check.** The `privacy-label` standard fails when the manifest and `appPrivacy.collected` disagree, or the
+  manifest declares data and the store data has no `appPrivacy` (`privacy-label.mjs init` writes it from the manifest).
+  `archive` refuses too, so the fix lands in the repository before a build.
+- **The published label.** `privacy-label.mjs check` (and `standards.mjs audit`, unless `--offline`) fetches
+  `https://apps.apple.com/us/app/id<ascAppId>` and reads the JSON the page is rendered from (`serialized-server-data`,
+  the App Privacy "See Details" page data: each privacy type with its purposes and data types). It fails when the
+  label does not show a type, purpose, linked answer or tracking answer that the manifest or `appPrivacy` declares,
+  and says exactly what to add. A label that says more (linked where the app is not, an extra purpose) passes with a
+  note; tidy it in the same visit. An unreadable page never passes on its own.
+- **`asc.mjs submit --confirm` refuses** on any of these, before any write, with what to change in App Store Connect.
+  Never submit around it: not by editing `appPrivacy` to match an old label, not with `--offline`. Opting out of
+  `privacy-label` turns the gate off, so only the owner's decision is a reason for it.
+- **The page lags App Store Connect.** The public page shows answers only after they are published, and can take a
+  while to update. After publishing and reading the answers back in App Store Connect, `privacy-label.mjs confirm
+  --evidence "<what the App Privacy page showed; screenshot path>"` records the expected answers as published. The
+  gate accepts that record for 3 days while the public page catches up, then only the public page counts.
+- **Read every app's label:** `node $S/privacy-label.mjs read <id> <id> ...` needs no repository.
+
+Verified on 2026-11-19 against all ten live apps (Newsworthy, 6812519450: Device ID, Performance Data, Other
+Diagnostic Data and Other Data Types, linked, App Functionality; Hanzi Cards, 6832296387: Data Not Collected).
+
+### Change the published label
+
+The release run changes App Privacy when the gate fails; no other step does. The owner approved declaring the
+first-launch count on every app (2026-11-19, asked whether "It may require declaring analytics on each app's App Store
+privacy label", he answered "Yes, every app"), so the run publishes answers that match `appPrivacy.collected` without
+asking. It never publishes answers the evidence does not support. Apple's steps
+([Manage app privacy](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy),
+[App privacy details](https://developer.apple.com/app-store/app-privacy-details/)); Account Holder, Admin or App
+Manager can make them:
+
+1. **Open the session.** Use Claude in Chrome (load the `chrome-browser` skill first) in the profile that holds the
+   App Store Connect sign-in, resuming the known tab and route ([session continuity](accounts.md#preserve-session-continuity)).
+   If it is signed out, sign in with 1Password autofill (`autofill_credential` for appstoreconnect.apple.com); try it
+   before calling anything owner-only. A two-factor prompt that only reaches the owner's device, or 1Password reporting
+   `not_connected`, is the one real blocker: record it and defer the app.
+2. **Pick the team and app.** Check the selected team (Ouro LLC `AYCDG243RJ` or James Thompson `CWQ9AWJF8T`) and open
+   **Apps**, the app (its Apple ID is `ios.ascAppId`), then **App Privacy** in the sidebar.
+3. **Add a data type.** Next to **Data Types**, click **Edit**. An app that said "Data Not Collected" is asked again
+   whether it collects data: choose "Yes, we collect data from this app" and **Next**. Tick each missing type (Usage
+   Data > Product Interaction for the first-launch count) and click **Save** (or **Continue** when the page offers it).
+4. **Answer its questions.** Click the new type under Data Types. Tick the purposes in `appPrivacy.collected` (Analytics),
+   answer whether it is linked to the user's identity and whether it is used for tracking as the store data says
+   (No and No for the first-launch count), then **Save**. To change an existing type, click it and change the answers.
+5. **Check, then publish.** Read **Product Page Preview** and its **See Details**: it must match `appPrivacy.collected`.
+   Click **Publish** (top right), and in "Publish Your App Privacy Responses?" confirm the answers are accurate and
+   click **Publish**. Saving alone publishes nothing.
+6. **Read it back.** Reload App Privacy and see the answers shown as published. Run `node $S/privacy-label.mjs check`.
+   If the public page already shows them, record the result. If it still shows the old label, run `privacy-label.mjs
+   confirm --evidence "..."` with what the page showed and the screenshot path, then check again: it passes on that
+   record, with a note. Save a screenshot of the published page in the run's evidence folder.
+7. **Record.** Write `apple.privacy` in the app's release ledger with the published answers, and update
+   `appPrivacy.published` in the store data in the app's next pull request.
+
+If any step cannot be finished, the app is deferred with the gate's exact message; the build is never submitted
+around it. App Privacy needs no new version or build: the answers can be published before or after the build is made.
+
 ### Alternative when the Apple browser is unavailable
 
 Check Fastlane's documented

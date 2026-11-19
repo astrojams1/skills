@@ -10,21 +10,24 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONFIG_NAME, loadConfig, normalizeConfig } from './lib/config.mjs';
 import { auditApp, loadCatalog } from './lib/standards.mjs';
+import { labelGate } from './lib/privacy-label.mjs';
 
 const DEFAULT_ROOT = '/Volumes/ssd/code';
-const USAGE = 'Usage: node skills/skills/app-release/scripts/standards.mjs audit [--json] [--all [--root DIR]]\n' +
+const USAGE = 'Usage: node skills/skills/app-release/scripts/standards.mjs audit [--json] [--offline] [--all [--root DIR]]\n' +
   '  audit         check this app repository; nonzero exit when a standard is missing\n' +
   '  --json        print the result as JSON\n' +
+  '  --offline     skip reading the published App Privacy label from the App Store\n' +
   '  --all         check every repository under ' + DEFAULT_ROOT + ' with ' + CONFIG_NAME + ', skipping extra worktrees of one repository\n' +
   '  --root DIR    sweep DIR instead (with --all)';
 
 export function parseArgs(args) {
-  const flags = { json: false, all: false, root: DEFAULT_ROOT };
+  const flags = { json: false, all: false, offline: false, root: DEFAULT_ROOT };
   if (args[0] !== 'audit') throw new Error(USAGE);
   for (let index = 1; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--json') flags.json = true;
     else if (arg === '--all') flags.all = true;
+    else if (arg === '--offline') flags.offline = true;
     else if (arg === '--root' && args[index + 1]) flags.root = resolve(args[index += 1]);
     else throw new Error('Unknown option ' + arg + '\n' + USAGE);
   }
@@ -71,10 +74,31 @@ export function discoverApps(root) {
   return { apps: apps.map(item => item.dir), duplicates: apps.flatMap(item => item.duplicates).sort() };
 }
 
-function auditDir(dir, catalog) {
+// withPublished adds the published App Privacy label check (lib/privacy-label.mjs) to an offline audit: what the
+// manifests and appPrivacy declare must be on the label the App Store shows. Read-only; skipped with --offline.
+export async function withPublished(result, config, catalog, options = {}) {
+  if (options.offline || !config.ios?.ascAppId) return result;
+  let store = {};
+  try { store = JSON.parse(readFileSync(config.storeData, 'utf8')); } catch { /* the offline audit already says so */ }
+  const gate = await labelGate(config, store, catalog.scan, options);
+  const item = result.standards.find(standard => standard.id === 'privacy-label');
+  if (!item || item.status === 'opted-out') return result;
+  item.published = gate.published ? (gate.published.notCollected ? 'Data Not Collected' : gate.published.entries.length + ' data types') : null;
+  item.notes = gate.notes;
+  // The offline check already reports drift; only the published label's own gaps are added here.
+  const extra = gate.problems.filter(problem => !item.problems.some(known => known.includes(problem) || problem.includes(known)));
+  if (!extra.length) return result;
+  Object.assign(item, { status: 'missing', problems: item.problems.concat(extra) });
+  const standard = catalog.standards.find(entry => entry.id === 'privacy-label');
+  Object.assign(item, { fix: standard.fix, verify: standard.verify, gate: 'issue.standard.privacy-label' });
+  return { ...result, ok: false };
+}
+
+async function auditDir(dir, catalog, flags) {
   const path = join(dir, CONFIG_NAME);
   try {
-    const result = auditApp(normalizeConfig(JSON.parse(readFileSync(path, 'utf8')), path), catalog);
+    const config = normalizeConfig(JSON.parse(readFileSync(path, 'utf8')), path);
+    const result = await withPublished(auditApp(config, catalog), config, catalog, flags);
     return { ...result, branch: gitValue(dir, ['rev-parse', '--abbrev-ref', 'HEAD']) };
   } catch (error) {
     return { app: dir, root: dir, ok: false, error: error.message, standards: [], warnings: [] };
@@ -96,7 +120,8 @@ export function table(results, catalog) {
 function report(result) {
   const lines = ['Standards audit: ' + result.app + ' (' + result.root + ')'];
   for (const item of result.standards) {
-    if (item.status === 'pass') lines.push('  pass       ' + item.id + (item.evidence.length ? ': ' + item.evidence.join(', ') : ''));
+    if (item.status === 'pass') lines.push('  pass       ' + item.id + (item.evidence.length ? ': ' + item.evidence.join(', ') : '') + (item.published ? ' (published label: ' + item.published + ')' : ''));
+    for (const note of item.notes || []) lines.push('             note: ' + note);
     if (item.status === 'opted-out') lines.push('  opted out  ' + item.id + ': ' + item.reason);
     if (item.status === 'not-applicable') lines.push('  n/a        ' + item.id + ': the source shows nothing it applies to');
     if (item.status !== 'missing') continue;
@@ -108,13 +133,14 @@ function report(result) {
   return lines.join('\n');
 }
 
-function main(args) {
+async function main(args) {
   if (!args.length || args[0] === '--help') return console.log(USAGE);
   const flags = parseArgs(args);
   const catalog = loadCatalog();
   if (flags.all) {
     const { apps, duplicates } = discoverApps(flags.root);
-    const results = apps.map(dir => auditDir(dir, catalog));
+    const results = [];
+    for (const dir of apps) results.push(await auditDir(dir, catalog, flags));
     if (flags.json) console.log(JSON.stringify({ results, duplicates }, null, 2));
     else {
       console.log(table(results, catalog));
@@ -125,17 +151,15 @@ function main(args) {
     return;
   }
   const config = loadConfig(process.cwd());
-  const result = { ...auditApp(config, catalog), branch: gitValue(config.root, ['rev-parse', '--abbrev-ref', 'HEAD']) };
+  const result = { ...(await withPublished(auditApp(config, catalog), config, catalog, flags)), branch: gitValue(config.root, ['rev-parse', '--abbrev-ref', 'HEAD']) };
   console.log(flags.json ? JSON.stringify(result, null, 2) : report(result));
   if (!result.ok) process.exitCode = 1;
 }
 
 // Run only when invoked as a command, so tests can import the helpers.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try {
-    main(process.argv.slice(2));
-  } catch (error) {
+  main(process.argv.slice(2)).catch(error => {
     console.error(error.message);
     process.exitCode = 1;
-  }
+  });
 }

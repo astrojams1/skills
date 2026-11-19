@@ -2,7 +2,7 @@
 name: app-release
 description: Build, upload, submit and release an Expo app to the Apple App Store and Google Play end to end from the owner's Mac, with local Xcode and Gradle builds, store API scripts, 1Password credentials and a persistent release ledger. Covers TestFlight, App Review and rejections, Play tracks and listings, Game Center and pricing. Use for any App Store, TestFlight, App Review, Google Play, Play Console, store listing, store screenshot, store icon or release request, when onboarding a new app to the stores, when resuming a release across sessions, when an app needs its Send Feedback control or another shared app standard, or when asked to change how app releases or this skill work.
 metadata:
-  version: "2.37.0"
+  version: "2.38.0"
 ---
 
 # App release
@@ -21,7 +21,7 @@ outside dependency still open is partial or blocked, never complete.
 | Identity, vault items, build settings, ledger paths | `app-release.config.json` ([config](references/config.md)) |
 | Everything the stores display | The store data file the config names |
 | The app's own facts and extra gates | Its thin repository skill |
-| Scripts and their commands | `scripts/` ([scripts](references/scripts.md)): `ledger`, `ios-release`, `asc`, `app-preview.swift`, `review-sweep`, `standards`, `more-apps`, `native-qa`, `android-release`, `play` |
+| Scripts and their commands | `scripts/` ([scripts](references/scripts.md)): `ledger`, `ios-release`, `asc`, `app-preview.swift`, `review-sweep`, `standards`, `privacy-label`, `more-apps`, `native-qa`, `android-release`, `play` |
 
 Run the scripts from the app repository with `S=skills/skills/app-release/scripts`. Where the repository's own
 `skills/` folder is taken, as in Newsworthy, the submodule is at `vendor/skills/`. A game and a news app follow the
@@ -57,9 +57,9 @@ For an app with none of this yet, follow "Onboarding a new app" in [config](refe
 | App record | Create or reuse it in an authorized signed-in browser or Xcode, verify it and save `ios.ascAppId` ([ios](references/ios.md)) |
 | Accounts | Team, agreements, tax, banking, DSA; Play identity, device, phone, payments. Shared by every app: read status, don't redo ([accounts](references/accounts.md)) |
 | Product and web | Accurate copy and price, live backend, privacy and support pages linked in the app ([app types](references/app-types.md)) |
-| App standards | `standards.mjs audit` passes: Send Feedback, in-app privacy and support links, the rating prompt, the More apps row and the first-launch count. `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
+| App standards | `standards.mjs audit` passes: Send Feedback, in-app privacy and support links, the rating prompt, the More apps row, the first-launch count and App Privacy answers that match the privacy manifest. `archive`, `bundle` and `submit --confirm` refuse otherwise ([standards](references/standards.md)) |
 | Native verification | Compiles and launches on the latest OS for free first; widgets, push, native modules on real targets ([verification](references/verification.md)) |
-| Privacy | Evidence table, then App Privacy and Data safety ([privacy](references/privacy.md)) |
+| Privacy | Evidence table, then App Privacy and Data safety. `submit --confirm` refuses while the published App Privacy label lacks what the build collects ([privacy](references/privacy.md#the-privacy-label-gate)) |
 | Listing and media | Store data copy, real captures, required sizes, and an app preview video made from the build going to review, before `submit` ([media](references/media.md)) |
 | Presentation and promotion | Every release: preview, header and search creative, featuring nomination, promotional text. `asc.mjs status` shows them and `submit --confirm` refuses until each has a result or a reason in `promotion.waived`. When they fit: custom product pages, product page tests, In-App Events, Smart App Banner, ratings prompt ([promotion](references/promotion.md)) |
 | iOS build and TestFlight | `ios-release.mjs archive`, `validate`, `upload`, `testers`, `beta-group` for each external group; no asking ([ios](references/ios.md)) |

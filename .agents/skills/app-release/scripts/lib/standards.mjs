@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { CATALOG_MARKER, expectedApps, listFor, parseGenerated, readCatalogue } from './more-apps.mjs';
+import { describeType, expectedLabel, manifestCollection, manifestDrift } from './privacy-label.mjs';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // A reason short enough to be "n/a" or "later" records nothing a later run could weigh.
@@ -130,6 +131,19 @@ const CHECKS = {
     });
     context.evidence.push(...hits.slice(0, 2));
     return hits.length ? null : check.problem;
+  },
+  // The store data's App Privacy answers (appPrivacy.collected) match the privacy manifest(s) the app builds with, so
+  // the answers App Store Connect must show are written down beside the code. The published label itself is read from
+  // the App Store by `asc.mjs submit` and `standards.mjs audit` (lib/privacy-label.mjs), not here: this stays offline.
+  privacyLabel(check, context) {
+    const manifest = manifestCollection(context.config, context.catalog.scan);
+    const expected = expectedLabel(context.store);
+    context.evidence.push(...manifest.sources.slice(0, 3));
+    const problems = [...manifest.problems];
+    if (!expected) {
+      if (manifest.entries.length) problems.push(check.problem + ' (the manifest declares ' + manifest.entries.map(entry => describeType(entry.type)).join(', ') + ')');
+    } else problems.push(...expected.problems, ...manifestDrift(manifest.entries, expected.entries));
+    return problems.length ? problems.join('; ') : null;
   },
   // The bundled More apps list is the generated one, current with the shared catalogue: written within maxAgeDays,
   // never listing the app itself, and naming the same apps the catalogue does today when the app sites repository can
