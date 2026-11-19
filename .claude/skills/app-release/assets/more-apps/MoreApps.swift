@@ -6,7 +6,7 @@
 //
 //   node <skills>/skills/app-release/scripts/more-apps.mjs write --swift <folder>/MoreAppsCatalog.swift
 //
-// Put the row on the settings or about screen, near Send Feedback, inside a List or Form:
+// Put the row on the settings or about screen, near the feedback control, inside a List or Form:
 //
 //   Section { MoreAppsLink() }          // a "More apps" row that opens the list
 //   // or, where there is room, the rows themselves:

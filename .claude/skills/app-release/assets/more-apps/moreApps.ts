@@ -15,7 +15,7 @@
 //                        onPress={() => Linking.openURL(moreAppsStoreUrl(app))} />)
 // Capacitor: moreAppsFor(Capacitor.getPlatform(), bundleId), and open the link the way the app opens other links out.
 //
-// Put it on the settings or about screen, near Send Feedback; in a game, the settings or menu screen, never over play.
+// Put it on the settings or about screen, near the feedback control; in a game, the settings or menu screen, never over play.
 // Only iOS shows it (the App Store is the only store in use; Google Play is on hold), so moreAppsFor returns an empty
 // list on Android and the web, and the screen then shows no row at all. Nothing is sent and nothing is counted by the
 // app: the list and the icons are bundled, so it works offline and never shows a broken row.

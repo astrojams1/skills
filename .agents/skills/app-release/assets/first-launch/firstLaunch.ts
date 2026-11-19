@@ -6,14 +6,15 @@
 // nothing; the app passes the platform's calls. A Capacitor app calls FirstLaunch.swift from its native AppDelegate
 // instead, which can also tell a TestFlight install from a store one.
 //
-// Expo (expo-application, AsyncStorage or SecureStore):
+// Expo (expo-application, expo-device, AsyncStorage or SecureStore); a simulator counts as debug:
 //   useEffect(() => { reportFirstLaunch('<catalogue id>', {
-//     version: Application.nativeApplicationVersion || '?', platform: Platform.OS, channel: __DEV__ ? 'debug' : 'unknown',
+//     version: Application.nativeApplicationVersion || '?', platform: Platform.OS, channel: __DEV__ || !Device.isDevice ? 'debug' : 'unknown',
 //     read: () => AsyncStorage.getItem(FIRST_LAUNCH_STORAGE_KEY), write: text => AsyncStorage.setItem(FIRST_LAUNCH_STORAGE_KEY, text),
 //     post: (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).then(r => r.status) }); }, []);
 //
 // The catalogue id is the app's id in astrojams1/app-sites marketing/apps/<id>.json (space-worms, newsworthy, lob...).
-// Only iOS reports (Google Play is on hold): on any other platform, and in a debug build, nothing is sent.
+// Only iOS reports (Google Play is on hold): on any other platform, and in a debug build or a simulator, nothing is
+// sent unless `force` is set to check the standard.
 //
 // What is sent: the catalogue id, the app version, the platform and the install channel. Nothing else: no advertising
 // id, no vendor id, no device name or model, no locale and no identifier of any kind, so the server cannot tell two
@@ -39,6 +40,8 @@ export type FirstLaunchPlatform = {
   write: (text: string) => Promise<unknown>;
   // Posts the JSON body and resolves the HTTP status.
   post: (url: string, body: string) => Promise<number>;
+  // Send even from a debug build or a simulator, as `debug`: only to check the standard (a -firstLaunchSend launch).
+  force?: boolean;
 };
 
 export type FirstLaunchEvent = { app: string; version: string; platform: string; channel: FirstLaunchChannel };
@@ -56,7 +59,7 @@ export function firstLaunchSettled(status: number): boolean {
 // Reports the first open once. Resolves true when this call settled it. Never throws.
 export async function reportFirstLaunch(app: string, platform: FirstLaunchPlatform): Promise<boolean> {
   try {
-    if (platform.platform !== 'ios' || platform.channel === 'debug') return false;
+    if (platform.platform !== 'ios' || (platform.channel === 'debug' && !platform.force)) return false;
     if ((await platform.read()) === 'sent') return false;
     const status = await platform.post(FIRST_LAUNCH_ENDPOINT, JSON.stringify(firstLaunchEvent(app, platform)));
     if (!firstLaunchSettled(status)) return false;

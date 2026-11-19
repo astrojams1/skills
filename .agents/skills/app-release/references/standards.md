@@ -224,7 +224,7 @@ require declaring analytics on each app's App Store privacy label.", he answered
 | Never sent | No IDFA, no IDFV, no device name or model, no locale, no account, no identifier of any kind. The audit refuses a marked file that reads one |
 | Once | A local flag, set only after the server answers, stops repeats; a failed send is tried on a later launch. Deleting and reinstalling the app counts again, as Apple's first-time downloads do not |
 | Never in the way | Runs after launch at background priority; failures are silent; nothing waits on it |
-| Test and debug | UI tests (`-uiTest`) and debug builds send nothing unless launched with `-firstLaunchSend`; the server keeps debug and TestFlight apart from store installs |
+| Test and debug | UI tests (`-uiTest…`) and debug builds send nothing unless launched with `-firstLaunchSend`; any simulator run reports `debug`, and the server keeps debug and TestFlight apart from store installs |
 | The server | `/api/launch` in astrojams1/app-sites (`packages/pitches/launches.mjs`) adds 1 to a daily total per Pacific day, app, version, platform and channel in the existing Neon store. No IP address, user agent, country or time of day is stored; unknown apps and malformed events are refused, and each server instance takes at most 30 events an hour from one address |
 | The read | `marketing.mjs launches` prints first opens per app per day beside Apple's first-time downloads |
 | Platforms | iOS, iPadOS and Mac. Not Android (Google Play is on hold). A Capacitor app calls FirstLaunch.swift from its AppDelegate, which can tell TestFlight from the store; Expo apps use firstLaunch.ts and report `unknown` outside debug |

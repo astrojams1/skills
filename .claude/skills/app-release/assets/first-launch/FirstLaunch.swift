@@ -18,7 +18,7 @@
 //
 // Never in the way: it runs after launch at background priority, a failure is silent, and the flag that stops repeats
 // is set only after the server has answered, so a failed send is tried again on a later launch. UI tests and debug
-// runs skip it unless the launch argument -firstLaunchSend is given.
+// runs (any launch argument starting -uiTest) skip it unless the launch argument -firstLaunchSend is given.
 
 import Foundation
 #if canImport(StoreKit)
@@ -71,7 +71,7 @@ enum FirstLaunch {
     /// Reports the first open once. Returns at once; the work runs in the background.
     static func report(app: String, defaults: UserDefaults = .standard, session: URLSession = .shared) {
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-uiTest") && !arguments.contains("-firstLaunchSend") { return }
+        if arguments.contains(where: { $0.hasPrefix("-uiTest") }) && !arguments.contains("-firstLaunchSend") { return }
         #if DEBUG
         if !arguments.contains("-firstLaunchSend") { return }
         #endif
@@ -103,7 +103,7 @@ enum FirstLaunch {
 
     /// store, testflight or debug: where this copy of the app came from, so the count can be set beside Apple's.
     static func channel() async -> String {
-        #if DEBUG
+        #if DEBUG || targetEnvironment(simulator)
         return "debug"
         #else
         #if canImport(StoreKit)

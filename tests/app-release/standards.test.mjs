@@ -341,7 +341,9 @@ test('React Native and Flutter web views that load pages count too', t => {
 test("a web view showing only the app's own bundled page is not covered", t => {
   const game = 'import WebView from "react-native-webview";\nexport const Game = () => <WebView source={{ html: GAME_HTML, baseUrl: ORIGIN }} />;\n';
   const swift = 'import WebKit\nlet view = WKWebView()\nfunc show() { view.loadFileURL(index, allowingReadAccessTo: folder) }\n';
-  const result = auditApp(repo(t, { files: { ...native(), 'src/Game.tsx': game, 'App/Local.swift': swift } }).config());
+  // An image from a URI (the More apps icons) is not a web view.
+  const icon = 'import { Image } from "react-native";\nexport const Icon = () => <Image source={{ uri: moreAppsIconUri(app) }} />;\n';
+  const result = auditApp(repo(t, { files: { ...native(), 'src/Game.tsx': game, 'App/Local.swift': swift, 'src/Icon.tsx': icon } }).config());
   assert.equal(status(result, 'web-sheet').status, 'not-applicable');
 });
 
@@ -536,6 +538,9 @@ test('firstLaunch.ts sends four fields once, only on iOS outside debug, and retr
     assert.equal(await m.reportFirstLaunch('example', quiet.platform), false);
     assert.equal(quiet.sent.length, 0);
   }
+  const forced = make([204], { channel: 'debug', force: true });
+  assert.equal(await m.reportFirstLaunch('example', forced.platform), true);
+  assert.equal(forced.sent[0].body.channel, 'debug');
   const refused = make([400]);
   assert.equal(await m.reportFirstLaunch('example', refused.platform), true, 'a 400 is final: the event will never be taken');
   assert.equal(m.firstLaunchSettled(429), false);
