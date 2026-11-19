@@ -123,6 +123,16 @@ test('log refuses an end that met a recurring family and closed nothing; a closi
   assert.deepEqual(logProblems(end, [...pins, met, close], fams, { git }), []);
 });
 
+test('a correction of an end is judged without the line it corrects', () => {
+  const now = '2026-11-14T15:00:00Z';
+  const wrong = ev({ ts: now, run_id: 'run1', event: 'end', left_open: [{ issue: 'i', blocked_by: 'outside', needs: 'n', problem: 'pin-comment' }] });
+  const fixed = { ...wrong, ts: '2026-11-14T16:00:00Z', corrects: now, left_open: [{ issue: 'i', blocked_by: 'outside', needs: 'n', problem: 'quiet' }] };
+  assert.ok(logProblems({ ...wrong, ts: '2026-11-14T16:00:00Z' }, [...pins, wrong], fams, { git }).some(p => p.includes('RECURRING')));
+  assert.deepEqual(logProblems(fixed, [...pins, wrong], fams, { git }), []);
+  const stillMet = { ...fixed, left_open: [{ issue: 'i', blocked_by: 'outside', needs: 'n', problem: 'pin-comment' }] };
+  assert.ok(logProblems(stillMet, [...pins, wrong], fams, { git }).some(p => p.includes('RECURRING')), 'a correction that keeps the family is still refused');
+});
+
 test('a human reply still unanswered a run later is an occurrence of replies-unanswered', () => {
   const snap = (when, answered) => ({ at: when, source: 'pitches', pitches: [{ id: 'p1', replies: [{ kind: 'other', at: at(12, 10), answered }] }] });
   assert.equal(pitchOccurrences([snap(at(12, 11), false)]).length, 0);
