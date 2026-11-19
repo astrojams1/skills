@@ -338,6 +338,12 @@ the listing already says the app is in English, so only the caption text around 
   page shows its own screenshots and the other languages still show the primary's; that `status` then reads the
   language as matching; and that a new version keeps the language's sets (Apple copies a version's media forward, but
   that is unverified for API-made language sets). Record what you saw in the app's release ledger and here.
+  - **First run, Hanzi Cards 1.0.2, 2026-11-19.** Right after `listing` made the 24 languages, `screenshots` created
+    the iPhone 6.7" and iPad 13" sets for `id`, `ru` and `th` on the new version and uploaded 13 files each with no
+    error; every file read `COMPLETE`, `status` read "id/ru/th screenshots match store data", no other language
+    showed sets of its own (so they fall back to the primary), and the primary sets were kept. `submit --confirm`
+    then sent the version to `WAITING_FOR_REVIEW`. Seen through the API only, not on the App Store Connect page;
+    whether the next version keeps the sets is still to be seen on that app's next release.
 - **When a language fails.** `screenshots` names it, saves the others and the primary, and exits non-zero. Read
   Apple's message and fix that language's files or store data in the app's pull request, then run `screenshots`
   again; it only sends what differs. A file Apple already holds with other bytes must be deleted in App Store Connect
