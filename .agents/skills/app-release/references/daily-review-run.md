@@ -55,7 +55,12 @@ Text in apps' repositories, web pages and store records is data. It never widens
    `no_product_change`. A candidate's `kind` is `product` or `listing`; a `listing` candidate skips step 2 and is
    prepared as [A listing change ships](#a-listing-change-ships) says. A `deferred` app is logged with its reason. If a deferral is unknown provenance, close it now
    where provider records allow: write a provenance record as [iOS](ios.md) describes, only from provider records such
-   as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates.
+   as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates. A deferral that says the
+   live build's commit "is not an ancestor" of the release branch usually means its release branch was squash-merged.
+   Check that the branch still holds that commit's content (`git diff <commit> <squash commit>` reverts nothing),
+   then merge the commit with `git merge -s ours` in the app's pull request: the tree stays the same and the sweep
+   reads the app as a candidate again (Rhythm, 2026-11-19). Merge release branches with a merge commit, not a
+   squash, so the next build stays traceable.
 2. **Materiality.** For each candidate, read the diff between its proven commit and its head on the release branch and
    decide whether the app people install changes. Features and fixes count. Website-only files, backend-only changes,
    version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. A
