@@ -262,6 +262,17 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   help page says "100 bytes", but its API error reads "Keywords for Thai cannot be longer than 100 characters"
   ([forum thread](https://developer.apple.com/forums/thread/705360)) and live Japanese, Chinese and Russian fields
   run past 100 bytes (checked 2026-11-18). `listing` counts UTF-16 units, so a combining mark counts as one.
+- **First real run, 2026-11-19.** The daily review run wrote languages for the first time in six apps: Nametag 1.0.4,
+  Plenty 1.1, LOB 1.0.1, Newsworthy 1.0.4 and Hanzi Cards 1.0.2 (24 each) and Importron 1.0.1 (9). In every app
+  `listing` created each App Info localization, created or patched each version localization and read all of them
+  back; no language failed, and `status` read "all N match store data". Read back afterwards through the API (GET
+  only): each editable App Info and the version under review held 25 locales (Importron 10), and each secondary
+  category store data named was set (Hanzi Cards REFERENCE, Nametag UTILITIES, LOB ENTERTAINMENT, Importron
+  UTILITIES, Newsworthy LIFESTYLE). The one fault was in store data: the 2026-11-18 language drafts' `whatsNew`
+  said the app had not changed, false for a release carrying the rating prompt, and Hanzi Cards, LOB, Newsworthy and
+  Nametag rewrote all 24 in their release pull requests. Write each language's notes for the version being shipped.
+  Not yet seen: a language on the public store page, and whether Apple keeps an API-made language on the next
+  version.
 - **The first write per app is unproven until seen.** No language had been written to Apple when this shipped
   (2026-11-18), so the first `listing` with languages in each app is also the test. `listing` is safe to run again:
   it lists what Apple has and creates or patches only what differs. When a language's write fails, read Apple's
@@ -334,7 +345,7 @@ the listing already says the app is in English, so only the caption text around 
   the app a `listing` candidate when a listed language's screenshots are not live, are out of order or have other
   bytes (`listing.screenshots` in its JSON, summed up in `listing.ships`). Store data the check refuses is shown in
   `listing.screenshots.problems` and ships nothing.
-- **Not yet run against Apple** (2026-11-18). On the first real run, check in App Store Connect that the language's
+- **What to check after a first per-language write** (written 2026-11-18, first run below). Check in App Store Connect that the language's
   page shows its own screenshots and the other languages still show the primary's; that `status` then reads the
   language as matching; and that a new version keeps the language's sets (Apple copies a version's media forward, but
   that is unverified for API-made language sets). Record what you saw in the app's release ledger and here.
@@ -344,6 +355,8 @@ the listing already says the app is in English, so only the caption text around 
     showed sets of its own (so they fall back to the primary), and the primary sets were kept. `submit --confirm`
     then sent the version to `WAITING_FOR_REVIEW`. Seen through the API only, not on the App Store Connect page;
     whether the next version keeps the sets is still to be seen on that app's next release.
+    A separate GET-only read the same day found 1.0.2 holding sets for `en-US`, `id`, `ru` and `th` only, each
+    iPhone 6.7" with 7 and iPad 13" with 6 screenshots, and 1.0.1 (live) with the `en-US` sets alone.
 - **When a language fails.** `screenshots` names it, saves the others and the primary, and exits non-zero. Read
   Apple's message and fix that language's files or store data in the app's pull request, then run `screenshots`
   again; it only sends what differs. A file Apple already holds with other bytes must be deleted in App Store Connect
@@ -688,6 +701,13 @@ corrected it. Empty/null explicit identity
 overrides are rejected before saving. Keep all contact values out of logs and error messages. A provider
 request failure does not establish that Notes were saved; an echoed/readback mismatch or lost response
 requires inspecting provider state before retrying. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
+
+**Review notes are at most 4000 characters.** Apple refuses longer notes with 409
+`ENTITY_ERROR.ATTRIBUTE.INVALID.TOO_LONG` ("Review Notes cannot be longer than 4000 characters"). On 2026-11-19
+Nametag 1.0.4 (4272) and Plenty 1.1 (4303) both hit it after a release added a section, and each needed a second
+pull request to shorten them. `review-details` now checks `review.notes` before any request and names how many
+characters to cut, and `status` prints `review notes problem:` while store data is over, so read `status` before
+merging a pull request that adds to the notes. Shorten older sections rather than dropping what this version needs.
 
 #### Respond to the actual review message
 
