@@ -2,9 +2,10 @@
 // ios-release.mjs
 // Builds, signs, verifies and uploads an App Store build on the owner's Mac with Xcode, with no EAS Build: expo
 // prebuild, pod install, xcodebuild archive and -exportArchive with Apple-managed signing through the App Store Connect
-// API key from 1Password, checks on the .ipa before anything leaves the Mac, altool upload, Apple's processing, and the
-// internal TestFlight group. The build number is the highest App Store Connect holds, plus one. Settings come from the
-// app's app-release.config.json (`ios`, `buildRoot`, `slug`). Run from the app repository.
+// API key from 1Password, checks on the .ipa before anything leaves the Mac, altool upload, Apple's processing, the
+// internal TestFlight group, and any named group with its What to Test and Beta App Review. The build number is the
+// highest App Store Connect holds, plus one. Settings come from the app's app-release.config.json (`ios`, `buildRoot`,
+// `slug`). Run from the app repository.
 
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -17,13 +18,16 @@ import { freshBuildTmp } from './lib/build-tmp.mjs';
 import { requireSection } from './lib/config.mjs';
 import { standardsRefusal } from './lib/standards.mjs';
 
-const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'release'];
+const COMMANDS = ['next-build-number', 'archive', 'validate', 'upload', 'testers', 'beta-group', 'release'];
 const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <command> [N] [--build-number N] [--allow-dirty]\n' +
   '  next-build-number   print App Store Connect\'s highest build number plus one\n' +
   '  archive             prebuild/pod install (none for ios.project), archive, export, verify (writes summary.json)\n' +
   '  validate <N>        validate build N\'s .ipa with App Store Connect, uploading nothing\n' +
   '  upload <N>          upload build N\'s .ipa and wait for Apple\'s processing\n' +
   '  testers <N>         add processed build N to the configured internal TestFlight group\n' +
+  '  beta-group <N> --group NAME [--what-to-test FILE]\n' +
+  '                      set build N\'s What to Test from FILE, add it to the named TestFlight group and, for an\n' +
+  '                      external group, submit it for Beta App Review unless it is already submitted or approved\n' +
   '  release             archive, upload and testers in one run\n' +
   '--allow-dirty makes a local test archive from uncommitted changes; upload refuses it.';
 // Apple reports an upload as one of these once it stops processing.
@@ -42,13 +46,19 @@ export function parseArgs(args) {
   for (let index = 1; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--allow-dirty') flags.allowDirty = true;
-    else if (arg === '--build-number') {
+    else if ((arg === '--group' || arg === '--what-to-test') && command === 'beta-group') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) throw new Error(arg + ' needs a value\n' + USAGE);
+      flags[arg === '--group' ? 'group' : 'whatToTest'] = value;
+      index += 1;
+    } else if (arg === '--build-number') {
       flags.build = parseBuildNumber(args[index + 1]);
       index += 1;
     } else if (!arg.startsWith('--') && flags.build === null) flags.build = parseBuildNumber(arg);
     else throw new Error('Unknown option ' + arg + '.\n' + USAGE);
   }
-  if (['validate', 'upload', 'testers'].includes(command) && flags.build === null) throw new Error(command + ' needs a build number\n' + USAGE);
+  if (['validate', 'upload', 'testers', 'beta-group'].includes(command) && flags.build === null) throw new Error(command + ' needs a build number\n' + USAGE);
+  if (command === 'beta-group' && !flags.group) throw new Error('beta-group needs --group NAME\n' + USAGE);
   // What reaches App Store Connect must match a commit; a dirty tree makes a local test archive only.
   if (flags.allowDirty && ['upload', 'release'].includes(command)) throw new Error('An upload needs a clean checkout; --allow-dirty is for local test archives only.');
   return flags;
@@ -516,19 +526,27 @@ async function ensureTesters(group, config, read, all, log) {
   return people.length;
 }
 
-// VALID and automatic group access do not establish testability: export compliance can still block a build.
-// Verify exact group membership and the build's internal beta state on both group paths.
-export async function testers(build, io) {
-  const config = io ? io.ios : IOS;
-  const version = io ? io.version : STORE.version;
-  const read = io ? io.api : api;
-  const all = io ? io.listAll : listAll;
-  const pause = io ? io.pause : () => new Promise(done => setTimeout(done, 30000));
+// providerContext gives a TestFlight command its App Store Connect reader, clock and log; `io` replaces them in tests.
+function providerContext(io) {
   const now = io ? io.now : Date.now;
-  const log = io ? io.log : console.log;
+  return {
+    config: io ? io.ios : IOS,
+    version: io ? io.version : STORE.version,
+    locale: io ? io.locale || 'en-US' : (STORE.listing && STORE.listing.locale) || 'en-US',
+    read: io ? io.api : api,
+    all: io ? io.listAll : listAll,
+    pause: io ? io.pause : () => new Promise(done => setTimeout(done, 30000)),
+    now,
+    log: io ? io.log : console.log,
+    deadline: io ? io.deadline : now() + WAIT_MS
+  };
+}
+
+// waitForValidBuild finds build N of the store data's version and waits until Apple has processed it (VALID).
+async function waitForValidBuild(build, ctx) {
+  const { config, version, read, pause, now, deadline } = ctx;
   let found = null;
   let checkedOtherVersion = false;
-  const deadline = io ? io.deadline : now() + WAIT_MS;
   while (now() < deadline) {
     const { data } = await read('/v1/builds?filter[app]=' + config.ascAppId + '&filter[version]=' + build +
       '&filter[preReleaseVersion.version]=' + encodeURIComponent(version) + '&filter[preReleaseVersion.platform]=IOS&fields[builds]=version,processingState');
@@ -549,6 +567,15 @@ export async function testers(build, io) {
     await pause();
   }
   if (!found || found.attributes.processingState !== 'VALID') throw new Error('Build ' + build + ' is not VALID after 30 minutes');
+  return found;
+}
+
+// VALID and automatic group access do not establish testability: export compliance can still block a build.
+// Verify exact group membership and the build's internal beta state on both group paths.
+export async function testers(build, io) {
+  const ctx = providerContext(io);
+  const { config, read, all, pause, now, log, deadline } = ctx;
+  const found = await waitForValidBuild(build, ctx);
   // The app's own /v1/apps/{id}/betaGroups refuses filter[name] with a 400; the top-level collection takes both.
   const readGroups = async () => (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' +
     encodeURIComponent(config.testflightGroup))).data
@@ -594,6 +621,117 @@ export async function testers(build, io) {
   throw new Error('Build ' + build + ' is not internally testable after 30 minutes: ' + internalBuildState + ', group membership ' + buildPresent + '; read provider state before retrying.');
 }
 
+// Apple's limit on a build's What to Test text.
+const WHAT_TO_TEST_MAX = 4000;
+// External beta states that need no new Beta App Review submission: waiting, in review, or already approved.
+const BETA_REVIEW_HELD = ['WAITING_FOR_BETA_REVIEW', 'IN_BETA_REVIEW', 'BETA_APPROVED', 'READY_FOR_BETA_TESTING', 'IN_BETA_TESTING'];
+// External beta states Apple is still working out; the command waits through them.
+const BETA_PENDING = ['PROCESSING', 'IN_EXPORT_COMPLIANCE_REVIEW'];
+
+// whatToTestText reads a What to Test file: line endings made plain, outer blank space trimmed, Apple's limit kept.
+export function whatToTestText(raw) {
+  const text = String(raw).replace(/\r\n?/g, '\n').trim();
+  if (!text) throw new Error('The What to Test file is empty.');
+  if (text.length > WHAT_TO_TEST_MAX) throw new Error('What to Test is ' + text.length + ' characters; Apple allows ' + WHAT_TO_TEST_MAX + '.');
+  return text;
+}
+
+// betaReviewDecision says whether an external group's build needs a Beta App Review submission now. `submissions` are
+// the build's existing betaAppReviewSubmissions. A rejected or expired build needs a new build, so it stops.
+export function betaReviewDecision(externalBuildState, submissions) {
+  if (submissions.length) return { submit: false, reason: 'already submitted (' + submissions[0].attributes.betaReviewState + ')' };
+  if (BETA_REVIEW_HELD.includes(externalBuildState)) return { submit: false, reason: 'already ' + externalBuildState };
+  if (externalBuildState === 'READY_FOR_BETA_SUBMISSION') return { submit: true, reason: 'ready for Beta App Review' };
+  if (BETA_PENDING.includes(externalBuildState)) return { submit: false, wait: true, reason: externalBuildState };
+  if (externalBuildState === 'MISSING_EXPORT_COMPLIANCE') {
+    throw new Error('The build is MISSING_EXPORT_COMPLIANCE; answer export compliance from the app\'s verified encryption use, then rerun.');
+  }
+  throw new Error('The build\'s external TestFlight state is ' + externalBuildState + '; it cannot go to Beta App Review. A new build is needed.');
+}
+
+// betaGroup puts build N in front of one named TestFlight group, internal or external, without asking: the owner's
+// rule is that TestFlight never waits on him (James, 2026-11-19). It sets What to Test, adds the build to the group,
+// submits it for Beta App Review when the group is external and the build is not already submitted or approved, and
+// reads each write back. It never touches an App Store version or App Review.
+export async function betaGroup(build, options, io) {
+  const ctx = providerContext(io);
+  const { config, locale, read, all, pause, now, log, deadline } = ctx;
+  const text = options.whatToTest === undefined || options.whatToTest === null ? null : whatToTestText(options.whatToTest);
+  const found = await waitForValidBuild(build, ctx);
+  const groups = (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' + encodeURIComponent(options.group))).data
+    .filter(group => group.attributes.name === options.group);
+  if (groups.length !== 1) throw new Error('Expected one TestFlight group named ' + options.group + ', found ' + groups.length + '.');
+  const group = groups[0];
+  const external = !group.attributes.isInternalGroup;
+
+  // What to Test lives on the build's localization for the listing locale.
+  const localizationsPath = '/v1/builds/' + found.id + '/betaBuildLocalizations?limit=200';
+  const readNotes = async () => {
+    const item = (await all(localizationsPath)).find(entry => entry.attributes.locale === locale);
+    return item ? { id: item.id, text: String(item.attributes.whatsNew || '').replace(/\r\n?/g, '\n').trim() } : null;
+  };
+  let notes = await readNotes();
+  let whatToTest = 'unchanged';
+  if (text !== null && (!notes || notes.text !== text)) {
+    if (notes) await read('/v1/betaBuildLocalizations/' + notes.id, 'PATCH', { data: { type: 'betaBuildLocalizations', id: notes.id, attributes: { whatsNew: text } } });
+    else await read('/v1/betaBuildLocalizations', 'POST', { data: { type: 'betaBuildLocalizations', attributes: { locale, whatsNew: text },
+      relationships: { build: { data: { type: 'builds', id: found.id } } } } });
+    notes = await readNotes();
+    if (!notes || notes.text !== text) throw new Error('What to Test for build ' + build + ' (' + locale + ') did not read back as written.');
+    whatToTest = 'set';
+    log('Set What to Test for build ' + build + ' (' + locale + ', ' + text.length + ' characters).');
+  }
+  if (external && (!notes || !notes.text)) throw new Error('Build ' + build + ' has no What to Test for ' + locale + '; Beta App Review needs it. Pass --what-to-test FILE.');
+
+  // Membership: an internal group may receive every build on its own; otherwise add the build once and read it back.
+  const inGroup = async () => (await all('/v1/betaGroups/' + group.id + '/builds?limit=200')).some(item => item.id === found.id);
+  let buildPresent = await inGroup();
+  if (!buildPresent && !group.attributes.hasAccessToAllBuilds) {
+    await read('/v1/betaGroups/' + group.id + '/relationships/builds', 'POST', { data: [{ type: 'builds', id: found.id }] });
+    log('Added build ' + build + ' to ' + options.group + '.');
+  }
+  while (!buildPresent && now() < deadline) {
+    buildPresent = await inGroup();
+    if (!buildPresent) await pause();
+  }
+  if (!buildPresent) throw new Error('Build ' + build + ' is not in ' + options.group + ' after the add; read provider state before retrying.');
+
+  // Beta App Review, for an external group only.
+  const submissionsPath = '/v1/betaAppReviewSubmissions?filter[build]=' + found.id;
+  const detail = async () => (await read('/v1/builds/' + found.id + '/buildBetaDetail')).data.attributes;
+  let state = await detail();
+  let betaReviewState = null;
+  let submitted = false;
+  if (external) {
+    let decision = betaReviewDecision(state.externalBuildState, (await read(submissionsPath)).data);
+    while (decision.wait && now() < deadline) {
+      log('Waiting for build ' + build + ' external TestFlight state: ' + decision.reason + '.');
+      await pause();
+      state = await detail();
+      decision = betaReviewDecision(state.externalBuildState, (await read(submissionsPath)).data);
+    }
+    if (decision.wait) throw new Error('Build ' + build + ' is still ' + decision.reason + ' after 30 minutes; read provider state before retrying.');
+    if (decision.submit) {
+      await read('/v1/betaAppReviewSubmissions', 'POST', { data: { type: 'betaAppReviewSubmissions',
+        relationships: { build: { data: { type: 'builds', id: found.id } } } } });
+      submitted = true;
+    } else log('Build ' + build + ' needs no Beta App Review submission: ' + decision.reason + '.');
+    const submissions = (await read(submissionsPath)).data;
+    if (submitted && !submissions.length) throw new Error('The Beta App Review submission for build ' + build + ' did not read back.');
+    betaReviewState = submissions.length ? submissions[0].attributes.betaReviewState : null;
+    state = await detail();
+    if (submitted) log('Submitted build ' + build + ' for Beta App Review: ' + betaReviewState + '.');
+  }
+  const testerCount = (await all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200')).length;
+  const result = { build: String(build), buildId: found.id, group: options.group, groupId: group.id, external, whatToTest, buildPresent,
+    internalBuildState: state.internalBuildState, externalBuildState: external ? state.externalBuildState : null, betaReviewState, submitted,
+    testers: testerCount, publicLink: Boolean(group.attributes.publicLinkEnabled) };
+  log('Build ' + build + ' is in ' + options.group + ' (' + (external ? 'external' : 'internal') + ', ' + testerCount + ' tester(s)' +
+    (result.publicLink ? ', public link on' : '') + '); ' + (external ? 'external state ' + result.externalBuildState +
+    (betaReviewState ? ', Beta App Review ' + betaReviewState : '') : 'internal state ' + result.internalBuildState) + '.');
+  return result;
+}
+
 async function main(args) {
   if (!args.length || args[0] === '--help') {
     console.log(USAGE);
@@ -614,6 +752,10 @@ async function main(args) {
   if (flags.command === 'validate') validate(flags.build);
   if (flags.command === 'upload') await upload(flags.build);
   if (flags.command === 'testers') await testers(flags.build);
+  if (flags.command === 'beta-group') {
+    const whatToTest = flags.whatToTest ? readFileSync(resolve(process.cwd(), flags.whatToTest), 'utf8') : null;
+    console.log(JSON.stringify(await betaGroup(flags.build, { group: flags.group, whatToTest }), null, 2));
+  }
   if (flags.command === 'release') {
     const summary = await archive(flags);
     await upload(summary.build);
