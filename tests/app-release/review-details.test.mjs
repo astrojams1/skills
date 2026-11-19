@@ -4,7 +4,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { setup, reviewDetails, assertSaved, reviewPhoneOnFile, teamReviewContact } from '../../skills/app-release/scripts/asc.mjs';
+import { setup, reviewDetails, assertSaved, reviewPhoneOnFile, teamReviewContact, reviewNotesProblem, REVIEW_NOTES_LIMIT } from '../../skills/app-release/scripts/asc.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'review-details-'));
 const keyFile = join(root, 'synthetic.p8');
@@ -105,6 +105,21 @@ test('blank identity overrides, incomplete current contacts and invalid demo req
     await assert.rejects(reviewDetails(), /required|complete|boolean|ASC_REVIEW_PHONE/);
     assert.equal(state.writes.length, 0);
   }
+});
+
+test('review notes over Apple\'s 4000-character limit stop before any request (Nametag 1.0.4, Plenty 1.1)', async () => {
+  const state = fixture({ review: { notes: 'x'.repeat(REVIEW_NOTES_LIMIT + 303), demoAccountRequired: false } });
+  await assert.rejects(reviewDetails(), /4303 characters; Apple refuses more than 4000\. Shorten it by 303/);
+  assert.equal(state.writes.length, 0);
+  assert.equal(state.reads.length, 0);
+});
+
+test('reviewNotesProblem accepts notes up to the limit and absent notes, and names a non-string', () => {
+  assert.equal(reviewNotesProblem({ notes: 'x'.repeat(REVIEW_NOTES_LIMIT) }), null);
+  assert.equal(reviewNotesProblem({ demoAccountRequired: false }), null);
+  assert.equal(reviewNotesProblem(undefined), null);
+  assert.match(reviewNotesProblem({ notes: 42 }), /must be a string/);
+  assert.match(reviewNotesProblem({ notes: 'é'.repeat(REVIEW_NOTES_LIMIT + 1) }), /4001 characters/);
 });
 
 test('private contact values stay hidden in readback errors', async () => {
