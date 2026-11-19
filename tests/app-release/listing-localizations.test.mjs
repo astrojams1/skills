@@ -102,3 +102,17 @@ test('the China mainland check reads every language', () => {
   assert.match(chinaAiProblem(listing, true), /names ChatGPT/);
   assert.equal(chinaAiProblem(listing, false), null);
 });
+
+test('complianceRefusal names the unanswered App Compliance forms from Apple\'s 409', async () => {
+  const { complianceRefusal } = await import('../../skills/app-release/scripts/asc.mjs');
+  const apple = 'PATCH /v1/reviewSubmissionItems/x -> 409 [{"code":"STATE_ERROR.ENTITY_STATE_INVALID","meta":{"associatedErrors":{"/v1/appInfos/a":['
+    + '{"code":"STATE_ERROR.PPM.compliance.form.SECURITYASF395E.enforcement.PENDING_COLLECT.NEW_APP_SUBMISSION_BLOCK"},'
+    + '{"code":"STATE_ERROR.PPM.compliance.form.AIGENERATEFD1DE.enforcement.PENDING_COLLECT.NEW_APP_SUBMISSION_BLOCK"},'
+    + '{"code":"STATE_ERROR.PPM.compliance.form.NEWFORM123.enforcement.PENDING_COLLECT.NEW_APP_SUBMISSION_BLOCK"}]}}}]';
+  const refusal = complianceRefusal(apple);
+  assert.match(refusal, /App Compliance/);
+  assert.match(refusal, /Security Assessment \(China mainland\); AI Generated or Synthetic Content \(China mainland\); NEWFORM123/);
+  assert.match(refusal, /owner answers it/);
+  assert.equal(complianceRefusal('PATCH /v1/x -> 409 [{"code":"STATE_ERROR.ENTITY_STATE_INVALID"}]'), null);
+  assert.equal(complianceRefusal(undefined), null);
+});

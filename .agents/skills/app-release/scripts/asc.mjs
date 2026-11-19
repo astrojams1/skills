@@ -894,6 +894,31 @@ export function availabilityChanges(items, excluded) {
 // storefront gets the app rejected.
 export const AI_SERVICE_NAMES = ['ChatGPT', 'OpenAI', 'GPT', 'Codex', 'Claude', 'Anthropic', 'Gemini'];
 
+// COMPLIANCE_FORMS names the App Compliance forms Apple has refused a submission over, by the code in its 409.
+// Pipsqueak 1.1 met both on 2026-11-19: STATE_ERROR.PPM.compliance.form.<FORM>.enforcement.PENDING_COLLECT.
+// NEW_APP_SUBMISSION_BLOCK on the app info, "Cannot submit version due to unfulfilled compliance requirement".
+export const COMPLIANCE_FORMS = {
+  SECURITYASF395E: 'Security Assessment (China mainland)',
+  AIGENERATEFD1DE: 'AI Generated or Synthetic Content (China mainland)',
+};
+
+// complianceRefusal turns Apple's refusal over an unanswered App Compliance form into what to do, or returns null.
+// The forms are declarations under a country's law, so they are the owner's to answer (or the country is left out
+// of availability); the run reports them instead of guessing an answer.
+export function complianceRefusal(message) {
+  const forms = [...new Set([...String(message).matchAll(/PPM\.compliance\.form\.([A-Z0-9]+)\.enforcement/g)].map(found => found[1]))];
+  if (!forms.length) return null;
+  return 'Apple refuses to submit until App Compliance is complete (App Store Connect, the app, General, App Compliance): '
+    + forms.map(form => COMPLIANCE_FORMS[form] || form).join('; ') + ' reads Missing Info. Each is a declaration under that '
+    + 'country\'s law: the owner answers it, or leaves the country out in Pricing and Availability. Then submit --confirm again.';
+}
+
+// complianceError keeps Apple's own error and puts the explanation in front of it when it is a compliance refusal.
+function complianceError(error, outcome) {
+  const refusal = complianceRefusal(error && error.message);
+  return refusal ? new Error(refusal + ' ' + outcome + ' (' + error.message + ')') : error;
+}
+
 // chinaAiProblem names the AI services the listing mentions when the app is sold in China mainland, or returns null.
 export function chinaAiProblem(listing, chinaAvailable) {
   if (!chinaAvailable) return null;
@@ -1708,7 +1733,8 @@ export async function submit(flag) {
   const plan = submissionPlan(items, ctx.version.id, reviewTargets);
   if (plan.action !== 'submit') throw new Error('Review submission ' + submission.id + ' does not hold version ' + STORE.version + '; nothing was submitted.');
   for (const rejected of itemsToResolve(items, ctx.version.id, reviewTargets)) {
-    await api('/v1/reviewSubmissionItems/' + rejected.id, 'PATCH', { data: { type: 'reviewSubmissionItems', id: rejected.id, attributes: { resolved: true } } });
+    await api('/v1/reviewSubmissionItems/' + rejected.id, 'PATCH', { data: { type: 'reviewSubmissionItems', id: rejected.id, attributes: { resolved: true } } })
+      .catch(error => { throw complianceError(error, 'Nothing was submitted and the rejected item is unchanged.'); });
     console.log('Marked rejected item', rejected.id, 'resolved');
   }
   // Revalidate ownership and item completeness immediately before the outward-facing submission.
@@ -1719,7 +1745,8 @@ export async function submit(flag) {
     throw new Error('Review targets changed before submission; nothing was submitted.');
   }
   await requireUnattendedSubmit(ctx.version.id);
-  await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
+  await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } })
+    .catch(error => { throw complianceError(error, 'Nothing was sent to App Review; read `status` before retrying.'); });
   const saved = (await api('/v1/reviewSubmissions/' + submission.id)).data;
   const version = (await api('/v1/appStoreVersions/' + ctx.version.id)).data;
   if (!['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(saved.attributes.state) ||

@@ -707,6 +707,17 @@ overrides are rejected before saving. Keep all contact values out of logs and er
 request failure does not establish that Notes were saved; an echoed/readback mismatch or lost response
 requires inspecting provider state before retrying. [Apple review-details API](https://developer.apple.com/documentation/appstoreconnectapi/app-store-review-details).
 
+**App Compliance forms can block a submission.** App Store Connect's App Compliance page (the app, General) lists
+declarations a country's law requires. On 2026-11-19 Pipsqueak 1.1's `submit --confirm` came back 409 when it marked
+the rejected item resolved: associated errors `STATE_ERROR.PPM.compliance.form.SECURITYASF395E` and `.AIGENERATEFD1DE`
+(`...PENDING_COLLECT.NEW_APP_SUBMISSION_BLOCK`, "Cannot submit version due to unfulfilled compliance requirement"),
+which the page shows as Security Assessment and AI Generated or Synthetic Content, both China mainland, Missing Info.
+No public API read of these forms is known, so `submit` turns the 409 into what to do (`complianceRefusal`, unit-tested)
+and stops with nothing submitted. The answers are declarations under that country's law (here: does the app have
+features that need a Security Assessment, such as distributing AI-generated content; does it offer AIGC services), so
+they are the owner's, as is leaving the country out of availability. Bundled AI voice or art is a judgment the owner
+makes, not one to guess.
+
 **Review notes are at most 4000 characters.** Apple refuses longer notes with 409
 `ENTITY_ERROR.ATTRIBUTE.INVALID.TOO_LONG` ("Review Notes cannot be longer than 4000 characters"). On 2026-11-19
 Nametag 1.0.4 (4272) and Plenty 1.1 (4303) both hit it after a release added a section, and each needed a second
