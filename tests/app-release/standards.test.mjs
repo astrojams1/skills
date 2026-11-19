@@ -541,6 +541,9 @@ test('firstLaunch.ts sends four fields once, only on iOS outside debug, and retr
   const forced = make([204], { channel: 'debug', force: true });
   assert.equal(await m.reportFirstLaunch('example', forced.platform), true);
   assert.equal(forced.sent[0].body.channel, 'debug');
+  const forcedRelease = make([204], { channel: 'unknown', force: true });
+  assert.equal(await m.reportFirstLaunch('example', forcedRelease.platform), true);
+  assert.equal(forcedRelease.sent[0].body.channel, 'debug', 'a forced send from a store build on a device is still debug');
   const refused = make([400]);
   assert.equal(await m.reportFirstLaunch('example', refused.platform), true, 'a 400 is final: the event will never be taken');
   assert.equal(m.firstLaunchSettled(429), false);

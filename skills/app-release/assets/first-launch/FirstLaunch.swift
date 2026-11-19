@@ -77,8 +77,10 @@ enum FirstLaunch {
         #endif
         guard isDue(defaults) else { return }
         let suite = Defaults(defaults)
+        // A forced send (checking the standard) is always debug, so it never counts as an install.
+        let forced = arguments.contains("-firstLaunchSend")
         Task.detached(priority: .background) {
-            let event = Event(app: app, version: appVersion, platform: await platform, channel: await channel())
+            let event = Event(app: app, version: appVersion, platform: await platform, channel: forced ? "debug" : await channel())
             if await send(event, session: session) { suite.defaults.set(true, forKey: storageKey) }
         }
     }
