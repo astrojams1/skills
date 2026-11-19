@@ -5,7 +5,8 @@ import * as ios from '../../skills/app-release/scripts/ios-release.mjs';
 // beta-group puts one build in front of a named TestFlight group: What to Test, membership and, for an external
 // group, Beta App Review, each read back. A fake App Store Connect keeps every call in memory; nothing reaches Apple.
 function fixture({ internal = false, automatic = false, notes = null, state = 'READY_FOR_BETA_SUBMISSION', submissions = [],
-  groups = 1, membershipSticks = true, notesStick = true, submissionSticks = true, processing = 'VALID' } = {}) {
+  groups = 1, membershipSticks = true, notesStick = true, submissionSticks = true, processing = 'VALID', refuse = null,
+  train = [] } = {}) {
   let clock = 0;
   const writes = [];
   const live = { notes, inGroup: false, submissions: [...submissions], state };
@@ -17,6 +18,7 @@ function fixture({ internal = false, automatic = false, notes = null, state = 'R
         writes.push({ path, method, body });
         if (path.startsWith('/v1/betaBuildLocalizations') && notesStick) live.notes = { id: 'loc1', text: body.data.attributes.whatsNew };
         if (path === '/v1/betaGroups/g0/relationships/builds' && membershipSticks) live.inGroup = true;
+        if (path === '/v1/betaAppReviewSubmissions' && refuse) throw new Error('POST ' + path + ' -> 422 ' + JSON.stringify([{ code: refuse }]));
         if (path === '/v1/betaAppReviewSubmissions' && submissionSticks) {
           live.submissions.push({ id: 's1', attributes: { betaReviewState: 'WAITING_FOR_REVIEW' } });
           live.state = 'WAITING_FOR_BETA_REVIEW';
@@ -29,6 +31,8 @@ function fixture({ internal = false, automatic = false, notes = null, state = 'R
       if (path === '/v1/builds/b10/buildBetaDetail') return { data: { attributes: { internalBuildState: 'IN_BETA_TESTING',
         externalBuildState: typeof live.state === 'function' ? live.state(clock) : live.state } } };
       if (path === '/v1/betaAppReviewSubmissions?filter[build]=b10') return { data: live.submissions };
+      const other = train.find(item => path === '/v1/builds/' + item.id + '/buildBetaDetail');
+      if (other) return { data: { attributes: { internalBuildState: 'IN_BETA_TESTING', externalBuildState: other.state } } };
       throw new Error('Unexpected provider read: ' + path);
     },
     listAll: async path => {
@@ -37,6 +41,9 @@ function fixture({ internal = false, automatic = false, notes = null, state = 'R
       }
       if (path === '/v1/betaGroups/g0/builds?limit=200') return live.inGroup || automatic ? [{ id: 'b10' }] : [{ id: 'b9' }];
       if (path === '/v1/betaGroups/g0/betaTesters?limit=200') return [{ id: 't1' }, { id: 't2' }];
+      if (path === '/v1/builds?filter[app]=app&filter[preReleaseVersion.version]=1.1&filter[preReleaseVersion.platform]=IOS&fields[builds]=version&limit=200') {
+        return [{ id: 'b10', attributes: { version: '10' } }, ...train.map(item => ({ id: item.id, attributes: { version: item.version } }))];
+      }
       throw new Error('Unexpected provider list: ' + path);
     }
   };
@@ -60,6 +67,7 @@ test('an external group gets What to Test, the build and a Beta App Review submi
   assert.equal(result.betaReviewState, 'WAITING_FOR_REVIEW');
   assert.equal(result.externalBuildState, 'WAITING_FOR_BETA_REVIEW');
   assert.equal(result.testers, 2);
+  assert.equal(result.queuedBehind, null);
 });
 
 test('existing What to Test is patched only when it differs', async () => {
@@ -110,6 +118,26 @@ test('membership or a submission that does not read back fails instead of report
   assert.equal(group.writes.filter(w => w.path.endsWith('/relationships/builds')).length, 1, 'the uncertain add is never repeated');
   const review = fixture({ notes: { id: 'loc1', text: 'Notes' }, submissionSticks: false });
   await assert.rejects(() => ios.betaGroup(10, { group: 'Early reviewers' }, review.io), /did not read back/);
+});
+
+test('a build queued behind another build of its version stays in the group, names that build and is not submitted', async () => {
+  const f = fixture({ refuse: 'ENTITY_UNPROCESSABLE.ANOTHER_BUILD_IN_REVIEW',
+    train: [{ id: 'b8', version: '8', state: 'IN_BETA_TESTING' }, { id: 'b9', version: '9', state: 'WAITING_FOR_BETA_REVIEW' }] });
+  const lines = [];
+  f.io.log = line => lines.push(line);
+  const result = await ios.betaGroup(10, { group: 'Early reviewers', whatToTest: NOTES }, f.io);
+  assert.equal(result.submitted, false);
+  assert.equal(result.buildPresent, true);
+  assert.equal(result.whatToTest, 'set');
+  assert.deepEqual(result.queuedBehind, { build: '9', buildId: 'b9', externalBuildState: 'WAITING_FOR_BETA_REVIEW' });
+  assert.equal(result.externalBuildState, 'READY_FOR_BETA_SUBMISSION');
+  assert.ok(lines.some(line => /build 9 is WAITING_FOR_BETA_REVIEW.*rerun beta-group 10/.test(line)));
+  assert.equal(f.writes.filter(w => w.path === '/v1/betaAppReviewSubmissions').length, 1, 'the refused submission is not retried');
+  const unknown = fixture({ refuse: 'ENTITY_UNPROCESSABLE.ANOTHER_BUILD_IN_REVIEW' });
+  assert.deepEqual((await ios.betaGroup(10, { group: 'Early reviewers', whatToTest: NOTES }, unknown.io)).queuedBehind,
+    { build: null, buildId: null, externalBuildState: null });
+  const other = fixture({ refuse: 'ENTITY_ERROR.ATTRIBUTE.REQUIRED' });
+  await assert.rejects(() => ios.betaGroup(10, { group: 'Early reviewers', whatToTest: NOTES }, other.io), /ATTRIBUTE.REQUIRED/);
 });
 
 test('an internal group gets the build and What to Test but no Beta App Review', async () => {

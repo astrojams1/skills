@@ -201,6 +201,15 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    also needs the app's Test Information (beta description, feedback email, review contact) once per app; Apple's
    error names a missing field. It never touches the App Store version or App Review. Approval usually takes under a
    day; rerun the command or `asc.mjs status` to read it.
+
+   **One build of a version in Beta App Review at a time.** Apple's rule: "You can only have one build of each version
+   in review at a time. Once that build is approved, you can submit additional builds." A second build of the same
+   version gets `ANOTHER_BUILD_IN_REVIEW` (HTTP 422). `beta-group` then leaves the new build in the group with its What
+   to Test, names the build ahead (`queuedBehind`), and exits 3. Leave the earlier build in review; do not expire it
+   to jump the queue, since the first build of a version gets the full review and later ones are often quicker. Rerun
+   `beta-group` for the new build once the earlier one reads approved or rejected, and keep the TestFlight gate open
+   with that next action. External testers keep the newest approved build meanwhile (Pipsqueak builds 10 and 11,
+   2026-11-19).
 6. **Store data.** `asc.mjs listing`, `age-rating`, `pricing` (first release, or when the price changes),
    `screenshots`, `review-details`; then `status` until every screenshot reads `COMPLETE`. Every attribute
    write is read back and a mismatch fails the command. Before patching copy on a version Apple has seen,

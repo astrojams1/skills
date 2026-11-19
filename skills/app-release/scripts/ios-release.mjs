@@ -649,6 +649,21 @@ export function betaReviewDecision(externalBuildState, submissions) {
   throw new Error('The build\'s external TestFlight state is ' + externalBuildState + '; it cannot go to Beta App Review. A new build is needed.');
 }
 
+// buildInBetaReview finds the other build of the same version that holds Beta App Review, or null if none reads so.
+async function buildInBetaReview(buildId, ctx) {
+  const { config, version, read, all } = ctx;
+  const train = await all('/v1/builds?filter[app]=' + config.ascAppId + '&filter[preReleaseVersion.version]=' +
+    encodeURIComponent(version) + '&filter[preReleaseVersion.platform]=IOS&fields[builds]=version&limit=200');
+  for (const item of train) {
+    if (item.id === buildId) continue;
+    const { externalBuildState } = (await read('/v1/builds/' + item.id + '/buildBetaDetail')).data.attributes;
+    if (['WAITING_FOR_BETA_REVIEW', 'IN_BETA_REVIEW'].includes(externalBuildState)) {
+      return { build: String(item.attributes.version), buildId: item.id, externalBuildState };
+    }
+  }
+  return null;
+}
+
 // betaGroup puts build N in front of one named TestFlight group, internal or external, without asking: the owner's
 // rule is that TestFlight never waits on him (James, 2026-11-19). It sets What to Test, adds the build to the group,
 // submits it for Beta App Review when the group is external and the build is not already submitted or approved, and
@@ -702,6 +717,7 @@ export async function betaGroup(build, options, io) {
   let state = await detail();
   let betaReviewState = null;
   let submitted = false;
+  let queuedBehind = null;
   if (external) {
     let decision = betaReviewDecision(state.externalBuildState, (await read(submissionsPath)).data);
     while (decision.wait && now() < deadline) {
@@ -712,9 +728,21 @@ export async function betaGroup(build, options, io) {
     }
     if (decision.wait) throw new Error('Build ' + build + ' is still ' + decision.reason + ' after 30 minutes; read provider state before retrying.');
     if (decision.submit) {
-      await read('/v1/betaAppReviewSubmissions', 'POST', { data: { type: 'betaAppReviewSubmissions',
-        relationships: { build: { data: { type: 'builds', id: found.id } } } } });
-      submitted = true;
+      try {
+        await read('/v1/betaAppReviewSubmissions', 'POST', { data: { type: 'betaAppReviewSubmissions',
+          relationships: { build: { data: { type: 'builds', id: found.id } } } } });
+        submitted = true;
+      } catch (error) {
+        // Apple takes one build of a version into Beta App Review at a time: "Another build in the same train is already
+        // in beta review. Please submit it again once it gets completed." (Pipsqueak build 11 behind build 10,
+        // 2026-11-19). The build stays in the group with its What to Test, so name the build ahead and say when to rerun.
+        if (!String(error.message).includes('ANOTHER_BUILD_IN_REVIEW')) throw error;
+        queuedBehind = (await buildInBetaReview(found.id, ctx)) || { build: null, buildId: null, externalBuildState: null };
+        log('Apple takes one build of ' + ctx.version + ' into Beta App Review at a time' + (queuedBehind.build
+          ? ': build ' + queuedBehind.build + ' is ' + queuedBehind.externalBuildState : '') + '. Build ' + build +
+          ' is in ' + options.group + ' with What to Test but not submitted; rerun beta-group ' + build +
+          ' once that review is approved or rejected.');
+      }
     } else log('Build ' + build + ' needs no Beta App Review submission: ' + decision.reason + '.');
     const submissions = (await read(submissionsPath)).data;
     if (submitted && !submissions.length) throw new Error('The Beta App Review submission for build ' + build + ' did not read back.');
@@ -725,7 +753,7 @@ export async function betaGroup(build, options, io) {
   const testerCount = (await all('/v1/betaGroups/' + group.id + '/betaTesters?limit=200')).length;
   const result = { build: String(build), buildId: found.id, group: options.group, groupId: group.id, external, whatToTest, buildPresent,
     internalBuildState: state.internalBuildState, externalBuildState: external ? state.externalBuildState : null, betaReviewState, submitted,
-    testers: testerCount, publicLink: Boolean(group.attributes.publicLinkEnabled) };
+    queuedBehind, testers: testerCount, publicLink: Boolean(group.attributes.publicLinkEnabled) };
   log('Build ' + build + ' is in ' + options.group + ' (' + (external ? 'external' : 'internal') + ', ' + testerCount + ' tester(s)' +
     (result.publicLink ? ', public link on' : '') + '); ' + (external ? 'external state ' + result.externalBuildState +
     (betaReviewState ? ', Beta App Review ' + betaReviewState : '') : 'internal state ' + result.internalBuildState) + '.');
@@ -754,7 +782,10 @@ async function main(args) {
   if (flags.command === 'testers') await testers(flags.build);
   if (flags.command === 'beta-group') {
     const whatToTest = flags.whatToTest ? readFileSync(resolve(process.cwd(), flags.whatToTest), 'utf8') : null;
-    console.log(JSON.stringify(await betaGroup(flags.build, { group: flags.group, whatToTest }), null, 2));
+    const result = await betaGroup(flags.build, { group: flags.group, whatToTest });
+    console.log(JSON.stringify(result, null, 2));
+    // Exit 3: in the group but queued behind another build's Beta App Review, so a rerun is still owed.
+    if (result.queuedBehind) process.exitCode = 3;
   }
   if (flags.command === 'release') {
     const summary = await archive(flags);
