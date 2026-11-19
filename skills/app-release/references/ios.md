@@ -277,9 +277,10 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   `AFTER_APPROVAL`, and ENTERTAINMENT as secondary for Data Center and Rhythm (Space Worms has none on purpose).
   So nine apps and 201 languages went up with no refusal. Not yet seen: a language on the public store page, and
   whether Apple keeps an API-made language on the next version.
-- **The first write per app is unproven until seen.** No language had been written to Apple when this shipped
-  (2026-11-18), so the first `listing` with languages in each app is also the test. `listing` is safe to run again:
-  it lists what Apple has and creates or patches only what differs. When a language's write fails, read Apple's
+- **When a language's write fails.** The first real run (above) proved the path on nine apps, so a new app's first
+  `listing` with languages is an ordinary write, not a test. Plenty already had UTILITIES as its secondary category on
+  the live 1.0 and Space Worms names none, so seven apps gained a secondary category that day. `listing` is safe to
+  run again: it lists what Apple has and creates or patches only what differs. When a language's write fails, read Apple's
   message and fix that language in store data, in the app's pull request, then run `listing` again:
   - **A name Apple says is taken** in that language: use the primary `listing.name` for that language.
   - **A readback that differs only by spaces or line ends** Apple trimmed: make store data match what Apple saved.
