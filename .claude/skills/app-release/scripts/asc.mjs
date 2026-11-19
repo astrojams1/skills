@@ -618,6 +618,8 @@ async function versionLocalization(versionId, create) {
 async function status() {
   const app = (await api('/v1/apps/' + IOS.ascAppId)).data;
   console.log('App', app.attributes.name, app.attributes.bundleId, 'id', app.id);
+  const notesProblem = reviewNotesProblem(STORE.review);
+  if (notesProblem) console.log('  review notes problem:', notesProblem);
   for (const image of await iapReviewScreenshotStatus({ app })) {
     console.log('  IAP review screenshot', image.productId, image.state, 'id', image.id || 'none', 'checksum', image.checksum || 'pending');
   }
@@ -1227,10 +1229,30 @@ async function reviewAttachment(file) {
 
 // reviewDetails retains this version's authorized contact when omitted from store data. First creation
 // requires a complete explicit identity and runtime phone; no account-wide contact lookup is performed.
+// REVIEW_NOTES_LIMIT is Apple's limit on App Review notes: a longer value is refused with 409
+// ENTITY_ERROR.ATTRIBUTE.INVALID.TOO_LONG "Review Notes cannot be longer than 4000 characters" (Nametag 1.0.4 and
+// Plenty 1.1, 2026-11-19).
+export const REVIEW_NOTES_LIMIT = 4000;
+
+// reviewNotesProblem names store data review notes Apple would refuse, or returns null. Length counts UTF-16 units,
+// as the listing checks do.
+export function reviewNotesProblem(review) {
+  if (!review || typeof review !== 'object' || !Object.hasOwn(review, 'notes')) return null;
+  if (typeof review.notes !== 'string') return 'review.notes must be a string.';
+  if (review.notes.length > REVIEW_NOTES_LIMIT) {
+    return 'review.notes is ' + review.notes.length + ' characters; Apple refuses more than ' + REVIEW_NOTES_LIMIT
+      + '. Shorten it by ' + (review.notes.length - REVIEW_NOTES_LIMIT) + ' in the app\'s pull request.';
+  }
+  return null;
+}
+
 export async function reviewDetails() {
-  const ctx = await context();
   const contact = STORE.review;
   if (!contact || typeof contact !== 'object' || Array.isArray(contact)) throw new Error('store data review must be an object.');
+  // Checked before any request, so notes Apple would refuse change nothing.
+  const notesProblem = reviewNotesProblem(contact);
+  if (notesProblem) throw new Error(notesProblem);
+  const ctx = await context();
   const current = await related('/v1/appStoreVersions/' + ctx.version.id + '/appStoreReviewDetail');
   const existing = current.data?.attributes || {};
   const attributes = {};
