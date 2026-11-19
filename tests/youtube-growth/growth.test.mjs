@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics, siteDays, siteVerdict, decommission } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags, sarProblem } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags, sarProblem, localizationProblems, localizedVideo } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -313,4 +313,29 @@ test('upload refuses a file with non-square pixels (YouTube classes it by its di
   assert.equal(sarProblem('N/A'), null);
   assert.equal(sarProblem('4320:4321'), null);
   assert.match(sarProblem('1994213:30672', 'x.mp4'), /non-square pixels/);
+});
+
+test('localize takes translated titles and descriptions only under the default text\'s rules', () => {
+  const ok = { es: { title: 'Hanzi Cards: Aprende mandarín | Vocabulario HSK', description: "Busca 'Hanzi Cards: Learn Mandarin' en el App Store.\nhttps://apps.apple.com/app/id1" } };
+  const rules = { appName: 'Hanzi Cards', searchPhrase: 'Hanzi Cards: Learn Mandarin' };
+  assert.deepEqual(localizationProblems(ok, rules), []);
+  assert.match(localizationProblems({}, rules)[0], /No languages/);
+  assert.match(localizationProblems({ en: ok.es }, rules)[0], /default language/);
+  assert.match(localizationProblems({ 'Spanish!': ok.es }, rules)[0], /language code/);
+  assert.match(localizationProblems({ es: { ...ok.es, title: 'Aprende mandarín con tarjetas y cuentos: Hanzi Cards' } }, rules)[0], /first 40/);
+  assert.match(localizationProblems({ es: { ...ok.es, title: 'x'.repeat(101) } }, rules)[0], /1 to 100/);
+  assert.match(localizationProblems({ es: { ...ok.es, description: 'Aprende mandarín.\nBusca Hanzi Cards: Learn Mandarin' } }, rules)[0], /first line/);
+  assert.match(localizationProblems({ es: { ...ok.es, description: ok.es.description + ' <b>' } }, rules)[0], /refuses/);
+  assert.match(localizationProblems({ es: { ...ok.es, description: "Busca 'Hanzi Cards: Learn Mandarin'\n" + 'é'.repeat(2600) } }, rules)[0], /5,000 bytes/);
+});
+
+test('localizedVideo sends the snippet back whole, sets a default language and merges languages', () => {
+  const video = { id: 'V1', snippet: { title: 'T', categoryId: '28', description: 'd', tags: ['a'], channelId: 'C', publishedAt: 'x' }, localizations: { fr: { title: 'F', description: 'f' } } };
+  const body = localizedVideo(video, { es: { title: 'E', description: 'e' } });
+  assert.equal(body.id, 'V1');
+  assert.equal(body.snippet.defaultLanguage, 'en');
+  assert.equal(body.snippet.channelId, undefined);
+  assert.deepEqual(body.snippet.tags, ['a']);
+  assert.deepEqual(Object.keys(body.localizations).sort(), ['es', 'fr']);
+  assert.equal(localizedVideo({ ...video, snippet: { ...video.snippet, defaultLanguage: 'en-US' } }, {}).snippet.defaultLanguage, 'en-US');
 });

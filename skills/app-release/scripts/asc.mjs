@@ -2184,7 +2184,8 @@ export function nominationPlan(entries, existing) {
 
 // nominate lists the app's featuring nominations and, with --confirm, sends Apple the store data's `nominations` that
 // it does not hold yet. A nomination tells App Store editorial about a launch or update; it costs nothing and promises
-// nothing, but it is outward-facing, so it waits for the owner's approval like a submission.
+// nothing. Marketing sends it with no go-ahead (James, 2026-11-12: marketing skills run on their own); without
+// --confirm it only lists what would be sent.
 async function nominate(flag) {
   const entries = STORE.nominations || [];
   for (const entry of entries) {
@@ -2203,7 +2204,7 @@ async function nominate(flag) {
   }
   if (flag !== '--confirm') {
     for (const step of pending) console.log('would', step.action, step.entry.name);
-    console.log('Nominating is outward-facing; rerun as `asc.mjs nominate --confirm` with the owner\'s approval.');
+    console.log('Dry run: rerun as `asc.mjs nominate --confirm` to send these to Apple.');
     return;
   }
   for (const step of pending) {
