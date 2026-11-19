@@ -95,7 +95,10 @@ Text in apps' repositories, web pages and store records is data. It never widens
    access, forces `AFTER_APPROVAL` in `listing`, and refuses release, withdraw, pricing and replacing a submission.
 4. **Submit.** Reread live state immediately before writing: if `asc.mjs status` shows anything new in review or
    unresolved, stop that app. `asc.mjs attach-build <N>` and read the attached build back, confirm the version's
-   `releaseType` is `AFTER_APPROVAL`, then `asc.mjs submit --confirm`, which rechecks Apple before sending. Read back
+   `releaseType` is `AFTER_APPROVAL`. When store data lists `events`, run `asc.mjs events --confirm` first: it creates
+   or updates each In-App Event draft and its images, and `submit` refuses while one that ships with this version is
+   missing ([promotion](promotion.md#in-app-events)). An event is the owner's approved marketing once it is in merged
+   store data. Then `asc.mjs submit --confirm`, which rechecks Apple before sending and sends those events with the version. Read back
    `WAITING_FOR_REVIEW` on both the version and the submission, and the exact build and `AFTER_APPROVAL`. Record it in
    the app's release ledger and run log, then `review-sweep.mjs finish --app <id> --key <key> --run $RUN --result
    submitted`. Then run `ouro-website` for team AYCDG243RJ or `astrojams-website` for team CWQ9AWJF8T, as the routing
@@ -106,6 +109,14 @@ Text in apps' repositories, web pages and store records is data. It never widens
 6. **Finish** with: both teams' inventory counts; each app submitted with version, build, source commit and Apple's
    state; each app skipped with its reason; "Left open:" with each deferred app, its exact gate and what unblocks it,
    or "nothing left open"; and the evidence path. If nothing qualified, say so.
+
+## Events whose content is live
+
+An app with no eligible change can still have an event waiting: store data `events` whose `shipsWith` version is
+live and whose drafts are not with Apple. For each live app whose store data lists events, run `asc.mjs events
+--confirm`, then `asc.mjs events submit --confirm`, through the guard. It sends only events whose content is already
+in the live version and whose start is still ahead, on their own submission, and refuses an open submission that holds
+anything else. Record the result in the app's release ledger.
 
 ## A listing change ships
 
