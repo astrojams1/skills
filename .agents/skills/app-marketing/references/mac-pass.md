@@ -71,9 +71,14 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
    Then `marketing.mjs lifetime --write`: first-time downloads since launch per live app and in all, the count the
    owner's goal uses (2026-11-18: "Lifetime, all apps", 1,000 across Ouro and astrojams). It reads Apple's one-time
-   historical snapshot plus the daily pulls, and says "a floor" while a snapshot is not ready. The first time a
-   snapshot is ready, compare its first date with the app's release date before trusting the total; the monthly
-   rows were written before any real snapshot could be read (2026-11-18).
+   historical snapshot plus the daily pulls, and says "a floor" while a snapshot is not ready. The first real read
+   (2026-11-19) showed what to expect: Apple gives each app one DAILY instance and no WEEKLY or MONTHLY ones, so the
+   monthly branch has still never run on real data; the days begin on the app's public release date (Füd's on
+   2025-04-25, from the iTunes lookup's `releaseDate`) and match the daily pulls on every day both hold. Apple
+   publishes the instances app by app over minutes: a run can call some apps "not ready" and the next run, minutes
+   later, find them; rerun before writing a floor. An app released in the last two or three days has no snapshot
+   yet. When an app's snapshot first appears, compare its first date with that `releaseDate`; a first day well after
+   it, or a month row, means read the instances again before trusting the total.
    Then `marketing.mjs youtube --write`: it appends one `youtube` snapshot per app from `shorts.mjs views`, counting
    public Shorts only. Never total the registry by hand. Then the business sites: run the query from
    `marketing.mjs site-visits --sql` with the Neon connector's `run_sql` on project `lucky-hat-15341181` (Vegas
