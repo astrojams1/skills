@@ -74,6 +74,7 @@ The skill's own record: versions and lessons. Append rows; never rewrite them. P
 | 1.32.19 | 2026-11-18 | `marketing.mjs lifetime`: first-time downloads since launch per live app and in all, from Apple's one-time historical snapshot plus the daily pulls; the Mac pass runs it and the report carries its total | The owner's goal of 2026-11-18 counts lifetime downloads across all apps (1,000), and the tool knew only the days since each app's analytics request began (62 in all) |
 | 1.32.20 | 2026-11-18 | channels.md Listing languages: screenshots with translated headlines are an experiment on Hanzi Cards in three languages; more languages or apps wait for its verdict; a reader of the language reviews each headline and its image first |
 | 1.32.21 | 2026-11-18 | channels.md Listing languages: a secondary App Store category is an experiment on seven apps (Apple says what the primary category does and nothing about the secondary); a new app names one with its first listing when one fits |
+| 1.32.22 | 2026-11-19 | mac-pass.md: what the first real read of Apple's historical snapshot showed (DAILY only, days from the release date, same as the daily pulls, instances appear app by app over minutes) | The snapshot became readable on 2026-11-19 for 8 of 10 apps; a run three minutes earlier saw it for 3 and called the rest a floor, and the doc still said the check had never met real data |
 
 ## Lessons
 
