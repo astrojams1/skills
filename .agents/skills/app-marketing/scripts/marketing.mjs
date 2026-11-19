@@ -39,6 +39,11 @@
 //                                                   days, by surface and by channel tag (cross-promo xp-…, pitch,
 //                                                   utm, search, referral, direct); --write appends one `visits` line
 //                                                   per app to metrics.jsonl. Same proof as `pitches`.
+//   node marketing.mjs launches [--days N] [--write] [--json]   first opens per app per day (app-sites /api/launch,
+//                                                   the first-launch app standard) beside Apple's first-time downloads
+//                                                   for the same day; store installs only (TestFlight and debug apart);
+//                                                   --write appends one `launches` line per app to metrics.jsonl. Same
+//                                                   proof as `pitches`
 //   node marketing.mjs youtube [--write]            one `youtube` snapshot per app from `shorts.mjs views` (public Shorts
 //                                                   only): shortsViews, publicShorts, scheduledShorts
 //   node marketing.mjs site-visits --sql | --rows FILE [--app ID] [--out PATH] [--write]   a business site's visits
@@ -1704,6 +1709,78 @@ async function cmdVisits(root, args) {
   for (const e of pages) console.log(`  ${e.app}/${e.id} ${e.site}${e.path}: ${e.visits ? `${e.visits.d7}/${e.visits.d28} visits` : `${e.pageViews28} page views in 28 days (all sources)`}, judge ${e.judge || 'no date'}`);
 }
 
+// ---- first opens (app-sites /api/launch; the first-launch standard in app-release's references/standards.md) ----
+// Each install sends one anonymous event on its first open; the store keeps a daily count per Pacific day, app,
+// version, platform and channel. Apple's first-time downloads arrive one to two days late; first opens arrive in
+// minutes, so `launches` sets them side by side for the days Apple has read.
+
+export const LAUNCHES_URL = 'https://astrojams-apps.vercel.app/api/launch';
+// The verdict margin of the first-launch experiment: over 14 days with both numbers, first opens within a quarter of
+// Apple's first-time downloads (a reinstall counts again here and not at Apple; an install never opened, the reverse).
+export const LAUNCH_MARGIN = 0.25;
+
+// launchDays: per app, per day, first opens from store installs (`store` and `unknown`, which Expo apps send outside
+// debug), TestFlight and debug apart, with Apple's first-time downloads for that day when a pull has read it.
+export function launchDays(report, profiles, metrics, days = 14) {
+  const from = plusDays(report.today, -(days - 1));
+  const out = new Map();
+  for (const p of profiles) if (p.stage === 'live' && p.appStoreId) out.set(p.id, { app: p.id, days: {} });
+  for (const r of report.rows || []) {
+    if (r.day < from || r.day > report.today) continue;
+    const a = out.get(r.app) || out.set(r.app, { app: r.app, days: {} }).get(r.app);
+    const d = a.days[r.day] || (a.days[r.day] = { firstOpens: 0, testflight: 0, debug: 0 });
+    const key = r.channel === 'testflight' ? 'testflight' : r.channel === 'debug' ? 'debug' : 'firstOpens';
+    d[key] += r.n;
+  }
+  for (const a of out.values()) {
+    const apple = mergedDays(metrics, a.app);
+    for (let i = 0; i < days; i += 1) {
+      const day = plusDays(report.today, -i);
+      const d = a.days[day] || (a.days[day] = { firstOpens: 0, testflight: 0, debug: 0 });
+      if (apple[day] && typeof apple[day].first === 'number') d.appleDownloads = apple[day].first;
+    }
+  }
+  return [...out.values()].sort((x, y) => x.app.localeCompare(y.app));
+}
+
+// launchAgreement compares first opens with Apple's first-time downloads over the days that have both, counted only
+// from the day the app first reported (an app whose build lacks the standard sends nothing yet).
+export function launchAgreement(entry, margin = LAUNCH_MARGIN) {
+  const started = Object.keys(entry.days).filter(day => entry.days[day].firstOpens + entry.days[day].testflight + entry.days[day].debug > 0).sort()[0];
+  const both = Object.entries(entry.days).filter(([day, d]) => started && day >= started && typeof d.appleDownloads === 'number');
+  const opens = both.reduce((n, [, d]) => n + d.firstOpens, 0), apple = both.reduce((n, [, d]) => n + d.appleDownloads, 0);
+  const ratio = apple ? opens / apple : null;
+  return { since: started || null, days: both.length, firstOpens: opens, appleDownloads: apple, ratio,
+    within: !both.length ? null : ratio === null ? opens === 0 : Math.abs(ratio - 1) <= margin };
+}
+
+async function fetchReport(root, url) {
+  const open = await fetch(`${PITCHES_URL}?dry=1`).then(r => r.json()).catch(() => ({}));
+  const queue = deployedQueue(root, open.commit);
+  let res = await fetch(url, { headers: { Authorization: queue ? queueProof(queue) : `Bearer ${githubToken()}` } });
+  if (res.status === 401 && queue) res = await fetch(url, { headers: { Authorization: `Bearer ${githubToken()}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.error) throw new Error(`${new URL(url).pathname} answered ${res.status}: ${body.error || 'no detail'}`);
+  return body;
+}
+
+async function cmdLaunches(root, args) {
+  const days = Math.min(Math.max(Number(args.days) || 14, 1), 120);
+  const report = await fetchReport(root, `${typeof args.url === 'string' ? args.url : LAUNCHES_URL}?report=1&days=${days}`);
+  const entries = launchDays(report, loadProfiles(root), loadMetrics(root), days);
+  const at = new Date().toISOString();
+  if (args.write) for (const e of entries) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify({ at, app: e.app, source: 'launches', through: report.today, countedSince: report.first, days: e.days, values: launchAgreement(e) }) + '\n');
+  if (args.json) return console.log(JSON.stringify({ through: report.today, countedSince: report.first, apps: entries.map(e => ({ ...e, agreement: launchAgreement(e) })) }, null, 2));
+  console.log(`first opens to ${report.today} (Pacific), counted since ${report.first || 'no event yet'}; store installs, with Apple's first-time downloads where a pull has read the day (apple -: not read yet)`);
+  for (const e of entries) {
+    const a = launchAgreement(e);
+    const shown = Object.entries(e.days).sort(([x], [y]) => y.localeCompare(x)).slice(0, 7)
+      .map(([day, d]) => `${day.slice(5)} ${d.firstOpens}/${d.appleDownloads === undefined ? '-' : d.appleDownloads}${d.testflight ? ` tf${d.testflight}` : ''}${d.debug ? ` dbg${d.debug}` : ''}`).join(', ');
+    console.log(`${e.app}: ${a.since ? `${a.firstOpens} opens vs ${a.appleDownloads} Apple over ${a.days} days since ${a.since}${a.ratio === null ? '' : ` (${Math.round(a.ratio * 100)}%)`}` : 'no first open yet (its build may lack the standard)'}`);
+    console.log(`  ${shown}`);
+  }
+}
+
 // ---- reports ----
 
 export function renderBoard(profiles, events, metrics, registry) {
@@ -1841,7 +1918,7 @@ async function main() {
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
     public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), lifetime: () => cmdLifetime(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
-    youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), recurring: () => cmdRecurring(root, args), mirror: () => cmdMirror(root)
+    youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), launches: () => cmdLaunches(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), recurring: () => cmdRecurring(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
   await commands[command]();

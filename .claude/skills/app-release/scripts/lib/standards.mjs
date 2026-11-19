@@ -6,6 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
+import { CATALOG_MARKER, expectedApps, listFor, parseGenerated, readCatalogue } from './more-apps.mjs';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // A reason short enough to be "n/a" or "later" records nothing a later run could weigh.
@@ -38,13 +39,18 @@ function git(root, args) {
   return result.stdout;
 }
 
+// trackedFiles lists the git-tracked paths under the configured project directory.
+function trackedFiles(config) {
+  const prefix = relative(config.root, config.projectDir);
+  return git(config.root, ['ls-files', '-z']).split('\0').filter(path => path && (!prefix || path.startsWith(prefix + '/')));
+}
+
 // sourceFiles reads the tracked app source under the configured project directory.
 export function sourceFiles(config, scan) {
   const prefix = relative(config.root, config.projectDir);
   const scoped = path => (prefix ? path.slice(prefix.length + 1) : path);
   const files = [];
-  for (const path of git(config.root, ['ls-files', '-z']).split('\0')) {
-    if (!path || (prefix && !path.startsWith(prefix + '/'))) continue;
+  for (const path of trackedFiles(config)) {
     if (!isSourcePath(path, scan) || !isSourcePath(scoped(path), scan)) continue;
     const absolute = join(config.root, path);
     try {
@@ -85,16 +91,19 @@ const CHECKS = {
     return hits.length ? null : check.problem;
   },
   // A file dropped into the repository is not a control on a screen: what the marked file defines must be used elsewhere.
+  // With `any`, one of the names used elsewhere is enough (a screen shows the rows or the single link, not both).
   wired(check, context) {
     context.callers = [];
+    let unused = 0, defined = 0;
     for (const name of check.names) {
-      const defined = context.marked.filter(file => new RegExp('\\b(?:struct|class|func|function|const)\\s+' + name + '\\b').test(file.text));
-      if (!defined.length) continue;
-      const callers = context.files.filter(file => !defined.includes(file) && new RegExp('\\b' + name + '\\b').test(file.text));
-      if (!callers.length) return check.problem;
+      const defining = context.marked.filter(file => new RegExp('\\b(?:struct|class|func|function|const|enum)\\s+' + name + '\\b').test(file.text));
+      if (!defining.length) continue;
+      defined += 1;
+      const callers = context.files.filter(file => !defining.includes(file) && !file.text.includes(CATALOG_MARKER) && new RegExp('\\b' + name + '\\b').test(file.text));
+      if (!callers.length) { unused += 1; if (!check.any) return check.problem; }
       context.callers.push(...callers);
     }
-    return null;
+    return check.any && defined && unused === defined ? check.problem : null;
   },
   // A store data URL must be its own page, not one of the others: a privacy "policy" that is just the marketing page
   // passed every other check (Hanzi Cards, 2026-11-10). Trailing slashes and case are ignored.
@@ -103,6 +112,45 @@ const CHECKS = {
     const value = norm(valueAt(context.store, check.path));
     if (!value) return null;
     return check.from.some(path => norm(valueAt(context.store, path)) === value) ? check.problem : null;
+  },
+  // The marked file must not carry what the standard forbids (an identifier in the first-launch event).
+  absent(check, context) {
+    if (!context.marked.length) return null;
+    const pattern = new RegExp(check.anyOf.join('|'), check.flags || '');
+    return context.marked.some(file => pattern.test(file.text)) ? check.problem : null;
+  },
+  // A privacy manifest (PrivacyInfo.xcprivacy, or an Expo app config's ios.privacyManifests) declares the data the
+  // standard sends. Read from tracked files under projectDir; build output and dependencies do not count.
+  privacyManifest(check, context) {
+    const names = /(?:^|\/)(?:PrivacyInfo\.xcprivacy|app\.json|app\.config\.[cm]?[jt]s)$/;
+    const skip = context.catalog.scan.dirs;
+    const found = trackedFiles(context.config).filter(path => names.test(path) && !path.split('/').some(part => skip.includes(part)));
+    const hits = found.filter(path => {
+      try { return check.anyOf.every(text => readFileSync(join(context.config.root, path), 'utf8').includes(text)); } catch { return false; }
+    });
+    context.evidence.push(...hits.slice(0, 2));
+    return hits.length ? null : check.problem;
+  },
+  // The bundled More apps list is the generated one, current with the shared catalogue: written within maxAgeDays,
+  // never listing the app itself, and naming the same apps the catalogue does today when the app sites repository can
+  // be read on this Mac (lib/more-apps.mjs).
+  moreAppsCatalog(check, context) {
+    const file = context.files.find(item => item.text.includes(CATALOG_MARKER));
+    if (!file) return check.problem;
+    context.evidence.push(file.path);
+    const parsed = parseGenerated(file.text);
+    if (!parsed.generated || !parsed.ids) return file.path + ' has no `generated:` or `apps:` line; write it again with scripts/more-apps.mjs';
+    const ios = context.config.ios || {};
+    if ((ios.ascAppId && file.text.includes('"' + ios.ascAppId + '"')) || (ios.bundleId && file.text.includes('"' + ios.bundleId + '"'))) return file.path + ' lists the app itself';
+    const age = (context.now - Date.parse(parsed.generated + 'T00:00:00Z')) / 86400000;
+    if (age > check.maxAgeDays) return file.path + ' was generated on ' + parsed.generated + ', more than ' + check.maxAgeDays + ' days ago; write it again with scripts/more-apps.mjs';
+    const catalogue = context.catalogue === undefined ? readCatalogue() : context.catalogue;
+    if (!catalogue) return null;
+    const want = listFor(expectedApps(catalogue), { bundleId: ios.bundleId, appStoreId: ios.ascAppId }).map(app => app.id);
+    const missing = want.filter(id => !parsed.ids.includes(id));
+    const extra = parsed.ids.filter(id => !want.includes(id));
+    if (!missing.length && !extra.length) return null;
+    return file.path + ' is out of date with the catalogue (' + [missing.length ? 'missing ' + missing.join(', ') : '', extra.length ? 'no longer listed: ' + extra.join(', ') : ''].filter(Boolean).join('; ') + '); write it again with scripts/more-apps.mjs';
   },
   // Links out of a Kids Category app sit behind a parental gate, so the screen holding the control should show one.
   kidsGate(check, context) {
@@ -132,7 +180,8 @@ function readStore(config) {
 
 // auditApp reports each standard as pass, missing or opted-out. Source is read only when some standard needs it, so an
 // app that has opted out of everything needs no checkout.
-export function auditApp(config, catalog = loadCatalog()) {
+// `options.now` (milliseconds) and `options.catalogue` (the app sites catalogue, or null for none) are for tests.
+export function auditApp(config, catalog = loadCatalog(), options = {}) {
   let files = null;
   const store = readStore(config);
   const standards = catalog.standards.map(standard => {
@@ -148,7 +197,7 @@ export function auditApp(config, catalog = loadCatalog()) {
       if (!where.length) return { ...base, status: 'not-applicable', problems: [], evidence: [] };
       base.appliesTo = where.slice(0, 3);
     }
-    const context = { config, store, files, marked: [], evidence: [] };
+    const context = { config, store, files, catalog, marked: [], evidence: [], now: options.now || Date.now(), catalogue: options.catalogue };
     const problems = standard.checks.map(check => CHECKS[check.type](check, context)).filter(Boolean);
     if (reason !== undefined) problems.unshift('standards.optOut.' + standard.id + ' does not record a reason of at least ' + MIN_REASON + ' characters, so it does not count');
     const evidence = [...new Set(context.evidence)];

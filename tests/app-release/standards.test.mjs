@@ -10,15 +10,27 @@ import { fileURLToPath } from 'node:url';
 import { normalizeConfig } from '../../skills/app-release/scripts/lib/config.mjs';
 import { auditApp, gateFor, isSourcePath, loadCatalog, standardsRefusal } from '../../skills/app-release/scripts/lib/standards.mjs';
 import { discoverApps, parseArgs, table } from '../../skills/app-release/scripts/standards.mjs';
+import { expectedApps, listFor, parseGenerated, renderSwift, renderTs } from '../../skills/app-release/scripts/lib/more-apps.mjs';
+
+// The audit compares a generated More apps list with the app sites repository when this Mac has it; fixtures never do.
+process.env.APP_SITES_ROOT = '/nonexistent/app-sites';
 
 const skill = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'skills', 'app-release');
 const swiftReference = join(skill, 'assets', 'feedback', 'FeedbackButton.swift');
 const tsReference = join(skill, 'assets', 'feedback', 'feedback.ts');
 const swiftRating = join(skill, 'assets', 'rating', 'RatingPrompt.swift');
 const tsRating = join(skill, 'assets', 'rating', 'rating.ts');
+const swiftMoreApps = join(skill, 'assets', 'more-apps', 'MoreApps.swift');
+const tsMoreApps = join(skill, 'assets', 'more-apps', 'moreApps.ts');
+const swiftFirstLaunch = join(skill, 'assets', 'first-launch', 'FirstLaunch.swift');
+const tsFirstLaunch = join(skill, 'assets', 'first-launch', 'firstLaunch.ts');
+const today = new Date().toISOString().slice(0, 10);
+const listed = [{ id: 'other', name: 'Other', subtitle: 'Another app', appStoreId: '111', bundleId: 'com.example.other', iconBase64: '' }];
+const manifest = '<plist><dict><key>NSPrivacyCollectedDataTypes</key><array><dict><key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeProductInteraction</string>'
+  + '<key>NSPrivacyCollectedDataTypePurposes</key><array><string>NSPrivacyCollectedDataTypePurposeAnalytics</string></array></dict></array></dict></plist>\n';
 const script = join(skill, 'scripts', 'standards.mjs');
 const address = 'astrojams1@gmail.com';
-const settings = 'import SwiftUI\nstruct SettingsView: View { var body: some View { List { FeedbackButton(); Link("Privacy policy", destination: privacyURL); Link("Support", destination: supportURL) } }\n'
+const settings = 'import SwiftUI\nstruct SettingsView: View { var body: some View { List { FeedbackButton(); MoreAppsSection(); Link("Privacy policy", destination: privacyURL); Link("Support", destination: supportURL) }.task { FirstLaunch.report(app: "example") } }\n'
   + '  func saved() { RatingPrompt.askIfDue() } }\n'
   + 'let privacyURL = URL(string: "https://example.test/privacy")!\nlet supportURL = URL(string: "https://example.test/support")!\n';
 
@@ -35,21 +47,25 @@ function repo(t, { config = {}, store = {}, files = {} } = {}) {
   git('init', '-q'); git('config', 'user.email', 'qa@example.test'); git('config', 'user.name', 'QA'); git('add', '.'); git('commit', '-qm', 'fixture');
   return { root, git, config: () => normalizeConfig(JSON.parse(readFileSync(join(root, 'app-release.config.json'), 'utf8')), join(root, 'app-release.config.json')) };
 }
-const native = () => ({ 'App/FeedbackButton.swift': readFileSync(swiftReference, 'utf8'), 'App/RatingPrompt.swift': readFileSync(swiftRating, 'utf8'), 'App/SettingsView.swift': settings });
+const native = () => ({ 'App/FeedbackButton.swift': readFileSync(swiftReference, 'utf8'), 'App/RatingPrompt.swift': readFileSync(swiftRating, 'utf8'), 'App/SettingsView.swift': settings,
+  'App/MoreApps.swift': readFileSync(swiftMoreApps, 'utf8'), 'App/MoreAppsCatalog.swift': renderSwift(listed, { generated: today, source: 'a test' }),
+  'App/FirstLaunch.swift': readFileSync(swiftFirstLaunch, 'utf8'), 'App/PrivacyInfo.xcprivacy': manifest });
 const status = (result, id) => result.standards.find(item => item.id === id);
 
 test('the Swift reference, placed on a screen, passes every standard', t => {
   const result = auditApp(repo(t, { files: native() }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
-  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable', 'pass']);
+  assert.deepEqual(result.standards.map(item => item.status), ['pass', 'pass', 'pass', 'not-applicable', 'pass', 'pass', 'pass']);
   assert.ok(status(result, 'rating').evidence.includes('App/RatingPrompt.swift'));
   assert.ok(status(result, 'feedback').evidence.includes('App/FeedbackButton.swift'));
 });
 
 test('the TypeScript reference passes once a screen labels and calls it', t => {
   const screen = 'import { sendFeedback } from "./feedback";\nimport { ratingGoodMoment } from "./rating";\n<Button title="Send Feedback" onPress={() => sendFeedback(info, platform)} />;\nconst privacyUrl = "/privacy"; const supportUrl = "/support";\n'
-    + 'const onSaved = () => ratingGoodMoment(version, ratingPlatform);\n';
-  const result = auditApp(repo(t, { files: { 'src/feedback.ts': readFileSync(tsReference, 'utf8'), 'src/rating.ts': readFileSync(tsRating, 'utf8'), 'src/Settings.tsx': screen } }).config());
+    + 'const onSaved = () => ratingGoodMoment(version, ratingPlatform);\nconst apps = moreAppsFor(Platform.OS, bundleId);\nuseEffect(() => { reportFirstLaunch("example", launch); }, []);\n';
+  const result = auditApp(repo(t, { files: { 'src/feedback.ts': readFileSync(tsReference, 'utf8'), 'src/rating.ts': readFileSync(tsRating, 'utf8'), 'src/Settings.tsx': screen,
+    'src/moreApps.ts': readFileSync(tsMoreApps, 'utf8'), 'src/moreAppsCatalog.ts': renderTs(listed, { generated: today, source: 'a test' }),
+    'src/firstLaunch.ts': readFileSync(tsFirstLaunch, 'utf8'), 'app.json': JSON.stringify({ expo: { ios: { privacyManifests: { NSPrivacyCollectedDataTypes: [{ NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeProductInteraction', NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAnalytics'] }] } } } }) } }).config());
   assert.equal(result.ok, true, JSON.stringify(result.standards.flatMap(item => item.problems)));
 });
 
@@ -138,7 +154,7 @@ test('a Kids Category app needs the control behind its parental gate', t => {
 
 test('an opt-out needs a recorded reason, stays visible, and an unknown id is flagged', t => {
   const reason = 'A watch-only app has no screen to hold the control.';
-  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, rating: reason, feedbak: reason } } } }).config());
+  const out = auditApp(repo(t, { config: { standards: { optOut: { feedback: reason, 'privacy-link': reason, 'support-link': reason, rating: reason, 'more-apps': reason, 'first-launch': reason, feedbak: reason } } } }).config());
   assert.equal(out.ok, true);
   assert.equal(status(out, 'feedback').status, 'opted-out');
   assert.equal(status(out, 'feedback').reason, reason);
@@ -420,4 +436,143 @@ print(String(decoding: try! JSONSerialization.data(withJSONObject: report), as: 
   assert.deepEqual(out.asks.map(Boolean), [false, false, false, true, false, false, false, false, false, true]);
   assert.equal(out.momentsAfterAsk, 0);
   assert.equal(out.versionAfterAsk, '1.0');
+});
+
+// ---- more-apps ----
+
+const profile = (id, extra = {}) => ({ id, site: 'astrojams', siteSlug: id, stage: 'live', weight: 1, ...extra });
+const site = (entries, available) => ({ apps: { apps: entries.map(([slug, id]) => ({ slug, appStoreId: id, bundleId: 'com.example.' + slug, name: slug.toUpperCase(), subtitle: 'Line of ' + slug, icon: 'icon.png' })) },
+  store: { apps: Object.fromEntries(available.map(id => [id, { status: 'available' }])) } });
+
+test('the catalogue lists live App Store apps of both teams, never one taken out, a web product or one not on sale', () => {
+  const profiles = [profile('alpha', { weight: 3 }), profile('beta'), profile('gone', { stage: 'not-marketed' }), profile('world-sim'), profile('web', { platform: 'web' }),
+    profile('soon', { stage: 'prelaunch' }), profile('fam', { site: 'ouro' }), profile('unsold')];
+  const sites = {
+    astrojams: site([['alpha', '1'], ['beta', '2'], ['gone', '3'], ['world-sim', '4'], ['web', '5'], ['soon', '6'], ['unsold', '7']], ['1', '2', '3', '4', '5', '6']),
+    ouro: site([['fam', '8']], ['8'])
+  };
+  const apps = expectedApps({ profiles, sites });
+  assert.deepEqual(apps.map(app => app.id), ['alpha', 'beta', 'fam']);
+  assert.deepEqual(listFor(apps, { bundleId: 'com.example.beta' }).map(app => app.id), ['alpha', 'fam']);
+  assert.deepEqual(listFor(apps, { appStoreId: '1' }).map(app => app.id), ['beta', 'fam']);
+});
+
+test('a generated list carries its date and apps, and the audit reads them back', () => {
+  const text = renderTs(listed, { generated: '2026-11-19', source: 'astrojams1/app-sites abc' });
+  assert.deepEqual(parseGenerated(text), { generated: '2026-11-19', ids: ['other'] });
+  assert.ok(!text.includes('app-standard: more-apps'), 'the generated list must not carry the shared file marker');
+  assert.ok(!/\?\.|\?\?/.test(text + readFileSync(tsMoreApps, 'utf8') + readFileSync(tsFirstLaunch, 'utf8')), 'no optional chaining or nullish coalescing');
+});
+
+test('more-apps fails without the generated list, on an old or self-listing one, and on one the catalogue disagrees with', t => {
+  const files = native();
+  delete files['App/MoreAppsCatalog.swift'];
+  assert.match(status(auditApp(repo(t, { files }).config()), 'more-apps').problems.join(), /write it with scripts\/more-apps\.mjs/);
+  const old = auditApp(repo(t, { files: { ...native(), 'App/MoreAppsCatalog.swift': renderSwift(listed, { generated: '2026-01-01', source: 'a test' }) } }).config(), undefined, { now: Date.parse('2026-11-19') });
+  assert.match(status(old, 'more-apps').problems.join(), /more than 60 days ago/);
+  const self = auditApp(repo(t, { config: { ios: { bundleId: 'com.example.other' } }, files: native() }).config());
+  assert.match(status(self, 'more-apps').problems.join(), /lists the app itself/);
+  const catalogue = { profiles: [profile('other'), profile('newer')], sites: { astrojams: site([['other', '111'], ['newer', '222']], ['111', '222']) } };
+  const stale = auditApp(repo(t, { files: native() }).config(), undefined, { catalogue });
+  assert.match(status(stale, 'more-apps').problems.join(), /missing newer/);
+  const unused = native();
+  unused['App/SettingsView.swift'] = unused['App/SettingsView.swift'].replace('MoreAppsSection(); ', '');
+  assert.match(status(auditApp(repo(t, { files: unused }).config()), 'more-apps').problems.join(), /no screen shows the row/);
+});
+
+test('moreApps.ts lists nothing outside iOS and never the app itself, and links the App Store page', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'more-apps-ts-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const catalog = renderTs([...listed, { ...listed[0], id: 'me', bundleId: 'com.example.me', appStoreId: '9' }], { generated: today, source: 'a test' });
+  writeFileSync(join(dir, 'moreAppsCatalog.mjs'), stripTypeScriptTypes(catalog));
+  writeFileSync(join(dir, 'moreApps.mjs'), stripTypeScriptTypes(readFileSync(tsMoreApps, 'utf8')).replace("from './moreAppsCatalog'", "from './moreAppsCatalog.mjs'"));
+  const m = await import(join(dir, 'moreApps.mjs'));
+  assert.deepEqual(m.moreAppsFor('android', 'x'), []);
+  assert.deepEqual(m.moreAppsFor('web', 'x'), []);
+  assert.deepEqual(m.moreAppsFor('ios', 'com.example.me').map(app => app.id), ['other']);
+  const [first] = m.moreAppsFor('ios');
+  assert.equal(m.moreAppsStoreUrl(first), 'https://apps.apple.com/app/id111');
+  assert.match(m.moreAppsIconUri(first), /^data:image\/jpeg;base64,/);
+});
+
+// ---- first-launch ----
+
+test('first-launch needs the endpoint, a caller, the privacy manifest, and no identifier in the event', t => {
+  const noManifest = native();
+  delete noManifest['App/PrivacyInfo.xcprivacy'];
+  assert.match(status(auditApp(repo(t, { files: noManifest }).config()), 'first-launch').problems.join(), /privacy manifest/);
+  const idfv = native();
+  idfv['App/FirstLaunch.swift'] += '\nlet id = UIDevice.current.identifierForVendor\n';
+  assert.match(status(auditApp(repo(t, { files: idfv }).config()), 'first-launch').problems.join(), /identifier/);
+  const elsewhere = native();
+  elsewhere['App/FirstLaunch.swift'] = elsewhere['App/FirstLaunch.swift'].replace('astrojams-apps.vercel.app/api/launch', 'example.test/launch');
+  assert.match(status(auditApp(repo(t, { files: elsewhere }).config()), 'first-launch').problems.join(), /owner's endpoint/);
+  const uncalled = native();
+  uncalled['App/SettingsView.swift'] = uncalled['App/SettingsView.swift'].replace('.task { FirstLaunch.report(app: "example") }', '');
+  assert.match(status(auditApp(repo(t, { files: uncalled }).config()), 'first-launch').problems.join(), /nothing calls it/);
+});
+
+test('firstLaunch.ts sends four fields once, only on iOS outside debug, and retries after a failure', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'first-launch-ts-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'firstLaunch.mjs'), stripTypeScriptTypes(readFileSync(tsFirstLaunch, 'utf8')));
+  const m = await import(join(dir, 'firstLaunch.mjs'));
+  const make = (statuses, extra = {}) => {
+    const sent = []; let stored = null;
+    return { sent, stored: () => stored, platform: { version: '1.2', platform: 'ios', channel: 'unknown', ...extra,
+      read: async () => stored, write: async text => { stored = text; },
+      post: async (url, body) => { sent.push({ url, body: JSON.parse(body) }); const s = statuses.shift(); if (s instanceof Error) throw s; return s; } } };
+  };
+  const flaky = make([new Error('offline'), 503, 204]);
+  assert.equal(await m.reportFirstLaunch('example', flaky.platform), false);
+  assert.equal(await m.reportFirstLaunch('example', flaky.platform), false);
+  assert.equal(await m.reportFirstLaunch('example', flaky.platform), true);
+  assert.equal(await m.reportFirstLaunch('example', flaky.platform), false);
+  assert.equal(flaky.sent.length, 3);
+  assert.equal(flaky.sent[0].url, 'https://astrojams-apps.vercel.app/api/launch');
+  assert.deepEqual(flaky.sent[0].body, { app: 'example', version: '1.2', platform: 'ios', channel: 'unknown' });
+  for (const extra of [{ platform: 'android' }, { platform: 'web' }, { channel: 'debug' }]) {
+    const quiet = make([204], extra);
+    assert.equal(await m.reportFirstLaunch('example', quiet.platform), false);
+    assert.equal(quiet.sent.length, 0);
+  }
+  const refused = make([400]);
+  assert.equal(await m.reportFirstLaunch('example', refused.platform), true, 'a 400 is final: the event will never be taken');
+  assert.equal(m.firstLaunchSettled(429), false);
+});
+
+test('the Swift references compile for iOS 15 and the Mac, and FirstLaunch sends four fields once', { skip: !sdk && 'needs Xcode' }, t => {
+  const dir = mkdtempSync(join(tmpdir(), 'swift-standards-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'MoreAppsCatalog.swift'), renderSwift(listed, { generated: today, source: 'a test' }));
+  const ios = spawnSync('xcrun', ['swiftc', '-typecheck', '-parse-as-library', '-swift-version', '6', '-sdk', sdk, '-target', 'arm64-apple-ios15.0-simulator', swiftMoreApps, swiftFirstLaunch, join(dir, 'MoreAppsCatalog.swift')], { encoding: 'utf8' });
+  assert.equal(ios.status, 0, ios.stderr);
+  writeFileSync(join(dir, 'main.swift'), `import Foundation
+final class Stub: URLProtocol {
+  nonisolated(unsafe) static var bodies: [Data] = []
+  override class func canInit(with request: URLRequest) -> Bool { true }
+  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+  override func startLoading() {
+    var data = request.httpBody ?? Data()
+    if let stream = request.httpBodyStream { stream.open(); var buffer = [UInt8](repeating: 0, count: 4096); while stream.hasBytesAvailable { let n = stream.read(&buffer, maxLength: 4096); if n <= 0 { break }; data.append(buffer, count: n) } }
+    Stub.bodies.append(data)
+    client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 204, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+    client?.urlProtocolDidFinishLoading(self)
+  }
+  override func stopLoading() {}
+}
+let config = URLSessionConfiguration.ephemeral
+config.protocolClasses = [Stub.self]
+let session = URLSession(configuration: config)
+let defaults = UserDefaults(suiteName: "first-launch-probe-\\(UUID().uuidString)")!
+let event = FirstLaunch.Event(app: "example", version: "1.0", platform: "macos", channel: "store")
+let first = await FirstLaunch.send(event, session: session)
+if first { defaults.set(true, forKey: FirstLaunch.storageKey) }
+let body = try! JSONSerialization.jsonObject(with: Stub.bodies[0]) as! [String: String]
+print(String(data: try! JSONSerialization.data(withJSONObject: ["sent": first, "due": FirstLaunch.isDue(defaults), "keys": body.keys.sorted(), "count": Stub.bodies.count] as [String: Any]), encoding: .utf8)!)
+`);
+  const built = spawnSync('xcrun', ['swiftc', '-swift-version', '5', join(dir, 'main.swift'), swiftFirstLaunch, '-o', join(dir, 'probe')], { encoding: 'utf8' });
+  assert.equal(built.status, 0, built.stderr);
+  const out = JSON.parse(execFileSync(join(dir, 'probe'), { encoding: 'utf8' }));
+  assert.deepEqual(out, { sent: true, due: false, keys: ['app', 'channel', 'platform', 'version'], count: 1 });
 });
