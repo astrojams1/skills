@@ -199,16 +199,57 @@ function readProvenance(repo, app, version, build, stateRoot) {
   return { problem: archive.problem + ' at ' + path };
 }
 
+// mergeWouldChange merges `commit` into `target` in memory (`git merge-tree --write-tree` writes objects only, never a
+// ref, index or work tree) and lists the files the merge would change or conflict in; an empty list means `target`
+// already holds every change `commit` made since their merge base. null means git could not run the merge.
+function mergeWouldChange(dir, target, commit) {
+  const merged = spawnSync('git', ['-C', dir, 'merge-tree', '--write-tree', '--name-only', '--no-messages', target, commit], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (merged.status !== 0 && merged.status !== 1) return null;
+  const [tree, ...conflicted] = merged.stdout.split('\n').map(line => line.trim()).filter(Boolean);
+  const differs = merged.status === 0 ? (git(dir, 'diff', '--name-only', target, tree) || '').split('\n').filter(Boolean) : [];
+  return [...new Set([...conflicted, ...differs])].sort();
+}
+
+const listFiles = files => files.length + ' file' + (files.length === 1 ? '' : 's') + ' (' + files.slice(0, 20).join(', ') + (files.length > 20 ? ', …' : '') + ')';
+
+// contentOnHead decides whether the release branch holds everything the live build's commit holds, so that a new
+// build from head cannot silently drop something people have installed. An ancestor holds it by definition. A
+// squash-merged or rebased release branch passes on content instead:
+//   1. merging the commit into head changes nothing, so every change it made since the merge base is on head; or
+//   2. some commit S on head's first-parent history since the merge base passes test 1 (S is the squash), and every
+//      file a merge into head would still touch has changed again since S rather than gone back to its merge-base
+//      content. Later edits on main to those files are main's own commits, exactly as they would be after a real
+//      merge, and they show in the commit-to-head diff the run reads for materiality.
+// It defers when no commit on head ever held all of the commit's changes (a partial squash) and when head has put a
+// file back the way it was before the commit (a revert), and names the files either way.
+export function contentOnHead(dir, commit, head) {
+  if (git(dir, 'cat-file', '-e', commit + '^{commit}') === null) return { problem: 'commit ' + commit + ' is not in ' + dir };
+  if (spawnSync('git', ['-C', dir, 'merge-base', '--is-ancestor', commit, head]).status === 0) return { ancestor: true };
+  const notAncestor = 'commit ' + commit + ' is not an ancestor of ' + head;
+  const base = git(dir, 'merge-base', commit, head);
+  if (!base) return { problem: notAncestor + ' and shares no history with it' };
+  const touched = (git(dir, 'diff', '--name-only', base, commit) || '').split('\n').filter(Boolean);
+  const missing = mergeWouldChange(dir, head, commit);
+  if (missing === null) return { problem: notAncestor + ', and git merge-tree could not test whether its content is there' };
+  const held = notAncestor + ' (squash-merged or rebased), but its changes to ' + touched.length + ' file' + (touched.length === 1 ? '' : 's') + ' since ' + base.slice(0, 8);
+  if (!missing.length) return { ancestor: false, base, note: held + ' are all on ' + head };
+  const line = (git(dir, 'rev-list', '--first-parent', '--reverse', base + '..' + head) || '').split('\n').filter(Boolean).slice(-500);
+  const squash = line.find(candidate => { const left = mergeWouldChange(dir, candidate, commit); return left !== null && !left.length; });
+  if (!squash) return { problem: notAncestor + ', and no commit on ' + head + ' since ' + base.slice(0, 8) + ' holds all of its changes; missing from ' + head + ': ' + listFiles(missing), missing };
+  const blob = (ref, path) => git(dir, 'rev-parse', '-q', '--verify', ref + ':' + path);
+  const reverted = missing.filter(path => blob(head, path) === blob(base, path));
+  if (reverted.length) return { problem: notAncestor + '; ' + squash.slice(0, 8) + ' on ' + head + ' held its changes, but ' + head + ' has since put back ' + listFiles(reverted) + ' as they were before it', missing: reverted };
+  return { ancestor: false, base, squash, changedSince: missing, note: held + ' landed on ' + head + ' at ' + squash.slice(0, 8) + '; ' + listFiles(missing) + ' changed again on ' + head + ' since then (read them in the diff)' };
+}
+
 // changes lists what moved on the release branch since the public build's commit.
 function changes(repo, commit, head) {
-  if (git(repo.dir, 'cat-file', '-e', commit + '^{commit}') === null) return { problem: 'commit ' + commit + ' is not in ' + repo.dir };
-  if (spawnSync('git', ['-C', repo.dir, 'merge-base', '--is-ancestor', commit, head]).status !== 0) {
-    return { problem: 'commit ' + commit + ' is not an ancestor of ' + head };
-  }
+  const held = contentOnHead(repo.dir, commit, head);
+  if (held.problem) return { problem: held.problem };
   const paths = (git(repo.dir, 'diff', '--name-only', commit, head) || '').split('\n').filter(Boolean);
   const { product, other } = splitPaths(paths, repo.config.projectDir);
   const commits = product.length ? (git(repo.dir, 'log', '--no-merges', '--format=%h %s', '-n', '40', commit + '..' + head, '--', ...product.slice(0, 200)) || '').split('\n').filter(Boolean) : [];
-  return { product, otherCount: other.length, commits };
+  return { product, otherCount: other.length, commits, ancestry: held.note || null };
 }
 
 async function publicVersion(appId) {
@@ -248,14 +289,17 @@ async function classify(api, app, team, index, stateRoot) {
   const diff = changes(repo, provenance.commit, row.head);
   if (diff.problem) return { ...row, status: 'deferred', reason: diff.problem };
   row.changes = { productFiles: diff.product.length, otherFiles: diff.otherCount, sample: diff.product.slice(0, 30), commits: diff.commits };
+  // A squash-merged release branch is not a deferral when head holds the live commit's content; the row says so.
+  if (diff.ancestry) row.ancestry = diff.ancestry;
+  const via = diff.ancestry ? '; ' + diff.ancestry : '';
   row.listing = await pendingListing(api, app, live, repo, row.head);
   const dedupeKey = live.attributes.versionString + '-' + row.head.slice(0, 12);
-  if (diff.product.length) return { ...row, status: 'candidate', kind: 'product', reason: diff.product.length + ' product files changed; read the diff before treating it as material', dedupeKey };
+  if (diff.product.length) return { ...row, status: 'candidate', kind: 'product', reason: diff.product.length + ' product files changed; read the diff before treating it as material' + via, dedupeKey };
   const why = listingReason(row.listing);
   if (why) row.listing.ships = why;
-  if (why) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + why + '); ship it as a metadata-only version', dedupeKey };
+  if (why) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + why + '); ship it as a metadata-only version' + via, dedupeKey };
   if (row.listing.problem) return { ...row, status: 'deferred', reason: 'no product change, and the listing could not be compared: ' + row.listing.problem };
-  return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' };
+  return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' + via };
 }
 
 // listingReason says why a listing ships: a primary field that differs, an extra language that is missing live or

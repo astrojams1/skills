@@ -4,7 +4,7 @@
   "skills": {
     "abandoned-prs": "2272e832f83128cbb1e086ae4a99f5af084914eaa713c8dd096371499187b36d",
     "app-marketing": "67172cd6ca54ca77b13315794c5b727ab94d957cb76fcf0e3b34cc1eff28f244",
-    "app-release": "1476155c17366b9f9ebe4550a294b5752150d741428a0907a679ba8b4d1163b5",
+    "app-release": "6f4c9ef7245752cbce6dfac5f5549ce26844a5297916bb56afbbe1b884e46e11",
     "app-shorts": "944b54e770a2f590cc50b39c6d15551e96614046970b9a6e2993d75d40a2c722",
     "astrojams-website": "5c4ca404f615d1ace49cef6aad8f647297f7730a27d27df415f52e73e6af0f6e",
     "call-triage": "2760982c4a1ca1146a507e55c56677245aea82d4fab118b4286ac46780c92ecb",
@@ -27,6 +27,6 @@
     "warm-lead-followup": "87a03f46f47e505a6a80c37d0482c482d0525f1de0a0ac8c823b9fde6930fc3c",
     "workflow-orchestration": "8beaef758265416ab6296ef076f21023fbfdcaabe7023134e42dd7d11f616aa5",
     "youtube-growth": "1b9409001d6e1dc474be9e4cf9020040b157939a8e5b796f6babc9a488715c15",
-    "youtube-shorts": "698d835249fd19fe561bbe3cd4c8ec37894c0d6db499bce4afeaf45aa0ecf8d1"
+    "youtube-shorts": "c507d39e512a7f9207fd17216bab6242cbcb066a8a58c26b4fc2269014ff6a6e"
   }
 }

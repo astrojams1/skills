@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, utimesSync } from 'node:fs';
+import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { archiveProvenance, claim, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
+import { archiveProvenance, claim, contentOnHead, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
 import { liveVersion, occupancy, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
 const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
@@ -138,4 +138,106 @@ test('the live App Info is the one the storefront shows, not the draft', () => {
   assert.equal(liveAppInfo([info('draft', 'PREPARE_FOR_SUBMISSION'), info('live', 'READY_FOR_DISTRIBUTION')]).id, 'live');
   assert.equal(liveAppInfo([{ id: 'old', attributes: { appStoreState: 'READY_FOR_SALE' } }]).id, 'old');
   assert.equal(liveAppInfo([info('a', 'PREPARE_FOR_SUBMISSION'), info('b', 'WAITING_FOR_REVIEW')]), null);
+});
+
+// A scratch repository: main and a release branch from one base. `write` takes { path: text or null to delete }.
+function scratchRepo() {
+  const dir = mkdtempSync(join(tmpdir(), 'sweep-ancestry-'));
+  const run = (...args) => {
+    const result = spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@example.com', '-c', 'commit.gpgsign=false', ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const commit = (message, files) => {
+    for (const [path, text] of Object.entries(files)) {
+      if (text === null) rmSync(join(dir, path));
+      else writeFileSync(join(dir, path), text);
+    }
+    run('add', '-A');
+    run('commit', '-q', '--allow-empty', '-m', message);
+    return run('rev-parse', 'HEAD');
+  };
+  run('init', '-q', '-b', 'main');
+  commit('base', { 'app.json': '{"version":"1.0"}\n', 'screen.js': 'one\ntwo\nthree\n', 'README.md': 'readme\n' });
+  run('checkout', '-q', '-b', 'release');
+  commit('feature', { 'screen.js': 'one\nTWO\nthree\n', 'icon.txt': 'icon\n' });
+  const live = commit('bump', { 'app.json': '{"version":"1.1"}\n' });
+  run('checkout', '-q', 'main');
+  return { dir, run, commit, live, done: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test('a live commit that is an ancestor of main passes as before', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('merge', '-q', '--no-ff', '-m', 'merge release', 'release');
+    assert.deepEqual(contentOnHead(repo.dir, repo.live, 'main'), { ancestor: true });
+  } finally { repo.done(); }
+});
+
+test('a squash-merged release whose content is on main is a candidate and says why', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('merge', '-q', '--squash', 'release');
+    repo.run('commit', '-q', '-m', 'squash release');
+    repo.commit('unrelated docs', { 'README.md': 'readme, longer\n' });
+    const result = contentOnHead(repo.dir, repo.live, 'main');
+    assert.equal(result.problem, undefined);
+    assert.equal(result.ancestor, false);
+    assert.match(result.note, /not an ancestor of main \(squash-merged or rebased\), but its changes to 3 files .* are all on main/);
+  } finally { repo.done(); }
+});
+
+test('a squash-merged release passes when main has since edited the same lines again', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('merge', '-q', '--squash', 'release');
+    repo.run('commit', '-q', '-m', 'squash release');
+    repo.commit('next version', { 'app.json': '{"version":"1.2"}\n' });
+    const result = contentOnHead(repo.dir, repo.live, 'main');
+    assert.equal(result.problem, undefined);
+    assert.deepEqual(result.changedSince, ['app.json']);
+    assert.match(result.note, /landed on main at [0-9a-f]{8}; 1 file \(app\.json\) changed again/);
+  } finally { repo.done(); }
+});
+
+test('a squash-merged release that main then reverted still defers and names the files', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('merge', '-q', '--squash', 'release');
+    repo.run('commit', '-q', '-m', 'squash release');
+    repo.run('revert', '--no-edit', 'HEAD');
+    const result = contentOnHead(repo.dir, repo.live, 'main');
+    assert.match(result.problem, /has since put back 3 files \(app\.json, icon\.txt, screen\.js\) as they were before it/);
+    assert.deepEqual(result.missing, ['app.json', 'icon.txt', 'screen.js']);
+  } finally { repo.done(); }
+});
+
+test('a release that reached main only in part still defers and names what is missing', () => {
+  const repo = scratchRepo();
+  try {
+    repo.commit('partial squash', { 'screen.js': 'one\nTWO\nthree\n', 'app.json': '{"version":"1.1"}\n' });
+    const result = contentOnHead(repo.dir, repo.live, 'main');
+    assert.match(result.problem, /no commit on main since [0-9a-f]{8} holds all of its changes; missing from main: 1 file \(icon\.txt\)/);
+    assert.deepEqual(result.missing, ['icon.txt']);
+  } finally { repo.done(); }
+});
+
+test('a squash-merged release with one file reverted later still defers on that file', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('merge', '-q', '--squash', 'release');
+    repo.run('commit', '-q', '-m', 'squash release');
+    repo.commit('drop the feature', { 'screen.js': 'one\ntwo\nthree\n' });
+    const result = contentOnHead(repo.dir, repo.live, 'main');
+    assert.deepEqual(result.missing, ['screen.js']);
+  } finally { repo.done(); }
+});
+
+test('a live commit with no history in common with main defers', () => {
+  const repo = scratchRepo();
+  try {
+    repo.run('checkout', '-q', '--orphan', 'other');
+    const orphan = repo.commit('orphan', { 'README.md': 'other\n' });
+    assert.match(contentOnHead(repo.dir, orphan, 'main').problem, /shares no history/);
+  } finally { repo.done(); }
 });
