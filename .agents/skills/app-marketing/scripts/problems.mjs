@@ -290,10 +290,13 @@ export function logProblems(event, events, families, { metrics = [], git } = {})
     }
   }
   if (event.event === 'end' && git) {
-    const mine = events.filter(e => e.run_id === event.run_id).concat(event);
+    // A correction of an earlier end replaces that line, so it is judged without the line it corrects (2026-11-19:
+    // the correction that moved a sighting out of work-left-undone was refused for the sighting it removed).
+    const replaced = e => event.corrects && e.event === event.event && e.ts === event.corrects;
+    const mine = events.filter(e => e.run_id === event.run_id && !replaced(e)).concat(event);
     const met = new Set(mine.flatMap(e => [...familiesOf(e, families)]));
     const closed = new Set(mine.filter(isClose).map(e => e.problem));
-    const rows = recurring(events, families, { metrics, git });
+    const rows = recurring(event.corrects ? events.concat(event) : events, families, { metrics, git });
     for (const r of rows) if (met.has(r.family) && !closed.has(r.family) && (r.status === 'RECURRING' || r.status === 'REOPENED')) {
       problems.push(`${r.family} is ${r.status} (${r.days} days) and this run met it again: fix the cause, remove the dependency, or (owner-only) write the standing line, in this run`);
     }
