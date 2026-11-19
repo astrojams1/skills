@@ -69,3 +69,5 @@ first frame invites rewatches. The channel's best Short so far (about 1.3K views
 7-second calm alphabet loop. Stage the moment you want (a developer arena, a scripted round, seeded state) rather
 than hunting hours of autopilot for it, and don't add "autopilot" or "staged" disclaimers: not in the description, the TikTok caption or the on-screen
 captions (owner's rule, 2026-11-12).
+
+**Cut a simulator take by frames, not by seek (2026-11-19).** A `simctl io recordVideo` take has a variable frame rate, so `ffmpeg -ss` lands seconds early. Use the `fps` filter, then `trim`. A web-game take recorded with a stepped page clock drifts too (each screenshot lets about 36 ms pass): set the step from the game's own clock before every frame.
