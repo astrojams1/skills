@@ -524,15 +524,16 @@
     },
     {
       "key": "fud-repo-push-refused",
-      "title": "An unattended session refused a push to the Füd repository",
+      "title": "A session recorded the Füd repository as refusing pushes or pull requests (wrong: it takes them)",
       "text": [
         "refused the push and PR to wendigo124/FSRN_Subs"
       ],
       "history": [
-        "2026-11-16 mkt-mac-20261116T133513Z: Füd keyword test prepared, push and PR to wendigo124/FSRN_Subs refused by the auto-mode classifier"
+        "2026-11-16 mkt-mac-20261116T133513Z: Füd keyword test prepared, push and PR to wendigo124/FSRN_Subs refused by the auto-mode classifier",
+        "2026-11-19 wendigo124/FSRN_Subs#193: the 2026-11-16 keyword branch merged, then #195 (rating prompt, 24 languages); closed as a wrong diagnosis"
       ],
-      "cause": "Füd lives in wendigo124/FSRN_Subs, another GitHub account than astrojams1; on 2026-11-16 the Mac pass auto-mode classifier refused pushing there as unsanctioned communication, although runs on 2026-11-13 (#187) and app-release on 2026-11-14 (#188 to #191) pushed to it",
-      "fix": "the next Mac pass retries from the prepared branch store/keywords-calorie-20261116 in /Volumes/ssd/projects/app-marketing/worktrees/fsrn-kw; never works around the classifier; if it is refused on a second day, write the standing line naming the owner step (an allow rule for pushes to wendigo124/FSRN_Subs, or moving Füd under astrojams1)"
+      "cause": "Wrong diagnosis, corrected 2026-11-19. Füd's repository wendigo124/FSRN_Subs takes pushes and pull requests like every app repository: #187 to #193 and #195 merged. One unattended session's auto-mode classifier refused one push or `gh pr create` on 2026-11-16, 2026-11-17 and 2026-11-18, and the runs recorded that as the repository refusing these sessions, then left Füd out of the 2026-11-18 rating prompt and listing languages and of the More apps idea. The owner, 2026-11-19: \"fud is no different from other repos\" and \"you have made MANY prs for fud\"",
+      "fix": "Closed as wrong, not standing: there is no owner step. A refused push or pull request to Füd is retried like any repository's, in that run or the next, and never recorded as Füd being excluded; Füd gets every change the other apps get"
     },
     {
       "key": "tiktok-post-refused",
