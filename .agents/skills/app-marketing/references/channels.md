@@ -89,8 +89,10 @@ their own language cannot match an English-only listing.
 - **The measure.** `learn`'s `countries` line: first-time downloads by territory, from `pull`. For each app, the 14
   days after its languages go live against the 14 before: downloads outside the US, and downloads in the US (whose
   search gains nine languages of keywords). Record it in the profile's `experiments` with the live date.
-- **Status, 2026-11-18.** Nine of the ten live apps carry 24 more languages in store data (Importron 9). Füd's draft
-  is written and not applied: its repository refuses these sessions' pull requests (family `fud-repo-push-refused`).
+- **Status, 2026-11-19.** All ten live apps carry 24 more languages in store data (Importron 9). Füd's went in a day
+  after the others (wendigo124/FSRN_Subs#195): one refused `gh pr create` on 2026-11-18 was wrongly recorded as its
+  repository refusing pull requests. It takes them like any other (owner, 2026-11-19: "fud is no different from other
+  repos"); family `fud-repo-push-refused` is closed as a wrong diagnosis.
 - **Upkeep.** A change to an app's en-US description, name or subtitle changes each language in the same pull
   request, so no language keeps a claim the English listing dropped. A new app gets its languages with its first
   listing. Each language's keyword field uses its 100 characters: words in that language the en-US listing supports,
@@ -170,7 +172,7 @@ Each needs a thing that does not exist today. No run waits on these, and none go
 |---|---|
 | Reddit | A route for agent tools: Reddit blocks the built-in browser, Claude in Chrome and web fetch (since 2026-10-15, `reddit-posting`). Posting would need the owner |
 | TikTok | A connected account: the TikTok connector lists none, and connecting one is a sign-in |
-| A "More from the maker" row inside the apps | The owner's yes. It is a change to the app itself (SKILL.md, Never), the Space Worms, LOB and Importron repositories hold player-visible changes for the owner, and an app standard stops every app's next build until met, which is why the rating standard waited for his "Yes, every app" (2026-11-18). Füd, the largest base, refuses these sessions' pull requests (family `fud-repo-push-refused`). The other nine apps had about 65 lifetime downloads on 2026-11-19, so it would reach few people yet; owner option |
+| A "More from the maker" row inside the apps | The owner's yes. It is a change to the app itself (SKILL.md, Never), the Space Worms, LOB and Importron repositories hold player-visible changes for the owner, and an app standard stops every app's next build until met, which is why the rating standard waited for his "Yes, every app" (2026-11-18). Füd, the largest base (278 of 343 lifetime downloads on 2026-11-19), takes pull requests like every other app repository (owner, 2026-11-19: "fud is no different from other repos"). The other nine apps had about 65 lifetime downloads on 2026-11-19, so it would reach few people yet; owner option |
 | Instagram, X, Discord, Product Hunt | A connected account or API credential named in any skill. Each needs a sign-in, and Product Hunt also a maker account |
 | Hacker News beyond a developer tool's Show HN | Nothing to fix: Hacker News's guidelines make other self-promotion unwelcome |
 | Apple Ads | Nothing: the owner declined it on 2026-11-19 ("no search ads"). Do not propose it again |
