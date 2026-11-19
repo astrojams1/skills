@@ -124,7 +124,8 @@ their own language cannot match an English-only listing.
 | YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, public the moment each passes review (never scheduled), with no posting cap. Judged as above; an app or format with 3 no-effect Shorts in a row is retired (`youtube-growth`). Shorts work: the Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, best 1,145) were followed by downloads and purchases while no other marketing ran, per the owner (James, 2026-11-12); start from that format |
 | Listing languages | cloud writes, app-release ships | The listing in the languages people search in ([Listing languages](#listing-languages)). Judged by country |
 | App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords and subtitle ship as a metadata-only version the morning after they merge; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
-| Featuring nominations | mac | Free, and indie apps are eligible. Three weeks' notice, for real updates only |
+| Featuring nominations | mac | Free, and indie apps are eligible. For real updates only: new content or a feature a person would notice, never a rating prompt, fixes or listing translations. Every release goes out on approval, so there is never a dated version three weeks out: nominate the update in store data when it is submitted (start: its expected release day), merge, and send it with `asc.mjs nominate --confirm` (app-release `references/promotion.md`). Experiment `featuring-new-content` (Nametag 1.0.3 designs, Plenty 1.1), judge 2026-12-23 |
+| Shorts in other languages | mac | `yt-api.mjs localize` (youtube-growth) gives a live Short a title and description in each language, built from the app's reviewed listing translations with a line saying the app is in English. Experiment `shorts-localized-metadata` on Hanzi Cards and Data Center (most of their downloads come from outside the US), 12 languages, judge 2026-12-03. Other apps and new Shorts get it only on a keep |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |
 | Review replies | mac | Factual and brief. They show on the product page |
 | YouTube comment replies and channel settings | mac | The owner's own channel, by `youtube-growth` and `app-shorts`. Replies are factual and brief; a settings change logs the old value. Pinning a comment has no API and needs a Studio sign-in, so it is dropped, never left open |
@@ -138,6 +139,9 @@ their own language cannot match an English-only listing.
 | Show HN (developer tools only) | mac | Opened by the owner on 2026-11-07: "for any apps that were marketing which are developer tools that might be interesting to a hacker news audience, we should post a link to hacker news", and "Skill posts it itself". `marketing.mjs hn` enforces Hacker News's limits. See [Hacker News](hacker-news.md) |
 
 ### Directories and review sites
+
+**GitHub resource lists** (catalog pattern 13) take pull requests, which the Mac's `gh`, signed in as the owner, can open: the cloud cannot, so it is Mac work, not an owner step. Open one only on a list whose maintainer merged an outside pull request in the last 90 days, at the bottom of the right section in the list's own format. Checked 2026-11-19: Hanzi Cards' two pull requests (jqhoogland/awesome-language-learning#55, Vuizur/awesome-language-learning#85, open since 2026-11-13) have no answer; awesome-anki last merged in January 2026; woop/awesome-quantified-self has pull requests and issues turned off; the big Claude Code and Codex lists list only public repositories (Plenty stays private).
+
 
 Sites that publicly invite app or game submissions through a form, with no account, no fee and no link-back demand.
 Each live app gets a `directories` item. Fit the site to the audience in the profile:
@@ -165,6 +169,8 @@ Each needs a thing that does not exist today. No run waits on these, and none go
 |---|---|
 | Reddit | A route for agent tools: Reddit blocks the built-in browser, Claude in Chrome and web fetch (since 2026-10-15, `reddit-posting`). Posting would need the owner |
 | TikTok | A connected account: the TikTok connector lists none, and connecting one is a sign-in |
+| A "More from the maker" row inside the apps | The owner's yes. It is a change to the app itself (SKILL.md, Never), the Space Worms, LOB and Importron repositories hold player-visible changes for the owner, and an app standard stops every app's next build until met, which is why the rating standard waited for his "Yes, every app" (2026-11-18). Füd, the largest base, refuses these sessions' pull requests (family `fud-repo-push-refused`). The other nine apps had about 65 lifetime downloads on 2026-11-19, so it would reach few people yet; owner option |
+| In-app events | A real, time-bound event in an app (app-release `references/promotion.md`: not for ordinary features). No app has one on 2026-11-19, Newsworthy's owner said no to events for news moments (2026-10-21), and app-release has no `appEvents` tooling. A Space Worms holiday arena event is an owner option (it changes the game) |
 | Instagram, X, Discord, Product Hunt | A connected account or API credential named in any skill. Each needs a sign-in, and Product Hunt also a maker account |
 | Hacker News beyond a developer tool's Show HN | Nothing to fix: Hacker News's guidelines make other self-promotion unwelcome |
 | Apple Ads, paid placements, paid directories | A budget. None has been named |

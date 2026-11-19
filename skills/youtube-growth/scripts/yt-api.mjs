@@ -31,6 +31,10 @@
 //                                               description (whose first line must give the search phrase), keeping
 //                                               its other settings; the registry keeps the old text as wasTitle and
 //                                               wasDescription. --publish-at is refused: Shorts are never scheduled
+//   node yt-api.mjs localize --episode ID --file F [--confirm]   add translated titles and descriptions (JSON
+//                                               { "<language>": { title, description } }), merged over any already there;
+//                                               each title names the app and each description's first line gives the search
+//                                               phrase, as for the default text. The registry records `localizations`
 //   node yt-api.mjs unschedule --episode ID [--live] [--hold] [--confirm]   cancel a scheduled episode (or, with --live,
 //                                               take a live one down): the video stays on the channel, private with no
 //                                               publish time, and the registry marks it "pulled", or "held" with
@@ -298,6 +302,40 @@ export function updatedSnippet(snippet, { description, title: newTitle, tags: ne
     ...(defaultAudioLanguage ? { defaultAudioLanguage } : {}) };
 }
 
+// Translated titles and descriptions (videos.localizations). YouTube shows a viewer whose YouTube language matches one
+// the localized title and description, and searches them in that language. Each entry is { title, description }.
+// The rules are the default text's: a title of 1 to 100 characters naming the app in its first 40, a description of at
+// most 5,000 bytes whose first line gives the search phrase as the App Store spells it, and no angle brackets, which
+// YouTube refuses. The key is a YouTube i18n language code (es, pt, fr, de, ja, zh-Hans, ...), never the default one.
+export function localizationProblems(entries, { appName, searchPhrase, defaultLanguage = 'en' } = {}) {
+  const problems = [];
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries) || !Object.keys(entries).length) return ['No languages given: the file is { "es": { "title": "...", "description": "..." }, ... }'];
+  const fold = s => String(s ?? '').normalize('NFC').toLowerCase();
+  for (const [lang, entry] of Object.entries(entries)) {
+    const label = `${lang}:`;
+    if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) problems.push(`${label} not a language code`);
+    if (lang === defaultLanguage) problems.push(`${label} is the video's default language; change that text with update`);
+    const title = entry?.title, description = entry?.description;
+    if (typeof title !== 'string' || !title.trim() || title.length > 100) problems.push(`${label} a title is 1 to 100 characters`);
+    else if (appName && !fold(title.slice(0, 40)).includes(fold(appName))) problems.push(`${label} the title must name "${appName}" in its first 40 characters`);
+    if (typeof description !== 'string' || !description.trim()) problems.push(`${label} no description`);
+    else {
+      if (Buffer.byteLength(description, 'utf8') > 5000) problems.push(`${label} the description is over 5,000 bytes`);
+      if (searchPhrase && !fold(description.split('\n')[0]).includes(fold(searchPhrase))) problems.push(`${label} the description's first line must give the search phrase "${searchPhrase}"`);
+    }
+    if (/[<>]/.test(`${title ?? ''}${description ?? ''}`)) problems.push(`${label} YouTube refuses < and >`);
+  }
+  return problems;
+}
+
+// The body for a localization update: the snippet sent back as it is (videos.update replaces the part) with a default
+// language, which YouTube needs before it takes localizations, and the new languages merged over any already there.
+export function localizedVideo(video, entries) {
+  const snippet = updatedSnippet(video.snippet);
+  if (!snippet.defaultLanguage) snippet.defaultLanguage = 'en';
+  return { id: video.id, snippet, localizations: { ...(video.localizations ?? {}), ...entries } };
+}
+
 // YouTube may hand tags back in another order or case, so compare them as a set.
 export const sameTags = (a = [], b = []) => { const norm = t => [...new Set((t ?? []).map(x => x.toLowerCase().normalize('NFC')))].sort().join('|'); return norm(a) === norm(b); };
 
@@ -499,6 +537,39 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (notForKids) episode.madeForKids = false;
       writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
       console.log(JSON.stringify(result));
+    } else if (command === 'localize') {
+      const id = option('--episode', null), file = option('--file', null), confirm = args.includes('--confirm');
+      if (!file) throw new Error('--file F is required: JSON { "<language>": { "title": "...", "description": "..." } }');
+      const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+      const episode = registry.episodes.find(e => e.id === id);
+      if (!episode?.videoId) throw new Error(`No episode "${id}" on YouTube in the registry`);
+      const entries = JSON.parse(readFileSync(file, 'utf8'));
+      // The brand is the part of the App Store name before any colon ("Hanzi Cards"), which stays as it is in every language.
+      const brand = String(registry.apps?.[episode.app]?.name ?? profileFor(loadProfiles(), episode.app)?.name ?? '').split(':')[0].trim() || null;
+      const problems = localizationProblems(entries, { appName: brand, searchPhrase: episode.searchPhrase });
+      if (problems.length) throw new Error(problems.join('; '));
+      if (!confirm) { console.log(JSON.stringify({ dryRun: true, episode: id, videoId: episode.videoId, languages: Object.keys(entries) })); process.exit(0); }
+      const token = await accessToken();
+      const read = async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=snippet,localizations&id=${encodeURIComponent(episode.videoId)}`)).items?.[0];
+      const video = await read();
+      if (!video) throw new Error(`No video "${episode.videoId}" on the channel`);
+      const res = await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet,localizations', { method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(localizedVideo(video, entries)) });
+      const answer = await res.json();
+      if (!res.ok) throw new Error(`Localization update failed: ${answer.error?.message ?? res.status}`);
+      const same = (after, lang, e) => after[lang]?.title === e.title && after[lang]?.description === e.description;
+      let after = {};
+      for (let i = 0; i < 5; i += 1) {
+        after = (await read())?.localizations ?? {};
+        if (Object.entries(entries).every(([lang, e]) => same(after, lang, e))) break;
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      const missing = Object.entries(entries).filter(([lang, e]) => !same(after, lang, e)).map(([lang]) => lang);
+      if (missing.length) throw new Error(`${episode.videoId} does not read back ${missing.join(', ')}; check with show, then run localize again`);
+      episode.localizations = Object.keys(after).sort();
+      episode.localizedAt ??= new Date().toISOString();
+      writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
+      console.log(JSON.stringify({ episode: id, videoId: episode.videoId, localizations: episode.localizations }));
     } else if (command === 'unschedule') {
       const id = option('--episode', null), confirm = args.includes('--confirm'), reason = option('--reason', null), live = args.includes('--live'), hold = args.includes('--hold');
       const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
@@ -560,7 +631,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         author: t.snippet.topLevelComment.snippet.authorDisplayName, text: t.snippet.topLevelComment.snippet.textOriginal,
         likes: t.snippet.topLevelComment.snippet.likeCount, replies: t.snippet.totalReplyCount })), null, 2));
     } else {
-      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|comment --episode ID --text T [--confirm]|upload --episode ID [--confirm]|publish --episode ID [--confirm]|update --episode ID [--not-for-kids] [--title T] [--tags "a|b"] [--description-file F] [--search-phrase P] [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
+      console.error('usage: node yt-api.mjs check|auth|pull [--videos a,b]|show --episode ID|comments --video ID|unanswered|reply --parent ID --text T [--confirm]|comment --episode ID --text T [--confirm]|upload --episode ID [--confirm]|publish --episode ID [--confirm]|update --episode ID [--not-for-kids] [--title T] [--tags "a|b"] [--description-file F] [--search-phrase P] [--confirm]|localize --episode ID --file F [--confirm]|unschedule --episode ID [--live] [--reason R] [--confirm] [--registry PATH]');
       process.exit(2);
     }
   } catch (error) {
