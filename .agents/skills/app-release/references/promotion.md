@@ -24,14 +24,45 @@ Apple's pages on 2026-11-01; read the linked page again before relying on a limi
 |---|---|---|
 | **Custom product pages** (up to 70) | Distinct audiences or campaigns: different screenshots, preview, promotional text and keywords per page, each with its own URL; keyword-assigned pages can appear in organic search | App Store Connect or `appCustomProductPages`; reviewed on their own once the app is live. Plan them with the owner; they need a reason to exist. [Custom product pages](https://developer.apple.com/app-store/custom-product-pages/) |
 | **Product page optimization** | The app is live and gets enough traffic for a result: A/B test icon, screenshots and preview (up to 3 treatments, 90 days, one test at a time; alternate icons must ship in the binary) | `appStoreVersionExperiments`. [Product page optimization](https://developer.apple.com/app-store/product-page-optimization/) |
-| **In-App Events** | A real, time-bound event: a challenge, competition, live event, major update or new season (15 minutes to 31 days). Not for ordinary features, sales or general awareness | `appEvents`; event card 16:9 and details 9:16 media through the Asset Library. [In-App Events](https://developer.apple.com/app-store/in-app-events/) |
+| **In-App Events** | A real, time-bound event: a challenge, competition, live event, major update, new season, premiere or special event (15 minutes to 31 days). Not for repeated daily tasks, price promotions or general awareness | Store data `events`, then `asc.mjs events --confirm` and `submit --confirm`; see [In-App Events](#in-app-events) below |
 | **YouTube Shorts** (also Reels, TikTok) | Every app the owner ships: one channel carries them all | Run **app-shorts** (a series per app, real recordings, posting and the calendar; queue an episode for each visible feature a release ships) and **youtube-growth** (metrics at 3, 7 and 28 days, decisions, comments). Not a feature tour: a hook, one real result, sound. Posting acts as the owner: on the owner's go-ahead |
 | **Smart App Banner** | The app has a website (support, privacy or marketing pages) | `<meta name="apple-itunes-app" content="app-id=APP_ID">` in each page's head, with the app's numeric App Store ID. Publishing the site follows the owner's deploy approval. [Smart App Banners](https://developer.apple.com/documentation/webkit/promoting-apps-with-smart-app-banners) |
 | **App Store badge, QR code, short link** | Any page or printed piece that should lead to the app | [Marketing tools](https://toolbox.marketingtools.apple.com/app-store/); follow the [badge guidelines](https://developer.apple.com/app-store/marketing/guidelines/) (black badge preferred, at least 40 px) |
 | **In-app rating prompt** | The app has a moment of success after real use | `RequestReviewAction` / `AppStore.requestReview(in:)` (or `expo-store-review`); never from a button, at launch or mid-task. Apple shows it at most three times a year. An app change, so it ships in a build. [Ratings and reviews](https://developer.apple.com/app-store/ratings-and-reviews/) |
 | **Promo codes, promoted in-app purchases, offers** | The app sells something | App Store Connect. [Promote](https://developer.apple.com/app-store/promote/) |
 | **More localizations** | The app works for speakers of another of the 50 metadata languages | Listing copy per locale; each locale needs its own screenshots or falls back to the primary |
-| **Apple Ads** | Paid: never without the owner's decision and budget | Note it; do not create campaigns |
+| **Apple Ads** | The owner declined Apple Ads on 2026-11-19 ("no search ads"); do not propose it again | Do not create campaigns |
+
+## In-App Events
+
+Rechecked against Apple on 2026-11-19: [In-App Events](https://developer.apple.com/app-store/in-app-events/),
+[Offer In-App Events](https://developer.apple.com/help/app-store-connect/offer-in-app-events/offer-in-app-events),
+[Submit an In-App Event](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-in-app-event),
+[media specifications](https://developer.apple.com/help/app-store-connect/reference/in-app-events/in-app-event-media-and-audio-specifications)
+and the API's [`POST /v1/appEvents`](https://developer.apple.com/documentation/appstoreconnectapi/post-v1-appevents).
+
+- **What qualifies:** something really happening in the app for a limited time. Badges: `CHALLENGE`, `COMPETITION`,
+  `LIVE_EVENT`, `MAJOR_UPDATE`, `NEW_SEASON`, `PREMIERE`, `SPECIAL_EVENT`. Not daily tasks, price-only promotions or
+  general awareness; an event may highlight permanent content but is about a limited-time moment.
+- **Text:** reference name 64 characters (internal), event name 30 (title case, the event's real name), short
+  description 50 (the card), long description 120 (the details page). No prices, no unverifiable claims, no all caps.
+- **Media:** card 16:9 (1920x1080 to 3840x2160), details 9:16 (1080x1920 to 2160x3840), image or looping video,
+  500 MB at most. No text or logos in the art, no borders or gradients. Make them from real app screens.
+- **Dates:** start in the future, 15 minutes to 31 days long, published (discoverable) up to 14 days before start.
+  Per-territory times are allowed if all starts fall within 48 hours.
+- **Limits:** 10 published per app at once, 15 approved per app in App Store Connect, 10 with overlapping starts.
+- **Review:** with an app version (reviewed together) or on its own once the app is approved (reviewed with the
+  latest version). Apple says most submissions finish within 24 hours.
+- **Deep link:** optional in the API. A universal link or custom URL opens the event's content; when the content is
+  on the app's first screen during the event, leave it out and the Open button starts the app.
+
+**How a run makes one.** List it in store data `events` ([config](config.md)): the in-app change ships first, gated to
+the event's dates, and `shipsWith` names the first version that carries it. `asc.mjs events` shows Apple's events and
+the plan; `events --confirm` creates or updates each draft (attributes, text in each language, both images) and reads
+it back; `submit --confirm` then sends every editable event whose `shipsWith` is that version or earlier with the
+version, and refuses while a listed event for it has not been created. `events submit --confirm` sends events whose
+content is already live without a new version. Allow review time: create the event and submit the version at least
+a few days before `publish`.
 
 ## Product page declarations
 

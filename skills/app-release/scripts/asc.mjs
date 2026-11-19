@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // asc.mjs
 // Drives every App Store Connect step of an iOS release through Apple's API: status, listing copy, age rating,
-// pricing and availability, screenshots, Asset Library images and app preview videos, featuring nominations, App Review
+// pricing and availability, screenshots, Asset Library images and app preview videos, featuring nominations, In-App Events, App Review
 // details and attachments, Game Center leaderboards, TestFlight, build selection, submission, withdrawal from review and
 // release of a version still awaiting it. Identity comes from the app's app-release.config.json (`ios`) and
 // copy from its store data file; credentials come from 1Password in memory; every write is read back so a release
@@ -18,10 +18,11 @@ import { standardsRefusal } from './lib/standards.mjs';
 import { localizationChanges, localizationEntries, localizationProblems, localizationSummary, localizationText } from './lib/listing-localizations.mjs';
 import { localizedScreenshotChanges, localizedScreenshotEntries, localizedScreenshotGroups, localizedScreenshotProblems, localizedScreenshotSummary, md5, readLiveScreenshots, screenshotAction,
   staleScreenshotSets, staleScreenshots, syncLocalizedScreenshots, syncScreenshotGroups } from './lib/screenshot-localizations.mjs';
+import { EDITABLE_EVENT_STATES, EVENT_MEDIA, compareVersions, eventPlan, eventProblems, eventReviewTargets, imageSize, mediaProblem } from './lib/app-events.mjs';
 import { RELEASE_TYPE, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from './lib/review-state.mjs';
 
 const API = 'https://api.appstoreconnect.apple.com';
-const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate'];
+const COMMANDS = ['status', 'listing', 'age-rating', 'pricing', 'screenshots', 'iap-review-screenshots', 'review-details', 'review-attachment', 'game-center', 'attach-build', 'submit', 'withdraw', 'testflight', 'release', 'assets', 'nominate', 'events'];
 
 // CONFIG, IOS and STORE are read on first use, so tests can import the decision helpers without a configured app.
 let CONFIG = null;
@@ -679,6 +680,11 @@ async function status() {
     }
   }
   if (STORE.gameCenter) await gameCenterStatus(ctx.version.id);
+  if ((STORE.events || []).length) {
+    const events = await eventTargets();
+    console.log('  In-App Events for', STORE.version + ':', events.targets.length, 'ready to send,', events.held.length, 'in review' +
+      (events.missing.length ? '; not created yet (run `events --confirm`): ' + events.missing.join(', ') : '') + (events.skipped.length ? '; skipped: ' + events.skipped.join(', ') : ''));
+  }
 }
 
 // localizationStatus compares listing.localizations with the version's languages and its App Info (the editable one
@@ -1695,9 +1701,9 @@ export async function submit(flag) {
   const wrongRelease = releaseTypeRefusal(ctx.version);
   if (wrongRelease) throw new Error(wrongRelease + ' Nothing was submitted.');
   await requireUnattendedSubmit(ctx.version.id);
-  let reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
+  let reviewTargets = await submitTargets(true);
   // A retry after a lost response finds the version already in review; report it instead of submitting again.
-  const pending = await submissionInReview(ctx.version.id, reviewTargets);
+  const pending = await submissionInReview(ctx.version.id, [...reviewTargets, ...await heldEventTargets()]);
   if (pending) {
     console.log('Version', STORE.version, 'is already', pending.attributes.state, 'in submission', pending.id);
     return;
@@ -1726,7 +1732,7 @@ export async function submit(flag) {
     submission = await replaceRejectedSubmission(submission);
     // A cancel returns accepted items to the developer, so refresh readiness and carry what the old submission held.
     leaderboards = replacementLeaderboards(await editableLeaderboardVersions(), held);
-    reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
+    reviewTargets = await submitTargets(false);
   }
   if (submission.attributes.state === 'READY_FOR_REVIEW') await fillSubmission(submission, ctx.version.id, leaderboards, reviewTargets);
   const items = await submissionItems(submission.id);
@@ -1738,7 +1744,7 @@ export async function submit(flag) {
     console.log('Marked rejected item', rejected.id, 'resolved');
   }
   // Revalidate ownership and item completeness immediately before the outward-facing submission.
-  reviewTargets = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
+  reviewTargets = await submitTargets(false);
   const finalItems = await submissionItems(submission.id);
   if (submissionPlan(finalItems, ctx.version.id, reviewTargets).action !== 'submit' ||
       missingSubmissionItems(finalItems, ctx.version.id, leaderboards).leaderboards.length) {
@@ -2118,6 +2124,208 @@ async function assets(mode) {
   if (mode === 'place' && creative.length) console.log('Then check the Preview in App Store Connect on iPhone, iPad and iPhone Duo, for the product page and search results.');
 }
 
+// readAppEvents lists the app's In-App Events in App Store Connect.
+async function readAppEvents() {
+  return listAll('/v1/apps/' + IOS.ascAppId + '/appEvents?limit=200');
+}
+
+// eventTargets reads which store-data events go to App Review with this version (lib/app-events.mjs).
+async function eventTargets() {
+  if (!(STORE.events || []).length) return { targets: [], held: [], missing: [], skipped: [] };
+  return eventReviewTargets(STORE.events, await readAppEvents(), STORE.version, Date.now());
+}
+
+// submitTargets is every review target `submit` sends beside the version: verified purchases and the In-App Events
+// that ship with this version. A listed event App Store Connect does not hold yet stops the submission, because the
+// version that carries the event's content would otherwise reach the store without the event.
+async function submitTargets(report) {
+  const purchases = await verifyPurchaseReviewTargets(STORE, IOS.ascAppId, listAll);
+  const events = await eventTargets();
+  if (events.missing.length) {
+    throw new Error('Store data lists In-App Events for version ' + STORE.version + ' that App Store Connect does not hold yet: ' + events.missing.join(', ')
+      + '. Run `asc.mjs events --confirm` first; nothing was submitted.');
+  }
+  if (report) {
+    for (const line of events.skipped) console.log('In-App Event not sent:', line);
+    if (events.targets.length) console.log('In-App Events going to App Review with version', STORE.version + ':', events.targets.length);
+  }
+  return [...purchases, ...events.targets];
+}
+
+// heldEventTargets are this version's events already waiting for or in review.
+async function heldEventTargets() {
+  return (await eventTargets()).held;
+}
+
+// eventEntryProblems checks every store-data event, its images' pixel sizes included.
+function eventEntryProblems(entries, now) {
+  const problems = entries.flatMap(entry => eventProblems(entry, now));
+  for (const entry of entries) {
+    for (const [type, spec] of Object.entries(EVENT_MEDIA)) {
+      const file = entry.media && entry.media[spec.field];
+      if (typeof file !== 'string') continue;
+      let bytes;
+      try { bytes = readFileSync(resolve(CONFIG.root, file)); } catch { problems.push(entry.referenceName + ': ' + file + ' is missing'); continue; }
+      const problem = mediaProblem(type, imageSize(bytes));
+      if (problem) problems.push(entry.referenceName + ': ' + problem);
+    }
+  }
+  return problems;
+}
+
+// eventImageName names an uploaded event image by its content, so a rerun keeps an unchanged image.
+export function eventImageName(file, bytes) {
+  return createHash('sha256').update(bytes).digest('hex').slice(0, 12) + '-' + basename(file);
+}
+
+// syncEventLocalization creates or updates one language's name and descriptions, then its card and details images.
+async function syncEventLocalization(eventId, locale, text, media, held) {
+  let localization = held.find(item => item.attributes.locale === locale);
+  const attributes = { name: text.name, shortDescription: text.shortDescription, longDescription: text.longDescription };
+  if (!localization) {
+    localization = (await api('/v1/appEventLocalizations', 'POST', { data: { type: 'appEventLocalizations', attributes: { locale: locale, ...attributes },
+      relationships: { appEvent: relation('appEvents', eventId) } } })).data;
+    console.log('  created', locale, 'text');
+  } else if (Object.keys(attributes).some(key => localization.attributes[key] !== attributes[key])) {
+    localization = (await api('/v1/appEventLocalizations/' + localization.id, 'PATCH', { data: { type: 'appEventLocalizations', id: localization.id, attributes: attributes } })).data;
+    console.log('  updated', locale, 'text');
+  }
+  const saved = (await api('/v1/appEventLocalizations/' + localization.id)).data;
+  if (Object.keys(attributes).some(key => saved.attributes[key] !== attributes[key])) throw new Error(locale + ' event text did not read back as written.');
+  const images = await listAll('/v1/appEventLocalizations/' + localization.id + '/appEventScreenshots');
+  for (const [type, spec] of Object.entries(EVENT_MEDIA)) {
+    const path = resolve(CONFIG.root, media[spec.field]);
+    const bytes = readFileSync(path);
+    const name = eventImageName(path, bytes);
+    const current = images.filter(item => item.attributes.appEventAssetType === type);
+    if (current.length === 1 && current[0].attributes.fileName === name) {
+      console.log('  kept', locale, type, name);
+      continue;
+    }
+    for (const stale of current) await api('/v1/appEventScreenshots/' + stale.id, 'DELETE');
+    const reserved = (await api('/v1/appEventScreenshots', 'POST', { data: { type: 'appEventScreenshots',
+      attributes: { fileName: name, fileSize: bytes.length, appEventAssetType: type },
+      relationships: { appEventLocalization: relation('appEventLocalizations', localization.id) } } })).data;
+    await uploadParts(reserved.attributes.uploadOperations, bytes, name);
+    await api('/v1/appEventScreenshots/' + reserved.id, 'PATCH', { data: { type: 'appEventScreenshots', id: reserved.id, attributes: { uploaded: true } } });
+    console.log('  uploaded', locale, type, name);
+  }
+}
+
+// events lists the app's In-App Events and plans the store data's `events`; `--confirm` creates or updates each as a
+// draft (attributes, text in every language, card and details images) and reads it back. Drafts are not public:
+// `submit --confirm` sends an event to App Review with the version named in its `shipsWith`, and `events submit
+// --confirm` sends events whose content is already live on their own.
+async function events(mode, flag) {
+  const entries = STORE.events || [];
+  const existing = await readAppEvents();
+  for (const item of existing) {
+    const schedule = (item.attributes.territorySchedules || [])[0] || {};
+    console.log('  event', item.attributes.referenceName, item.attributes.eventState, item.attributes.badge, schedule.eventStart || '', '->', schedule.eventEnd || '', 'id', item.id);
+  }
+  if (!entries.length) {
+    console.log('Store data lists no In-App Events.');
+    return;
+  }
+  const problems = eventEntryProblems(entries);
+  if (problems.length) throw new Error('store data events: ' + problems.join('; '));
+  const territories = (await listAll('/v1/territories?limit=200')).map(item => item.id);
+  const plan = eventPlan(entries, existing, territories, STORE.listing.locale);
+  for (const step of plan) {
+    console.log('  plan', step.action, step.entry.referenceName, step.state || '', step.changes ? '(' + step.changes.join(', ') + ')' : '', step.entry.shipsWith ? 'ships with ' + step.entry.shipsWith : '');
+  }
+  if (mode === 'submit') {
+    await submitStandaloneEvents(entries, existing, flag);
+    return;
+  }
+  if (mode !== '--confirm') {
+    console.log('Dry run: rerun as `asc.mjs events --confirm` to create or update these drafts; nothing goes to App Review until `submit --confirm`.');
+    return;
+  }
+  const late = eventEntryProblems(entries, Date.now()).filter(problem => problem.includes('start has passed'));
+  for (const step of plan) {
+    if (step.action === 'locked') {
+      console.log('not changed:', step.entry.referenceName, 'is', step.state, 'with Apple; differs in', step.changes.join(', '));
+      continue;
+    }
+    if (late.some(problem => problem.startsWith(step.entry.referenceName + ':'))) {
+      console.log('not changed:', step.entry.referenceName, 'starts in the past; move its dates in store data');
+      continue;
+    }
+    let id = step.id;
+    if (step.action === 'create') {
+      id = (await api('/v1/appEvents', 'POST', { data: { type: 'appEvents', attributes: step.attributes, relationships: { app: relation('apps', IOS.ascAppId) } } })).data.id;
+      console.log('created', step.entry.referenceName, id);
+    } else if (step.action === 'update') {
+      await api('/v1/appEvents/' + id, 'PATCH', { data: { type: 'appEvents', id: id, attributes: step.attributes } });
+      console.log('updated', step.entry.referenceName, step.changes.join(', '));
+    }
+    // Text and images change only while Apple lets the event change: new, or a draft, ready or rejected one.
+    if (step.action === 'create' || EDITABLE_EVENT_STATES.includes(step.state)) {
+      const held = await listAll('/v1/appEvents/' + id + '/localizations?limit=50');
+      const languages = { [STORE.listing.locale]: step.entry.text, ...(step.entry.localizations || {}) };
+      for (const [locale, text] of Object.entries(languages)) await syncEventLocalization(id, locale, text, step.entry.media, held);
+    }
+    const saved = (await api('/v1/appEvents/' + id)).data;
+    const left = eventPlan([step.entry], [saved], territories, STORE.listing.locale)[0];
+    if (left.action === 'create' || left.action === 'update') throw new Error(step.entry.referenceName + ' did not read back as written; inspect App Store Connect before retrying.');
+    console.log('  read back', saved.attributes.referenceName, saved.attributes.eventState);
+  }
+  console.log('Events are drafts until `submit --confirm` sends them with version', STORE.version, '(events whose shipsWith is that version), or `events submit --confirm` for content already live.');
+}
+
+// standaloneEventTargets picks events to send to App Review on their own: editable, starting ahead of `now`, and whose
+// `shipsWith` version (if any) is no newer than the live version, so the event's content is what people already have.
+export function standaloneEventTargets(entries, existing, liveVersion, now) {
+  const send = [];
+  const waiting = [];
+  for (const entry of entries) {
+    const live = existing.find(item => item.attributes.referenceName === entry.referenceName && item.attributes.eventState !== 'ARCHIVED');
+    if (!live || !EDITABLE_EVENT_STATES.includes(live.attributes.eventState) || Date.parse(entry.start) <= now) continue;
+    if (entry.shipsWith !== undefined && (!liveVersion || compareVersions(liveVersion, entry.shipsWith) < 0)) {
+      waiting.push(entry.referenceName + ' waits for version ' + entry.shipsWith + ' (live: ' + (liveVersion || 'none') + ')');
+      continue;
+    }
+    send.push(live.id);
+  }
+  return { send, waiting };
+}
+
+// submitStandaloneEvents sends events whose content is live to App Review without a new version.
+async function submitStandaloneEvents(entries, existing, flag) {
+  const versions = await listAll('/v1/apps/' + IOS.ascAppId + '/appStoreVersions?filter[platform]=IOS&limit=200');
+  const live = versions.filter(item => LIVE_STATES.includes(versionState(item))).map(item => item.attributes.versionString).sort(compareVersions).pop();
+  const { send, waiting } = standaloneEventTargets(entries, existing, live, Date.now());
+  for (const line of waiting) console.log('not sent:', line);
+  if (!send.length) {
+    console.log('No In-App Event is ready to go to App Review on its own.');
+    return;
+  }
+  if (flag !== '--confirm') {
+    console.log('Dry run: rerun as `asc.mjs events submit --confirm` to send', send.length, 'event(s) to App Review on their own.');
+    return;
+  }
+  const submission = await openReviewSubmission();
+  if (submission.attributes.state !== 'READY_FOR_REVIEW') throw new Error('The open review submission is ' + submission.attributes.state + '; nothing was attached or submitted.');
+  const targets = send.map(id => ({ relation: 'appEvent', type: 'appEvents', id: id }));
+  const check = items => {
+    const plan = reviewItemPlan(items, null, targets);
+    if (plan.conflict) throw new Error('Review submission ' + submission.id + ' holds other items; nothing further was attached or submitted.');
+    return plan;
+  };
+  for (const target of targets) {
+    if (!check(await submissionItems(submission.id)).missing.some(item => item.id === target.id)) continue;
+    await api('/v1/reviewSubmissionItems', 'POST', { data: { type: 'reviewSubmissionItems', relationships: {
+      reviewSubmission: relation('reviewSubmissions', submission.id), appEvent: relation('appEvents', target.id) } } });
+    if (check(await submissionItems(submission.id)).missing.some(item => item.id === target.id)) throw new Error('Event attachment did not read back; nothing was submitted.');
+  }
+  if (check(await submissionItems(submission.id)).missing.length) throw new Error('Review submission is missing intended events; nothing was submitted.');
+  await api('/v1/reviewSubmissions/' + submission.id, 'PATCH', { data: { type: 'reviewSubmissions', id: submission.id, attributes: { submitted: true } } });
+  const saved = (await api('/v1/reviewSubmissions/' + submission.id)).data;
+  if (!['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(saved.attributes.state)) throw new Error('Event review submission readback is not waiting for or in review; inspect provider state before retrying.');
+  console.log('Review submission', submission.id, 'with', send.length, 'In-App Event(s) is', saved.attributes.state);
+}
+
 // PROMOTION_ITEMS is the "Every release" list in references/promotion.md as data, so a release cannot pass it by
 // oversight. Each needs a result or a recorded reason (store data's `promotion.waived.<id>`).
 export const PROMOTION_ITEMS = [
@@ -2303,6 +2511,7 @@ async function main() {
   if (command === 'release') await release(argument);
   if (command === 'assets') await assets(argument);
   if (command === 'nominate') await nominate(argument);
+  if (command === 'events') await events(argument, process.argv[4]);
 }
 
 // Run only when invoked as a command, so tests can import the decision helpers.
