@@ -633,6 +633,19 @@
       ],
       "cause": "a directory's own limit on how many listings one visitor may publish in a stretch of time; ten apps sent one after another pass it",
       "fix": "respect it: log the remaining apps deferred (blocked_by pacing, retry_after the next day) and submit them in the next pass; never switch browser, address or session to get past a site's limit. No change needed while each app is listed within two passes"
+    },
+    {
+      "key": "store-page-cache-lag",
+      "title": "The public product page still shows old text after a promotional text change",
+      "text": [
+        "public product page still serves the old text",
+        "product page still shows the old promotional text"
+      ],
+      "history": [
+        "2026-11-20 mkt-mac-20261120T133537Z: Füd's promotional text was set at 13:45Z and read back from App Store Connect; apps.apple.com still served the old text at 14:35Z"
+      ],
+      "cause": "Apple serves the public product page from a cache, so a promotional text change that App Store Connect already holds shows there some hours later",
+      "fix": "none needed: App Store Connect's read-back proves the change. Log the item deferred (blocked_by outside) with a retry_after a few hours on, and read the public page again then; any later run that day can read it. Never file it under store-lookup-stale, which is the developer lookup the store sync reads"
     }
   ],
   "expected": [
