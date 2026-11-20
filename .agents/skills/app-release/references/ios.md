@@ -383,7 +383,10 @@ A scheduled run works every eligible app, not just the first, and takes each upd
 teams with GET only and gives each app one status: `not_live`, `occupied` (a version past draft newer than the live
 one, or a submission sent or with `UNRESOLVED_ISSUES`; an unsent `READY_FOR_REVIEW` draft is not, because `submit` reuses
 it), `deferred`,
-`no_product_change` or `candidate`. A `product` candidate is only a list of files: read the diff and decide whether
+`no_product_change` or `candidate`. Every mapped live app's row also carries `privacy`: what the published App
+Privacy label lacks against the release branch's `appPrivacy` (`changeNow`), read for occupied apps too because the
+label changes without a version. A storefront lookup still showing the previous version is a `storefront` note, not
+a deferral. A `product` candidate is only a list of files: read the diff and decide whether
 the shipped app changed. `web/` in a native app is usually its website, and a bundled web app is the reverse. A
 `listing` candidate has no product change, but its merged store data differs from the live name, subtitle, keywords,
 description or URLs, or names a listing language that is missing live or differs ([listing localizations](#listing-localizations)). Apple takes those only with a new version and build, so the run ships it as a metadata-only

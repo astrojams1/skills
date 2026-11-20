@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { normalizeConfig } from '../../skills/app-release/scripts/lib/config.mjs';
 import { loadCatalog } from '../../skills/app-release/scripts/lib/standards.mjs';
-import { collectedFrom, coverageProblems, expectedLabel, labelGate, labelRefusal, manifestCollection, manifestDrift, parsePlist, parseStorePage, storeShape, writeConfirmation }
+import { collectedFrom, coverageProblems, expectedLabel, labelGate, labelRefusal, manifestCollection, manifestDrift, parsePlist, parseStorePage, publishedLabelGap, storeShape, writeConfirmation }
   from '../../skills/app-release/scripts/lib/privacy-label.mjs';
 
 const scan = loadCatalog().scan;
@@ -149,4 +149,21 @@ test('an app with no App Store id is checked offline only', async t => {
   const result = await labelGate(fixture.config, fixture.store, scan, { fetchImpl: () => { throw new Error('no network expected'); } });
   assert.deepEqual(result.problems, []);
   assert.equal(result.published, null);
+});
+
+test('the sweep reads the published label against store data alone, for an app whose version is in review', async t => {
+  const confirmations = mkdtempSync(join(tmpdir(), 'privacy-confirmations-'));
+  t.after(() => rmSync(confirmations, { recursive: true, force: true }));
+  const store = answers([productInteraction]);
+  const options = html => ({ fetchImpl: fetchOf(html), confirmations });
+  assert.deepEqual(await publishedLabelGap(store, '123', options(withFirstLaunch)), { missing: [] });
+  const gap = await publishedLabelGap(store, '123', options(notCollected));
+  assert.deepEqual(gap.missing, ['add Usage Data > Product Interaction for Analytics (not linked, not tracking)']);
+  assert.equal(gap.published, 'Data Not Collected');
+  assert.deepEqual((await publishedLabelGap({}, '123', options(notCollected))).missing, []);
+  assert.match((await publishedLabelGap(store, '123', { fetchImpl: async () => ({ ok: false, status: 503, text: async () => '' }), confirmations })).problem, /could not be read .*503/);
+  writeConfirmation('123', { confirmedAt: new Date().toISOString(), evidence: 'App Privacy page showed Published', entries: [firstLaunch] }, confirmations);
+  const lagging = await publishedLabelGap(store, '123', options(notCollected));
+  assert.deepEqual(lagging.missing, []);
+  assert.match(lagging.note, /public page has not caught up/);
 });

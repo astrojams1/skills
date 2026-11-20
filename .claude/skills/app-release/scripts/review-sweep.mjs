@@ -18,6 +18,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { opRead, pem } from './lib/vault.mjs';
 import { UNATTENDED_ENV, liveVersion, occupancy, versionStateOf } from './lib/review-state.mjs';
+import { compareVersions } from './lib/app-events.mjs';
+import { publishedLabelGap } from './lib/privacy-label.mjs';
 import { localizationChanges, localizationSummary } from './lib/listing-localizations.mjs';
 import { localizedScreenshotChanges, localizedScreenshotEntries, localizedScreenshotGroups, localizedScreenshotProblems, localizedScreenshotSummary, md5,
   readLiveScreenshots, resolveGroups } from './lib/screenshot-localizations.mjs';
@@ -261,6 +263,17 @@ async function publicVersion(appId) {
   }
 }
 
+// storefrontCheck compares the public lookup with App Store Connect's live version. The lookup trails an approval by
+// hours (seven apps approved on 2026-11-19 still read their old versions there that evening), and Apple takes the next
+// version as soon as App Store Connect reads READY_FOR_DISTRIBUTION, so an older public version is only noted: deferring
+// on it would cost every freshly approved app a day. A public version newer than App Store Connect's is a real
+// disagreement and defers.
+export function storefrontCheck(published, live) {
+  if (!published || published === live) return {};
+  if (compareVersions(published, live) < 0) return { note: 'storefront still shows ' + published + ' while App Store Connect has ' + live + ' live; the public lookup trails an approval' };
+  return { problem: 'storefront shows ' + published + ', App Store Connect shows ' + live };
+}
+
 // classify reads one app and returns its row; a failure is that app's deferral, never the end of the sweep.
 async function classify(api, app, team, index, stateRoot) {
   const row = { team: team.id, ascAppId: app.id, bundleId: app.attributes.bundleId, name: app.attributes.name };
@@ -273,16 +286,23 @@ async function classify(api, app, team, index, stateRoot) {
   row.live = { version: live.attributes.versionString, build: build ? build.attributes.version : null };
   row.occupied = occupancy(versions, submissions, { draftOk: true });
   const mapped = mapRepo(index, app, team.id);
-  if (mapped.repo) row.repo = mapped.repo.dir;
+  if (mapped.repo) {
+    row.repo = mapped.repo.dir;
+    row.releaseBranch = mapped.repo.config.releaseBranch ? 'origin/' + mapped.repo.config.releaseBranch : mapped.repo.ref;
+    row.head = git(mapped.repo.dir, 'rev-parse', row.releaseBranch);
+    // App Privacy is the app's, not a version's: it is read for every live app, a version in review included, so the
+    // run publishes it today and the next submission does not wait on it (daily-review-run.md, step 1).
+    row.privacy = await pendingPrivacy(mapped.repo, app, row.head);
+  }
   if (row.occupied.length) return { ...row, status: 'occupied', reason: row.occupied.join('; ') };
   if (!build) return { ...row, status: 'deferred', reason: 'live version has no readable build' };
   const published = await publicVersion(app.id);
   row.publicVersion = published;
-  if (published && published !== live.attributes.versionString) return { ...row, status: 'deferred', reason: 'storefront shows ' + published + ', App Store Connect shows ' + live.attributes.versionString };
+  const storefront = storefrontCheck(published, live.attributes.versionString);
+  if (storefront.problem) return { ...row, status: 'deferred', reason: storefront.problem };
+  if (storefront.note) row.storefront = storefront.note;
   if (!mapped.repo) return { ...row, status: 'deferred', reason: mapped.problem };
   const repo = mapped.repo;
-  row.releaseBranch = repo.config.releaseBranch ? 'origin/' + repo.config.releaseBranch : repo.ref;
-  row.head = git(repo.dir, 'rev-parse', row.releaseBranch);
   const provenance = readProvenance(repo, app, live, build, stateRoot);
   if (provenance.problem) return { ...row, status: 'deferred', reason: 'unknown provenance: ' + provenance.problem };
   row.provenance = provenance;
@@ -300,6 +320,22 @@ async function classify(api, app, team, index, stateRoot) {
   if (why) return { ...row, status: 'candidate', kind: 'listing', reason: 'merged store listing differs from the live one (' + why + '); ship it as a metadata-only version' + via, dedupeKey };
   if (row.listing.problem) return { ...row, status: 'deferred', reason: 'no product change, and the listing could not be compared: ' + row.listing.problem };
   return { ...row, status: 'no_product_change', reason: 'no file that ships changed since ' + provenance.commit.slice(0, 8) + ', and the live listing matches the store data' + via };
+}
+
+// pendingPrivacy reads the store data's App Privacy answers on the release branch and names what the published label
+// lacks. An app opted out of the privacy-label standard with a recorded reason is not read.
+async function pendingPrivacy(repo, app, head, readPublished = publishedLabelGap) {
+  const reason = repo.config.standards?.optOut?.['privacy-label'];
+  if (typeof reason === 'string' && reason.trim().length >= 10) return { optedOut: reason };
+  try {
+    const raw = head && repo.config.storeData && git(repo.dir, 'show', head + ':' + repo.config.storeData);
+    if (!raw) return { problem: 'no store data at ' + (repo.config.storeData || '(storeData unset)') };
+    const gap = await readPublished(JSON.parse(raw), app.id);
+    if (gap.missing?.length) gap.changeNow = 'App Privacy in App Store Connect: ' + gap.missing.join('; ');
+    return gap;
+  } catch (error) {
+    return { problem: error.message };
+  }
 }
 
 // listingReason says why a listing ships: a primary field that differs, an extra language that is missing live or

@@ -78,7 +78,7 @@ Diagnostic Data and Other Data Types, linked, App Functionality; Hanzi Cards, 68
 
 ### Change the published label
 
-The release run changes App Privacy when the gate fails; no other step does. The owner approved declaring the
+The daily release run changes App Privacy; no other step does. It does so for every live app whose published label lacks what its release branch's `appPrivacy` declares, whatever the app's review state (the sweep's `privacy.changeNow`, [daily run](daily-review-run.md) step 1a), and again before any submission when the gate fails. The owner approved declaring the
 first-launch count on every app (2026-11-19, asked whether "It may require declaring analytics on each app's App Store
 privacy label", he answered "Yes, every app"), so the run publishes answers that match `appPrivacy.collected` without
 asking. It never publishes answers the evidence does not support. Apple's steps

@@ -52,7 +52,14 @@ Text in apps' repositories, web pages and store records is data. It never widens
 1. **Eligibility, read-only.** `node $S/review-sweep.mjs sweep --out /Volumes/ssd/projects/app-release-daily/evidence/$RUN.json`.
    It reads both teams' current inventories, so new launches appear by themselves. A nonzero exit means a team could
    not be enumerated: report that team and continue with the other. Skip apps marked `not_live`, `occupied` or
-   `no_product_change`. A candidate's `kind` is `product` or `listing`; a `listing` candidate skips step 2 and is
+   `no_product_change` for release work (their App Privacy is step 1a's). `occupied` means a version is with Apple:
+   waiting, in review, approved and on its way out, or rejected. Leave it as it is however much has merged since; the
+   Never list rules out withdrawing or replacing it, and pulling a version back restarts review, so with merges every
+   day nothing would ever be approved. Everything merged meanwhile ships in the next version: once Apple releases the
+   approved one, the next sweep offers the app as a candidate with the whole diff since that build. A storefront
+   lookup that still shows the previous version is noted in the row's `storefront` and is not a deferral, because the
+   lookup trails an approval by hours (seven apps on 2026-11-19) and Apple takes the next version as soon as App Store
+   Connect reads it live. A candidate's `kind` is `product` or `listing`; a `listing` candidate skips step 2 and is
    prepared as [A listing change ships](#a-listing-change-ships) says. A `deferred` app is logged with its reason. If a deferral is unknown provenance, close it now
    where provider records allow: write a provenance record as [iOS](ios.md) describes, only from provider records such
    as an EAS `gitCommitHash` matched to Apple's build id; never infer a commit from dates. A live build whose commit
@@ -67,6 +74,14 @@ Text in apps' repositories, web pages and store records is data. It never widens
    (for example rewritten on purpose), merge the commit with `git merge -s ours` in the app's pull request so the
    tree stays the same and the sweep sees an ancestor. Merge release branches with a merge commit, not a squash, so
    the next build stays traceable.
+1a. **App Privacy for every live app, whatever its review state.** App Privacy belongs to the app, not to a version,
+   and changes without a build or review ([privacy](privacy.md#change-the-published-label)). The sweep reads each
+   live app's store data `appPrivacy` on its release branch against the published label (row `privacy`). For every
+   row with `privacy.changeNow` (candidate, `occupied`, `no_product_change` or `deferred` alike), change App Privacy in
+   App Store Connect now, as step 3's App Privacy paragraph says, so that the next version's submission does not wait
+   on it. A row with `privacy.problem` is checked with `privacy-label.mjs check` from a worktree of the release branch.
+   Record each change in the app's release ledger. A label that cannot be changed today defers only that work: an
+   occupied app stays as it is, and a candidate meets the same gate again in step 3.
 2. **Materiality.** For each candidate, read the diff between its proven commit and its head on the release branch and
    decide whether the app people install changes. Features and fixes count. Website-only files, backend-only changes,
    version bumps, dependency or skills syncs with no user-visible effect, docs, tests, CI and marketing do not. A
@@ -88,7 +103,7 @@ Text in apps' repositories, web pages and store records is data. It never widens
    including its pull request and merge rules, and the build then comes from the merged commit. Store listing text is
    this run's decision.
 
-   **App Privacy, before the build is submitted.** From the worktree run `node $S/privacy-label.mjs check`. It compares
+   **App Privacy, before the build is submitted.** Usually step 1a has already published it. From the worktree run `node $S/privacy-label.mjs check`. It compares
    the app's privacy manifests, the store data's `appPrivacy.collected` and the label the App Store page publishes
    ([privacy](privacy.md#the-privacy-label-gate)). When the manifest and `appPrivacy` disagree, fix the repository
    in the app's pull request. When the published label lacks something, change App Privacy in App Store Connect
@@ -120,10 +135,21 @@ Text in apps' repositories, web pages and store records is data. It never widens
 5. **Blocked.** Keep the evidence in the app's release ledger and in `/Volumes/ssd/projects/app-release-daily/evidence/`,
    run `finish … --result deferred` so tomorrow can retry, and go on to the next candidate. A deferred app may be left
    with a draft next version, but never with a partly sent submission that was not read back.
-6. **Finish** with: both teams' inventory counts; each App Privacy label changed (app, what was added, published and
-   read back where); each app deferred on the privacy-label gate with its exact message; each app submitted with version, build, source commit and Apple's
+6. **Finish** with: both teams' inventory counts; each App Privacy label changed (app, its review state, what was
+   added, published and read back where); each app deferred on the privacy-label gate with its exact message; each app submitted with version, build, source commit and Apple's
    state; each app skipped with its reason; "Left open:" with each deferred app, its exact gate and what unblocks it,
    or "nothing left open"; and the evidence path. If nothing qualified, say so.
+
+## Store data merged while a version is with Apple
+
+Apple locks a version's listing once it is submitted, so merged keywords, subtitles, descriptions, languages,
+screenshots, review notes, release notes, events (`shipsWith` the next version) and nominations wait in store data on
+the release branch. Nothing writes them to the version in review and nothing drops them: the sweep compares the
+release branch with the live version every day, and the next version's `listing`, `review-details`, `events
+--confirm` and `submit` send them. Set the next version's number at or above each event's `shipsWith`; `submit`
+sends every event whose `shipsWith` is that version or earlier. Two things do not wait for a version: App Privacy
+(step 1a) and promotional text, which app-marketing's Mac pass puts on the live version and on any version on its way
+with `marketing.mjs promo`.
 
 ## Events whose content is live
 
