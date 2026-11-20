@@ -468,7 +468,7 @@ test('a ledger line is corrected by a later one with the same run and event that
 });
 
 // ---- the App Store funnel ----
-import { funnelStage, listingTestResults, rescoreFunnel, FUNNEL_REF } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { funnelStage, listingTestResults, rescoreFunnel, FUNNEL_REF, promoVersions } from '../../skills/app-marketing/scripts/marketing.mjs';
 
 const fdays = (from, n, make) => Object.fromEntries(Array.from({ length: n }, (_, i) => { const d = new Date(Date.parse(`${from}T00:00:00Z`) + i * DAY).toISOString().slice(0, 10); return [d, make(i)]; }));
 const view = (imp, search, other = 0) => ({ impressions: imp, pageViews: search + other, taps: 0, pageViewSources: { 'App Store search': search, ...(other ? { Unavailable: other } : {}) } });
@@ -536,6 +536,24 @@ test('a listing test for the next version goes live with the first lookup showin
   const t = { stage: 'impressions', field: 'keywords', prepared: '2026-11-12', version: 'next', before: { listing: { version: '1.3.0' } } };
   const lookups = [['2026-11-11', '1.4.0'], ['2026-11-12', '1.3.0'], ['2026-11-15', '1.3.1']].map(([d, v]) => ({ at: `${d}T05:00:00Z`, values: { version: v } }));
   assert.equal(listingTestResults([t], {}, {}, lookups)[0].live, '2026-11-15');
+});
+
+test('a next-version listing test with no known before version is never read as live, and check refuses it', () => {
+  const t = { stage: 'impressions', field: 'keywords', prepared: '2026-11-20', version: 'next', before: { impressions: 9, listing: { keywords: 'a,b' } } };
+  const lookups = [{ at: '2026-11-20T13:36:00Z', values: { version: '1.0.4' } }];
+  const [r] = listingTestResults([t], {}, {}, lookups, Date.parse('2026-11-20T14:00:00Z'));
+  assert.equal(r.live, null);
+  assert.match(r.why, /queued 2026-11-20, not submitted/);
+  assert.ok(profileProblems(profile({ listingTests: [t] })).some(p => p.includes('before.listing.version')));
+  assert.deepEqual(profileProblems(profile({ listingTests: [{ ...t, before: { ...t.before, listing: { version: '1.0.4' } } }] })), []);
+  assert.deepEqual(profileProblems(profile({ listingTests: [{ ...t, live: '2026-11-21' }] })), []);
+});
+
+test('promo text goes to the version on sale and versions on their way, not to replaced versions', () => {
+  const v = (versionString, state, createdDate) => ({ attributes: { versionString, appVersionState: state, createdDate } });
+  const picked = promoVersions([v('1.3.2', 'WAITING_FOR_REVIEW', '2026-11-20'), v('1.3.0', 'READY_FOR_DISTRIBUTION', '2026-11-01'),
+    v('1.3.1', 'READY_FOR_DISTRIBUTION', '2026-11-14'), v('1.2.0', 'READY_FOR_DISTRIBUTION', '2026-10-30'), v('0.9', 'REJECTED', '2026-10-01')]);
+  assert.deepEqual(picked.map(x => x.attributes.versionString), ['1.3.2', '1.3.1']);
 });
 
 test('a queued listing test shows its queue date and is stale after 3 days unsubmitted', () => {

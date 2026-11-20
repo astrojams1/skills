@@ -257,6 +257,9 @@ export function profileProblems(profile, name = profile.id) {
     if (!['impressions', 'tap-through', 'conversion'].includes(t.stage) || !t.field || Number.isNaN(Date.parse(t.prepared)) || !t.before || !(t.live || t.version)) {
       problems.push(`${name}: listingTests[${n}] needs stage, field, prepared (a date), before (the snapshot) and live (a date) or version`);
     }
+    if (t.version === 'next' && !t.live && !t.before?.listing?.version) {
+      problems.push(`${name}: listingTests[${n}] has version "next" but no before.listing.version (the version live when it was prepared), so learn cannot tell when it ships`);
+    }
   }
   problems.push(...ideaProblems(profile, name));
   // Only live products get work (James, 2026-11-12), and that covers what is already built: an experiment for a product
@@ -1187,6 +1190,16 @@ async function cmdPull(root, args) {
   }
 }
 
+// promoVersions picks the versions whose promotional text matters: the one on sale (the newest ready for distribution;
+// Apple reports replaced versions in the same state, and on 2026-11-20 a promo call rewrote four of Füd's old ones) and
+// any version on its way.
+export function promoVersions(versions) {
+  const stateOf = v => v.attributes.appVersionState || v.attributes.appStoreState;
+  const onSale = versions.filter(v => stateOf(v) === 'READY_FOR_DISTRIBUTION')
+    .sort((a, b) => String(b.attributes.createdDate || '').localeCompare(String(a.attributes.createdDate || '')))[0];
+  return versions.filter(v => PROMO_STATES.includes(stateOf(v)) && (stateOf(v) !== 'READY_FOR_DISTRIBUTION' || v === onSale));
+}
+
 // cmdPromo changes promotional text on the live version and on any version on its way, which would otherwise bring its
 // own older text with it when it ships. Apple allows this at any time, without review. A version Apple refuses is
 // reported, not fatal, so long as the live one took the change.
@@ -1196,8 +1209,7 @@ async function cmdPromo(root, args) {
   if (!args.text || args.text.length > 170) throw new Error('Promotional text must be 1 to 170 characters');
   if (!args.confirm) return console.log(`Would set ${p.id}: ${args.text}\nAdd --confirm to write it.`);
   const api = ascClient(p.ascVault);
-  const versions = ((await api(`/v1/apps/${p.appStoreId}/appStoreVersions?filter[platform]=IOS&limit=5`)).data || [])
-    .filter(v => PROMO_STATES.includes(v.attributes.appVersionState || v.attributes.appStoreState));
+  const versions = promoVersions((await api(`/v1/apps/${p.appStoreId}/appStoreVersions?filter[platform]=IOS&limit=5`)).data || []);
   const results = [];
   for (const version of versions) {
     const row = { version: version.attributes.versionString, state: version.attributes.appVersionState || version.attributes.appStoreState };
@@ -1405,6 +1417,9 @@ export function funnelStage(days, discovery, ref = FUNNEL_REF) {
 function liveDate(test, lookups) {
   if (test.live) return test.live.slice(0, 10);
   // version 'next' is whichever version follows the one live when it was prepared (before.listing.version).
+  // Without that version nothing can be told apart: on 2026-11-20 fourteen tests queued with no before.listing.version
+  // were read as live the day they were queued, because any version at all "followed" an unknown one.
+  if (test.version === 'next' && !test.before?.listing?.version) return null;
   const shipped = v => test.version === 'next' ? v && v !== test.before?.listing?.version : v === test.version;
   const seen = lookups.find(m => m.at?.slice(0, 10) >= String(test.prepared).slice(0, 10) && shipped(m.values?.version));
   return seen ? seen.at.slice(0, 10) : null;
