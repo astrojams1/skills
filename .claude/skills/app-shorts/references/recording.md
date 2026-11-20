@@ -11,6 +11,12 @@ show the product doing something it can't do (a feature it doesn't have). Use sy
    local or staging backend seeded with a believable synthetic household (Füd: `e2e-server.cjs` with
    `E2E_SHOWCASE=1`, a family of You, Leo and Maya). Never record a real person's data, and never the production
    account. Sign in by seeding the session (Füd's `seed-session.py`), not by typing credentials on camera.
+   Füd's "Work out this meal" calls OpenAI from that local server, so the Füd rig needs an OpenAI key: the episode's
+   `server.sh` reads the Personal organisation's free-credit key file named in `/Volumes/ssd/AGENTS.md` ("OpenAI:
+   free subscription credit only") at run time, for the server process only; never the environment's
+   `OPENAI_API_KEY`, which has no credit (every call answers 502 "Could not work out that meal", found 2026-11-20).
+   Never print or store the key, stop the server when the take is done, and stop if the month's grant runs out. A
+   meal costs two calls (split, match); a Short needs about eight.
 2. **A leased device from the shared pool.** Follow the owner's simulator rules. Run the SSD mount script, lease
    the exact UUID, record its prior state, and run `simctl status_bar override --time 9:41` with full battery and
    signal. At the end, even after a failure, restore everything: uninstall the build, clear the status bar, shut
