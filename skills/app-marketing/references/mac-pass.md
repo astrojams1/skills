@@ -189,17 +189,23 @@ pass's result, and neither job waits for Shorts. Show HN goes first, since it ha
 
    ```sh
    python3 -I - <<'PY'
-   import json
+   import glob, gzip, json
+   home = '/Users/astro/Library/Application Support/AgentActivityLedger'
    last = None
-   for line in open('/Users/astro/Library/Application Support/AgentActivityLedger/events.jsonl'):
-       try: e = json.loads(line)
-       except ValueError: continue
-       if (e.get('skill') == 'vegas-microworks-marketing' and e.get('event') == 'end'
-               and str(e.get('run_id', '')).startswith('vmw-weekly-') and e.get('status') in ('ok', 'partial')):
-           last = e['ts']
+   # The ledger is compressed into events-*.jsonl.gz once it passes 8 MiB, so read the archives too.
+   for name in sorted(glob.glob(home + '/events-*.jsonl.gz')) + [home + '/events.jsonl']:
+       for line in (gzip.open if name.endswith('.gz') else open)(name, 'rt'):
+           try: e = json.loads(line)
+           except ValueError: continue
+           if (e.get('skill') == 'vegas-microworks-marketing' and e.get('event') == 'end'
+                   and str(e.get('run_id', '')).startswith('vmw-weekly-') and e.get('status') in ('ok', 'partial')):
+               last = max(last or '', e['ts'])
    print(last or 'none')
    PY
    ```
+
+   The 2026-11-20 pass got `none` from the older form of this check, two days after a weekly pass: the ledger had
+   been compressed on 2026-11-19 and the check read only the new file.
 
    When it is due, read `<folder>/skills/vegas-microworks-marketing/SKILL.md` from this pass's export and follow
    "A run". Give it the run id `vmw-weekly-<UTC time>`, such as `vmw-weekly-20261118T143000Z`. It reports in its own
