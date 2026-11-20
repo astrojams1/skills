@@ -27,3 +27,9 @@ Export original briefs, schedule and event registrations. Start the shared gate 
 `marketing_due.py --catalog FILE --plan` previews nominal work offline without claims. In normal mode the dispatcher resumes expired or yielded work before starting a new pass in that group. A short head start alternates by local date. Use the portfolio's own registries and operating procedures to verify production work. Use a separate disposable group for coordination tests.
 
 To roll back, stop both Codex entry points and remove the job from its catalog. Wait for workers to stop, inspect pending operations in the group and reconcile them before restoring the saved Claude instructions. Preserve the private coordination history for subsequent handoffs.
+
+## Local Codex worker
+
+`marketing_worker.py` polls the private catalog and starts a subscription-authenticated Codex CLI only after acquiring work. It uses two independent worker lanes, an OS lock per lane and the shared remote gate. It saves each assignment privately, checks the durable completion or yield on exit, and backs off after a failed launch or quota error. An expired group lease can be recovered from another host. An inherited lane lock also lets a restarted supervisor detect a surviving local process.
+
+Use `--check` with the catalog, runtime directory and worker protocol template to inspect login, heartbeat, cooldown and worker state without claiming anything. A `PAUSED` file beside the catalog stops new local claims. The native Codex daily recovery routine checks the supervisor and shares the same remote ownership rules if it needs to take over. Claude cloud schedules remain available while the Mac sleeps.

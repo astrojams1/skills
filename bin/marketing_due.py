@@ -129,20 +129,21 @@ def gate(job, *args):
     return json.loads(result.stdout)
 
 
-def open_issues(job):
+def opened_issues(job):
     config = job["reply_issues"]
     command = ["gh", "api", "--method", "GET", "--paginate", f"repos/{config['repo']}/issues",
-               "-f", "state=open", "-f", "per_page=100", "-f", f"since={instant(job['from']).isoformat()}",
-               "--jq", ".[] | select(.pull_request == null) | [.number,.created_at] | @tsv"]
+               "-f", "state=all", "-f", "per_page=100", "-f", f"since={instant(job['from']).isoformat()}",
+               "--jq", '.[] | select(.pull_request == null) | [.number,.created_at,.state,(.closed_at // "")] | @tsv']
     if config.get("label"):
         command.extend(["-f", f"labels={config['label']}"])
     result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=90)
     for line in result.stdout.splitlines():
-        number, created = line.split("\t")
+        number, created, state, closed = line.split("\t")
         when = instant(created)
         if when >= instant(job["from"]):
             slot = f"issue.{int(number)}.{int(when.timestamp())}"
-            yield {"job": job["id"], "slot": slot, "pass": "issue", "scheduled_at": when.isoformat()}
+            yield {"job": job["id"], "slot": slot, "pass": "issue", "scheduled_at": when.isoformat(),
+                   "issue_state": state, "issue_closed_at": closed or None}
 
 
 def ready(job, candidate, now):
@@ -161,7 +162,7 @@ def rotation(jobs, cursor):
     return jobs
 
 
-def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=open_issues):
+def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues):
     by_id = {job["id"]: job for job in jobs}
     states, errors, blocked = {}, [], set()
     for name in rotation(list(by_id), cursor):

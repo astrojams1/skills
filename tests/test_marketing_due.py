@@ -109,12 +109,16 @@ class DispatcherTests(unittest.TestCase):
         calls = []
         def result(cmd, **kwargs):
             calls.append(cmd)
-            return subprocess.CompletedProcess(cmd, 0, "1\t2026-11-19T12:00:00Z\n8\t2026-11-20T16:00:00Z\n")
+            rows = ("1\t2026-11-19T12:00:00Z\topen\t\n"
+                    "8\t2026-11-20T16:00:00Z\tclosed\t2026-11-20T16:01:00Z\n")
+            return subprocess.CompletedProcess(cmd, 0, rows)
         with patch.object(due.subprocess, "run", result):
-            items = list(due.open_issues(j))
+            items = list(due.opened_issues(j))
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["slot"], "issue.8." + str(int(due.instant(items[0]["scheduled_at"]).timestamp())))
-        self.assertIn("state=open", calls[0])
+        self.assertEqual(items[0]["issue_state"], "closed")
+        self.assertEqual(items[0]["issue_closed_at"], "2026-11-20T16:01:00Z")
+        self.assertIn("state=all", calls[0])
         self.assertNotIn("labels=reply-waiting", calls[0])
 
     def test_plan_is_offline_and_contains_no_secrets_or_cursor(self):
