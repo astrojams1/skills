@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.35.0"
+  version: "1.36.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -20,7 +20,7 @@ is left open. Each channel's effect on downloads is measured.
 |---|---|
 | State | `marketing/` in `astrojams1/app-sites`: `apps/<id>.json`, `ledger.jsonl`, `metrics.jsonl`, generated `LEDGER.md` |
 | Tool | `scripts/marketing.mjs` (Node 22, no dependencies), run from the app-sites checkout; `scripts/gcal.mjs` for the owner's calendar |
-| Numbers | Apple's Analytics Reports through `pull`: App Downloads (Standard and Detailed), App Store Discovery and Engagement (Standard and Detailed). `learn` judges each channel on them |
+| Numbers | Apple's Analytics Reports through `pull`: App Downloads (Standard and Detailed), App Store Discovery and Engagement (Standard and Detailed). `learn` judges each channel on them. `history` gives each app's whole history by month, source and territory; what it showed is in [channels](references/channels.md#where-the-downloads-came-from) |
 | Search content | `sites/<site>/src/data/guides/<app-slug>/<guide>.md`, built into `/<app-slug>/<guide>/` and `/llms.txt` |
 | Channels | [Channels](references/channels.md): how each is judged, which are open, and which are not operable today |
 | ChatGPT business profiles | [Businesses in ChatGPT](references/chatgpt-business-hub.md): what a run keeps current, and each business's status. Re-read OpenAI's pages there on the first run of each month |
