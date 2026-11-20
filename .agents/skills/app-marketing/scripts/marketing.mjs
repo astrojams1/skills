@@ -252,7 +252,7 @@ export function profileProblems(profile, name = profile.id) {
   for (const [channel, stop] of Object.entries(profile.stopped || {})) {
     if (!stop || Number.isNaN(Date.parse(stop.since)) || !stop.evidence) problems.push(`${name}: stopped.${channel} needs since (a date) and evidence (the three results)`);
   }
-  // Listing tests (references/channels.md, "The App Store funnel"): one change per stage, with the date and snapshot.
+  // Listing tests (references/channels.md, "The App Store funnel"): every change, with the date and snapshot.
   for (const [n, t] of (profile.listingTests || []).entries()) {
     if (!['impressions', 'tap-through', 'conversion'].includes(t.stage) || !t.field || Number.isNaN(Date.parse(t.prepared)) || !t.before || !(t.live || t.version)) {
       problems.push(`${name}: listingTests[${n}] needs stage, field, prepared (a date), before (the snapshot) and live (a date) or version`);
@@ -1353,7 +1353,7 @@ const STORE_SOURCES = ['App Store search', 'App Store browse'];
 const storeViews = d => STORE_SOURCES.reduce((n, s) => n + (d?.pageViewSources?.[s] || 0), 0);
 const pct = r => r === null ? 'n/a' : `${round1(r * 100)}%`;
 
-// The next listing change for each weak stage, and when it can be live (one change per stage, so its effect reads).
+// The next listing change for each weak stage, and when it can be live (changes may overlap; channels.md says how to read them).
 export const STAGE_NEXT = {
   impressions: { field: 'keywords', live: 'next version',
     change: 'Keywords: spend all 100 characters on searched terms the name and subtitle do not already carry, leaning to the broadest terms people search that the app truly fits (channels.md, "Where the downloads came from"; also check the category)' },
@@ -1446,7 +1446,7 @@ export function listingTestResults(tests = [], days, discovery, lookups = [], no
 // It comes back daily, because learn re-reads the stage every run and a queued test can wait for its version.
 export function funnelItem(f) {
   return { id: `funnel-${f.stage}`, title: `Funnel: lift ${f.stage} (${f.next.field})`, channel: 'app-store', runner: 'mac', impact: 5, effort: 2, repeat_days: 1,
-    how: `learn names ${f.stage} the weakest stage (${f.why}, ${f.from} to ${f.to}). ${f.next.change}. Live ${f.next.live}. One change per stage; record it in listingTests with the before snapshot.` };
+    how: `learn names ${f.stage} the weakest stage (${f.why}, ${f.from} to ${f.to}). ${f.next.change}. Live ${f.next.live}. Ship it even while another test is in flight; record it in listingTests with the before snapshot and name any overlap.` };
 }
 
 // rescoreFunnel puts the weak stage's item in the backlog at impact 5 and drops other stages' funnel items to 2.

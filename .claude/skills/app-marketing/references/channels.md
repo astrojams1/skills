@@ -19,7 +19,7 @@ Shorts registry and the ledger. Use what has moved downloads; a channel with no 
 | YouTube Shorts | The app's App Store search and browse first-time downloads in the 72 hours after a Short goes public, against the app's daily rate over the 7 days before. A download from the YouTube app (Detailed report referrer) counts too | One Short, or Shorts for the same app inside each other's 72 hours (a burst, at most a week) | Apple's data covers the whole window (two to three days after it closes) |
 | Search guides, site pages, directories | Web-referrer first-time downloads (Standard report source type). The Detailed report names the site (`ouro-apps.vercel.app`) when Apple shows the row | Each 4-week block, from 8 weeks after the app's first guide | The block is in Apple's data |
 | Pitch emails | Per approach: 30 first emails with no positive reply retire it. Per piece of coverage: web-referrer first-time downloads in the 7 days after it, or search and browse downloads against the 7 days before | One piece of coverage | Apple's data covers its 7 days |
-| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it; a change that needs a version is a `listingTests` entry and ships within a day ([the funnel](#the-app-store-funnel)) | One change | 8 days after it goes live |
+| Store text (keywords, subtitle, promotional text, description) | Impressions, then product page views, then search and browse first-time downloads, in the 7 days after a change against the 7 before. Log the change's action with `changed` (what changed) so `learn` finds it; a change that needs a version is a `listingTests` entry and ships within a day ([the funnel](#the-app-store-funnel)) | One change, or overlapping changes read together ([the funnel](#the-app-store-funnel)) | 8 days after it goes live |
 
 **An effect** is at least 2 more downloads than expected, and at least half again as many. For Shorts, one YouTube
 referrer download is enough.
@@ -54,11 +54,26 @@ before relying on a figure: they were checked on 2026-11-12.
 - **Conversion can pass 100%.** People tap Get in search results without opening the page. Space Worms converts 43%.
 - **The sources disagree** (8.56% against 25%) on what they count, so the floors are the lower figures. Only a
   clearly weak stage is named.
-- **One change per stage per app,** so its effect can be read. Record it in the profile's `listingTests`:
-  `{ stage, field, from, to, prepared, version or live, before }`, where `before` is the window's numbers and the
-  listing text (with the live version). `learn` finds the live date in the public lookup once `version` ships;
-  `version: "next"` means whichever version follows the one in `before`. It reads the stage 7 days after
-  against the 7 before, from 8 days after it went live; a fuller read comes at 14.
+- **Changes may overlap; record each one.** No rule from the owner limits an app to one listing change at a time. The
+  limit this skill used to carry ("one change per stage per app", added by an agent with `learn` on 2026-11-12) was a
+  measurement convenience, and on 2026-11-19 it was the reason an agent held back a reach change while App Store
+  search, which brought 209 of 343 lifetime downloads, was starving for impressions. The owner's standing rule wins:
+  new tactics go live at once as provisional experiments and are kept only if they prove successful (James,
+  2026-11-13: "This is how we should be approaching all things"). So a reach change (keywords, subtitle, category,
+  languages) ships the day it is ready, even while another listing test on the same app is in flight.
+  Record every change in the profile's `listingTests`: `{ stage, field, from, to, prepared, version or live, before }`,
+  where `before` is the window's numbers and the listing text (with the live version). `learn` finds the live date in
+  the public lookup once `version` ships; `version: "next"` means whichever version follows the one in `before`. It
+  reads the stage 7 days after against the 7 before, from 8 days after it went live; a fuller read comes at 14.
+- **What overlapping changes cost, and how to read them.** When two changes to one app go live inside each other's
+  read windows, the numbers cannot say which change moved them: attribution between them is lost, and only their
+  sum can be judged. Read an overlapping change three ways and say which you used: (1) against the app's own
+  baseline before the first of the overlapping changes went live (the combined effect); (2) against the apps that
+  changed nothing in the same window (the store's own drift: season, featuring, Apple's ranking changes); (3) by
+  stage, since a keyword change shows first in impressions and a subtitle or screenshot change first in tap-through,
+  so changes to different stages separate partly even when they overlap. Each experiment names the experiments it
+  overlaps. A verdict on overlapping changes keeps or retires them together unless a stage read separates them; to
+  learn one change's own effect later, revert it alone and read again.
 - **What changes today.** Promotional text is the only listing text that changes without a version, and it shows only
   on the product page. So only a conversion weakness gets a same-day change. Keywords, subtitle, description and
   screenshots go into the app's store data (the file `app-release.config.json` names), merged.

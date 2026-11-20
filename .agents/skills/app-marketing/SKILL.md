@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.36.0"
+  version: "1.37.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -195,8 +195,9 @@ only the steps [Three cloud runs a day](#three-cloud-runs-a-day) names.
      Log each store text change with `changed`.
    - **The funnel:** one line per app names the weakest stage (impressions, tap-through or conversion) and the next
      listing change. `--write` puts that change in the backlog at impact 5. Read
-     [the funnel](references/channels.md#the-app-store-funnel) before changing a listing: one change per stage,
-     recorded in `listingTests` with its before snapshot. A merged listing change ships the next morning as a
+     [the funnel](references/channels.md#the-app-store-funnel) before changing a listing: every change is
+     recorded in `listingTests` with its before snapshot, and a reach change ships even while another test on the app
+     is in flight (overlapping changes are read together, against the pre-change baseline and apps that did not change). A merged listing change ships the next morning as a
      metadata-only version through app-release's daily run, never "with the next release". `learn` lists each queued
      test with its queue date and marks it `STALE` after 3 days unsubmitted: fix what stopped it in this run.
    - **Listing languages:** `learn` prints each app's first-time downloads by country (`countries`). A listing in a
