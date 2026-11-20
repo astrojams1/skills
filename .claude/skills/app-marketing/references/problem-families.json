@@ -621,6 +621,18 @@
       ],
       "cause": "Plenty's release gate proves a live read of both services from a signed-in simulator before each submission; the Claude session there is the owner's own sign-in, and it expires",
       "fix": "Only the owner can sign in to his Claude account: he opens Plenty on the named simulator and signs in again, and the next daily app-release run passes LiveTests and submits. Write the standing line once per expiry; a run never signs in, and never asks app-release to waive the gate"
+    },
+    {
+      "key": "directory-rate-limit",
+      "title": "A directory stopped taking submissions partway through a run",
+      "text": [
+        "submitted a few apps already"
+      ],
+      "history": [
+        "2026-11-20 mkt-mac-20261120T133537Z: Get Indie Apps (getindieapps.com/submit) listed five apps, then answered \"You've submitted a few apps already. Try again in a few minutes.\" for the sixth, and again ten minutes later"
+      ],
+      "cause": "a directory's own limit on how many listings one visitor may publish in a stretch of time; ten apps sent one after another pass it",
+      "fix": "respect it: log the remaining apps deferred (blocked_by pacing, retry_after the next day) and submit them in the next pass; never switch browser, address or session to get past a site's limit. No change needed while each app is listed within two passes"
     }
   ],
   "expected": [
