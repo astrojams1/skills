@@ -279,8 +279,20 @@ French, Korean, Portuguese (Brazil), Russian, Spanish (Mexico) and Vietnamese: `
   (b25) each wrote 24 languages on the first `listing` with none refused. A GET read at about 19:56Z showed 25
   locales on the editable App Info and on the version, every `whatsNew` filled, `WAITING_FOR_REVIEW` with
   `AFTER_APPROVAL`, and ENTERTAINMENT as secondary for Data Center and Rhythm (Space Worms has none on purpose).
-  So nine apps and 201 languages went up with no refusal. Not yet seen: a language on the public store page, and
-  whether Apple keeps an API-made language on the next version.
+  So nine apps and 201 languages went up with no refusal.
+- **The languages show on the public store (read 2026-11-20 01:21–01:24Z).** All seven apps released that evening
+  (Hanzi Cards 1.0.2, Nametag 1.0.4, LOB 1.0.1, Plenty 1.1, Space Worms 1.0.4, Data Center 0.1.2, Rhythm 0.17.0)
+  were read through `https://itunes.apple.com/lookup?id=<id>&country=<cc>&lang=<lang>` on 25 storefronts, one per
+  language. Every storefront that sells the app showed the new version, and the name and full description were
+  exactly the store data for that language (Hebrew needs `country=il&lang=he`). The web page `apps.apple.com/<cc>/app/id<id>`
+  showed the translated name and subtitle on 32 pages read, compared against the store data that was submitted; a
+  subtitle changed in store data after submission waits for the next version, so compare against the submitted text.
+  The web pages for `id` and `th` open in English (`en-GB`) and show the language only with `?l=id` or `?l=th`; the
+  lookup with `lang` and a phone set to that language show it. Lookup `genres` shows the secondary category second
+  (Hanzi Cards Reference, Nametag and Plenty Utilities, LOB, Data Center and Rhythm Entertainment). A per-language
+  screenshot set shows only on its storefront: Hanzi Cards' `id`, `ru` and `th` sets (7 iPhone, 6 iPad) share no
+  URL with the en-US set, which `de`, `fr` and `jp` show. Not yet seen: whether Apple keeps an API-made language on
+  the next version.
 - **When a language's write fails.** The first real run (above) proved the path on nine apps, so a new app's first
   `listing` with languages is an ordinary write, not a test. Plenty already had UTILITIES as its secondary category on
   the live 1.0 and Space Worms names none, so seven apps gained a secondary category that day. `listing` is safe to
