@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lifetimeDownloads, territoryShare, hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
+import { lifetimeDownloads, historySummary, territoryShare, hnStories, hnAccountStories, hnDeadRun, hnSubmitLink, hnTitleProblems, hnVerdict, processedThrough, downloadRows, discoveryRows, referrerRows, newestPerDay, mergedDays, reportValues, downloadsMismatch, eventProblems, endProblems, itemState, leftOpenProblems, latest, parseLines, profileProblems, rank, renderBoard, shortsResults, guideResults, storeResults, killVerdict, lifted, showHnFile, runnerOf, approachResults, coverageResults, pitchSnapshot, latestPitches, queueProof, youtubeSnapshots, experimentState, experimentItems, ideaProblems, ownerOptions, learnApp, channelOf, productOf, visitTotals, visitSnapshot, latestVisits, excludedVisitProblems, experimentPages, experimentVisits } from '../../skills/app-marketing/scripts/marketing.mjs';
 import { readFileSync } from 'node:fs';
 
 const DAY = 86400000;
@@ -807,4 +807,26 @@ test('launches sets store first opens beside Apple downloads per day, and judges
   assert.deepEqual([a.since, a.days, a.firstOpens, a.appleDownloads, a.within], ['2026-11-21', 2, 7, 8, true], 'the 20th is before the first report and does not count');
   assert.deepEqual(launchAgreement(quiet), { since: null, days: 0, firstOpens: 0, appleDownloads: 0, ratio: null, within: null });
   assert.equal(launchAgreement({ days: { '2026-11-21': { firstOpens: 1, testflight: 0, debug: 0, appleDownloads: 4 } } }).within, false);
+});
+
+test('historySummary groups history by month, source and territory, daily before monthly', () => {
+  const days = {
+    '2025-05-01': { first: 3, sources: { 'App Store search': 2, 'Web referrer': 1 }, territories: { US: 3 } },
+    '2025-05-20': { first: 2, sources: { 'App Store search': 2 }, territories: { GB: 2 } },
+    '2026-11-02': { first: 1, sources: { 'App referrer': 1 }, territories: { FR: 1 } }
+  };
+  const monthly = {
+    '2025-04-01': { first: 4, sources: { 'App Store browse': 4 }, territories: { US: 4 } },
+    '2025-05-01': { first: 99, sources: { 'App Store search': 99 } } // a month the days cover is not counted twice
+  };
+  const discovery = { '2025-05-01': { impressions: 1000, pageViews: 30 }, '2025-05-02': { impressions: 500, pageViews: 5 } };
+  const h = historySummary(days, monthly, discovery);
+  assert.deepEqual(h.months.map(m => [m.month, m.first, m.daily]), [['2025-04', 4, false], ['2025-05', 5, true], ['2026-11', 1, true]]);
+  assert.deepEqual(h.months.map(m => m.monthly), [true, false, false]);
+  assert.equal(h.total.first, 10);
+  assert.deepEqual(h.total.sources, { 'App Store browse': 4, 'App Store search': 4, 'Web referrer': 1, 'App referrer': 1 });
+  assert.deepEqual(h.total.territories, { US: 7, GB: 2, FR: 1 });
+  assert.equal(h.months[1].impressions, 1500);
+  assert.equal(h.total.pageViews, 35);
+  assert.deepEqual(historySummary(), { months: [], total: { first: 0, sources: {}, territories: {}, impressions: 0, pageViews: 0 } });
 });

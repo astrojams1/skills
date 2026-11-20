@@ -69,6 +69,9 @@ everything else waited behind it. Now a slow or failed Short leaves the rest alr
    `/Volumes/ssd/projects/app-marketing/worktrees/`.
 1. **Measure.** `marketing.mjs public --write`, `visits --write`, `pull --write`, then `yt-api.mjs pull` and `shorts.mjs due`. `pull`
    reads four Apple reports: downloads by day and source, the Detailed referrers, and impressions and page views.
+   On the first pass of each month, also `marketing.mjs history --write`: every app's history by month, source type and
+   territory, read by cloud runs as `asc-history` lines; update channels.md "Where the downloads came from" when it
+   changes what that section says.
    Then `marketing.mjs lifetime --write`: first-time downloads since launch per live app and in all, the count the
    owner's goal uses (2026-11-18: "Lifetime, all apps", 1,000 across Ouro and astrojams). It reads Apple's one-time
    historical snapshot plus the daily pulls, and says "a floor" while a snapshot is not ready. The first real read

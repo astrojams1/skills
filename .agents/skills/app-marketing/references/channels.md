@@ -41,7 +41,7 @@ discovery report cover (`funnelStage`).
 
 | Stage | The number | Reference | Weak when | Next change to try |
 |---|---|---|---|---|
-| Impressions | Impressions in the window | No published floor | Under 100 (too few to judge the rest), or both stages below are in range | Keywords: all 100 characters, no word the name or subtitle already carries; then category. Ships as a metadata-only version the next morning |
+| Impressions | Impressions in the window | No published floor | Under 100 (too few to judge the rest), or both stages below are in range | Keywords: all 100 characters, no word the name or subtitle already carries, leaning to the broadest terms the app truly fits ("Where the downloads came from"); then category. Ships as a metadata-only version the next morning |
 | Tap-through | App Store search and browse page views / impressions | 6 to 12% from search to the page ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 6%, judged from 100 impressions | Subtitle (search shows it beside the icon), then the first screenshot. Ships as a metadata-only version the next morning |
 | Conversion | Search and browse first-time downloads / those page views | 8.56% US average, first-time downloads only ([AppTweak, 2025](https://www.apptweak.com/en/aso-blog/average-app-conversion-rate-per-category)); 25 to 27% ([Adapty](https://adapty.io/blog/app-store-conversion-rate/)) | Under 8.6%, judged from 20 page views | Promotional text, live today with `promo`; then the description opening and screenshot order |
 
@@ -69,6 +69,33 @@ before relying on a figure: they were checked on 2026-11-12.
   `version: "next"`. `learn` shows each queued test with its queue date and flags it `STALE` after 3 days without
   `submitted`; set `submitted` (a date) when `asc.mjs status` shows its version in review. A stale test is this
   run's to fix: read that day's app-release evidence and close the gate it names.
+
+## Where the downloads came from
+
+Read 2026-11-19 with `marketing.mjs history` (Apple's one-time historical snapshot plus the daily pulls, every live
+app). Re-run it on the Mac (`history --write`) when a lesson here is in doubt; cloud runs read the `asc-history` lines.
+
+- **App Store search is the channel that has worked.** Of 343 lifetime first-time downloads, 209 came from App Store
+  search, 63 from browse, 35 from web referrers, 18 from other apps (18 unavailable). Füd has 278 of the 343: search 159, browse 54,
+  web referrer 33, app referrer 15.
+- **Reach decided Füd's total, not conversion.** 249 of its 278 came between 2025-04-25 and 2025-06-30. In May 2025
+  its en-US keywords were broad, heavily searched terms (calorie counter, nutrition tracker, weight management, AI
+  nutrition coach; then diet, GLP-1 drug names and fasting in 1.0.7), it shipped seven versions in six weeks, and
+  it drew 53,149 impressions and 159 downloads that month (0.3% of impressions). In November 2026, with family terms,
+  it drew 432 impressions and 13 downloads (3.0%). The narrow listing converts ten times better and reaches about 1% as
+  many people. Impressions fell to 553 in July 2025, after the last 2025 version (1.0.7, 2025-05-30).
+- **Most search downloads skip the product page.** 131 of Füd's 159 search downloads have Apple's page type "No page":
+  the person tapped Get in the results list. The result row (name, subtitle, icon, first screenshots) is where they
+  decide, which is why "conversion" here can pass 100% and why the subtitle and first screenshot matter more than the
+  description.
+- **What this cannot show.** Apple's analytics reports carry no search terms. Only the current name and subtitle are
+  kept, so the 2025 ones are unknown. Detailed rows are withheld under Apple's privacy threshold, so the 33 web
+  referrer downloads have no named site. The new-app window, the broad keywords and the release pace all fall in the
+  same weeks, so this does not say which of them mattered most.
+- **What every app takes from it.** An impressions weakness is fixed with the broadest terms people search that the
+  app truly fits, not only niche words that describe it exactly (the funnel's next change says so). A real update
+  shipped often keeps an app in front of search while it is new; `release-cadence-read` (Füd's ideas) checks that
+  across apps. Web referrers were 12% of Füd's downloads, so guides, free tools and pages keep their place.
 
 ## Listing languages
 
@@ -126,7 +153,7 @@ their own language cannot match an English-only listing.
 | YouTube Shorts | mac | A series on the owner's channel by `app-shorts`, public the moment each passes review (never scheduled), with no posting cap. Judged as above; an app or format with 3 no-effect Shorts in a row is retired (`youtube-growth`). Shorts work: the Newsworthy Shorts posted 2026-10-21 to 10-28 (1,680 views, best 1,145) were followed by downloads and purchases while no other marketing ran, per the owner (James, 2026-11-12); start from that format |
 | Listing languages | cloud writes, app-release ships | The listing in the languages people search in ([Listing languages](#listing-languages)). Judged by country |
 | App Store search | mac | Keywords, subtitle and promotional text, where most downloads of an unknown app begin. Keywords and subtitle ship as a metadata-only version the morning after they merge; promotional text changes any time. The skill picks the words from the listing, competitors' names and Apple's search numbers, and merges them |
-| Featuring nominations | mac | Free, and indie apps are eligible. For real updates only: new content or a feature a person would notice, never a rating prompt, fixes or listing translations. Every release goes out on approval, so there is never a dated version three weeks out: nominate the update in store data when it is submitted (start: its expected release day), merge, and send it with `asc.mjs nominate --confirm` (app-release `references/promotion.md`). Experiment `featuring-new-content` (Nametag 1.0.3 designs, Plenty 1.1), judge 2026-12-23 |
+| Featuring nominations | mac | Free, and indie apps are eligible. For real updates only: new content or a feature a person would notice, never a rating prompt, fixes or listing translations. Every release goes out on approval, so there is never a dated version three weeks out: nominate the update in store data when it is submitted (start: its expected release day), merge, and send it with `asc.mjs nominate --confirm` (app-release `references/promotion.md`). Experiment `featuring-new-content` (Nametag 1.0.3 designs, Plenty 1.1, judge 2026-12-23; Füd 1.3.2 Holiday Table, nominated from 2026-12-14, judge 2027-01-07) |
 | Shorts in other languages | mac | `yt-api.mjs localize` (youtube-growth) gives a live Short a title and description in each language, built from the app's reviewed listing translations with a line saying the app is in English. Experiment `shorts-localized-metadata` on Hanzi Cards and Data Center (most of their downloads come from outside the US), 12 languages, judge 2026-12-03. Other apps and new Shorts get it only on a keep |
 | Holiday in-app events | mac | Opened by the owner on 2026-11-19: "sure try holiday in-app events". A real, time-bound holiday thing in the app (a small in-app change gated to its dates), listed as store data `events` and created and submitted by app-release 2.36.0 with the build that carries it ([promotion](../../app-release/references/promotion.md#in-app-events)). Each is an experiment in its app profile: event impressions and App Store downloads over the event window against the 14 days before |
 | Custom product pages | mac | A page per audience, once a channel sends enough traffic to matter |
@@ -172,7 +199,7 @@ Each needs a thing that does not exist today. No run waits on these, and none go
 |---|---|
 | Reddit | A route for agent tools: Reddit blocks the built-in browser, Claude in Chrome and web fetch (since 2026-10-15, `reddit-posting`). Posting would need the owner |
 | TikTok | A connected account: the TikTok connector lists none, and connecting one is a sign-in |
-| A "More from the maker" row inside the apps | The owner's yes. It is a change to the app itself (SKILL.md, Never), the Space Worms, LOB and Importron repositories hold player-visible changes for the owner, and an app standard stops every app's next build until met, which is why the rating standard waited for his "Yes, every app" (2026-11-18). Füd, the largest base (278 of 343 lifetime downloads on 2026-11-19), takes pull requests like every other app repository (owner, 2026-11-19: "fud is no different from other repos"). The other nine apps had about 65 lifetime downloads on 2026-11-19, so it would reach few people yet; owner option |
+| A "More from the maker" row inside the apps (except Füd) | The owner's yes. It is a change to the app itself (SKILL.md, Never), the Space Worms, LOB and Importron repositories hold player-visible changes for the owner, and an app standard stops every app's next build until met, which is why the rating standard waited for his "Yes, every app" (2026-11-18). Füd, the largest base (278 of 343 lifetime downloads on 2026-11-19), has the row: wendigo124/FSRN_Subs#197, experiment `more-apps-row` in its profile, judge 2027-01-07. The other nine apps had about 65 lifetime downloads on 2026-11-19, so a row in them would reach few people yet; owner option |
 | Instagram, X, Discord, Product Hunt | A connected account or API credential named in any skill. Each needs a sign-in, and Product Hunt also a maker account |
 | Hacker News beyond a developer tool's Show HN | Nothing to fix: Hacker News's guidelines make other self-promotion unwelcome |
 | Apple Ads | Nothing: the owner declined it on 2026-11-19 ("no search ads"). Do not propose it again |

@@ -1,8 +1,14 @@
 # App release skill ledger
 
-Skill version **2.38.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.38.1**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.38.1 (2026-11-20)
+
+- `references/config.md` still gave localization keywords as "100 UTF-8 bytes" after 2.30.1 made the check 100
+  characters, so Füd's 24 languages were written short (16 fields used 67 to 96 characters). The page now says 100
+  characters (UTF-16 units), as `listing-localizations.mjs` checks.
 
 ## Lessons incorporated into v2.38.0 (2026-11-19)
 
@@ -982,3 +988,4 @@ second screenshot was not sent; the app's correction and submission do not depen
 | 2026-11-19 | 2.35.1 | Featuring nominations need no go-ahead: `promotion.md` says app-marketing's Mac pass sends them (James, 2026-11-12: marketing skills run on their own), and that releases go out on approval, so a real update is nominated when submitted, with its expected release day as the start. `asc.mjs nominate` without `--confirm` calls itself a dry run instead of asking for the owner's approval. Three store-data waivers (Importron, Nametag, Newsworthy) still cited that approval; Nametag's became a nomination (astrojams1/nametag#55). |
 | 2026-11-19 | 2.35.2 | `submit` explains Apple's 409 for an unanswered App Compliance form (`complianceRefusal`, unit-tested) instead of a raw API error, and says nothing was submitted. Pipsqueak 1.1 met it on its first submit: Security Assessment and AI Generated or Synthetic Content, both China mainland, Missing Info, `STATE_ERROR.PPM.compliance.form.*.NEW_APP_SUBMISSION_BLOCK`. The forms are declarations under Chinese law, so the run left them, and China availability, to the owner. iOS reference: "App Compliance forms can block a submission" |
 | 2026-11-19 | 2.36.0 | In-App Events from store data. `events` (`{ referenceName, badge, why, start, end, publish, text, media, shipsWith, ... }`) is checked against Apple's limits read that day (name 30, short 50, long 120, reference 64; 15 minutes to 31 days; publish up to 14 days ahead; card 16:9 from 1920x1080, details 9:16 from 1080x1920; no prices) in `lib/app-events.mjs`. `asc.mjs events` lists Apple's events and the plan; `events --confirm` creates or updates drafts (attributes, text per language, both images, named by content) and reads them back; `submit --confirm` sends each editable event whose `shipsWith` is that version or earlier with the version and refuses while one is not created; `events submit --confirm` sends events whose content is already live on their own. The API supports all of it (`/v1/appEvents`, `appEventLocalizations`, `appEventScreenshots`, `reviewSubmissionItems.appEvent`). Owner, 2026-11-19: "sure try holiday in-app events". `promotion.md` records his "no search ads" the same day |
+| 2026-11-20 | 2.38.1 | references/config.md says localization keywords are 100 characters (UTF-16 units), as 2.30.1 made the check; it still said 100 UTF-8 bytes, and Füd's 24 languages were written short (16 fields at 67 to 96 characters, filled in wendigo124/FSRN_Subs#200) |

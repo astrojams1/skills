@@ -18,6 +18,9 @@
 //   node marketing.mjs public [--write]             App Store ratings, version, price and stage for every app (no keys)
 //   node marketing.mjs lifetime [--write]           Mac only: first-time downloads since launch per live app and in all, from
 //                                                   Apple's one-time historical snapshot plus the daily pulls (the goal's count)
+//   node marketing.mjs history [--app ID] [--write] Mac only: each live app's whole history by month, source type and
+//                                                   territory, with store-page impressions and page views (read-only;
+//                                                   --write appends one `asc-history` line per app)
 //   node marketing.mjs pull [--write] [--recount]   Mac only: Apple's daily reports: first-time downloads by source and
 //                                                   referrer, impressions and product page views; --recount re-reads every
 //                                                   instance Apple still holds and appends corrected totals
@@ -1044,9 +1047,10 @@ export function lifetimeDownloads(daily = {}, monthly = {}, ongoing = {}) {
   return { downloads: dayTotal + monthTotal, from, through: dates[dates.length - 1] || months[months.length - 1] || null, days: dates.length, monthsBeforeDays: monthsCounted };
 }
 
-// snapshotDays reads every instance of the snapshot's downloads report at one granularity into days.
-async function snapshotDays(api, requestId, granularity) {
-  const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent('App Downloads Standard')}&limit=5`)).data || [];
+// snapshotDays reads every instance of one snapshot report (App Downloads Standard unless `spec` names another) at one
+// granularity into days.
+async function snapshotDays(api, requestId, granularity, spec = REPORTS[0]) {
+  const reports = (await api(`/v1/analyticsReportRequests/${requestId}/reports?filter[name]=${encodeURIComponent(spec.name)}&limit=5`)).data || [];
   if (!reports.length) return null;
   const instances = [];
   let next = `/v1/analyticsReports/${reports[0].id}/instances?filter[granularity]=${granularity}&limit=200`;
@@ -1062,10 +1066,77 @@ async function snapshotDays(api, requestId, granularity) {
     for (const segment of segments) {
       const res = await fetch(segment.attributes.url);
       if (!res.ok) throw new Error(`snapshot segment download returned ${res.status}`);
-      read.push({ processingDate: instance.attributes.processingDate, days: downloadRows(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8')).days });
+      read.push({ processingDate: instance.attributes.processingDate, days: spec.read(gunzipSync(Buffer.from(await res.arrayBuffer())).toString('utf8')).days });
     }
   }
   return newestPerDay(read);
+}
+
+// historySummary turns an app's whole history (Apple's one-time snapshot, daily where it has days and monthly before,
+// plus the daily pulls) into one row per month: first-time downloads, by source type and by territory, and the store
+// page's impressions and page views where the discovery report has that month. It answers "where did this app's
+// downloads come from" for any app, so a lesson from one app (Füd, 278 of the first 343) can be checked on the others.
+// Apple's Standard reports carry no search terms and no named referrer; the report says so instead of guessing.
+export function historySummary(days = {}, monthly = {}, discovery = {}) {
+  const months = {};
+  const row = m => (months[m] ||= { month: m, first: 0, sources: {}, territories: {}, impressions: 0, pageViews: 0, daily: false, monthly: false });
+  for (const [date, d] of Object.entries(days)) {
+    const r = row(date.slice(0, 7));
+    r.daily = true;
+    r.first += d.first || 0;
+    for (const [k, n] of Object.entries(d.sources || {})) bump(r.sources, k, n);
+    for (const [k, n] of Object.entries(d.territories || {})) bump(r.territories, k, n);
+  }
+  for (const [date, d] of Object.entries(monthly)) {
+    const r = row(date.slice(0, 7));
+    if (r.daily) continue;
+    r.monthly = true;
+    r.first += d.first || 0;
+    for (const [k, n] of Object.entries(d.sources || {})) bump(r.sources, k, n);
+    for (const [k, n] of Object.entries(d.territories || {})) bump(r.territories, k, n);
+  }
+  for (const [date, d] of Object.entries(discovery)) {
+    const r = row(date.slice(0, 7));
+    r.impressions += d.impressions || 0;
+    r.pageViews += d.pageViews || 0;
+  }
+  const rows = Object.values(months).sort((a, b) => a.month.localeCompare(b.month));
+  const total = { first: 0, sources: {}, territories: {}, impressions: 0, pageViews: 0 };
+  for (const r of rows) {
+    total.first += r.first; total.impressions += r.impressions; total.pageViews += r.pageViews;
+    for (const [k, n] of Object.entries(r.sources)) bump(total.sources, k, n);
+    for (const [k, n] of Object.entries(r.territories)) bump(total.territories, k, n);
+  }
+  return { months: rows, total };
+}
+
+const topOf = (counts, n = 5) => Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => `${k} ${v}`).join(', ') || 'none named';
+
+// cmdHistory prints historySummary for each live app (or --app), read-only; --write appends one `asc-history` line per
+// app (the totals and months, no keys) so cloud runs can read it.
+async function cmdHistory(root, args) {
+  const profiles = loadProfiles(root).filter(p => p.appStoreId && p.ascVault && p.stage === 'live' && (!args.app || p.id === args.app));
+  const metrics = loadMetrics(root);
+  for (const p of profiles) {
+    const api = ascClient(p.ascVault);
+    const requests = (await api(`/v1/apps/${p.appStoreId}/analyticsReportRequests?limit=20`)).data || [];
+    const snapshot = requests.find(r => r.attributes.accessType === 'ONE_TIME_SNAPSHOT');
+    const discoverySpec = REPORTS.find(r => r.source === 'asc-discovery');
+    const daily = snapshot ? (await snapshotDays(api, snapshot.id, 'DAILY')) || {} : {};
+    const monthly = snapshot ? (await snapshotDays(api, snapshot.id, 'MONTHLY')) || {} : {};
+    const discDaily = snapshot ? (await snapshotDays(api, snapshot.id, 'DAILY', discoverySpec)) || {} : {};
+    const discMonthly = snapshot ? (await snapshotDays(api, snapshot.id, 'MONTHLY', discoverySpec)) || {} : {};
+    const discovery = { ...discMonthly, ...mergedDays(metrics, p.id, 'asc-discovery'), ...discDaily };
+    for (const d of Object.keys(discMonthly)) if (Object.keys(discovery).some(k => k !== d && k.slice(0, 7) === d.slice(0, 7))) delete discovery[d];
+    const h = historySummary({ ...mergedDays(metrics, p.id), ...daily }, monthly, discovery);
+    console.log(`${p.id}: ${h.total.first} first-time downloads in Apple's history${snapshot ? '' : ' (no snapshot request yet: run lifetime first)'}`);
+    console.log(`  by source: ${topOf(h.total.sources, 8)}`);
+    console.log(`  by territory: ${topOf(h.total.territories, 10)}`);
+    console.log(`  store page: ${h.total.impressions} impressions, ${h.total.pageViews} page views where reported`);
+    for (const m of h.months) console.log(`  ${m.month}${m.monthly ? ' (monthly rows)' : ''}: ${m.first} first${m.impressions ? `, ${m.impressions} impressions, ${m.pageViews} page views` : ''}; ${topOf(m.sources, 4)}; ${topOf(m.territories, 4)}`);
+    console.log('  a month not listed had no rows in Apple\'s reports; not in these reports: search terms, and referrers under Apple\'s privacy threshold (Detailed rows withheld)');
+    if (args.write) appendFileSync(join(dirOf(root), 'metrics.jsonl'), JSON.stringify({ at: new Date().toISOString(), app: p.id, source: 'asc-history', values: { historyDownloads: h.total.first, historySources: h.total.sources, historyTerritories: h.total.territories }, months: h.months.map(({ month, first, sources, territories, impressions, pageViews }) => ({ month, first, sources, territories, impressions, pageViews })) }) + '\n');
+  }
 }
 
 // cmdLifetime: lifetime first-time downloads per live app and in all, from Apple's one-time historical snapshot (made
@@ -1285,7 +1356,7 @@ const pct = r => r === null ? 'n/a' : `${round1(r * 100)}%`;
 // The next listing change for each weak stage, and when it can be live (one change per stage, so its effect reads).
 export const STAGE_NEXT = {
   impressions: { field: 'keywords', live: 'next version',
-    change: 'Keywords: spend all 100 characters on searched terms the name and subtitle do not already carry (also check the category)' },
+    change: 'Keywords: spend all 100 characters on searched terms the name and subtitle do not already carry, leaning to the broadest terms people search that the app truly fits (channels.md, "Where the downloads came from"; also check the category)' },
   'tap-through': { field: 'subtitle', live: 'next version',
     change: 'Subtitle: say the one reason to tap, as search shows it beside the icon and first screenshot (then the first screenshot caption)' },
   conversion: { field: 'promotionalText', live: 'today',
@@ -1917,7 +1988,7 @@ async function main() {
   const root = rootOf(args);
   const commands = {
     check: () => cmdCheck(root), status: () => cmdStatus(root, args), next: () => cmdNext(root, args), log: () => cmdLog(root, file, args), learn: () => cmdLearn(root, args),
-    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), lifetime: () => cmdLifetime(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
+    public: () => cmdPublic(root, args), pull: () => cmdPull(root, args), lifetime: () => cmdLifetime(root, args), history: () => cmdHistory(root, args), promo: () => cmdPromo(root, args), hn: () => cmdHn(root, args), pitches: () => cmdPitches(root, args),
     youtube: () => cmdYoutube(root, args), visits: () => cmdVisits(root, args), launches: () => cmdLaunches(root, args), 'site-visits': () => cmdSiteVisits(args), board: () => cmdBoard(root, args), recurring: () => cmdRecurring(root, args), mirror: () => cmdMirror(root)
   };
   if (!commands[command]) throw new Error(`Usage: marketing.mjs ${Object.keys(commands).join('|')}`);
