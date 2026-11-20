@@ -994,5 +994,7 @@ Review: Read two existing lead threads and recorded the actionable state in a pr
 
 - [x] Inventory enabled schedules, nested jobs and independent transports.
 - [x] Add atomic ownership, checkpoints and side-effect receipts across both providers.
-- [ ] Connect existing Claude entries and the Codex recovery schedule.
-- [ ] Verify contention, interruption, deployment and schedule readback.
+- [x] Connect existing Claude entries and the Codex recovery schedule.
+- [x] Verify contention, interruption, deployment and schedule readback.
+
+Review: verified the provider registrations, guarded GitHub writes, isolated contention and subscription CLI handoff. Machine-specific installation receipts stay in the private project directory.
