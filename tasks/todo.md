@@ -989,3 +989,10 @@ Review:182 release,65 management,145 specification,identity,8 image-fit and5 You
 - [x] Publish the skill branch and reviewable [PR #123](https://github.com/astrojams1/skills/pull/123); install locally.
 
 Review: Read two existing lead threads and recorded the actionable state in a private cloud ledger. Existing team followups already cover the current next steps; no setup email is due. Live contacts and message IDs remain outside Git. First hosted execution verified the intended mailbox, reread both tracked threads, persisted complete activity events, and correctly sent no duplicate messages.
+
+## Shared marketing schedules
+
+- [x] Inventory enabled schedules, nested jobs and independent transports.
+- [x] Add atomic ownership, checkpoints and side-effect receipts across both providers.
+- [ ] Connect existing Claude entries and the Codex recovery schedule.
+- [ ] Verify contention, interruption, deployment and schedule readback.
