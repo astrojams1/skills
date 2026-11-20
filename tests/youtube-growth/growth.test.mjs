@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluate, quantile, cutoffs, RULES, downloadDays, downloadVerdict, downloadsBySlug, readMetrics, siteDays, siteVerdict, decommission } from '../../skills/youtube-growth/scripts/evaluate.mjs';
-import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags, sarProblem, localizationProblems, localizedVideo } from '../../skills/youtube-growth/scripts/yt-api.mjs';
+import { analyticsQuery, rowsToSnapshots, uploadRequest, unansweredThreads, replyRequest, unscheduleStatus, updatedStatus, updatedSnippet, heldOrPulled, publishNowStatus, publishedNow, commentRequest, sameTags, sarProblem, localizationProblems, localizedVideo, coverAfterProcessing } from '../../skills/youtube-growth/scripts/yt-api.mjs';
 
 const rules = JSON.parse(readFileSync(RULES, 'utf8'));
 const NOW = new Date('2026-12-01T00:00:00Z');
@@ -338,4 +338,29 @@ test('localizedVideo sends the snippet back whole, sets a default language and m
   assert.deepEqual(body.snippet.tags, ['a']);
   assert.deepEqual(Object.keys(body.localizations).sort(), ['es', 'fr']);
   assert.equal(localizedVideo({ ...video, snippet: { ...video.snippet, defaultLanguage: 'en-US' } }, {}).snippet.defaultLanguage, 'en-US');
+});
+
+test('upload sets the cover again once the video has been processed', async () => {
+  const states = ['uploaded', 'uploaded', 'processed'];
+  let reads = 0, sets = 0, waits = 0;
+  const done = await coverAfterProcessing({ status: async () => states[reads++], setCover: async () => { sets += 1; return { ok: true, status: 200 }; }, wait: async () => { waits += 1; } });
+  assert.deepEqual(done, { set: true, uploadStatus: 'processed', afterProcessing: true });
+  assert.equal(sets, 1, 'the cover is set once, and only after processing');
+  assert.equal(reads, 3);
+  assert.equal(waits, 2);
+});
+
+test('upload says the cover must be set again when processing does not finish or the cover is refused', async () => {
+  let sets = 0;
+  const slow = await coverAfterProcessing({ status: async () => 'uploaded', setCover: async () => { sets += 1; return { ok: true }; }, wait: async () => {}, tries: 3, everyMs: 5000 });
+  assert.equal(slow.set, false);
+  assert.equal(sets, 0, 'no second set while the video is still processing');
+  assert.match(slow.next, /still processing after 15 s.*yt-api\.mjs thumbnail/);
+  const refused = await coverAfterProcessing({ status: async () => 'processed', setCover: async () => ({ ok: false, status: 403 }), wait: async () => {} });
+  assert.equal(refused.set, false);
+  assert.match(refused.next, /refused after processing \(403\).*yt-api\.mjs thumbnail/);
+  const failed = await coverAfterProcessing({ status: async () => 'failed', setCover: async () => { sets += 1; return { ok: true }; }, wait: async () => {} });
+  assert.deepEqual([failed.set, failed.uploadStatus, sets], [false, 'failed', 0]);
+  const flaky = await coverAfterProcessing({ status: async () => { throw new Error('network'); }, setCover: async () => ({ ok: true }), wait: async () => {}, tries: 2 });
+  assert.equal(flaky.set, false, 'a failed read never throws: the video is already public');
 });

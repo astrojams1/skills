@@ -21,6 +21,10 @@
 //                                               refuses one for an app not on sale, with no search phrase on its
 //                                               description's first line, or without a rules checklist that passes
 //                                               every written rule (shorts.mjs rules <app> --checklist)
+//                                               then waits (up to 3 minutes) for YouTube to finish processing and sets
+//                                               the cover, since one set during processing may not stick; prints
+//                                               `cover` ({ set, next }) and says on stderr if it must be set again
+//   Add --defer-cover to upload when a coordinator gates the thumbnail separately.
 //   node yt-api.mjs thumbnail --episode ID [--confirm]   set or retry the episode's cover; prints YouTube's answer
 //   node yt-api.mjs publish --episode ID [--confirm]   make a scheduled Short public now: privacy public, publishAt
 //                                               cleared, read back until YouTube shows it; the registry marks it live
@@ -210,12 +214,27 @@ async function upload(token, episode) {
   const put = await fetch(start.headers.get('location'), { method: 'PUT', headers: { 'Content-Type': 'video/mp4' }, body: bytes });
   const video = await put.json();
   if (!put.ok) throw new Error(`Upload failed: ${video.error?.message ?? put.status}`);
-  if (episode.cover) {
-    const thumb = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${video.id}`, {
-      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg' }, body: readFileSync(episode.cover) });
-    if (!thumb.ok) console.error(`Thumbnail not set (${thumb.status}); Shorts thumbnails need the video processed first: retry later or use Studio`);
-  }
   return { videoId: video.id, privacyStatus: video.status?.privacyStatus, publishAt: video.status?.publishAt ?? null };
+}
+
+// A cover set while YouTube is still processing the file can answer 200 and not stick (sw-coil-01 and
+// fud-breakfast-for-dinner-01, 2026-11-20: Studio showed a frame of the video afterwards). So after an upload, wait
+// until the video reads as processed and set the cover again. `status` reads the video's uploadStatus, `setCover`
+// sets the cover and answers { ok, status }, `wait` sleeps. Never throws: the video is already public, so the answer
+// says what happened and what to run if the cover still has to be set.
+export async function coverAfterProcessing({ status, setCover, wait = ms => new Promise(r => setTimeout(r, ms)), tries = 36, everyMs = 5000 }) {
+  const again = 'run `yt-api.mjs thumbnail --episode ID --confirm`, then look at Studio';
+  let state = null;
+  for (let i = 0; i < tries; i += 1) {
+    try { state = await status(); } catch { state = null; }
+    if (state === 'processed') break;
+    if (state === 'failed' || state === 'rejected' || state === 'deleted') return { set: false, uploadStatus: state, next: `the video reads ${state}; no cover set` };
+    await wait(everyMs);
+  }
+  if (state !== 'processed') return { set: false, uploadStatus: state, next: `still processing after ${Math.round((tries * everyMs) / 1000)} s, so the cover may not have stuck: ${again}` };
+  let answer;
+  try { answer = await setCover(); } catch (error) { answer = { ok: false, status: error.message }; }
+  return answer.ok ? { set: true, uploadStatus: state, afterProcessing: true } : { set: false, uploadStatus: state, next: `the cover was refused after processing (${answer.status}): ${again}` };
 }
 
 async function authFlow({ printUrl, tokenFile }) {
@@ -467,11 +486,27 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (geometry) throw new Error(geometry);
       const request = uploadRequest(episode);
       if (!confirm) { console.log(JSON.stringify({ dryRun: true, ...request }, null, 2)); process.exit(0); }
-      const result = await upload(await accessToken(), episode);
+      const token = await accessToken();
+      const result = await upload(token, episode);
       // Other makers write the registry while a video uploads, so read it again and change only this episode.
       const fresh = JSON.parse(readFileSync(registryPath, 'utf8'));
       Object.assign(fresh.episodes.find(e => e.id === id), { videoId: result.videoId, status: 'live', postedAt: new Date().toISOString(), publishAt: null });
       writeFileSync(registryPath, JSON.stringify(fresh, null, 2) + '\n');
+      // Save the public ID first so a cover failure cannot cause a duplicate video upload.
+      if (episode.cover && args.includes('--defer-cover')) {
+        result.cover = { set: false, deferred: true, next: 'Set the thumbnail after processing' };
+      } else if (episode.cover) {
+        result.cover = await coverAfterProcessing({
+          status: async () => (await api(token, `https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(result.videoId)}`)).items?.[0]?.status?.uploadStatus ?? null,
+          setCover: async () => {
+            const res = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${result.videoId}`, {
+              method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg' }, body: readFileSync(episode.cover)
+            });
+            return { ok: res.ok, status: res.status };
+          }
+        });
+        if (!result.cover.set) console.error(`Cover not confirmed: ${result.cover.next}`);
+      }
       console.log(JSON.stringify(result));
     } else if (command === 'thumbnail') {
       // Sets (or retries) an episode's cover after upload; YouTube can refuse a Short's custom thumbnail, so print its answer.
