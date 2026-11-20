@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { archiveProvenance, claim, contentOnHead, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths } from '../../skills/app-release/scripts/review-sweep.mjs';
+import { archiveProvenance, claim, contentOnHead, finish, listingChanges, liveAppInfo, mapRepo, recordedProvenance, splitPaths, storefrontCheck } from '../../skills/app-release/scripts/review-sweep.mjs';
 import { liveVersion, occupancy, releaseTypeRefusal, unattended, unattendedSubmitRefusal } from '../../skills/app-release/scripts/lib/review-state.mjs';
 
 const version = (id, versionString, state, createdDate, releaseType = 'AFTER_APPROVAL') => ({ id, attributes: { versionString, appVersionState: state, createdDate, releaseType } });
@@ -240,4 +240,13 @@ test('a live commit with no history in common with main defers', () => {
     const orphan = repo.commit('orphan', { 'README.md': 'other\n' });
     assert.match(contentOnHead(repo.dir, orphan, 'main').problem, /shares no history/);
   } finally { repo.done(); }
+});
+
+test('a storefront still showing the previous version is noted, not a deferral; a newer one defers', () => {
+  assert.deepEqual(storefrontCheck(null, '1.0.4'), {});
+  assert.deepEqual(storefrontCheck('1.0.4', '1.0.4'), {});
+  assert.match(storefrontCheck('1.0.3', '1.0.4').note, /trails an approval/);
+  assert.equal(storefrontCheck('1.0.3', '1.0.4').problem, undefined);
+  assert.match(storefrontCheck('1.0', '1.1').note, /still shows 1.0/);
+  assert.match(storefrontCheck('1.0.5', '1.0.4').problem, /storefront shows 1.0.5, App Store Connect shows 1.0.4/);
 });

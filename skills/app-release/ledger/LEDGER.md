@@ -1,8 +1,20 @@
 # App release skill ledger
 
-Skill version **2.38.1**. This index preserves sanitized outcomes and lessons across
+Skill version **2.39.0**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.39.0 (2026-11-20)
+
+- Seven of the nine versions submitted on 2026-11-19 were approved and read `READY_FOR_DISTRIBUTION` that evening, but
+  the public lookup still showed each previous version, and the sweep deferred all seven ("storefront shows ..."). An
+  older public version is now a `storefront` note, not a deferral (`storefrontCheck`); a newer one still defers.
+- App Privacy was changed only for candidates, so an app with a version in review kept a short label until its next
+  release run. The sweep now reads every mapped live app's `appPrivacy` on the release branch against the published
+  label (`privacy.changeNow`, `publishedLabelGap`), and the daily run's step 1a publishes it whatever the review state.
+  Eight of ten live labels lacked Product Interaction (Analytics) that evening.
+- The daily run now says plainly that a version with Apple is left alone however much merges after it, and where the
+  merged store data goes meanwhile (the next version; promotional text and App Privacy do not wait).
 
 ## Lessons incorporated into v2.38.1 (2026-11-20)
 
@@ -989,3 +1001,4 @@ second screenshot was not sent; the app's correction and submission do not depen
 | 2026-11-19 | 2.35.2 | `submit` explains Apple's 409 for an unanswered App Compliance form (`complianceRefusal`, unit-tested) instead of a raw API error, and says nothing was submitted. Pipsqueak 1.1 met it on its first submit: Security Assessment and AI Generated or Synthetic Content, both China mainland, Missing Info, `STATE_ERROR.PPM.compliance.form.*.NEW_APP_SUBMISSION_BLOCK`. The forms are declarations under Chinese law, so the run left them, and China availability, to the owner. iOS reference: "App Compliance forms can block a submission" |
 | 2026-11-19 | 2.36.0 | In-App Events from store data. `events` (`{ referenceName, badge, why, start, end, publish, text, media, shipsWith, ... }`) is checked against Apple's limits read that day (name 30, short 50, long 120, reference 64; 15 minutes to 31 days; publish up to 14 days ahead; card 16:9 from 1920x1080, details 9:16 from 1080x1920; no prices) in `lib/app-events.mjs`. `asc.mjs events` lists Apple's events and the plan; `events --confirm` creates or updates drafts (attributes, text per language, both images, named by content) and reads them back; `submit --confirm` sends each editable event whose `shipsWith` is that version or earlier with the version and refuses while one is not created; `events submit --confirm` sends events whose content is already live on their own. The API supports all of it (`/v1/appEvents`, `appEventLocalizations`, `appEventScreenshots`, `reviewSubmissionItems.appEvent`). Owner, 2026-11-19: "sure try holiday in-app events". `promotion.md` records his "no search ads" the same day |
 | 2026-11-20 | 2.38.1 | references/config.md says localization keywords are 100 characters (UTF-16 units), as 2.30.1 made the check; it still said 100 UTF-8 bytes, and Füd's 24 languages were written short (16 fields at 67 to 96 characters, filled in wendigo124/FSRN_Subs#200) |
+| 2026-11-20 | 2.39.0 | The review sweep notes a storefront lookup that trails an approval instead of deferring the app (seven approved apps were deferred that evening), and reads every live app's App Privacy against the release branch (`privacy.changeNow`), occupied apps included; the daily run publishes it in step 1a whatever the review state and says a version with Apple is left alone while merged store data waits for the next version |

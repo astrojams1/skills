@@ -369,6 +369,31 @@ export async function labelGate(config, store, scan, { fetchImpl, now = Date.now
   return result;
 }
 
+// publishedLabelGap compares only the store data's answers with the published label (and a fresh App Store Connect
+// confirmation), with no checkout: the daily sweep reads store data from the release branch with git and asks this of
+// every live app, a version in review included, because App Privacy changes without a version and the next build's
+// submission must not wait a further day for it. `missing` lists what App Store Connect must add; `problem` means the
+// comparison could not be made.
+export async function publishedLabelGap(store, appStoreId, { fetchImpl, now = Date.now(), confirmations = CONFIRMATION_ROOT } = {}) {
+  const expected = expectedLabel(store);
+  if (!expected) return { missing: [], note: 'store data has no appPrivacy' };
+  if (expected.problems.length) return { problem: expected.problems.join('; ') };
+  let published;
+  try {
+    published = await readPublishedLabel(appStoreId, fetchImpl);
+  } catch (error) {
+    return { problem: 'the published label could not be read (' + error.message + ')' };
+  }
+  const missing = coverageProblems(expected.entries, published);
+  if (!missing.length) return { missing };
+  const confirmation = readConfirmation(appStoreId, confirmations);
+  const fresh = confirmation && (now - Date.parse(confirmation.confirmedAt)) < CONFIRMATION_DAYS * 86400000;
+  if (fresh && !coverageProblems(expected.entries, { entries: confirmation.entries || [] }).length) {
+    return { missing: [], note: 'App Store Connect showed it published at ' + confirmation.confirmedAt + '; the public page has not caught up' };
+  }
+  return { missing, published: published.notCollected ? 'Data Not Collected' : published.entries.map(summary).join('; ') };
+}
+
 // labelRefusal is the sentence `asc.mjs submit` refuses with, or null. An app opted out of the privacy-label standard
 // with a recorded reason (standards.md, Opting out) is not checked.
 export async function labelRefusal(config, store, scan, options) {
