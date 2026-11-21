@@ -13,21 +13,17 @@ from datetime import datetime
 from pathlib import Path
 
 import marketing_due as due
+import marketing_pacing as pacing
 
 
 LANES = 2
+MAX_LANES = 4
 BACKOFF = 3600
 BUNDLED = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
 
 
-def subscription_env():
-    return {k: v for k, v in os.environ.items()
-            if k == "CODEX_HOME" or not (k.startswith(("OPENAI_", "AZURE_OPENAI_", "CODEX_"))
-                                         or k in {"CHATGPT_BASE_URL", "CHATGPT_API_BASE", "CHATGPT_API_KEY"})}
-
-
 def check_login(codex):
-    result = subprocess.run([codex, "login", "status"], env=subscription_env(), text=True,
+    result = subprocess.run([codex, "login", "status"], env=pacing.subscription_env(), text=True,
                             capture_output=True, timeout=30)
     return result.returncode == 0 and any(line.strip().lower() == "logged in using chatgpt"
                                           for line in (result.stdout + result.stderr).splitlines())
@@ -83,13 +79,15 @@ def health(cfg):
     age = now - heartbeat["at"] if heartbeat else None
     fresh = age is not None and 0 <= age < 3 * heartbeat["interval"] + 30 and alive(heartbeat["pid"])
     lanes = []
-    for lane in range(LANES):
+    for lane in range(MAX_LANES):
         claim = read(cfg.runtime / f"lane-{lane}.json", None)
         if claim:
             pid = claim.get("worker_pid")
             lanes.append({"lane": lane, "job": claim["job"], "group": claim["group"], "slot": claim["slot"],
                           "pid": pid, "process_alive": worker_alive(claim)})
-    return {"daemon_fresh": fresh, "paused": cfg.catalog.with_name("PAUSED").exists(),
+    return {"pacing": heartbeat.get("pacing") or {"level": 0, "status": "baseline"},
+            "target_lanes": heartbeat.get("target_lanes", LANES),
+            "daemon_fresh": fresh, "paused": cfg.catalog.with_name("PAUSED").exists(),
             "heartbeat": heartbeat or None, "age_seconds": age,
             "cooldowns": {k: v for k, v in state.get("cooldowns", {}).items() if v > now}, "active_lanes": lanes}
 
@@ -122,7 +120,7 @@ def run_codex(cfg, assignment, lane_fd):
     args = [cfg.codex, "-c", 'model_provider="openai"', "-c", 'forced_login_method="chatgpt"',
             "exec", "--ephemeral", "--json", "--skip-git-repo-check", "--cd", str(cfg.runtime), "-"]
     with subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                          cwd=cfg.runtime, env=subscription_env(), pass_fds=(lane_fd,)) as child:
+                          cwd=cfg.runtime, env=pacing.subscription_env(), pass_fds=(lane_fd,)) as child:
         claim = read(assignment, {})
         claim.update(worker_pid=child.pid, worker_birth=process_birth(child.pid), worker_started_at=int(time.time()))
         save(assignment, claim)
@@ -170,6 +168,10 @@ def finish(claim, call=due.gate):
     raise ValueError("Unconfirmed handoff")
 
 
+def park_surplus(job, active):
+    return due.gate(job, "park", "--job", active["job"], "--slot", active["slot"])["status"]
+
+
 class Supervisor:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -195,11 +197,14 @@ class Supervisor:
             self.record(reason, pause="*")
         try:
             outcome = finish(claim)
+            if (outcome in {"yielded", "superseded"} and claim.get("pass") == "surplus"
+                    and park_surplus(claim, claim) == "parked"):
+                outcome = "parked"
         except (OSError, ValueError, KeyError, subprocess.SubprocessError):
             self.record("handoff-unverified", claim["group"], claim["job"], pause=claim["group"])
             return
         self.record(outcome, claim["group"], claim["job"],
-                    pause=claim["group"] if outcome != "completed" else None)
+                    pause=claim["group"] if outcome not in {"completed", "parked"} else None)
         path.unlink(missing_ok=True)
 
     def work(self, handle, path, claim):
@@ -212,24 +217,53 @@ class Supervisor:
                 reason = "launch-failed"
             self.reconcile(path, claim, reason)
 
+    def release_idle_extras(self, jobs, occupied):
+        for job in jobs:
+            if not job.get("surplus_prompt") or job["group"] in occupied:
+                continue
+            try:
+                active = due.gate(job, "status")["active"]
+                if (active and active["job"].startswith("supplement.") and not active["pending"]
+                        and (not active["expires"] or due.instant(active["expires"]) <= datetime.now(due.UTC))):
+                    park_surplus(job, active)
+            except (OSError, KeyError, ValueError, subprocess.SubprocessError):
+                self.record("surplus-handoff-unverified", job["group"], job["id"])
+
     def wake(self):
+        now = datetime.now(due.UTC)
+        catalog = read(self.cfg.catalog, {})
+        jobs = due.validate(catalog)
+        policy = {"level": 0, "status": "baseline", "included_exhausted": False}
+        pause_file = self.cfg.catalog.with_name("PAUSED")
+        if jobs and catalog.get("weekly_pacing") is True and not pause_file.exists():
+            policy = pacing.plan(self.cfg.codex, self.runtime, now)
+        target = LANES + policy["level"]
+        if policy["included_exhausted"]:
+            target = 0
+        elif policy.get("weekly") and policy["weekly"]["remaining_percent"] <= 3:
+            target = 1
         save(self.runtime / "heartbeat.json",
-             {"at": int(time.time()), "pid": os.getpid(), "interval": self.cfg.interval})
-        jobs = due.validate(read(self.cfg.catalog, {}))
+             {"at": int(time.time()), "pid": os.getpid(), "interval": self.cfg.interval,
+              "target_lanes": target, "pacing": policy})
         occupied = set()
         available = []
         # The CLI inherits this OS lock. A restarted supervisor leaves a surviving
         # CLI alone even if its last checkpoint is older than the network lease.
-        for lane in range(LANES):
+        taken = 0
+        for lane in range(MAX_LANES):
             path = self.runtime / f"lane-{lane}.json"
+            if lane >= target and not path.exists():
+                continue
             handle = lock(self.runtime / f"lane-{lane}.lock")
             claim = read(path, None)
             if handle is None:
+                taken += 1
                 if claim:
                     occupied.add(claim["group"])
                 continue
             if claim:
                 if worker_alive(claim):
+                    taken += 1
                     occupied.add(claim["group"])
                     handle.close()
                     continue
@@ -241,14 +275,16 @@ class Supervisor:
                     continue
             available.append((lane, handle, path))
         try:
-            pause_file = self.cfg.catalog.with_name("PAUSED")
-            if (not available or not jobs or pause_file.exists()
-                    or self.state["cooldowns"].get("*", 0) > time.time()):
+            free_lanes = max(0, target - taken)
+            blocked = policy["included_exhausted"] or self.state["cooldowns"].get("*", 0) > time.time()
+            if blocked and not pause_file.exists():
+                self.release_idle_extras(jobs, occupied)
+            if not free_lanes or not available or not jobs or pause_file.exists() or blocked:
                 return
             if not check_login(self.cfg.codex):
                 self.record("chatgpt-login-unavailable", pause="*")
                 return
-            for lane, handle, path in available:
+            for lane, handle, path in available[:free_lanes]:
                 if pause_file.exists():
                     break
                 with self.guard:
@@ -256,7 +292,7 @@ class Supervisor:
                     if "*" in excluded:
                         break
                     cursor = self.state["cursor"]
-                result = due.dispatch(jobs, datetime.now(due.UTC), cursor, excluded)
+                result = due.dispatch(jobs, datetime.now(due.UTC), cursor, excluded, pacing=policy)
                 for error in result.get("warnings", []):
                     group = error.get("group") or next((j["group"] for j in jobs if j["id"] == error.get("job")), None)
                     if group:
@@ -305,8 +341,9 @@ def main(argv=None):
             raise ValueError("Worker runtime must be private")
         if cfg.check:
             logged_in = check_login(cfg.codex)
+            snapshot = health(cfg)
             print(json.dumps({"status": "ready" if logged_in else "auth-unavailable", "jobs": len(jobs),
-                              "lanes": LANES, "interval": cfg.interval, "runtime": health(cfg)}))
+                              "lanes": snapshot["target_lanes"], "interval": cfg.interval, "runtime": snapshot}))
             return int(not logged_in)
         cfg.runtime.mkdir(mode=0o700, exist_ok=True)
         service = lock(cfg.runtime / "supervisor.lock")

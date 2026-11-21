@@ -30,6 +30,23 @@ To roll back, stop both Codex entry points and remove the job from its catalog. 
 
 ## Local Codex worker
 
-`marketing_worker.py` polls the private catalog and starts a subscription-authenticated Codex CLI only after acquiring work. It uses two independent worker lanes, an OS lock per lane and the shared remote gate. It saves each assignment privately, checks the durable completion or yield on exit, and backs off after a failed launch or quota error. An expired group lease can be recovered from another host. An inherited lane lock also lets a restarted supervisor detect a surviving local process.
+`marketing_worker.py` polls the private catalog and starts a subscription-authenticated Codex CLI only after acquiring work. It normally uses two independent worker lanes, an OS lock per lane and the shared remote gate. It saves each assignment privately, checks the durable completion or yield on exit, and backs off after a failed launch or quota error. An expired group lease can be recovered from another host. An inherited lane lock also lets a restarted supervisor detect a surviving local process.
 
 Use `--check` with the catalog, runtime directory and worker protocol template to inspect login, heartbeat, cooldown and worker state without claiming anything. A `PAUSED` file beside the catalog stops new local claims. The native Codex recovery automation checks the supervisor hourly from the signed-in local host. It restarts the supervisor when needed and can run a single poll with the same mutex and remote ownership rules. Claude cloud schedules remain available while the Mac sleeps.
+
+
+## Weekly subscription pacing
+
+An installation opts in with `"weekly_pacing": true` in the private catalog. At most one existing job in each group can specify a `surplus_prompt`. This is a standalone brief for one distinct business improvement. It uses the shared group, effect IDs and receipts. Claude's original schedules and event identities continue to use their regular job IDs.
+
+The supervisor reads the signed-in Codex account's included limits through the bundled app server and caches a redacted snapshot for up to ten minutes. It refreshes after reset and within two minutes near exhaustion. The required pace is the percentage of weekly allowance remaining divided by the percentage of the weekly window remaining. A ratio of 2 means the remaining allowance could support twice the even weekly rate. The shorter account window, when present, can reduce the pace.
+
+| Mode | Target workers | New supplemental opportunities per available group |
+| --- | ---: | --- |
+| On pace, or fresh data unavailable | 2 | Scheduled and recovery work only |
+| Moderately behind pace | 3 | Hourly |
+| Well behind pace | 4 | Every 15 minutes, or every 5 minutes at a required pace of 3 or more |
+
+At 3% or less weekly allowance, one worker can finish drawing down the window. Once an included limit is reported exhausted, new Codex claims stop until usage data confirms recovery. A reduction in capacity lets running work finish. The decision uses the subscription windows independently of additional credit balances. The health readback includes the measured percentages, reset time, chosen interval and target concurrency.
+
+Due work takes priority. Boosted Codex workers can claim at the scheduled time. An extra opportunity is current-window only and needs an idle group with room before its next regular pass. Its job ID starts with `supplement.`, so legacy Claude workers can distinguish it from their normal assignment. A `no-opportunity` completion gives that group's supplemental work six hours before checking again. An interrupted optional window with no outstanding external action can park its checkpoint and release the group. A later supplemental worker sees that checkpoint. An unresolved external action remains under the existing reconciliation protocol.
