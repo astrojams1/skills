@@ -104,6 +104,144 @@ class DispatcherTests(unittest.TestCase):
             self.assertEqual(due.ready(j, item, minute), not minute.date().toordinal() % 2)
             self.assertTrue(due.ready(j, item, minute + due.timedelta(minutes=15)))
 
+    def test_surplus_opt_in_and_interval_identity(self):
+        j = job(surplus_prompt="Select distinct campaign work",
+                schedule=[{"at": "13:00", "days": list(range(7)), "pass": "full"}])
+        self.assertEqual(due.validate({"jobs": [j]}), [j])
+        for invalid in (job("other", "daily", surplus_prompt="second"), job("empty", surplus_prompt=" ")):
+            with self.assertRaises(ValueError):
+                due.validate({"jobs": [j, invalid]})
+        sample = due.instant("2026-11-20T19:04:05Z")
+        for level, minutes in [(1, 60), (2, 15), (2, 5)]:
+            result = due.dispatch([j], sample, call=Queue(), pacing={"level": level, "interval_minutes": minutes})
+            self.assertEqual(result["slot"], f"surplus.{int(NOW.timestamp())}")
+            self.assertEqual((result["job"], result["pass"], result["prompt"]),
+                             ("supplement.daily", "surplus", j["surplus_prompt"]))
+        base = due.dispatch([j], sample, call=Queue(), pacing={"level": 0, "interval_minutes": 15})
+        self.assertEqual(base["status"], "idle")
+        no_optin = job(schedule=j["schedule"])
+        self.assertEqual(due.dispatch([no_optin], sample, call=Queue(),
+                                      pacing={"level": 2, "interval_minutes": 15})["status"], "idle")
+
+    def test_surplus_only_current_interval_and_cadence_downgrade(self):
+        j = job(surplus_prompt="extra", schedule=[{"at": "13:00", "days": list(range(7)), "pass": "full"}])
+        queue = Queue()
+        later = due.instant("2026-11-20T19:39:00Z")
+        quarter = due.dispatch([j], later, call=queue, pacing={"level": 2, "interval_minutes": 15})
+        self.assertEqual(quarter["scheduled_at"], "2026-11-20T19:30:00+00:00")
+        queue.states["daily"] = {"status": "ok", "active": None, "finished": {
+            "supplement.daily/" + quarter["slot"]: "receipt"
+        }}
+        for minutes in (15, 60):
+            self.assertEqual(due.dispatch([j], later, call=queue,
+                                          pacing={"level": 1, "interval_minutes": minutes})["status"], "idle")
+        five = due.dispatch([j], later, call=queue, pacing={"level": 2, "interval_minutes": 5})
+        self.assertEqual(five["scheduled_at"], "2026-11-20T19:35:00+00:00")
+        queue.states["daily"]["finished"]["supplement.daily/" + five["slot"]] = "another distinct item"
+        for minutes in (5, 15, 60):
+            self.assertEqual(due.dispatch([j], later, call=queue,
+                                          pacing={"level": 2, "interval_minutes": minutes})["status"], "idle")
+        fresh = job(surplus_prompt="extra", schedule=j["schedule"], **{"from": "2026-11-20T19:38:00Z"})
+        self.assertEqual(due.dispatch([fresh], later, call=Queue(),
+                                      pacing={"level": 2, "interval_minutes": 15})["status"], "idle")
+
+    def test_regular_event_and_scheduled_work_across_groups_precede_surplus(self):
+        extra = job("extra", surplus_prompt="extra", schedule=[{"at": "13:00", "days": [4], "pass": "full"}])
+        pacing = {"level": 2, "interval_minutes": 15}
+        queue = Queue()
+        self.assertEqual(due.dispatch([extra, job("other")], NOW, call=queue, pacing=pacing)["job"], "other")
+        j = job("notify", schedule=extra["schedule"], reply_issues={"repo": "test/test"})
+        event = {"job": "notify", "slot": "issue.9.1795195000", "pass": "issue", "scheduled_at": NOW.isoformat()}
+        selected = due.dispatch([extra, j], NOW, call=queue, pacing=pacing, issues=lambda _: [event])
+        self.assertEqual(selected["pass"], "issue")
+
+    def test_boost_removes_claude_head_start_and_reserves_imminent_sibling_pass(self):
+        pacing = {"level": 1, "interval_minutes": 60}
+        now = next(t for t in (due.instant("2026-11-20T13:30:00Z"), due.instant("2026-11-21T13:30:00Z"))
+                   if t.date().toordinal() % 2)
+        j = job(**{"from": now.isoformat()})
+        self.assertEqual(due.dispatch([j], now, call=Queue())["status"], "idle")
+        self.assertEqual(due.dispatch([j], now, call=Queue(), pacing=pacing)["pass"], "full")
+        extra = job("extra", "shared", surplus_prompt="extra", schedule=[{"at": "15:00", "days": [4], "pass": "full"}])
+        soon = job("soon", "shared", schedule=[{"at": "11:10", "days": [4], "pass": "full"}])
+        self.assertEqual(due.dispatch([extra, soon], NOW, call=Queue(), pacing=pacing)["status"], "idle")
+        self.assertEqual(due.dispatch([extra], NOW, call=Queue(), pacing=pacing)["pass"], "surplus")
+
+    def test_busy_and_unreadable_groups_cannot_start_supplemental_work(self):
+        j = job(surplus_prompt="extra", schedule=[{"at": "13:00", "days": [4], "pass": "full"}],
+                reply_issues={"repo": "org/repo"})
+        queue = Queue()
+        policy = {"level": 2, "interval_minutes": 15}
+
+        def failed_events(_):
+            raise OSError("unreadable event stream")
+
+        self.assertEqual(due.dispatch([j], NOW, call=queue, issues=failed_events, pacing=policy)["status"],
+                         "unavailable")
+        queue.states["daily"] = {"status": "ok", "finished": {}, "active": {
+            "job": "daily", "slot": "2026-11-20.0530", "expires": "2026-11-20T20:00:00Z"
+        }}
+        self.assertEqual(due.dispatch([j], NOW, call=queue, issues=lambda _: [], pacing=policy)["status"], "idle")
+        self.assertFalse(any(cmd == "claim" for _, cmd, _ in queue.calls))
+
+    def test_group_cooldown_only_after_exact_empty_receipt(self):
+        epoch = int(NOW.timestamp())
+        for age, note, expected in [(21000, "no-opportunity", False), (21000, "no-opportunity no fresh lead", False),
+                                    (21600, "no-opportunity", True), (1800, "no-opportunity-other", True)]:
+            history = {f"supplement.other/surplus.{epoch-age}": note, "job/2026-11-20.0530": "no-opportunity"}
+            self.assertEqual(due.surplus_available(history, epoch, epoch), expected)
+        queue = Queue()
+        queue.states["daily"] = {"status": "ok", "active": None, "finished": {
+            f"supplement.other/surplus.{epoch-900}": "no-opportunity"
+        }}
+        self.assertEqual(due.dispatch([job(surplus_prompt="extra")], NOW, call=queue,
+                                      pacing={"level": 1, "interval_minutes": 60})["pass"], "full")
+
+    def test_parked_checkpoint_follows_only_latest_same_job(self):
+        j = job(surplus_prompt="extra", schedule=[{"at": "13:00", "days": [4], "pass": "full"}])
+        queue = Queue()
+        epoch = int(NOW.timestamp())
+        history = {f"supplement.daily/surplus.{epoch-7200}": "surplus-deferred branch-41",
+                   f"supplement.other/surplus.{epoch-5400}": "surplus-deferred unrelated"}
+        queue.states["daily"] = {"status": "ok", "active": None, "finished": history}
+        pacing = {"level": 1, "interval_minutes": 60}
+        self.assertEqual(due.dispatch([j], NOW, call=queue, pacing=pacing)["parked_checkpoint"], "branch-41")
+        history[f"supplement.daily/surplus.{epoch-3600}"] = "completed branch-41"
+        self.assertNotIn("parked_checkpoint", due.dispatch([j], NOW, call=queue, pacing=pacing))
+
+    def test_supplement_recovers_own_scope_without_starting_new_extras(self):
+        active = {"job": "supplement.daily", "slot": f"surplus.{int(NOW.timestamp())-3600}", "expires": None}
+        queue = Queue()
+        queue.states["daily"] = {"status": "ok", "active": active, "finished": {}}
+        j = job(surplus_prompt="Work on distinct drafts")
+        for mode in (None, {"level": 2, "interval_minutes": 15}):
+            result = due.dispatch([j], NOW, call=queue, pacing=mode)
+            self.assertEqual((result["job"], result["slot"], result["pass"]), (active["job"], active["slot"], "surplus"))
+            self.assertIn("Work on distinct drafts", result["prompt"])
+            self.assertNotIn("private worker prompt", result["prompt"])
+            if not mode:
+                self.assertIn("Start no new", result["prompt"])
+        result = due.dispatch([job()], NOW, call=queue)
+        self.assertIn("Start no new", result["prompt"])
+        self.assertEqual(due.dispatch([j, job("regular")], NOW, call=queue)["job"], "regular")
+        self.assertEqual(due.rotation(["daily", "regular"], "supplement.daily"), ["regular", "daily"])
+
+    def test_real_gate_fences_supplement_separately_from_native_schedule(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            remote, local = [str(Path(tmp) / n) for n in ("remote.git", "checkout")]
+            subprocess.run(["git", "init", "-q", "--bare", remote], check=True)
+            subprocess.run(["git", "clone", "-q", remote, local], check=True, capture_output=True)
+            j = job(repo=local, surplus_prompt="Distinct work", schedule=[{"at": "14:00", "days": [4], "pass": "full"}])
+            due.gate(j, "init")
+            extra = due.dispatch([j], NOW, pacing={"level": 1, "interval_minutes": 60})
+            due.gate(j, "yield", "--token", extra["gate"]["token"], "--note", "unfinished draft")
+            native = due.gate(j, "claim", "--job", j["id"], "--slot", "2026-11-20.1400", "--engine", "claude")
+            self.assertEqual(native["status"], "resume-first")
+            self.assertEqual(native["job"], "supplement.daily")
+            resumed = due.dispatch([j], NOW)
+            self.assertEqual(resumed["pass"], "surplus")
+            self.assertEqual(resumed["gate"]["checkpoint"], "unfinished draft")
+
     def test_issue_id_uses_initial_creation_and_obeys_cutover(self):
         j = job(**{"from": "2026-11-20T00:00:00Z", "reply_issues": {"repo": "sample/repo"}})
         calls = []

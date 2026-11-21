@@ -18,6 +18,14 @@ NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
 CLOCK = re.compile(r"(?:[01]\d|2[0-3]):[0-5]\d")
 SLOT = re.compile(r"\d{4}-\d{2}-\d{2}\.\d{4}")
 ISSUE = re.compile(r"issue\.([1-9]\d*)\.(\d+)")
+SUPPLEMENT_JOB = "supplement."
+SURPLUS = re.compile(r"surplus\.([0-9]{1,11})")
+RUNWAY = timedelta(minutes=15)
+NO_OPPORTUNITY_COOLDOWN = timedelta(hours=6)
+SETTLE = ("Reconcile this previously claimed supplemental assignment. Read its checkpoint, worktree and pending "
+          "effects, verify the outcome of actions already started, and record their receipts. Start no new "
+          "campaign work. Mark the slot done once existing work is settled, or yield with the evidence needed "
+          "to resolve an uncertain action.")
 GITHUB_REPO = re.compile(r"[\w.-]+/[\w.-]+")
 
 
@@ -33,7 +41,7 @@ def validate(catalog):
     jobs = catalog["jobs"]
     if not isinstance(jobs, list):
         raise ValueError("jobs must be a list")
-    seen = set()
+    seen, surplus_groups = set(), set()
     for job in jobs:
         name = job["id"]
         if not NAME.fullmatch(name) or name in seen or not NAME.fullmatch(job["group"]):
@@ -41,6 +49,12 @@ def validate(catalog):
         seen.add(name)
         if not Path(job["repo"]).is_absolute() or not job["prompt"].strip():
             raise ValueError(f"Invalid repository or empty worker prompt for {name}")
+        if "surplus_prompt" in job:
+            group = job["repo"], job["group"]
+            if (not isinstance(job["surplus_prompt"], str) or not job["surplus_prompt"].strip()
+                    or len(SUPPLEMENT_JOB + name) > 171 or group in surplus_groups):
+                raise ValueError(f"Each group may opt in one job with a nonempty surplus prompt: {name}")
+            surplus_groups.add(group)
         instant(job["from"])
         ZoneInfo(job["timezone"])
         if not job["schedule"]:
@@ -115,8 +129,8 @@ def resume(job, slot):
         scope = next((rule["pass"] for rule in job["schedule"]
                       if rule["at"] == clock and applies(rule, nominal.date())), "resume")
         when = nominal.replace(tzinfo=ZoneInfo(job["timezone"])).astimezone(UTC)
-    elif ISSUE.fullmatch(slot):
-        scope = "issue"
+    elif ISSUE.fullmatch(slot) or SURPLUS.fullmatch(slot):
+        scope = slot.split(".", 1)[0]
         when = datetime.fromtimestamp(int(slot.rsplit(".", 1)[1]), UTC)
     else:
         raise ValueError("Unrecognized interrupted slot")
@@ -146,27 +160,103 @@ def opened_issues(job):
                    "issue_state": state, "issue_closed_at": closed or None}
 
 
-def ready(job, candidate, now):
+def ready(job, candidate, now, boost=False):
     when = instant(candidate["scheduled_at"])
     # Claude claims immediately on every pass. Codex gives it a short head
     # start on alternate local dates; the Git ref elects a sole winner.
     local = when.astimezone(ZoneInfo(job["timezone"]))
-    delay = timedelta(minutes=15 if local.date().toordinal() % 2 else 0)
+    delay = timedelta(minutes=15 if not boost and local.date().toordinal() % 2 else 0)
     return now >= when + delay
 
 
 def rotation(jobs, cursor):
+    cursor = cursor.removeprefix(SUPPLEMENT_JOB)
     if cursor in jobs:
         split = jobs.index(cursor) + 1
         return jobs[split:] + jobs[:split]
     return jobs
 
 
-def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues):
+def surplus_interval(pacing):
+    if not pacing or pacing.get("level") not in (1, 2):
+        return 0
+    minutes = pacing.get("interval_minutes")
+    return minutes * 60 if minutes in (5, 15, 60) else 0
+
+
+def reserve_regular_groups(jobs, now):
+    """Leave a runway for imminent scheduled passes, including siblings in the same group."""
+    end = now + RUNWAY
+    reserved = set()
+    for job in jobs:
+        zone = ZoneInfo(job["timezone"])
+        first = now.astimezone(zone).date()
+        last = end.astimezone(zone).date()
+        activation = instant(job["from"])
+        for day in {first, last}:
+            for rule in job["schedule"]:
+                if applies(rule, day):
+                    when = at_local(day, rule["at"], zone)
+                    if when is not None and now < when <= end and activation <= when:
+                        reserved.add((job["repo"], job["group"]))
+    return reserved
+
+
+def surplus_available(finished, epoch, now):
+    """One opportunity per group and interval, with cross-job quiet time after an empty scan."""
+    for key, receipt in finished.items():
+        match = SURPLUS.fullmatch(key.partition("/")[2])
+        if not match:
+            continue
+        previous = int(match[1])
+        if previous >= epoch:
+            return False
+        if receipt.partition(" ")[0] == "no-opportunity" and now - previous < NO_OPPORTUNITY_COOLDOWN.total_seconds():
+            return False
+    return True
+
+
+def parked_checkpoint(finished, assignment):
+    # Only the newest slot can still need follow-up; an older parked result can already
+    # have been settled by a later completed assignment.
+    prefix = assignment + "/"
+    newest, receipt = -1, ""
+    for key, note in finished.items():
+        if not key.startswith(prefix):
+            continue
+        match = SURPLUS.fullmatch(key[len(prefix):])
+        if match and int(match[1]) > newest:
+            newest, receipt = int(match[1]), note
+    if receipt.startswith("surplus-deferred "):
+        return receipt.removeprefix("surplus-deferred ")
+    return None
+
+
+def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, pacing=None):
     by_id = {job["id"]: job for job in jobs}
+    order = [by_id[name] for name in rotation(list(by_id), cursor)]
     states, errors, blocked = {}, [], set()
-    for name in rotation(list(by_id), cursor):
-        job = by_id[name]
+    recoveries, issue_failures = [], set()
+    interval = surplus_interval(pacing)
+
+    def take(job, item, prompt):
+        group = job["repo"], job["group"]
+        try:
+            result = call(job, "claim", "--job", item["job"], "--slot", item["slot"], "--engine", "codex")
+            if result["status"] == "acquired":
+                return {"status": "running", **item, "repo": job["repo"], "group": job["group"],
+                        "timezone": job["timezone"], "gate": result, "prompt": prompt, "warnings": errors}
+            if result["status"] in ("busy", "resume-first"):
+                blocked.add(group)
+            elif result["status"] != "done":
+                raise ValueError("Unexpected claim response")
+        except (KeyError, ValueError, OSError, subprocess.SubprocessError):
+            blocked.add(group)
+            errors.append({"group": job["group"], "error": "Coordinator claim failed"})
+        return None
+
+    for job in order:
+        name = job["id"]
         group = job["repo"], job["group"]
         if job["group"] in exclude or group in blocked:
             continue
@@ -178,41 +268,79 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues):
                 raise ValueError("Unexpected status response")
             active = state["active"]
             if active:
-                if active["job"] not in by_id or (by_id[active["job"]]["repo"],
-                                                  by_id[active["job"]]["group"]) != group:
+                owner = active["job"].removeprefix(SUPPLEMENT_JOB)
+                if owner not in by_id or (by_id[owner]["repo"], by_id[owner]["group"]) != group:
                     errors.append({"group": job["group"], "error": "An active job needs its catalog entry"})
                     blocked.add(group)
                     continue
-                if active["job"] != name or (active["expires"] and instant(active["expires"]) > now):
+                if owner != name or (active["expires"] and instant(active["expires"]) > now):
                     continue
-                candidates = [resume(job, active["slot"])]
+                item = resume(job, active["slot"])
+                if active["job"].startswith(SUPPLEMENT_JOB) != (item["pass"] == "surplus"):
+                    raise ValueError("Claim's job and slot have inconsistent scopes")
+                if item["pass"] == "surplus":
+                    item["job"] = active["job"]
+                    recoveries.append((job, item))
+                    continue
+                candidates = [item]
             else:
                 candidates = []
                 if "reply_issues" in job:
                     try:
                         candidates = list(issues(job))
                     except (ValueError, OSError, subprocess.SubprocessError):
+                        issue_failures.add(group)
                         errors.append({"job": name, "error": "GitHub issue lookup failed"})
                 candidates.extend(occurrences(job, now))
                 candidates.sort(key=lambda item: item["scheduled_at"])
             for item in candidates:
-                if not active and not ready(job, item, now):
+                if not active and not ready(job, item, now, boost=bool(interval)):
                     continue
                 if name + "/" + item["slot"] in state["finished"]:
                     continue
-                result = call(job, "claim", "--job", name, "--slot", item["slot"], "--engine", "codex")
-                if result["status"] == "acquired":
-                    return {"status": "running", **item, "repo": job["repo"], "group": job["group"],
-                            "timezone": job["timezone"], "gate": result, "prompt": job["prompt"],
-                            "warnings": errors}
-                if result["status"] in ("busy", "resume-first"):
-                    blocked.add(group)
+                result = take(job, item, job["prompt"])
+                if result:
+                    return result
+                if group in blocked:
                     break
-                if result["status"] != "done":
-                    raise ValueError("Unexpected claim response")
         except (KeyError, ValueError, OSError, subprocess.SubprocessError):
             blocked.add(group)
             errors.append({"group": job["group"], "error": "Coordinator lookup or claim failed"})
+
+    for job, item in recoveries:
+        # A yielded or expired surplus claim still fences the group's regular work. Only settle
+        # its original scope when pacing has eased or the job no longer opts into new extras.
+        prompt = job.get("surplus_prompt", "")
+        if not interval or not prompt:
+            prompt = SETTLE + ("\n\nOriginal supplemental scope for reference\n" + prompt if prompt else "")
+        result = take(job, item, prompt)
+        if result:
+            return result
+
+    if interval:
+        timestamp = int(now.timestamp())
+        epoch = timestamp - timestamp % interval
+        nominal = datetime.fromtimestamp(epoch, UTC)
+        unavailable = blocked | issue_failures | reserve_regular_groups(jobs, now)
+        for job in order:
+            group = job["repo"], job["group"]
+            if not job.get("surplus_prompt") or group not in states or group in unavailable:
+                continue
+            state = states[group]
+            if state["active"] or nominal < instant(job["from"]):
+                continue
+            if not surplus_available(state["finished"], epoch, timestamp):
+                continue
+            item = {"job": SUPPLEMENT_JOB + job["id"], "slot": f"surplus.{epoch}",
+                    "pass": "surplus", "scheduled_at": nominal.isoformat()}
+            prompt = job["surplus_prompt"]
+            checkpoint = parked_checkpoint(state["finished"], item["job"])
+            if checkpoint:
+                item["parked_checkpoint"] = checkpoint
+                prompt = "Read parked_checkpoint in this assignment and reconcile that work before selecting new work.\n\n" + prompt
+            result = take(job, item, prompt)
+            if result:
+                return result
     return {"status": "unavailable" if errors else "idle", "warnings": errors}
 
 

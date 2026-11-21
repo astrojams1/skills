@@ -998,3 +998,11 @@ Review: Read two existing lead threads and recorded the actionable state in a pr
 - [x] Verify contention, interruption, deployment and schedule readback.
 
 Review: verified the provider registrations, guarded GitHub writes, isolated contention and subscription CLI handoff. Machine-specific installation receipts stay in the private project directory.
+
+## Weekly marketing capacity
+
+- [x] Read the signed-in account's included limits and derive a pace from the actual reset.
+- [x] Prioritize due work, then dispatch distinct incremental work through the existing business gate.
+- [x] Test changes of pace, duplicate prevention, exhaustion and recovery.
+
+Review: the shared scheduler passed the full marketing suite, and a signed-in subscription sample selected the high tier. Production readback belongs in the private installation directory.

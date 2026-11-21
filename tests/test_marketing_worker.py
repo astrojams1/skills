@@ -6,10 +6,13 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
+from types import SimpleNamespace
 
 BIN = Path(__file__).resolve().parents[1] / "bin"
 sys.path.insert(0, str(BIN))
 import marketing_due as due
+import marketing_worker as worker
 
 
 class WorkerTests(unittest.TestCase):
@@ -135,6 +138,56 @@ else:
         self.assertIn("a", self.state()["cooldowns"])
         self.launch(mode="done")
         self.assertEqual((self.runtime / "stub-calls").read_text().splitlines(), ["a"])
+
+    def run_with_policy(self, policy, mode="done"):
+        cfg = SimpleNamespace(catalog=self.catalog, runtime=self.runtime, codex=str(self.stub),
+                              template=self.template, interval=120)
+        self.runtime.mkdir(mode=0o700, exist_ok=True)
+        catalog = json.loads(self.catalog.read_text())
+        catalog["weekly_pacing"] = True
+        self.catalog.write_text(json.dumps(catalog))
+        supervisor = worker.Supervisor(cfg)
+        with patch.object(worker.pacing, "plan", return_value=policy), patch.dict(
+                os.environ, {"TEST_BEHAVIOR": mode, "TEST_GATE": str(due.GATE)}):
+            supervisor.wake()
+            for thread in supervisor.threads.values():
+                thread.join()
+        return worker.health(cfg)
+
+    def test_high_pace_adds_lanes_and_exhaustion_stops_new_claims(self):
+        jobs = self.setup_jobs([(x, x) for x in ["one","two","three","four"]])
+        policy = {"included_exhausted": True, "level": 0}
+        self.assertEqual(self.run_with_policy(policy)["target_lanes"], 0)
+        self.assertFalse((self.runtime / "stub-calls").exists())
+        policy.update(included_exhausted=False, level=2, interval_minutes=15)
+        self.assertEqual(self.run_with_policy(policy)["target_lanes"], 4)
+        self.assertEqual(set((self.runtime / "stub-calls").read_text().splitlines()), {j["group"] for j in jobs})
+
+    def test_exhaustion_releases_dead_extra_without_starting_model(self):
+        job, = self.setup_jobs([("daily", "business")])
+        job["surplus_prompt"] = "Improve one open campaign item."
+        self.catalog.write_text(json.dumps({"jobs": [job]}))
+        claim = due.gate(job, "claim", "--job", "supplement.daily", "--slot", "surplus.100",
+                         "--engine", "codex")
+        due.gate(job, "yield", "--token", claim["token"], "--note", "branch-campaign")
+        self.run_with_policy({"included_exhausted": True, "level": 0})
+        result = due.gate(job, "status")
+        self.assertIsNone(result["active"])
+        self.assertEqual(result["finished"]["supplement.daily/surplus.100"], "surplus-deferred branch-campaign")
+        self.assertFalse((self.runtime / "stub-calls").exists())
+
+    def test_small_final_allowance_drains_surviving_high_lane(self):
+        jobs = self.setup_jobs([("one", "a"), ("two", "b")])
+        self.runtime.mkdir(mode=0o700)
+        assignment = {"job": "other", "group": "c", "slot": "surplus.111", "worker_pid": os.getpid(),
+                      "worker_birth": worker.process_birth(os.getpid())}
+        (self.runtime / "lane-3.json").write_text(json.dumps(assignment))
+        health = self.run_with_policy({"included_exhausted": False, "level": 1,
+                                       "weekly": {"remaining_percent": 2}, "interval_minutes": 60})
+        self.assertEqual(health["target_lanes"], 1)
+        self.assertTrue(health["active_lanes"][0]["process_alive"])
+        self.assertFalse((self.runtime / "stub-calls").exists())
+        self.assertIsNone(due.gate(jobs[0], "status")["active"])
 
     def test_quota_survives_restart_and_yields(self):
         jobs = self.setup_jobs([("one", "a")])

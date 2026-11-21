@@ -45,6 +45,34 @@ class Ownership(unittest.TestCase):
         self.assertEqual(apply("yield", "--token", "a", "--note", "quota")["status"], "yielded")
         self.assertEqual(claim("codex", "2026-01-06.0530", "c")["checkpoint"], "quota")
 
+    def test_park_releases_only_idle_supplement_without_pending_effects(self):
+        state = gate.empty()
+        now = dt.datetime(2026, 11, 21, tzinfo=gate.UTC)
+        job = "supplement.daily"
+        slot = "surplus.1795282200"
+
+        def run(*args):
+            command = gate.parse_args(["--repo", ".", "--group", "fixture", *args])
+            return gate.transition(state, command, now, "owner")["status"]
+
+        def park():
+            return run("park", "--job", job, "--slot", slot)
+
+        self.assertEqual(run("claim", "--job", job, "--slot", slot, "--engine", "codex"), "acquired")
+        self.assertEqual(park(), "busy")
+        self.assertEqual(run("begin", "--token", "owner", "--effect", "draft-1", "--note", "worktree"), "started")
+        self.assertEqual(run("yield", "--token", "owner", "--note", "PR-11"), "yielded")
+        self.assertEqual(park(), "reconcile")
+        self.assertEqual(run("claim", "--job", job, "--slot", slot, "--engine", "codex"), "acquired")
+        self.assertEqual(run("resolve", "--token", "owner", "--effect", "draft-1", "--note", "PR-11"), "resolved")
+        now += gate.LEASE
+        self.assertEqual(park(), "parked")
+        self.assertEqual(state["finished"][job + "/" + slot], "surplus-deferred PR-11")
+        self.assertEqual(run("claim", "--job", "daily", "--slot", "2026-11-21.0530", "--engine", "claude"), "acquired")
+        self.assertEqual(run("yield", "--token", "owner", "--note", "regular checkpoint"), "yielded")
+        self.assertEqual(run("park", "--job", "daily", "--slot", "2026-11-21.0530"), "not-parkable")
+        self.assertIsNotNone(state["active"])
+
     def test_compaction_preserves_old_effects_and_slots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

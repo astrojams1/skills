@@ -42,6 +42,20 @@ def transition(state, args, now, new_token):
     op = args.operation
     if op == "status":
         return {"status": "ok", "active": public(active), "finished": state["finished"]}
+    if op == "park":
+        # Close the optional time window, preserving the actual unfinished task
+        # for the next surplus worker. Existing Claude clients understand this
+        # state format and can immediately claim their next scheduled run.
+        if (not active or (active["job"], active["slot"]) != (args.job, args.slot)
+                or not args.job.startswith("supplement.") or not re.fullmatch(r"surplus\.\d+", args.slot)):
+            return {"status": "not-parkable"}
+        if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
+            return {"status": "busy"}
+        if active["pending"]:
+            return {"status": "reconcile"}
+        state["finished"][args.job + "/" + args.slot] = "surplus-deferred " + active["checkpoint"]
+        state["active"] = None
+        return {"status": "parked"}
     if op == "claim":
         key = args.job + "/" + args.slot
         if key in state["finished"]:
@@ -205,6 +219,9 @@ def parse_args(argv=None):
     ops = parser.add_subparsers(dest="operation", required=True)
     ops.add_parser("status")
     ops.add_parser("init", help="Create the group state branch before enrolling workers")
+    parked = ops.add_parser("park", help="Preserve an idle supplemental checkpoint and release its group")
+    parked.add_argument("--job", required=True)
+    parked.add_argument("--slot", required=True)
     claim = ops.add_parser("claim")
     claim.add_argument("--job", required=True)
     claim.add_argument("--slot", required=True, help="Nominal YYYY-MM-DD.HHMM or stable event identifier")
