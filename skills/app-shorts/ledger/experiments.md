@@ -214,6 +214,12 @@ sentence to that button and show the tap. The whole plate, not only its words, s
 read the green box, not the wider box above the rail. A first frame on the app's loading skeleton, even for two
 frames, is called the weakest moment: start on the first frame of the result.
 
+## The Mac pass of 2026-11-22 (mkt-mac-shorts-20261122T141745Z)
+
+| Date | Short | Idea | Experiment | Look | Sound | 7-day result |
+|---|---|---|---|---|---|---|
+| 2026-11-22 | fud-chicken-supper-01 (ER3g40memDA), 10.3 s, public 14:40:57Z | The parent serves grilled chicken, white rice and steamed broccoli. The real iPhone recording shows the cooked foods, the recipients selected under “Who ate this?”, the Add 3 foods action, and the parent’s actual journal count changing from four to seven. | F1 arm A, second Füd episode. Compare 7-day views and viewed rate against Taco Tuesday and Lunchbox, then average percentage viewed and the 72-hour download verdict. Keep at twice the controls’ median day-seven views. For this upload the complete seven-day count is available November 29 or later. | Overhead supper on deep teal with a porcelain plate. iPhone beside matching food, cut into actual selection and Add, then optical magnification of the native journal count. Optima Bold cream on bottle green. | Apple Loops Dusky Blues Guitar Chords + Dusky Blues Bass throughout; Dusky Blues Rhythm Guitar 01 from 3.43–6.86 s, then a release as the saved journal appears. | Read November 29 or later. |
+
 ## Experiments that change the guidelines (set 2026-11-13)
 
 Each experiment changes one thing, using Shorts that are due anyway; each new Short sits in one arm of one
