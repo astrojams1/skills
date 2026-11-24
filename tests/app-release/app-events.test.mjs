@@ -15,6 +15,7 @@ const entry = (over = {}) => ({
   shipsWith: '1.2.0',
   text: { name: 'Winter Holiday Arenas', shortDescription: 'Snow falls on every arena', longDescription: 'Every arena is dressed for winter until January 3.' },
   media: { card: 'store/events/card.png', details: 'store/events/details.png' },
+  deepLink: 'com.example.game://winter',
   ...over,
 });
 
@@ -46,6 +47,20 @@ test('Apple text limits, badge, dates and media are checked', () => {
   }
 });
 
+test('an event needs a deep link: App Review refuses one without it (409 deepLink required, 2026-11-24)', () => {
+  assert.ok(eventProblems(entry({ deepLink: undefined })).some(item => item.includes('deepLink is required')));
+  assert.ok(eventProblems(entry({ deepLink: ' ' })).some(item => item.includes('deepLink is required')));
+  assert.ok(eventProblems(entry({ deepLink: 'not a url' })).some(item => item.includes('deepLink is not a URL')));
+  const now = Date.parse('2026-11-20T17:00:00Z');
+  const bare = { id: 'e1', attributes: { referenceName: 'Winter holidays 2026', eventState: 'DRAFT' } };
+  assert.deepEqual(eventReviewTargets([entry()], [bare], '1.2.0', now).unlinked, ['Winter holidays 2026']);
+  const linked = { id: 'e1', attributes: { ...bare.attributes, deepLink: 'com.example.game://winter' } };
+  assert.deepEqual(eventReviewTargets([entry()], [linked], '1.2.0', now).unlinked, []);
+  const alone = standaloneEventTargets([entry()], [bare], '1.2.0', now);
+  assert.deepEqual(alone.send, []);
+  assert.ok(alone.waiting[0].includes('no deep link'));
+});
+
 test('an event must say what really happens and start in the future', () => {
   const problems = eventProblems(entry({ why: 'promo' }), Date.parse('2026-12-20T00:00:00Z'));
   assert.ok(problems.some(item => item.includes('why must say')));
@@ -67,7 +82,7 @@ test('attributes are written in UTC for every storefront unless territories are 
   assert.equal(attributes.purpose, 'APPROPRIATE_FOR_ALL_USERS');
   assert.equal(attributes.priority, 'NORMAL');
   assert.equal(attributes.purchaseRequirement, 'NO_COST_ASSOCIATED');
-  assert.equal(attributes.deepLink, undefined);
+  assert.equal(attributes.deepLink, 'com.example.game://winter');
   assert.deepEqual(attributes.territorySchedules, [{ territories: ['GBR', 'USA'], publishStart: '2026-11-30T08:00:00.000Z',
     eventStart: '2026-12-14T08:00:00.000Z', eventEnd: '2027-01-04T08:00:00.000Z' }]);
   assert.deepEqual(eventAttributes(entry({ territories: ['USA'] }), ['USA', 'GBR'], 'en-US').territorySchedules[0].territories, ['USA']);
@@ -89,7 +104,7 @@ test('the plan creates, keeps, updates a draft and never touches an event with A
 
 test('submit sends an event with the first version that carries it, and refuses one not created yet', () => {
   const now = Date.parse('2026-11-20T17:00:00Z');
-  const draft = { id: 'e1', attributes: { referenceName: 'Winter holidays 2026', eventState: 'DRAFT' } };
+  const draft = { id: 'e1', attributes: { referenceName: 'Winter holidays 2026', eventState: 'DRAFT', deepLink: 'com.example.game://winter' } };
   assert.deepEqual(eventReviewTargets([entry()], [draft], '1.1.9', now).targets, []);
   assert.deepEqual(eventReviewTargets([entry()], [draft], '1.2.0', now).targets, [{ relation: 'appEvent', type: 'appEvents', id: 'e1' }]);
   assert.equal(eventReviewTargets([entry()], [draft], '1.2.1', now).targets.length, 1);
@@ -105,7 +120,7 @@ test('submit sends an event with the first version that carries it, and refuses 
 
 test('an event goes to review on its own only once its version is live', () => {
   const now = Date.parse('2026-11-20T17:00:00Z');
-  const draft = { id: 'e1', attributes: { referenceName: 'Winter holidays 2026', eventState: 'DRAFT' } };
+  const draft = { id: 'e1', attributes: { referenceName: 'Winter holidays 2026', eventState: 'DRAFT', deepLink: 'com.example.game://winter' } };
   assert.deepEqual(standaloneEventTargets([entry()], [draft], '1.1.0', now).send, []);
   assert.equal(standaloneEventTargets([entry()], [draft], '1.1.0', now).waiting.length, 1);
   assert.deepEqual(standaloneEventTargets([entry()], [draft], '1.2.0', now).send, ['e1']);
