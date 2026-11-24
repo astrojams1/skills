@@ -73,7 +73,11 @@ export function eventProblems(entry, now) {
   if (entry.purpose !== undefined && !EVENT_PURPOSES.includes(entry.purpose)) own.push('purpose must be one of ' + EVENT_PURPOSES.join(', '));
   if (entry.priority !== undefined && !EVENT_PRIORITIES.includes(entry.priority)) own.push('priority must be HIGH or NORMAL');
   if (entry.purchaseRequirement !== undefined && !EVENT_PURCHASE.includes(entry.purchaseRequirement)) own.push('purchaseRequirement must be ' + EVENT_PURCHASE.join(' or '));
-  if (entry.deepLink !== undefined) {
+  // Apple's API calls deepLink optional, but App Review refuses an event without one: POST /v1/reviewSubmissionItems
+  // answered 409 ENTITY_ERROR.ATTRIBUTE.REQUIRED "You must provide a value for the attribute 'deepLink'" (Rhythm, 2026-11-24).
+  if (typeof entry.deepLink !== 'string' || !entry.deepLink.trim()) {
+    own.push('deepLink is required (App Review refuses an event without one): a URL scheme or universal link the app declares');
+  } else {
     try { new URL(entry.deepLink); } catch { own.push('deepLink is not a URL'); }
   }
   if (typeof entry.why !== 'string' || entry.why.trim().length < 20) own.push('why must say what really happens in the app during the event (Apple takes only real, time-bound events)');
@@ -207,6 +211,7 @@ export function eventReviewTargets(entries, existing, version, now) {
   const held = [];
   const missing = [];
   const skipped = [];
+  const unlinked = [];
   for (const entry of entries) {
     if (entry.shipsWith !== undefined && compareVersions(version, entry.shipsWith) < 0) continue;
     const live = existing.find(item => item.attributes.referenceName === entry.referenceName && item.attributes.eventState !== 'ARCHIVED');
@@ -221,7 +226,9 @@ export function eventReviewTargets(entries, existing, version, now) {
       skipped.push(entry.referenceName + ' (its start has passed)');
       continue;
     }
+    // App Review refuses an event without a deep link, after the submission is already open; stop before any write.
+    if (!live.attributes.deepLink) unlinked.push(entry.referenceName);
     targets.push({ relation: 'appEvent', type: 'appEvents', id: live.id });
   }
-  return { targets, held, missing, skipped };
+  return { targets, held, missing, skipped, unlinked };
 }

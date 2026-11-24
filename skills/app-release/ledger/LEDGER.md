@@ -1,8 +1,16 @@
 # App release skill ledger
 
-Skill version **2.39.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.39.2**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.39.2 (2026-11-24)
+
+- The first In-App Event sent with a version (Rhythm's Winter Glow, 0.17.1) was created as a draft without a deep link,
+  because promotion.md called it optional, and `submit --confirm` then failed inside the open submission: App Review
+  answered 409 `ENTITY_ERROR.ATTRIBUTE.REQUIRED` for `deepLink`, leaving an unsent `READY_FOR_REVIEW` draft. Rhythm had
+  no URL scheme, so it needed a new build. `eventProblems` now requires `deepLink`, and `submit` and `events submit`
+  refuse an editable event whose App Store Connect draft has none before any write.
 
 ## Lessons incorporated into v2.39.0 (2026-11-20)
 

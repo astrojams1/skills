@@ -2136,7 +2136,7 @@ async function readAppEvents() {
 
 // eventTargets reads which store-data events go to App Review with this version (lib/app-events.mjs).
 async function eventTargets() {
-  if (!(STORE.events || []).length) return { targets: [], held: [], missing: [], skipped: [] };
+  if (!(STORE.events || []).length) return { targets: [], held: [], missing: [], skipped: [], unlinked: [] };
   return eventReviewTargets(STORE.events, await readAppEvents(), STORE.version, Date.now());
 }
 
@@ -2149,6 +2149,10 @@ async function submitTargets(report) {
   if (events.missing.length) {
     throw new Error('Store data lists In-App Events for version ' + STORE.version + ' that App Store Connect does not hold yet: ' + events.missing.join(', ')
       + '. Run `asc.mjs events --confirm` first; nothing was submitted.');
+  }
+  if (events.unlinked.length) {
+    throw new Error('In-App Events for version ' + STORE.version + ' have no deep link in App Store Connect, which App Review refuses: '
+      + events.unlinked.join(', ') + '. Set deepLink in store data (a URL scheme or universal link the build declares), run `asc.mjs events --confirm`; nothing was submitted.');
   }
   if (report) {
     for (const line of events.skipped) console.log('In-App Event not sent:', line);
@@ -2289,6 +2293,10 @@ export function standaloneEventTargets(entries, existing, liveVersion, now) {
     if (!live || !EDITABLE_EVENT_STATES.includes(live.attributes.eventState) || Date.parse(entry.start) <= now) continue;
     if (entry.shipsWith !== undefined && (!liveVersion || compareVersions(liveVersion, entry.shipsWith) < 0)) {
       waiting.push(entry.referenceName + ' waits for version ' + entry.shipsWith + ' (live: ' + (liveVersion || 'none') + ')');
+      continue;
+    }
+    if (!live.attributes.deepLink) {
+      waiting.push(entry.referenceName + ' has no deep link in App Store Connect, which App Review refuses; set deepLink and run `events --confirm`');
       continue;
     }
     send.push(live.id);
