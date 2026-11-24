@@ -96,12 +96,12 @@ class DispatcherTests(unittest.TestCase):
         self.assertEqual(result["warnings"][0]["group"], "broken")
         self.assertNotIn("private transport", str(result))
 
-    def test_alternating_head_start_and_recovery(self):
+    def test_uniform_head_start_and_recovery(self):
         j = job()
         for day in (20, 21):
             minute = due.instant(f"2026-11-{day}T13:30:00Z")
             item = due.occurrences(j, minute)[-1]
-            self.assertEqual(due.ready(j, item, minute), not minute.date().toordinal() % 2)
+            self.assertFalse(due.ready(j, item, minute))
             self.assertTrue(due.ready(j, item, minute + due.timedelta(minutes=15)))
 
     def test_surplus_opt_in_and_interval_identity(self):
@@ -152,20 +152,85 @@ class DispatcherTests(unittest.TestCase):
         self.assertEqual(due.dispatch([extra, job("other")], NOW, call=queue, pacing=pacing)["job"], "other")
         j = job("notify", schedule=extra["schedule"], reply_issues={"repo": "test/test"})
         event = {"job": "notify", "slot": "issue.9.1795195000", "pass": "issue", "scheduled_at": NOW.isoformat()}
-        selected = due.dispatch([extra, j], NOW, call=queue, pacing=pacing, issues=lambda _: [event])
+        selected = due.dispatch([extra, j], NOW + due.RUNWAY, call=queue, pacing=pacing, issues=lambda _: [event])
         self.assertEqual(selected["pass"], "issue")
 
-    def test_boost_removes_claude_head_start_and_reserves_imminent_sibling_pass(self):
+    def test_boost_respects_claude_head_start_and_reserves_imminent_sibling_pass(self):
         pacing = {"level": 1, "interval_minutes": 60}
         now = next(t for t in (due.instant("2026-11-20T13:30:00Z"), due.instant("2026-11-21T13:30:00Z"))
                    if t.date().toordinal() % 2)
         j = job(**{"from": now.isoformat()})
         self.assertEqual(due.dispatch([j], now, call=Queue())["status"], "idle")
-        self.assertEqual(due.dispatch([j], now, call=Queue(), pacing=pacing)["pass"], "full")
+        self.assertEqual(due.dispatch([j], now, call=Queue(), pacing=pacing)["status"], "idle")
+        self.assertEqual(due.dispatch([j], now + due.RUNWAY, call=Queue(), pacing=pacing)["pass"], "full")
         extra = job("extra", "shared", surplus_prompt="extra", schedule=[{"at": "15:00", "days": [4], "pass": "full"}])
         soon = job("soon", "shared", schedule=[{"at": "11:10", "days": [4], "pass": "full"}])
         self.assertEqual(due.dispatch([extra, soon], NOW, call=Queue(), pacing=pacing)["status"], "idle")
         self.assertEqual(due.dispatch([extra], NOW, call=Queue(), pacing=pacing)["pass"], "surplus")
+
+    def test_fresh_issue_reserves_group_from_sibling_backlog_and_extras(self):
+        sibling = job("backlog", "shared", surplus_prompt="extra")
+        notify = job("notify", "shared", schedule=[{"at": "13:00", "days": [4], "pass": "full"}],
+                     reply_issues={"repo": "org/repo"})
+        stamp = int(NOW.timestamp())
+        event = {"job": "notify", "slot": f"issue.4.{stamp}", "scheduled_at": NOW.isoformat(), "pass": "issue"}
+        jobs = [sibling, notify]
+        def poll(jobs, when, queue):
+            return due.dispatch(jobs, when, call=queue, issues=lambda _: [event],
+                                pacing={"level": 2, "interval_minutes": 5})
+        q = Queue()
+        self.assertEqual(poll(jobs, NOW + due.timedelta(minutes=14), q)["status"], "idle")
+        self.assertFalse(any(cmd == "claim" for _, cmd, _ in q.calls))
+        self.assertEqual(poll(jobs + [job("independent")], NOW, q)["job"], "independent")
+        self.assertEqual(poll(jobs, NOW + due.RUNWAY, q)["job"], "backlog")
+        q.states["shared"] = {"status": "ok", "active": None, "finished": {"notify/" + event["slot"]: "receipt"}}
+        self.assertEqual(poll(jobs, NOW, q)["job"], "backlog")
+
+    def test_coalesced_deferred_slot_survives_and_waits_until_retry(self):
+        j = job(schedule=[{"at": "05:30", "days": list(range(7)), "pass": "scan", "coalesce": True},
+                          {"at": "08:30", "days": list(range(7)), "pass": "scan", "coalesce": True}])
+        q = Queue()
+        state = q.states["daily"] = {"status": "ok", "active": None, "finished": {},
+                                    "deferred": {"daily/2026-11-20.0530": {"retry_at": NOW.isoformat(),
+                                                                          "checkpoint": "worktree-old"}}}
+        self.assertEqual(due.dispatch([j], NOW, call=q)["slot"], "2026-11-20.0830")
+        state["finished"]["daily/2026-11-20.0830"] = "receipt"
+        self.assertEqual(due.dispatch([j], NOW - due.timedelta(seconds=1), call=q)["status"], "idle")
+        self.assertEqual(due.dispatch([j], NOW, call=q)["slot"], "2026-11-20.0530")
+
+    def test_previous_group_cannot_starve_another_groups_due_retry(self):
+        idle_sibling = job("idle", "a", schedule=[{"at": "23:00", "days": [4], "pass": "full"}])
+        retry_job = job("retry", "b", schedule=idle_sibling["schedule"])
+        busy_backlog = job("backlog", "a")
+        q = Queue()
+        q.states["b"] = {"status": "ok", "active": None, "finished": {}, "deferred": {
+            "retry/2026-11-19.2300": {"checkpoint": "open-pr", "retry_at": NOW.isoformat()}}}
+        selected = due.dispatch([idle_sibling, retry_job, busy_backlog], NOW, cursor="backlog", call=q)
+        self.assertEqual((selected["job"], selected["slot"]), ("retry", "2026-11-19.2300"))
+
+    def test_clean_inactive_blockers_release_for_regular_work(self):
+        for name, slot, op in [("daily", "2026-11-19.0530", "defer"), ("supplement.daily", "surplus.123", "park")]:
+            j, q = job(surplus_prompt="optional"), Queue()
+            active = {"job": name, "slot": slot, "expires": None, "checkpoint": "original", "pending": {}}
+            q.states["daily"] = {"status": "ok", "active": active, "finished": {}}
+            def call(member, cmd, *args):
+                if cmd == op:
+                    self.assertEqual(args, ("--job", name, "--slot", slot))
+                    q.states["daily"]["active"] = None
+                    return {"status": "parked" if op == "park" else "deferred"}
+                return q(member, cmd, *args)
+            result = due.dispatch([j], NOW, call=call, pacing={"level": 2, "interval_minutes": 5})
+            self.assertEqual((result["job"], result["slot"]), ("daily", "2026-11-20.0530"))
+            self.assertIsNone(q.states["daily"]["active"])
+
+    def test_pending_supplement_is_reconciled_without_new_work_under_boost(self):
+        q = Queue()
+        q.states["daily"] = {"status": "ok", "finished": {}, "active": {
+            "job": "supplement.daily", "slot": "surplus.123", "expires": None, "pending": {"x": "verify"}}}
+        result = due.dispatch([job(surplus_prompt="extra")], NOW, call=q,
+                              pacing={"level": 2, "interval_minutes": 5})
+        self.assertEqual(result["job"], "supplement.daily")
+        self.assertIn("Start no new", result["prompt"])
 
     def test_busy_and_unreadable_groups_cannot_start_supplemental_work(self):
         j = job(surplus_prompt="extra", schedule=[{"at": "13:00", "days": [4], "pass": "full"}],
@@ -236,11 +301,14 @@ class DispatcherTests(unittest.TestCase):
             extra = due.dispatch([j], NOW, pacing={"level": 1, "interval_minutes": 60})
             due.gate(j, "yield", "--token", extra["gate"]["token"], "--note", "unfinished draft")
             native = due.gate(j, "claim", "--job", j["id"], "--slot", "2026-11-20.1400", "--engine", "claude")
-            self.assertEqual(native["status"], "resume-first")
-            self.assertEqual(native["job"], "supplement.daily")
-            resumed = due.dispatch([j], NOW)
+            self.assertEqual(native["status"], "acquired")
+            self.assertEqual(native["engine"], "claude")
+            late = due.gate(j, "done", "--token", extra["gate"]["token"], "--note", "stale owner")
+            self.assertEqual(late["status"], "lost")
+            due.gate(j, "done", "--token", native["token"], "--note", "receipt")
+            resumed = due.dispatch([j], NOW + due.timedelta(hours=1), pacing={"level": 1, "interval_minutes": 60})
             self.assertEqual(resumed["pass"], "surplus")
-            self.assertEqual(resumed["gate"]["checkpoint"], "unfinished draft")
+            self.assertEqual(resumed["parked_checkpoint"], "unfinished draft")
 
     def test_issue_id_uses_initial_creation_and_obeys_cutover(self):
         j = job(**{"from": "2026-11-20T00:00:00Z", "reply_issues": {"repo": "sample/repo"}})

@@ -161,12 +161,9 @@ def opened_issues(job):
 
 
 def ready(job, candidate, now, boost=False):
-    when = instant(candidate["scheduled_at"])
-    # Claude claims immediately on every pass. Codex gives it a short head
-    # start on alternate local dates; the Git ref elects a sole winner.
-    local = when.astimezone(ZoneInfo(job["timezone"]))
-    delay = timedelta(minutes=15 if not boost and local.date().toordinal() % 2 else 0)
-    return now >= when + delay
+    # The native invocation has one opportunity to claim. Keep its grace
+    # independent of the Codex allowance and the day of the week.
+    return now >= instant(candidate["scheduled_at"]) + RUNWAY
 
 
 def rotation(jobs, cursor):
@@ -232,11 +229,50 @@ def parked_checkpoint(finished, assignment):
     return None
 
 
+def regular_candidates(members, state, now, issues, errors, issue_failures):
+    """Collect a whole group's native arrivals before deciding what can occupy it."""
+    candidates = {}
+    for job in members:
+        items = occurrences(job, now)
+        if "reply_issues" in job:
+            try:
+                items.extend(issues(job))
+            except (ValueError, OSError, subprocess.SubprocessError):
+                errors.append({"job": job["id"], "error": "GitHub issue lookup failed"})
+                issue_failures.add((job["repo"], job["group"]))
+        for item in sorted(items, key=lambda item: item["scheduled_at"]):
+            key = job["id"] + "/" + item["slot"]
+            if key not in state["finished"]:
+                candidates[key] = (job, item)
+    active = state["active"]
+    if active:
+        candidates.pop(active["job"] + "/" + active["slot"], None)
+    retries = []
+    for key, record in state.get("deferred", {}).items():
+        pair = candidates.pop(key, None)
+        if key in state["finished"] or instant(record["retry_at"]) > now:
+            continue
+        name, slot = key.split("/", 1)
+        job = next((member for member in members if member["id"] == name), None)
+        if job is not None:
+            # The underlying polling rule may have coalesced since the claim.
+            retries.append(pair or (job, resume(job, slot)))
+    return list(candidates.values()), retries
+
+
 def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, pacing=None):
     by_id = {job["id"]: job for job in jobs}
     order = [by_id[name] for name in rotation(list(by_id), cursor)]
     states, errors, blocked = {}, [], set()
     recoveries, issue_failures = [], set()
+    runway = reserve_regular_groups(jobs, now)
+    groups = {}
+    for job in order:
+        groups.setdefault((job["repo"], job["group"]), []).append(job)
+    last = by_id.get(cursor.removeprefix(SUPPLEMENT_JOB))
+    if last:
+        previous_group = last["repo"], last["group"]
+        groups[previous_group] = groups.pop(previous_group)
     interval = surplus_interval(pacing)
 
     def take(job, item, prompt):
@@ -248,80 +284,83 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, 
                         "timezone": job["timezone"], "gate": result, "prompt": prompt, "warnings": errors}
             if result["status"] in ("busy", "resume-first"):
                 blocked.add(group)
-            elif result["status"] != "done":
+            elif result["status"] not in ("done", "deferred"):
                 raise ValueError("Unexpected claim response")
         except (KeyError, ValueError, OSError, subprocess.SubprocessError):
             blocked.add(group)
             errors.append({"group": job["group"], "error": "Coordinator claim failed"})
         return None
 
-    for job in order:
-        name = job["id"]
-        group = job["repo"], job["group"]
-        if job["group"] in exclude or group in blocked:
+    for group, members in groups.items():
+        if group[1] in exclude:
             continue
+        job = members[0]
         try:
-            if group not in states:
-                states[group] = call(job, "status")
-            state = states[group]
+            state = states[group] = call(job, "status")
             if state["status"] != "ok":
                 raise ValueError("Unexpected status response")
             active = state["active"]
+            if active and active["expires"] and instant(active["expires"]) > now:
+                continue
+            fresh, retries = regular_candidates(members, state, now, issues, errors, issue_failures)
+            native_window = any(not ready(member, item, now) for member, item in fresh)
             if active:
-                owner = active["job"].removeprefix(SUPPLEMENT_JOB)
-                if owner not in by_id or (by_id[owner]["repo"], by_id[owner]["group"]) != group:
-                    errors.append({"group": job["group"], "error": "An active job needs its catalog entry"})
-                    blocked.add(group)
+                owner = by_id.get(active["job"].removeprefix(SUPPLEMENT_JOB))
+                if owner not in members:
+                    raise ValueError("Missing owner in group catalog")
+                item = resume(owner, active["slot"])
+                extra = active["job"].startswith(SUPPLEMENT_JOB)
+                if extra != (item["pass"] == "surplus"):
+                    raise ValueError("Inconsistent claim scope")
+                item["job"] = active["job"]
+                competing = bool(fresh or retries or (extra and group in runway))
+                if active.get("pending") == {} and competing:
+                    operation, expected = ("park", "parked") if extra else ("defer", "deferred")
+                    outcome = call(owner, operation, "--job", active["job"], "--slot", active["slot"])
+                    if outcome["status"] != expected:
+                        blocked.add(group)
+                        continue
+                    state = states[group] = call(owner, "status")
+                    if state["status"] != "ok" or state["active"]:
+                        blocked.add(group)
+                        continue
+                elif extra:
+                    prompt = owner.get("surplus_prompt", "")
+                    if active.get("pending") or not interval or not prompt:
+                        prompt = SETTLE + ("\n\nOriginal supplemental scope for reference\n" + prompt if prompt else "")
+                    recoveries.append((owner, item, prompt))
                     continue
-                if owner != name or (active["expires"] and instant(active["expires"]) > now):
+                else:
+                    result = take(owner, item, owner["prompt"])
+                    if result:
+                        return result
                     continue
-                item = resume(job, active["slot"])
-                if active["job"].startswith(SUPPLEMENT_JOB) != (item["pass"] == "surplus"):
-                    raise ValueError("Claim's job and slot have inconsistent scopes")
-                if item["pass"] == "surplus":
-                    item["job"] = active["job"]
-                    recoveries.append((job, item))
-                    continue
-                candidates = [item]
-            else:
-                candidates = []
-                if "reply_issues" in job:
-                    try:
-                        candidates = list(issues(job))
-                    except (ValueError, OSError, subprocess.SubprocessError):
-                        issue_failures.add(group)
-                        errors.append({"job": name, "error": "GitHub issue lookup failed"})
-                candidates.extend(occurrences(job, now))
-                candidates.sort(key=lambda item: item["scheduled_at"])
-            for item in candidates:
-                if not active and not ready(job, item, now, boost=bool(interval)):
-                    continue
-                if name + "/" + item["slot"] in state["finished"]:
-                    continue
-                result = take(job, item, job["prompt"])
+            if native_window:
+                # A sibling backlog item or optional pass would take the same
+                # lock away from the native invocation during its startup.
+                blocked.add(group)
+                continue
+            for member, item in fresh + retries:
+                result = take(member, item, member["prompt"])
                 if result:
                     return result
                 if group in blocked:
                     break
         except (KeyError, ValueError, OSError, subprocess.SubprocessError):
             blocked.add(group)
-            errors.append({"group": job["group"], "error": "Coordinator lookup or claim failed"})
+            errors.append({"group": group[1], "error": "Coordinator lookup or claim failed"})
 
-    for job, item in recoveries:
-        # A yielded or expired surplus claim still fences the group's regular work. Only settle
-        # its original scope when pacing has eased or the job no longer opts into new extras.
-        prompt = job.get("surplus_prompt", "")
-        if not interval or not prompt:
-            prompt = SETTLE + ("\n\nOriginal supplemental scope for reference\n" + prompt if prompt else "")
-        result = take(job, item, prompt)
-        if result:
-            return result
+    for job, item, prompt in recoveries:
+        if (job["repo"], job["group"]) not in blocked:
+            result = take(job, item, prompt)
+            if result:
+                return result
 
     if interval:
         timestamp = int(now.timestamp())
         epoch = timestamp - timestamp % interval
         nominal = datetime.fromtimestamp(epoch, UTC)
-        unavailable = blocked | issue_failures | reserve_regular_groups(jobs, now)
+        unavailable = blocked | issue_failures | runway
         for job in order:
             group = job["repo"], job["group"]
             if not job.get("surplus_prompt") or group not in states or group in unavailable:
