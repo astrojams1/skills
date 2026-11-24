@@ -109,6 +109,52 @@ class Ownership(unittest.TestCase):
                          "acquired")
         self.assertEqual(state["finished"]["supplement.daily/surplus.1"], "surplus-deferred PR-2")
 
+    def test_future_slot_caps_healthy_supplement_on_every_renewal(self):
+        start = dt.datetime(2026, 11, 23, tzinfo=gate.UTC)
+        cutoff = start + dt.timedelta(hours=2)
+        now = start
+        state = gate.empty()
+        claim = ("claim", "--job", "supplement.daily", "--slot", "surplus.1", "--engine", "codex")
+        native = ("claim", "--job", "daily", "--slot", "monday", "--engine", "claude")
+        def op(*args, token="old"):
+            command = gate.parse_args(["--repo", ".", "--group", "test", *args])
+            return gate.transition(state, command, now, token)
+
+        self.assertEqual(op(*claim, "--lease-until", cutoff.isoformat())["expires"], (start + gate.LEASE).isoformat())
+        now += dt.timedelta(minutes=70)
+        for action, options in [("checkpoint", ()), ("begin", ("--effect", "one")), ("retry", ("--effect", "one")),
+                                ("begin", ("--effect", "one")), ("resolve", ("--effect", "one"))]:
+            self.assertEqual(op(action, "--token", "old", "--note", "draft", *options)["expires"], cutoff.isoformat())
+        self.assertEqual(op(*native)["status"], "resume-first")
+        now = cutoff
+        self.assertEqual(op("checkpoint", "--token", "old", "--note", "late")["status"], "lost")
+        self.assertEqual(op(*claim)["status"], "deadline-passed")
+        self.assertEqual(op(*native, token="native")["expires"], (now + gate.LEASE).isoformat())
+        self.assertEqual(state["finished"]["supplement.daily/surplus.1"], "surplus-deferred draft")
+
+    def test_cutoff_preserves_unverified_effect_for_reconciliation(self):
+        now = dt.datetime(2026, 11, 23, tzinfo=gate.UTC)
+        cutoff = now + dt.timedelta(minutes=16)
+        state = gate.empty()
+        claim = ("claim", "--job", "supplement.daily", "--slot", "surplus.1", "--engine", "codex")
+        native = ("claim", "--job", "daily", "--slot", "monday", "--engine", "claude")
+        def op(*args, token="old"):
+            command = gate.parse_args(["--repo", ".", "--group", "test", *args])
+            return gate.transition(state, command, now, token)
+
+        self.assertEqual(op(*claim, "--lease-until", now.isoformat())["status"], "deadline-passed")
+        self.assertIsNone(state["active"])
+        self.assertEqual(op(*claim, "--lease-until", cutoff.isoformat())["expires"], cutoff.isoformat())
+        op("begin", "--token", "old", "--effect", "one", "--note", "provider lookup needed")
+        now = cutoff
+        self.assertEqual(op(*native)["status"], "resume-first")
+        self.assertEqual(op("resolve", "--token", "old", "--note", "stale", "--effect", "one")["status"], "lost")
+        new = op(*claim, "--lease-until", (now + gate.LEASE).isoformat(), token="new")
+        self.assertEqual(new["pending"], {"one": "provider lookup needed"})
+        self.assertEqual(op("resolve", "--token", "new", "--note", "receipt", "--effect", "one")["status"], "resolved")
+        self.assertEqual(op("done", "--token", "new", "--note", "verified")["status"], "done")
+        self.assertEqual(op(*native)["status"], "acquired")
+
     def test_compaction_preserves_old_effects_and_slots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

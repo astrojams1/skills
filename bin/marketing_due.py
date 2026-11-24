@@ -181,22 +181,23 @@ def surplus_interval(pacing):
     return minutes * 60 if minutes in (5, 15, 60) else 0
 
 
-def reserve_regular_groups(jobs, now):
-    """Leave a runway for imminent scheduled passes, including siblings in the same group."""
-    end = now + RUNWAY
-    reserved = set()
+def next_group_slots(jobs, now):
+    """Earliest upcoming activated wall-clock occurrence in each shared group."""
+    slots = {}
     for job in jobs:
         zone = ZoneInfo(job["timezone"])
-        first = now.astimezone(zone).date()
-        last = end.astimezone(zone).date()
         activation = instant(job["from"])
-        for day in {first, last}:
-            for rule in job["schedule"]:
-                if applies(rule, day):
-                    when = at_local(day, rule["at"], zone)
-                    if when is not None and now < when <= end and activation <= when:
-                        reserved.add((job["repo"], job["group"]))
-    return reserved
+        day = max(now, activation).astimezone(zone).date()
+        group = job["repo"], job["group"]
+        while True:
+            times = [at_local(day, rule["at"], zone) for rule in job["schedule"] if applies(rule, day)]
+            eligible = [when for when in times if when is not None and now < when and activation <= when]
+            if eligible:
+                earliest = min(eligible)
+                slots[group] = min(slots.get(group, earliest), earliest)
+                break
+            day += timedelta(days=1)
+    return slots
 
 
 def surplus_available(finished, epoch, now):
@@ -265,7 +266,8 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, 
     order = [by_id[name] for name in rotation(list(by_id), cursor)]
     states, errors, blocked = {}, [], set()
     recoveries, issue_failures = [], set()
-    runway = reserve_regular_groups(jobs, now)
+    next_slots = next_group_slots(jobs, now)
+    runway = {group for group, when in next_slots.items() if when <= now + RUNWAY}
     groups = {}
     for job in order:
         groups.setdefault((job["repo"], job["group"]), []).append(job)
@@ -278,11 +280,12 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, 
     def take(job, item, prompt):
         group = job["repo"], job["group"]
         try:
-            result = call(job, "claim", "--job", item["job"], "--slot", item["slot"], "--engine", "codex")
+            lease = ["--lease-until", next_slots[group].isoformat()] if item["job"].startswith(SUPPLEMENT_JOB) else []
+            result = call(job, "claim", "--job", item["job"], "--slot", item["slot"], "--engine", "codex", *lease)
             if result["status"] == "acquired":
                 return {"status": "running", **item, "repo": job["repo"], "group": job["group"],
                         "timezone": job["timezone"], "gate": result, "prompt": prompt, "warnings": errors}
-            if result["status"] in ("busy", "resume-first"):
+            if result["status"] in ("busy", "resume-first", "deadline-passed"):
                 blocked.add(group)
             elif result["status"] not in ("done", "deferred"):
                 raise ValueError("Unexpected claim response")

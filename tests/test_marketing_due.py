@@ -186,6 +186,36 @@ class DispatcherTests(unittest.TestCase):
         q.states["shared"] = {"status": "ok", "active": None, "finished": {"notify/" + event["slot"]: "receipt"}}
         self.assertEqual(poll(jobs, NOW, q)["job"], "backlog")
 
+    def test_supplemental_claim_uses_earliest_sibling_deadline(self):
+        owner = job("optin", "shared", surplus_prompt="extra",
+                    schedule=[{"at": "23:00", "days": [4], "pass": "full"}])
+        sibling = job("sibling", "shared", timezone="UTC",
+                      schedule=[{"at": "19:16", "monthdays": [20], "pass": "monthly"}])
+        unactivated = job("new", "shared", timezone="UTC", **{"from": "2026-12-01T00:00:00Z"},
+                          schedule=[{"at": "19:01", "days": [4], "pass": "later"}])
+        q = Queue()
+        def dispatch():
+            return due.dispatch([owner, sibling, unactivated], NOW, call=q,
+                                pacing={"level": 2, "interval_minutes": 5})
+        self.assertEqual(dispatch()["job"], "supplement.optin")
+        deadline = ("--lease-until", "2026-11-20T19:16:00+00:00")
+        self.assertEqual(q.calls[-1][2][-2:], deadline)
+        q.states["shared"] = {"status": "ok", "finished": {}, "active": {
+            "job": "supplement.optin", "slot": "surplus.1", "expires": None, "pending": {}}}
+        self.assertEqual(dispatch()["slot"], "surplus.1")
+        self.assertEqual(q.calls[-1][2][-2:], deadline)
+
+    def test_upcoming_slot_skips_dst_gap_and_short_calendar_months(self):
+        sample = due.instant("2026-03-08T09:00:00Z")
+        j = job(**{"from": sample.isoformat()},
+                schedule=[{"at": "02:30", "days": [6], "pass": "weekly"}])
+        self.assertEqual(due.next_group_slots([j], sample)[("/sample", "daily")],
+                         due.instant("2026-03-15T09:30:00Z"))
+        j["schedule"] = [{"at": "19:00", "monthdays": [31], "pass": "monthly"}]
+        sample = due.instant("2026-04-01T10:00:00Z")
+        self.assertEqual(due.next_group_slots([j], sample)[("/sample", "daily")],
+                         due.instant("2026-06-01T02:00:00Z"))
+
     def test_coalesced_deferred_slot_survives_and_waits_until_retry(self):
         j = job(schedule=[{"at": "05:30", "days": list(range(7)), "pass": "scan", "coalesce": True},
                           {"at": "08:30", "days": list(range(7)), "pass": "scan", "coalesce": True}])
@@ -296,17 +326,20 @@ class DispatcherTests(unittest.TestCase):
             remote, local = [str(Path(tmp) / n) for n in ("remote.git", "checkout")]
             subprocess.run(["git", "init", "-q", "--bare", remote], check=True)
             subprocess.run(["git", "clone", "-q", remote, local], check=True, capture_output=True)
-            j = job(repo=local, surplus_prompt="Distinct work", schedule=[{"at": "14:00", "days": [4], "pass": "full"}])
+            sample = (due.datetime.now(due.UTC) + due.timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
+            nominal = sample + due.timedelta(hours=3)
+            j = job(repo=local, timezone="UTC", surplus_prompt="Distinct work", **{"from": sample.isoformat()},
+                    schedule=[{"at": nominal.strftime("%H:%M"), "days": [nominal.weekday()], "pass": "full"}])
             due.gate(j, "init")
-            extra = due.dispatch([j], NOW, pacing={"level": 1, "interval_minutes": 60})
+            extra = due.dispatch([j], sample, pacing={"level": 1, "interval_minutes": 60})
             due.gate(j, "yield", "--token", extra["gate"]["token"], "--note", "unfinished draft")
-            native = due.gate(j, "claim", "--job", j["id"], "--slot", "2026-11-20.1400", "--engine", "claude")
+            native = due.gate(j, "claim", "--job", j["id"], "--slot", nominal.strftime("%Y-%m-%d.%H%M"), "--engine", "claude")
             self.assertEqual(native["status"], "acquired")
             self.assertEqual(native["engine"], "claude")
             late = due.gate(j, "done", "--token", extra["gate"]["token"], "--note", "stale owner")
             self.assertEqual(late["status"], "lost")
             due.gate(j, "done", "--token", native["token"], "--note", "receipt")
-            resumed = due.dispatch([j], NOW + due.timedelta(hours=1), pacing={"level": 1, "interval_minutes": 60})
+            resumed = due.dispatch([j], sample + due.timedelta(hours=1), pacing={"level": 1, "interval_minutes": 60})
             self.assertEqual(resumed["pass"], "surplus")
             self.assertEqual(resumed["parked_checkpoint"], "unfinished draft")
 

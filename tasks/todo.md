@@ -9,7 +9,8 @@ Track current work items here. Use checkable items for progress tracking.
 - [x] Trace native run history, private coordination branches and supervisor processes.
 - [x] Correct confirmed startup and handoff failures, preserving checkpoints and outbound receipts.
 - [x] Exercise competing workers and checkpoint recovery against Git.
-- [ ] Verify the deployed Claude registration on a formerly blocked group.
+- [x] Verify that a deployed Claude registration claims and checkpoints a real occurrence in a formerly blocked group.
+- [x] Enforce the next scheduled pass as the latest possible renewal of supplemental work.
 
 Review: Three abandoned worker assignments reconciled. The two expired supplemental claims were parked and the regular Mac checkpoint deferred. Production native delivery is verified independently of this code review.
 
