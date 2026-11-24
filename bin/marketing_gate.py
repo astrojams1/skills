@@ -44,21 +44,44 @@ def lease_expiry(active, now):
     return expiry.isoformat()
 
 
+def scoped_pending(record):
+    return bool(record.get("pending")) and record["pending"].keys() == record.get("pending_scopes", {}).keys()
+
+
+def held_effects(state):
+    held = {}
+    records = dict(state.get("deferred", {}))
+    active = state["active"]
+    if active:
+        records[active["job"] + "/" + active["slot"]] = active
+    for key, record in records.items():
+        job, slot = key.split("/", 1)
+        for effect, details in record.get("pending_scopes", {}).items():
+            held[effect] = dict(details, job=job, slot=slot)
+    return held
+
+
 def release_inactive(state, now):
     active = state["active"]
     if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
         return "busy"
-    if active["pending"]:
+    if active["pending"] and not scoped_pending(active):
         return "reconcile"
     key = active["job"] + "/" + active["slot"]
-    if active["job"].startswith("supplement."):
+    if active["job"].startswith("supplement.") and not active["pending"]:
         state["finished"][key] = "surplus-deferred " + active["checkpoint"]
         result = "parked"
     else:
-        state.setdefault("deferred", {})[key] = {
+        record = {
             "checkpoint": active["checkpoint"], "attempt": active["attempt"],
-            "retry_at": (now + dt.timedelta(hours=1)).isoformat(),
+            "retry_at": (now + dt.timedelta(minutes=active.get("retry_minutes", 60))).isoformat(),
         }
+        if active["pending"]:
+            for field in ("pending", "pending_scopes", "retry_minutes"):
+                record[field] = active[field]
+            if "begin_scopes" in active:
+                record["begin_scopes"] = active["begin_scopes"]
+        state.setdefault("deferred", {})[key] = record
         result = "deferred"
     state["active"] = None
     return result
@@ -69,11 +92,42 @@ def transition(state, args, now, new_token):
     op = args.operation
     if op == "status":
         return {"status": "ok", "active": public(active), "finished": state["finished"],
-                "deferred": state.get("deferred", {})}
+                "deferred": state.get("deferred", {}), "held": held_effects(state), "version": state["version"]}
+    if op == "upgrade":
+        if state["version"] == 1 and active and active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
+            return {"status": "busy", "expires": active["expires"]}
+        state["version"] = 2
+        return {"status": "ready", "version": 2}
+    if op == "isolate":
+        if state["version"] != 2:
+            return {"status": "upgrade-required", "version": state["version"]}
+        key = args.job + "/" + args.slot
+        held = held_effects(state)
+        details = {"scope": args.scope, "evidence": args.note}
+        if args.effect in held:
+            expected = dict(details, job=args.job, slot=args.slot)
+            if held[args.effect] != expected:
+                return {"status": "effect-held", "held": held}
+            if active and (args.job, args.slot) == (active["job"], active["slot"]):
+                if release_inactive(state, now) != "deferred":
+                    return {"status": "busy"}
+            return {"status": "isolated", "held": held}
+        if not active or key != active["job"] + "/" + active["slot"] or set(active["pending"]) != {args.effect}:
+            return {"status": "not-isolatable"}
+        declared = active.get("begin_scopes", {}).get(args.effect)
+        if declared and declared != [args.scope]:
+            return {"status": "not-isolatable"}
+        if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
+            return {"status": "busy"}
+        if any(item["scope"] == args.scope for item in held.values()):
+            return {"status": "effect-held", "held": held}
+        active.update(pending_scopes={args.effect: details}, retry_minutes=args.retry_minutes)
+        release_inactive(state, now)
+        return {"status": "isolated", "held": held_effects(state)}
     if op in ("park", "defer"):
         surplus = args.job.startswith("supplement.") and re.fullmatch(r"surplus\.\d+", args.slot)
         if (not active or (active["job"], active["slot"]) != (args.job, args.slot)
-                or (op == "park") != bool(surplus)):
+                or (op == "park") != bool(surplus) and not (op == "defer" and scoped_pending(active))):
             return {"status": "not-parkable" if op == "park" else "not-deferrable"}
         return {"status": release_inactive(state, now)}
     if op == "claim":
@@ -101,14 +155,16 @@ def transition(state, args, now, new_token):
         else:
             active = {"job": args.job, "slot": args.slot, "pending": {}, "checkpoint": "", "attempt": 0}
             if saved:
-                active.update(checkpoint=saved["checkpoint"], attempt=saved["attempt"])
+                active.update({field: saved[field] for field in
+                               ("checkpoint", "attempt", "pending", "pending_scopes", "begin_scopes", "retry_minutes")
+                               if field in saved})
                 del state["deferred"][key]
             state["active"] = active
         if deadline:
             active["lease_until"] = deadline
         active.update(engine=args.engine, owner=digest(new_token), expires=lease_expiry(active, now),
                       attempt=active["attempt"] + 1)
-        return {"status": "acquired", **public(active), "token": new_token}
+        return {"status": "acquired", **public(active), "token": new_token, "held": held_effects(state)}
     if (not active or not secrets.compare_digest(active.get("owner", ""), digest(args.token))
             or not active["expires"] or dt.datetime.fromisoformat(active["expires"]) <= now):
         return {"status": "lost"}
@@ -119,7 +175,14 @@ def transition(state, args, now, new_token):
         if op == "begin":
             if active["pending"]:
                 return {"status": "reconcile", "pending": active["pending"]}
+            held = held_effects(state)
+            if effect in held or any(details["scope"] in args.scope for details in held.values()):
+                return {"status": "effect-held", "held": held}
+            if held and not args.scope:
+                return {"status": "scope-required", "held": held}
             active["pending"][effect] = args.note
+            if args.scope:
+                active["begin_scopes"] = {effect: sorted(set(args.scope))}
             result = "started"
         elif effect not in active["pending"]:
             return {"status": "unknown-effect"}
@@ -127,6 +190,9 @@ def transition(state, args, now, new_token):
             if op == "resolve":
                 state["receipts"][effect] = args.note
             del active["pending"][effect]
+            active.pop("begin_scopes", None)
+            active.pop("pending_scopes", None)
+            active.pop("retry_minutes", None)
             result = "resolved" if op == "resolve" else "cleared-for-retry"
     elif op == "done":
         if active["pending"]:
@@ -136,6 +202,9 @@ def transition(state, args, now, new_token):
         return {"status": "done"}
     elif op == "yield":
         active.update(checkpoint=args.note, expires=None, owner="")
+        if scoped_pending(active):
+            release_inactive(state, now)
+            return {"status": "yielded", "deferred": True}
         return {"status": "yielded"}
     else:
         active["checkpoint"] = args.note
@@ -167,7 +236,7 @@ class GitState:
         if self.git("cat-file", "-e", head, check=False).returncode:
             self.git("fetch", "--no-write-fetch-head", "--no-tags", "origin", self.ref)
         state = json.loads(self.git("show", head + ":state.json").stdout)
-        if state["version"] != 1:
+        if state["version"] not in (1, 2):
             raise RuntimeError("Unsupported coordinator state")
         return state
 
@@ -256,6 +325,7 @@ def parse_args(argv=None):
     parser.add_argument("--group", required=True)
     ops = parser.add_subparsers(dest="operation", required=True)
     ops.add_parser("status")
+    ops.add_parser("upgrade", help="Select the scoped-hold schema after verifying compatible helpers on both engines")
     ops.add_parser("init", help="Create the group state branch before enrolling workers")
     parked = ops.add_parser("park", help="Preserve an idle supplemental checkpoint and release its group")
     parked.add_argument("--job", required=True)
@@ -263,6 +333,10 @@ def parse_args(argv=None):
     deferred = ops.add_parser("defer", help="Queue a pending-free inactive regular slot for retry")
     deferred.add_argument("--job", required=True)
     deferred.add_argument("--slot", required=True)
+    isolate = ops.add_parser("isolate", help="Hold one verified business object while its inactive slot awaits evidence")
+    for field in ("job", "slot", "effect", "scope", "note"):
+        isolate.add_argument("--" + field, required=True)
+    isolate.add_argument("--retry-minutes", default=60, type=int)
     claim = ops.add_parser("claim")
     claim.add_argument("--job", required=True)
     claim.add_argument("--slot", required=True, help="Nominal YYYY-MM-DD.HHMM or stable event identifier")
@@ -274,6 +348,8 @@ def parse_args(argv=None):
         cmd.add_argument("--note", required=True, help="Bounded checkpoint or receipt; opaque references only")
         if name in ("begin", "resolve", "retry"):
             cmd.add_argument("--effect", required=True, help="Stable effect ID across engines, slots and retries")
+        if name == "begin":
+            cmd.add_argument("--scope", action="append", default=[], help="Stable business object; repeat for each affected object")
     args = parser.parse_args(argv)
     if args.operation == "claim" and args.lease_until:
         if not args.job.startswith("supplement."):
@@ -288,8 +364,18 @@ def parse_args(argv=None):
     if args.operation == "claim" and re.fullmatch(r"today\.\d{4}", args.slot):
         args.slot = utcnow().astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat() + args.slot[5:]
     for field in ("group", "job", "slot", "effect"):
-        if hasattr(args, field) and not NAME.fullmatch(getattr(args, field)):
+        if getattr(args, field, None) is not None and not NAME.fullmatch(getattr(args, field)):
             parser.error("invalid " + field)
+    scopes = [args.scope] if args.operation == "isolate" else getattr(args, "scope", [])
+    if any(not NAME.fullmatch(scope) for scope in scopes):
+        parser.error("invalid scope")
+    if args.operation == "isolate":
+        try:
+            if args.retry_minutes < 1:
+                raise ValueError
+            utcnow() + dt.timedelta(minutes=args.retry_minutes)
+        except (ValueError, OverflowError):
+            parser.error("--retry-minutes must give a valid future retry time")
     if hasattr(args, "note") and not 0 < len(args.note.strip()) <= 2048:
         parser.error("notes must contain 1 to 2048 characters")
     return args

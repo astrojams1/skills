@@ -4,6 +4,12 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+### Recover independent marketing work while a submission is unconfirmed
+
+- [x] Verify the failed native run and identify the repeated pending operation.
+- [x] Fence the one evidenced business object, retain its original checkpoint and test mixed client versions.
+- [ ] Deploy both workers and verify a real previously skipped pass performs independent marketing work.
+
 ### Restore Claude marketing starts
 
 - [x] Trace native run history, private coordination branches and supervisor processes.
