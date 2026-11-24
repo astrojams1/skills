@@ -199,7 +199,8 @@ target. Fixture tests prove orchestration, not actual Xcode export or native UI 
    the group gets every build, and, for an external group, submits it for Beta App Review
    (`betaAppReviewSubmissions`) unless the build already has a submission or reads `WAITING_FOR_BETA_REVIEW`,
    `IN_BETA_REVIEW`, `BETA_APPROVED`, `READY_FOR_BETA_TESTING` or `IN_BETA_TESTING`. It reads each write back and
-   prints the build's internal and external states, the Beta App Review state and the group's tester count. It stops
+   prints the build's internal and external states, the Beta App Review state and the group's tester count. When an internal and an external group share a name (Füd's "oakmoor"), it refuses until `--external` or
+   `--internal` names the one meant. It stops
    on `MISSING_EXPORT_COMPLIANCE` (answer it from the app's verified encryption use, then rerun) and on a rejected or
    expired build, which needs a new build. An external group refuses a build with no What to Test. Beta App Review
    also needs the app's Test Information (beta description, feedback email, review contact) once per app; Apple's

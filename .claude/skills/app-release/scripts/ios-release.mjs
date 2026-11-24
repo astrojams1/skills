@@ -25,9 +25,10 @@ const USAGE = 'Usage: node skills/skills/app-release/scripts/ios-release.mjs <co
   '  validate <N>        validate build N\'s .ipa with App Store Connect, uploading nothing\n' +
   '  upload <N>          upload build N\'s .ipa and wait for Apple\'s processing\n' +
   '  testers <N>         add processed build N to the configured internal TestFlight group\n' +
-  '  beta-group <N> --group NAME [--what-to-test FILE]\n' +
+  '  beta-group <N> --group NAME [--external|--internal] [--what-to-test FILE]\n' +
   '                      set build N\'s What to Test from FILE, add it to the named TestFlight group and, for an\n' +
-  '                      external group, submit it for Beta App Review unless it is already submitted or approved\n' +
+  '                      external group, submit it for Beta App Review unless it is already submitted or approved;\n' +
+  '                      --external or --internal picks one when an internal and an external group share the name\n' +
   '  release             archive, upload and testers in one run\n' +
   '--allow-dirty makes a local test archive from uncommitted changes; upload refuses it.';
 // Apple reports an upload as one of these once it stops processing.
@@ -46,6 +47,10 @@ export function parseArgs(args) {
   for (let index = 1; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--allow-dirty') flags.allowDirty = true;
+    else if ((arg === '--external' || arg === '--internal') && command === 'beta-group') {
+      if (flags.kind && flags.kind !== arg.slice(2)) throw new Error('Pass --external or --internal, not both\n' + USAGE);
+      flags.kind = arg.slice(2);
+    }
     else if ((arg === '--group' || arg === '--what-to-test') && command === 'beta-group') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(arg + ' needs a value\n' + USAGE);
@@ -674,8 +679,11 @@ export async function betaGroup(build, options, io) {
   const text = options.whatToTest === undefined || options.whatToTest === null ? null : whatToTestText(options.whatToTest);
   const found = await waitForValidBuild(build, ctx);
   const groups = (await read('/v1/betaGroups?filter[app]=' + config.ascAppId + '&filter[name]=' + encodeURIComponent(options.group))).data
-    .filter(group => group.attributes.name === options.group);
-  if (groups.length !== 1) throw new Error('Expected one TestFlight group named ' + options.group + ', found ' + groups.length + '.');
+    .filter(group => group.attributes.name === options.group)
+    .filter(group => !options.kind || (options.kind === 'internal') === (group.attributes.isInternalGroup === true));
+  // An app can hold an internal and an external group with the same name (Füd's "oakmoor", 2026-11-24): name the kind.
+  if (groups.length !== 1) throw new Error('Expected one TestFlight group named ' + options.group + (options.kind ? ' (' + options.kind + ')' : '') +
+    ', found ' + groups.length + '.' + (groups.length > 1 && !options.kind ? ' Add --external or --internal to pick one.' : ''));
   const group = groups[0];
   const external = !group.attributes.isInternalGroup;
 
@@ -782,7 +790,7 @@ async function main(args) {
   if (flags.command === 'testers') await testers(flags.build);
   if (flags.command === 'beta-group') {
     const whatToTest = flags.whatToTest ? readFileSync(resolve(process.cwd(), flags.whatToTest), 'utf8') : null;
-    const result = await betaGroup(flags.build, { group: flags.group, whatToTest });
+    const result = await betaGroup(flags.build, { group: flags.group, kind: flags.kind, whatToTest });
     console.log(JSON.stringify(result, null, 2));
     // Exit 3: in the group but queued behind another build's Beta App Review, so a rerun is still owed.
     if (result.queuedBehind) process.exitCode = 3;
