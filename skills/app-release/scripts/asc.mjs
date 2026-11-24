@@ -1627,7 +1627,9 @@ export async function fillSubmission(submission, versionId, leaderboards, review
   if (submissionPlan(saved, versionId, reviewTargets).action !== 'submit' || left.version || left.leaderboards.length) {
     throw new Error('Review submission ' + submission.id + ' still lacks configured review targets or holds conflicting items; nothing was submitted.');
   }
-  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions and', reviewTargets.length, 'purchase review versions.');
+  const purchases = reviewTargets.filter(target => target.relation !== 'appEvent').length;
+  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions,', purchases, 'purchase review versions and',
+    reviewTargets.length - purchases, 'In-App Events.');
 }
 
 // findBuild returns the processed build with the given build number.
