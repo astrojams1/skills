@@ -192,3 +192,21 @@ test('beta-group parses a group name and a What to Test file', () => {
   assert.throws(() => ios.parseArgs(['beta-group', '10', '--group']), /--group needs a value/);
   assert.throws(() => ios.parseArgs(['testers', '10', '--group', 'Early reviewers']), /Unknown option --group/);
 });
+
+test('an internal and an external group with one name: refused without a kind, picked with --external', async () => {
+  const f = fixture();
+  const api = f.io.api;
+  f.io.api = async (path, method, body) => path.startsWith('/v1/betaGroups?') ? { data: [
+    { id: 'g0', attributes: { name: 'Early reviewers', isInternalGroup: false, hasAccessToAllBuilds: false, publicLinkEnabled: false } },
+    { id: 'g1', attributes: { name: 'Early reviewers', isInternalGroup: true, hasAccessToAllBuilds: true, publicLinkEnabled: false } }] }
+    : api(path, method, body);
+  await assert.rejects(ios.betaGroup(10, { group: 'Early reviewers', whatToTest: NOTES }, f.io), /found 2\. Add --external or --internal/);
+  assert.deepEqual(f.writes, []);
+  const result = await ios.betaGroup(10, { group: 'Early reviewers', kind: 'external', whatToTest: NOTES }, f.io);
+  assert.equal(result.external, true);
+  assert.ok(f.writes.some(w => w.path === '/v1/betaGroups/g0/relationships/builds'));
+  assert.ok(!f.writes.some(w => w.path.includes('/g1/')));
+  assert.deepEqual(ios.parseArgs(['beta-group', '10', '--group', 'Early reviewers', '--external']).kind, 'external');
+  assert.throws(() => ios.parseArgs(['beta-group', '10', '--group', 'x', '--external', '--internal']), /not both/);
+  assert.throws(() => ios.parseArgs(['testers', '10', '--external']), /Unknown option/);
+});
