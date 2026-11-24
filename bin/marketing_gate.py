@@ -37,6 +37,13 @@ def public(active):
     return {k: v for k, v in active.items() if k != "owner"}
 
 
+def lease_expiry(active, now):
+    expiry = now + LEASE
+    if active.get("lease_until"):
+        expiry = min(expiry, dt.datetime.fromisoformat(active["lease_until"]))
+    return expiry.isoformat()
+
+
 def release_inactive(state, now):
     active = state["active"]
     if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
@@ -73,6 +80,11 @@ def transition(state, args, now, new_token):
         key = args.job + "/" + args.slot
         if key in state["finished"]:
             return {"status": "done", "checkpoint": state["finished"][key]}
+        deadline = args.lease_until
+        if active and (active["job"], active["slot"]) == (args.job, args.slot) and not deadline:
+            deadline = active.get("lease_until")
+        if deadline and dt.datetime.fromisoformat(deadline) <= now:
+            return {"status": "deadline-passed"}
         saved = state.get("deferred", {}).get(key)
         if saved and dt.datetime.fromisoformat(saved["retry_at"]) > now:
             return {"status": "deferred", "retry_at": saved["retry_at"]}
@@ -92,7 +104,9 @@ def transition(state, args, now, new_token):
                 active.update(checkpoint=saved["checkpoint"], attempt=saved["attempt"])
                 del state["deferred"][key]
             state["active"] = active
-        active.update(engine=args.engine, owner=digest(new_token), expires=(now + LEASE).isoformat(),
+        if deadline:
+            active["lease_until"] = deadline
+        active.update(engine=args.engine, owner=digest(new_token), expires=lease_expiry(active, now),
                       attempt=active["attempt"] + 1)
         return {"status": "acquired", **public(active), "token": new_token}
     if (not active or not secrets.compare_digest(active.get("owner", ""), digest(args.token))
@@ -126,7 +140,7 @@ def transition(state, args, now, new_token):
     else:
         active["checkpoint"] = args.note
         result = "ok"
-    active["expires"] = (now + LEASE).isoformat()
+    active["expires"] = lease_expiry(active, now)
     return {"status": result, "expires": active["expires"]}
 
 
@@ -253,6 +267,7 @@ def parse_args(argv=None):
     claim.add_argument("--job", required=True)
     claim.add_argument("--slot", required=True, help="Nominal YYYY-MM-DD.HHMM or stable event identifier")
     claim.add_argument("--engine", required=True, choices=["claude", "codex"])
+    claim.add_argument("--lease-until", help="Hard UTC-offset deadline for this supplemental ownership attempt")
     for name in ("checkpoint", "yield", "done", "begin", "resolve", "retry"):
         cmd = ops.add_parser(name)
         cmd.add_argument("--token", required=True)
@@ -260,6 +275,16 @@ def parse_args(argv=None):
         if name in ("begin", "resolve", "retry"):
             cmd.add_argument("--effect", required=True, help="Stable effect ID across engines, slots and retries")
     args = parser.parse_args(argv)
+    if args.operation == "claim" and args.lease_until:
+        if not args.job.startswith("supplement."):
+            parser.error("--lease-until applies to supplemental claims only")
+        try:
+            deadline = dt.datetime.fromisoformat(args.lease_until.replace("Z", "+00:00"))
+            if deadline.tzinfo is None:
+                raise ValueError
+        except ValueError:
+            parser.error("--lease-until requires an ISO-8601 timestamp with UTC offset")
+        args.lease_until = deadline.astimezone(UTC).isoformat()
     if args.operation == "claim" and re.fullmatch(r"today\.\d{4}", args.slot):
         args.slot = utcnow().astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat() + args.slot[5:]
     for field in ("group", "job", "slot", "effect"):
