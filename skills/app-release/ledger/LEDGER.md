@@ -1,8 +1,13 @@
 # App release skill ledger
 
-Skill version **2.39.3**. This index preserves sanitized outcomes and lessons across
+Skill version **2.39.4**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.39.4 (2026-11-24)
+
+- `submit` counted Rhythm's Winter Glow event among "purchase review versions" when it reported what the submission
+  holds. It now counts purchases and In-App Events apart.
 
 ## Lessons incorporated into v2.39.3 (2026-11-24)
 
