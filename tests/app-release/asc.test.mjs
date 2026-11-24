@@ -94,6 +94,15 @@ test('listing edits only an explicitly editable App Info', () => {
   assert.equal(asc.editableAppInfo([{ id: 'meta', attributes: { state: 'METADATA_REJECTED' } }]).id, 'meta');
 });
 
+test('status compares store data with the App Info of the version on its way, not the live one', () => {
+  const info = (id, state, legacy) => ({ id: id, attributes: { state: state, appStoreState: legacy } });
+  assert.equal(asc.nextAppInfo([info('live', 'READY_FOR_DISTRIBUTION'), info('next', 'PREPARE_FOR_SUBMISSION')]).id, 'next');
+  assert.equal(asc.nextAppInfo([info('live', undefined, 'READY_FOR_SALE'), info('draft', 'READY_FOR_REVIEW')]).id, 'draft');
+  assert.equal(asc.nextAppInfo([info('live', 'READY_FOR_DISTRIBUTION'), info('review', 'WAITING_FOR_REVIEW')]).id, 'review');
+  assert.equal(asc.nextAppInfo([info('live', 'READY_FOR_DISTRIBUTION')]).id, 'live');
+  assert.equal(asc.nextAppInfo([]), null);
+});
+
 test('a build lookup must find exactly one build of the configured version', () => {
   assert.equal(asc.pickBuild([{ id: 'b4' }], '4', '1.0.0').id, 'b4');
   assert.throws(() => asc.pickBuild([{ id: 'a' }, { id: 'b' }], '1', '1.1.0'), /Several builds numbered 1 for version 1.1.0/);
