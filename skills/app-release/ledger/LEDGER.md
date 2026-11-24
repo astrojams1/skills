@@ -1,8 +1,18 @@
 # App release skill ledger
 
-Skill version **2.39.2**. This index preserves sanitized outcomes and lessons across
+Skill version **2.39.3**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.39.3 (2026-11-24)
+
+- With the deep link fixed, Rhythm's next `submit --confirm` attached the Winter Glow event to the draft submission and
+  then stopped: "Review item attachment did not read back". The item read asked only for sparse relationship fields,
+  and Apple omits an event item's linkage unless `appEvent` is included (read back both ways). `reviewItemsQuery`
+  now includes `appEvent`.
+- After a failed submit left version and App Info at `READY_FOR_REVIEW`, `status` compared store data with the live
+  App Info and showed every language's new subtitle as "differs", though the record on its way held them. `status`
+  now reads the App Info of the version on its way (`nextAppInfo`).
 
 ## Lessons incorporated into v2.39.2 (2026-11-24)
 

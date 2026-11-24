@@ -137,6 +137,15 @@ export function editableAppInfo(infos) {
   return infos.find(info => EDITABLE_STATES.includes(info.attributes.state || info.attributes.appStoreState || '')) || null;
 }
 
+// nextAppInfo is the App Info of the version on its way: the editable one, else one that is not live (a draft submission
+// or a version with Apple holds READY_FOR_REVIEW, WAITING_FOR_REVIEW and the like), else the live one. `status` compares
+// store data with it; falling back to the live record showed every new subtitle as "differs" while Rhythm 0.17.1's
+// App Info read READY_FOR_REVIEW with the store data's subtitles (2026-11-24).
+export function nextAppInfo(infos) {
+  const state = info => info.attributes.state || info.attributes.appStoreState || '';
+  return editableAppInfo(infos) || infos.find(info => !LIVE_STATES.includes(state(info))) || infos[0] || null;
+}
+
 // awaitEditableInfo re-reads App Info after a version is prepared. Apple makes the next version's editable App Info
 // only when that version exists, so the list read before creating it has none (Füd 1.2.0, 2026-10-30); the record can
 // lag the version briefly, so it reads a few times before giving up with null.
@@ -694,7 +703,7 @@ async function localizationStatus(version, versionLocalizations) {
   const problems = localizationProblems(STORE.listing, listingCharacterProblems);
   for (const problem of problems) console.log('  localization problem:', problem);
   const infos = await listAll('/v1/apps/' + IOS.ascAppId + '/appInfos');
-  const info = editableAppInfo(infos) || infos[0];
+  const info = nextAppInfo(infos);
   const infoLocalizations = info ? await listAll('/v1/appInfos/' + info.id + '/appInfoLocalizations') : [];
   const changes = localizationChanges(STORE.listing, infoLocalizations, versionLocalizations);
   const named = localizationEntries(STORE.listing).length;
