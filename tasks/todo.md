@@ -8,7 +8,9 @@ Track current work items here. Use checkable items for progress tracking.
 
 - [x] Verify the failed native run and identify the repeated pending operation.
 - [x] Fence the one evidenced business object, retain its original checkpoint and test mixed client versions.
-- [ ] Deploy both workers and verify a real previously skipped pass performs independent marketing work.
+- [x] Deploy both workers and verify a real previously skipped pass performs independent marketing work.
+
+Both workers now use the updated protocol. The missed November 24 morning pass resumed on Codex and shipped two campaign tools. Both production pages returned HTTP 200 with their expected headings. The uncertain submission still has its original checkpoint and duplicate protection.
 
 ### Restore Claude marketing starts
 
