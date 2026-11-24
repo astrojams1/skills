@@ -254,10 +254,12 @@ def regular_candidates(members, state, now, issues, errors, issue_failures):
         if key in state["finished"] or instant(record["retry_at"]) > now:
             continue
         name, slot = key.split("/", 1)
-        job = next((member for member in members if member["id"] == name), None)
+        job = next((member for member in members if member["id"] == name.removeprefix(SUPPLEMENT_JOB)), None)
         if job is not None:
             # The underlying polling rule may have coalesced since the claim.
-            retries.append(pair or (job, resume(job, slot)))
+            item = pair[1] if pair else resume(job, slot)
+            item["job"] = name
+            retries.append((job, item))
     return list(candidates.values()), retries
 
 
@@ -317,8 +319,9 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, 
                     raise ValueError("Inconsistent claim scope")
                 item["job"] = active["job"]
                 competing = bool(fresh or retries or (extra and group in runway))
-                if active.get("pending") == {} and competing:
-                    operation, expected = ("park", "parked") if extra else ("defer", "deferred")
+                scoped = bool(active.get("pending_scopes")) and set(active["pending_scopes"]) == set(active.get("pending", {}))
+                if (active.get("pending") == {} or scoped) and competing:
+                    operation, expected = ("park", "parked") if extra and not scoped else ("defer", "deferred")
                     outcome = call(owner, operation, "--job", active["job"], "--slot", active["slot"])
                     if outcome["status"] != expected:
                         blocked.add(group)
@@ -344,7 +347,8 @@ def dispatch(jobs, now, cursor="", exclude=(), call=gate, issues=opened_issues, 
                 blocked.add(group)
                 continue
             for member, item in fresh + retries:
-                result = take(member, item, member["prompt"])
+                prompt = SETTLE if item["job"].startswith(SUPPLEMENT_JOB) else member["prompt"]
+                result = take(member, item, prompt)
                 if result:
                     return result
                 if group in blocked:

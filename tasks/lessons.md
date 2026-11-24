@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## Test the affected business through real work
+
+When a queue stalls on an unknown external result, test that exact condition, preserve the original evidence, and verify a different business object can make progress in the affected group. An unrelated working schedule or a diagnostic reply scan cannot prove a full marketing pass recovered.
+
 ## Verify both runners during a scheduler handoff
 
 Exercise a native scheduled invocation against the deployed coordinator. Include a stopped secondary host, an expired optional reservation, a repeatedly yielded sibling and an uncertain external action. Check which provider acquired and progressed the nominal slot. A supervisor heartbeat alone cannot establish that workers are making progress.

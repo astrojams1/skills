@@ -159,8 +159,11 @@ def finish(claim, call=due.gate):
     result = call(claim, "status")
     if result["status"] != "ok":
         raise ValueError("Unverified status")
-    if claim["job"] + "/" + claim["slot"] in result["finished"]:
+    key = claim["job"] + "/" + claim["slot"]
+    if key in result["finished"]:
         return "completed"
+    if key in result.get("deferred", {}):
+        return "deferred"
     active = result["active"]
     if not active or active["job"] != claim["job"] or active["slot"] != claim["slot"]:
         return "superseded"
@@ -169,7 +172,7 @@ def finish(claim, call=due.gate):
     reply = call(claim, "yield", "--token", claim["gate"]["token"], "--note",
                  active["checkpoint"] or "Worker exited. Reconcile campaign evidence and open effects before continuing.")
     if reply["status"] == "yielded":
-        return "yielded"
+        return "deferred" if reply.get("deferred") else "yielded"
     if reply["status"] == "lost":
         return "superseded"
     raise ValueError("Unconfirmed handoff")
@@ -231,7 +234,7 @@ class Supervisor:
             self.record("handoff-unverified", claim["group"], claim["job"], pause=claim["group"])
             return
         self.record(outcome, claim["group"], claim["job"],
-                    pause=claim["group"] if outcome not in {"completed", "parked"} else None)
+                    pause=claim["group"] if outcome not in {"completed", "parked", "deferred"} else None)
         path.unlink(missing_ok=True)
 
     def work(self, handle, path, claim):

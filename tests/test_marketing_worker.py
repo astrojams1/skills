@@ -218,6 +218,21 @@ else:
         self.assertIsNone(due.gate(jobs[0], "status")["active"]["expires"])
         self.assertEqual(json.loads(self.launch("--check").stdout)["status"], "ready")
 
+    def test_scoped_handoff_releases_lane_without_business_cooldown(self):
+        claim = {"job": "daily", "slot": "morning", "group": "apps"}
+        self.runtime.mkdir(mode=0o700)
+        path = self.runtime / "lane-0.json"
+        worker.save(path, claim)
+        status = {"status": "ok", "finished": {}, "active": None,
+                  "deferred": {"daily/morning": {"pending": {"one": "original"}}}}
+        self.assertEqual(worker.finish(claim, call=lambda *_: status), "deferred")
+        cfg = SimpleNamespace(runtime=self.runtime)
+        supervisor = worker.Supervisor(cfg)
+        with patch.object(worker, "finish", return_value="deferred"):
+            supervisor.reconcile(path, claim, None)
+        self.assertFalse(path.exists())
+        self.assertNotIn("apps", self.state()["cooldowns"])
+
     def test_recover_dead_lane_without_launching_another_model(self):
         jobs = self.setup_jobs([("one", "a")])
         self.runtime.mkdir(mode=0o700)

@@ -304,6 +304,16 @@ class DispatcherTests(unittest.TestCase):
         history[f"supplement.daily/surplus.{epoch-3600}"] = "completed branch-41"
         self.assertNotIn("parked_checkpoint", due.dispatch([j], NOW, call=queue, pacing=pacing))
 
+    def test_deferred_supplement_is_restored_only_for_reconciliation(self):
+        j = job(surplus_prompt="Do new work", schedule=[{"at":"13:00", "days":[4], "pass":"full"}])
+        q = Queue()
+        slot = "surplus." + str(int(NOW.timestamp()) - 3600)
+        q.states["daily"] = {"status":"ok", "active":None, "finished":{}, "deferred":{
+            "supplement.daily/" + slot: {"pending":{"external-one":"receipt unknown"},
+                                        "retry_at":NOW.isoformat()}}}
+        result = due.dispatch([j], NOW, call=q)
+        self.assertEqual((result["job"], result["slot"], result["prompt"]), ("supplement.daily", slot, due.SETTLE))
+
     def test_supplement_recovers_own_scope_without_starting_new_extras(self):
         active = {"job": "supplement.daily", "slot": f"surplus.{int(NOW.timestamp())-3600}", "expires": None}
         queue = Queue()
