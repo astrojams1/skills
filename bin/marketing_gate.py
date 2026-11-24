@@ -37,36 +37,60 @@ def public(active):
     return {k: v for k, v in active.items() if k != "owner"}
 
 
+def release_inactive(state, now):
+    active = state["active"]
+    if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
+        return "busy"
+    if active["pending"]:
+        return "reconcile"
+    key = active["job"] + "/" + active["slot"]
+    if active["job"].startswith("supplement."):
+        state["finished"][key] = "surplus-deferred " + active["checkpoint"]
+        result = "parked"
+    else:
+        state.setdefault("deferred", {})[key] = {
+            "checkpoint": active["checkpoint"], "attempt": active["attempt"],
+            "retry_at": (now + dt.timedelta(hours=1)).isoformat(),
+        }
+        result = "deferred"
+    state["active"] = None
+    return result
+
+
 def transition(state, args, now, new_token):
     active = state["active"]
     op = args.operation
     if op == "status":
-        return {"status": "ok", "active": public(active), "finished": state["finished"]}
-    if op == "park":
-        # Close the optional time window, preserving the actual unfinished task
-        # for the next surplus worker. Existing Claude clients understand this
-        # state format and can immediately claim their next scheduled run.
+        return {"status": "ok", "active": public(active), "finished": state["finished"],
+                "deferred": state.get("deferred", {})}
+    if op in ("park", "defer"):
+        surplus = args.job.startswith("supplement.") and re.fullmatch(r"surplus\.\d+", args.slot)
         if (not active or (active["job"], active["slot"]) != (args.job, args.slot)
-                or not args.job.startswith("supplement.") or not re.fullmatch(r"surplus\.\d+", args.slot)):
-            return {"status": "not-parkable"}
-        if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
-            return {"status": "busy"}
-        if active["pending"]:
-            return {"status": "reconcile"}
-        state["finished"][args.job + "/" + args.slot] = "surplus-deferred " + active["checkpoint"]
-        state["active"] = None
-        return {"status": "parked"}
+                or (op == "park") != bool(surplus)):
+            return {"status": "not-parkable" if op == "park" else "not-deferrable"}
+        return {"status": release_inactive(state, now)}
     if op == "claim":
         key = args.job + "/" + args.slot
         if key in state["finished"]:
             return {"status": "done", "checkpoint": state["finished"][key]}
-        if active:
-            if active["job"] != args.job or active["slot"] != args.slot:
+        saved = state.get("deferred", {}).get(key)
+        if saved and dt.datetime.fromisoformat(saved["retry_at"]) > now:
+            return {"status": "deferred", "retry_at": saved["retry_at"]}
+        if active and (active["job"], active["slot"]) != (args.job, args.slot):
+            # Only scheduled work can displace another slot. The same atomic
+            # commit fences the old capability and retains its recovery record.
+            if (args.job.startswith("supplement.")
+                    or release_inactive(state, now) in ("busy", "reconcile")):
                 return {"status": "resume-first", "job": active["job"], "slot": active["slot"]}
+            active = None
+        if active:
             if active["expires"] and dt.datetime.fromisoformat(active["expires"]) > now:
                 return {"status": "busy", "expires": active["expires"]}
         else:
             active = {"job": args.job, "slot": args.slot, "pending": {}, "checkpoint": "", "attempt": 0}
+            if saved:
+                active.update(checkpoint=saved["checkpoint"], attempt=saved["attempt"])
+                del state["deferred"][key]
             state["active"] = active
         active.update(engine=args.engine, owner=digest(new_token), expires=(now + LEASE).isoformat(),
                       attempt=active["attempt"] + 1)
@@ -222,6 +246,9 @@ def parse_args(argv=None):
     parked = ops.add_parser("park", help="Preserve an idle supplemental checkpoint and release its group")
     parked.add_argument("--job", required=True)
     parked.add_argument("--slot", required=True)
+    deferred = ops.add_parser("defer", help="Queue a pending-free inactive regular slot for retry")
+    deferred.add_argument("--job", required=True)
+    deferred.add_argument("--slot", required=True)
     claim = ops.add_parser("claim")
     claim.add_argument("--job", required=True)
     claim.add_argument("--slot", required=True, help="Nominal YYYY-MM-DD.HHMM or stable event identifier")

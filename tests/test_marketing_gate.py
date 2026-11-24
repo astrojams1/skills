@@ -73,6 +73,42 @@ class Ownership(unittest.TestCase):
         self.assertEqual(run("park", "--job", "daily", "--slot", "2026-11-21.0530"), "not-parkable")
         self.assertIsNotNone(state["active"])
 
+    def test_native_can_start_after_other_worker_yields_and_restore_its_checkpoint(self):
+        state = gate.empty()
+        now = dt.datetime(2026, 11, 23, tzinfo=gate.UTC)
+
+        def op(*args, token="worker"):
+            return gate.transition(state, gate.parse_args(["--repo", ".", "--group", "test", *args]), now, token)
+
+        def claim(job, slot):
+            return op("claim", "--job", job, "--slot", slot, "--engine", "claude", token=job)
+
+        claim("mac", "sunday")
+        self.assertEqual(claim("cloud", "monday")["status"], "resume-first")
+        op("yield", "--token", "mac", "--note", "existing video and PR verified")
+        self.assertEqual(claim("supplement.cloud", "surplus.123")["status"], "resume-first")
+        self.assertEqual(claim("cloud", "monday")["status"], "acquired")
+        self.assertEqual(claim("mac", "sunday")["status"], "deferred")
+        self.assertNotIn("mac/sunday", state["finished"])
+        self.assertEqual(op("done", "--token", "mac", "--note", "late")["status"], "lost")
+        op("done", "--token", "cloud", "--note", "verified")
+        now += dt.timedelta(hours=1)
+        restored = claim("mac", "sunday")
+        self.assertEqual((restored["attempt"], restored["checkpoint"]), (2, "existing video and PR verified"))
+        self.assertFalse(state["deferred"])
+
+    def test_native_can_park_expired_supplement_without_the_codex_host(self):
+        state = gate.empty()
+        now = dt.datetime(2026, 11, 23, tzinfo=gate.UTC)
+        def op(*args):
+            return gate.transition(state, gate.parse_args(["--repo", ".", "--group", "test", *args]), now, "a")
+        op("claim", "--job", "supplement.daily", "--slot", "surplus.1", "--engine", "codex")
+        op("checkpoint", "--token", "a", "--note", "PR-2")
+        now += gate.LEASE
+        self.assertEqual(op("claim", "--job", "daily", "--slot", "monday", "--engine", "claude")["status"],
+                         "acquired")
+        self.assertEqual(state["finished"]["supplement.daily/surplus.1"], "surplus-deferred PR-2")
+
     def test_compaction_preserves_old_effects_and_slots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

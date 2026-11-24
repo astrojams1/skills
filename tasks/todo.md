@@ -4,6 +4,15 @@ Track current work items here. Use checkable items for progress tracking.
 
 ## Current
 
+### Restore Claude marketing starts
+
+- [x] Trace native run history, private coordination branches and supervisor processes.
+- [x] Correct confirmed startup and handoff failures, preserving checkpoints and outbound receipts.
+- [x] Exercise competing workers and checkpoint recovery against Git.
+- [ ] Verify the deployed Claude registration on a formerly blocked group.
+
+Review: Three abandoned worker assignments reconciled. The two expired supplemental claims were parked and the regular Mac checkpoint deferred. Production native delivery is verified independently of this code review.
+
 ## app-release 2.29.2: follow reply-only rejection instructions
 
 - [x] Read Apple requests, source guidance, skill-writing and the current skill specification.

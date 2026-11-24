@@ -1,5 +1,9 @@
 # Lessons Learned
 
+## Verify both runners during a scheduler handoff
+
+Exercise a native scheduled invocation against the deployed coordinator. Include a stopped secondary host, an expired optional reservation, a repeatedly yielded sibling and an uncertain external action. Check which provider acquired and progressed the nominal slot. A supervisor heartbeat alone cannot establish that workers are making progress.
+
 ## Complete the authorized App Store release
 
 An active launch status check continues to public release once Apple has approved

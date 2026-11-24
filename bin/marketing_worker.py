@@ -79,15 +79,22 @@ def health(cfg):
     age = now - heartbeat["at"] if heartbeat else None
     fresh = age is not None and 0 <= age < 3 * heartbeat["interval"] + 30 and alive(heartbeat["pid"])
     lanes = []
+    stalled = []
     for lane in range(MAX_LANES):
         claim = read(cfg.runtime / f"lane-{lane}.json", None)
         if claim:
             pid = claim.get("worker_pid")
+            if not worker_alive(claim) and any(
+                row["status"] == "handoff-unverified" and row.get("group") == claim["group"]
+                and row.get("job") == claim["job"] and row["at"] >= claim.get("worker_started_at", 0)
+                for row in state.get("recent", [])
+            ):
+                stalled.append(lane)
             lanes.append({"lane": lane, "job": claim["job"], "group": claim["group"], "slot": claim["slot"],
                           "pid": pid, "process_alive": worker_alive(claim)})
     return {"pacing": heartbeat.get("pacing") or {"level": 0, "status": "baseline"},
             "target_lanes": heartbeat.get("target_lanes", LANES),
-            "daemon_fresh": fresh, "paused": cfg.catalog.with_name("PAUSED").exists(),
+            "stalled_lanes": stalled, "daemon_fresh": fresh, "paused": cfg.catalog.with_name("PAUSED").exists(),
             "heartbeat": heartbeat or None, "age_seconds": age,
             "cooldowns": {k: v for k, v in state.get("cooldowns", {}).items() if v > now}, "active_lanes": lanes}
 
@@ -170,6 +177,26 @@ def finish(claim, call=due.gate):
 
 def park_surplus(job, active):
     return due.gate(job, "park", "--job", active["job"], "--slot", active["slot"])["status"]
+
+
+def recover_handoffs(cfg):
+    """Retry failed handoffs from the signed-in host using each worker's OS lock."""
+    repaired = []
+    for lane in health(cfg)["stalled_lanes"]:
+        handle = lock(cfg.runtime / f"lane-{lane}.lock")
+        if handle is None:
+            continue
+        with handle:
+            path = cfg.runtime / f"lane-{lane}.json"
+            claim = read(path, None)
+            if not claim or worker_alive(claim):
+                continue
+            outcome = finish(claim)
+            if claim.get("pass") == "surplus" and outcome in {"yielded", "superseded"}:
+                park_surplus(claim, claim)
+            path.unlink()
+            repaired.append(lane)
+    return repaired
 
 
 class Supervisor:
@@ -325,6 +352,7 @@ def main(argv=None):
     parser.add_argument("--interval", type=int, default=120)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="Check configuration and login without claiming work")
+    mode.add_argument("--recover-handoffs", action="store_true", help="Reconcile failed dead lanes without dispatching")
     mode.add_argument("--once", action="store_true", help="Poll once and wait for workers to exit")
     cfg = parser.parse_args(argv)
     if cfg.interval < 1:
@@ -339,10 +367,14 @@ def main(argv=None):
             raise OSError("SSD is not mounted")
         if cfg.runtime.exists() and cfg.runtime.stat().st_mode & 0o077:
             raise ValueError("Worker runtime must be private")
+        if cfg.recover_handoffs:
+            print(json.dumps({"recovered": recover_handoffs(cfg)}))
+            return 0
         if cfg.check:
             logged_in = check_login(cfg.codex)
             snapshot = health(cfg)
-            print(json.dumps({"status": "ready" if logged_in else "auth-unavailable", "jobs": len(jobs),
+            print(json.dumps({"status": ("auth-unavailable" if not logged_in else
+                                         "degraded" if snapshot["stalled_lanes"] else "ready"), "jobs": len(jobs),
                               "lanes": snapshot["target_lanes"], "interval": cfg.interval, "runtime": snapshot}))
             return int(not logged_in)
         cfg.runtime.mkdir(mode=0o700, exist_ok=True)

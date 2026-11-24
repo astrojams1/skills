@@ -197,6 +197,27 @@ else:
         self.launch(mode="done")
         self.assertEqual((self.runtime / "stub-calls").read_text().splitlines(), ["a"])
 
+    def test_fresh_host_detects_and_repairs_dead_lane_even_with_cooldown(self):
+        jobs = self.setup_jobs([("one", "a")])
+        self.runtime.mkdir(mode=0o700)
+        claim = due.dispatch(jobs, datetime.now(timezone.utc))
+        path = self.runtime / "lane-0.json"
+        path.write_text(json.dumps(claim))
+        now = int(datetime.now(timezone.utc).timestamp())
+        worker.save(self.runtime / "heartbeat.json", {"pid": os.getpid(), "at": now, "interval": 120})
+        worker.save(self.runtime / "scheduler.json", {"cooldowns": {"a": now + 3600}, "cursor": "",
+                    "recent": [{"at": now, "status": "handoff-unverified", "job": "one", "group": "a"}]})
+        check = json.loads(self.launch("--check").stdout)
+        self.assertEqual(check["status"], "degraded")
+        self.assertTrue(check["runtime"]["daemon_fresh"])
+        with worker.lock(self.runtime / "lane-0.lock"):
+            self.assertEqual(json.loads(self.launch("--recover-handoffs").stdout)["recovered"], [])
+        self.assertTrue(path.exists())
+        self.assertEqual(json.loads(self.launch("--recover-handoffs").stdout)["recovered"], [0])
+        self.assertFalse(path.exists())
+        self.assertIsNone(due.gate(jobs[0], "status")["active"]["expires"])
+        self.assertEqual(json.loads(self.launch("--check").stdout)["status"], "ready")
+
     def test_recover_dead_lane_without_launching_another_model(self):
         jobs = self.setup_jobs([("one", "a")])
         self.runtime.mkdir(mode=0o700)
