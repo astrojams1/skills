@@ -115,6 +115,7 @@ to `docs/marketing-system-history.md` when this list passes about 60 lines.
 
 | Date | Engine | Change | Where |
 |---|---|---|---|
+| 2026-11-26 | Claude | First research brief (week of 2026-11-23). From its findings: `app-marketing` 1.39.0 judges experiments on the judge date by the measured number, never by the maker's opinion of its own work; `youtube-growth` 1.14.1 notes that public views now add TV co-views, so Shorts are compared on engaged views | skills#338 |
 | 2026-11-26 | Claude | This map added, with the rule that every marketing change updates it, `tests/test_marketing_map.py`, and pointers from every business's `AGENTS.md`, the shared `AGENTS.md` and the Codex worker protocol | skills#336, app-sites#328, vegas-microworks#178, money-coaching#204, cleanstreets#821, pipsqueak#83 |
 | 2026-11-26 | Claude | New weekly research arm `marketing-research` and its Monday routine; the Invent steps of apps, Vegas Microworks, money coaching, Clean Streets and Pipsqueak read its brief and take at least one idea from it | skills#335, vegas-microworks#177, money-coaching#203, cleanstreets#820, pipsqueak#82 |
 | 2026-11-25 | Claude | Pipsqueak go-to-market gets its own daily routine and group `pipsqueak`; it may send cold mail from the personal Gmail under its own count | pipsqueak `docs/go-to-market.md` |
