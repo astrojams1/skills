@@ -2,7 +2,7 @@
 name: marketing-research
 description: The weekly research arm of every marketing skill. Each week it attends "the conference" on using AI agents to drive marketing - case studies, success stories, platform news, research papers and talks by credible people - grades what it reads, writes a dated brief, keeps a register of practices, and hands each business (the apps, Vegas Microworks, money coaching, Clean Streets, Pipsqueak) new ideas to try as provisional experiments. Then it reads back how they did. Use for "marketing research", "what's new in agent marketing", "best practices for AI marketing agents", "case studies", the weekly research brief, and the scheduled Monday run.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -47,7 +47,7 @@ Set `WEEK` to the Monday of this week in Pacific time (`YYYY-MM-DD`). A rerun in
 brief; it never writes a second one.
 
 1. **Start.** `git checkout main && git pull --ff-only`, then branch `marketing-research/<WEEK>`. Read
-   `ledger/briefs/latest.md`, [practices](ledger/practices.md), [sources](references/sources.md),
+   [the marketing system map](../../docs/marketing-system.md) and its recent Changes, `ledger/briefs/latest.md`, [practices](ledger/practices.md), [sources](references/sources.md),
    [the brief's shape](references/brief.md) and the last ten rows of [the ledger](ledger/LEDGER.md).
 2. **Read results back.** For each business in [the businesses table](references/brief.md#the-businesses), read its
    ideas and experiments register on GitHub. Find every item tagged `research:` and copy its status and verdict into
@@ -75,9 +75,11 @@ brief; it never writes a second one.
    pick channels or check their work) is a skill change, not just a tactic. Make it in this run when the skill lives in
    this repository, such as `app-marketing`, `app-shorts` or `youtube-growth`, and list it in the brief. For a skill in
    another repository, write it in that business's handoff as a skill change for its next run.
+   Each skill change here also updates [the marketing system map](../../docs/marketing-system.md) and adds a line to
+   its Changes, in the same PR.
 9. **Ship.** Run `./bin/manage.sh link`. Then run `python3 tests/test_skills_spec.py`,
    `python3 tests/test_readability.py`, `python3 tests/test_discovery_copies.py` and
-   `python3 tests/test_no_hidden_caps.py`. Commit, push, open a PR and merge it once they pass.
+   `python3 tests/test_no_hidden_caps.py` and `python3 tests/test_marketing_map.py`. Commit, push, open a PR and merge it once they pass.
 10. **Verify.** Fetch the raw `latest.md` URL above. Check that it shows this week's date. Add a row to the ledger's
     runs table, ship it the same way, and [report](#report).
 

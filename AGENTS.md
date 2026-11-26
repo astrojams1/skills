@@ -123,6 +123,8 @@ skills/                                    # Skill definitions (Agent Skills spe
     ledger/LEDGER.md                       # Versions, measurements, runs, open issues
 .claude/skills/                            # Claude Code skill discovery (auto-generated copies)
 .agents/skills/                            # Codex skill discovery (auto-generated copies)
+docs/marketing-system.md                   # The marketing system map: read before, and update with, every marketing change
+docs/marketing-schedules.md                # How Claude and Codex share marketing schedules through the gate
 tests/                                     # Tests for repository integrity (tests/app-release/, tests/ouro-website/, tests/astrojams-website/, tests/youtube-shorts/, tests/app-shorts/, tests/youtube-growth/, tests/call-triage/ and tests/abandoned-prs/ cover those skills' scripts)
 tasks/
   todo.md                                  # Current work items and progress tracking
@@ -164,6 +166,14 @@ follow each sentence). `python3 skills/skill-writing/scripts/readability.py skil
 - **Use the folder.** Detail goes in `references/`, code in `scripts/`, templates and data in `assets/`.
 - **Start small and grow.** Most good skills began as a few lines and one gotcha.
 
+## The Marketing System Map
+
+[`docs/marketing-system.md`](docs/marketing-system.md) maps all marketing: every business, skill, scheduled run,
+engine (Claude and Codex), coordination group, register and sender, plus a dated log of changes. Read it before you
+change any part of marketing, and update it in the same PR (James, 2026-11-26: "anytime that we make a change to our
+marketing system ... it updates the map"). That includes changes made from another repository, by either engine, and
+by scheduled runs that improve skills. `python3 tests/test_marketing_map.py` checks it.
+
 ## Skills Run by Routines
 
 Every scheduled skill carries the short run rules block from `skills/skill-writing/SKILL.md`, word for word. The rules below are the full form.
@@ -184,7 +194,7 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 | `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
 | `vegas-microworks-marketing` | Paused; `app-marketing-mac` carries it on Wednesdays, or when the last completed weekly pass is over 7 days old (2026-11-12) | `skills/vegas-microworks-marketing/SKILL.md`, "The old weekly task is paused" (it ran in the default permission mode and stalled on its first prompt) |
 | Cloud routine "Marketing research (weekly)" | Mondays 03:17 Pacific | `skills/marketing-research/SKILL.md`, "A run" (Claude only; it takes no outward action, so it has no Codex gate) |
-| Cloud routine "Vegas Microworks outreach (daily)" | Weekdays 10:23 Pacific | `astrojams1/vegas-microworks` `docs/outreach.md`, "Each daily run" |
+| Cloud routine "Vegas Microworks outreach (daily)" | Weekdays 04:55, 12:55 and 16:55 Pacific | `astrojams1/vegas-microworks` `docs/outreach.md`, "Each daily run" |
 | `mac-memory-maintenance` | Daily 03:00 Pacific | Codex invokes `$mac-memory-maintenance` through its installed symlink |
 | `money-coaching-lead-gen` | Paused; the cloud routine "Money coaching lead gen (daily)" replaced it | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md`, "The Mac task's prompt" |
 
