@@ -3,7 +3,7 @@
   "source": "astrojams1/skills",
   "skills": {
     "abandoned-prs": "2272e832f83128cbb1e086ae4a99f5af084914eaa713c8dd096371499187b36d",
-    "app-marketing": "6c56d543e4fe7d7348e9a782a5d1f0c3b8cd045b28d8a7b043b53b173a8d26dc",
+    "app-marketing": "21ec6058449a747b8ae86e7584cca2df862d05af359116e37fe3767ff26c2bf2",
     "app-release": "37afb9f71310e288e4f7a58cbdef9dc1182fddfa907006360a10c98b6093e1ea",
     "app-shorts": "e83227c5ddf0b18a004fbaa29f27ee1f964e7b48f73cfbf1ed2d3225757c697d",
     "astrojams-website": "0524275b3b5cc6b8e728447199db1b6f6bd5a35a2ef752d2f8ca57f49bef6d0f",
@@ -15,7 +15,7 @@
     "health-check-prompt": "da75913b8cbb8d876d819857530efd68ad5b61d24e5d384773aaae0541b8b67a",
     "health-check-review": "8b81d9990615b9ff3eff3f650feaef5f31389d0a10272de57946d6662dcb0660",
     "mac-memory-maintenance": "508ca3934dec2297694608c075c88cab5a6132051d0e9c26a993fef674fafac4",
-    "marketing-research": "5829db0b4530b38744595e96a64da25dd212dbd98b3c131253b17190cb865a77",
+    "marketing-research": "1397c117deaad3372d3c8e2902e81df1a573275c1309c7b3cb17519e5c4fa390",
     "ouro-website": "03effd8ef222a39de18f1dabb83f90e32b70778fc5e9ede2b1a350bdde7fa0d1",
     "reddit-posting": "e85ad16c4fe0efeefd62fb74dd78f52f0c49ff6a16dc567fb45b60db1a4fc9f9",
     "research-paper": "6846bfecab783a659c2900cbd46a9eb49178443a51fba5dd8237364e22cf6f77",
@@ -23,11 +23,11 @@
     "skill-integration-prompt": "f9f130fd149782369809f488830054890ef6c74cd9fa962935d575354a75ffd4",
     "skill-orchestrator": "3d2aa437e362ca533025d25e49d730443137b5456d16441c7561f86dbfe8160d",
     "skill-writing": "d656640542b29e1b48f18075750cb7097589d6dd92d82a50d40dc26f65a637d6",
-    "uncommitted-work": "cf84f192025cad712eebc556b318cf10ccaf8377b3d128c49d1af58fafb1b4dc",
+    "uncommitted-work": "c5a2ab6e49b2dcdfc28a5ff880025b3347e56a087a64d11762309651f2499db9",
     "vegas-microworks-marketing": "f2846fba0f667ef1326d09efaf66c951df81c01c387dd77e0ab54d58cec30f65",
-    "warm-lead-followup": "87a03f46f47e505a6a80c37d0482c482d0525f1de0a0ac8c823b9fde6930fc3c",
+    "warm-lead-followup": "6c3c5ecc08e12cc0be0dff0f280255f57754553b45801dd61f989d29a4e70168",
     "workflow-orchestration": "8beaef758265416ab6296ef076f21023fbfdcaabe7023134e42dd7d11f616aa5",
-    "youtube-growth": "6f068671b2054579130645547c78d1946065f13df8d039f9fe737212546cf1c8",
+    "youtube-growth": "0ba446984076a42b4ab3f3cef44dff8084238725545cc9c6eb3bf9f6c48eb564",
     "youtube-shorts": "00d65676732437f614e157f6b67a2a926c48edfae2e9cf5e925399293f6c50a2"
   }
 }

@@ -54,3 +54,11 @@ Append a row each time.
 | Date | Source | Change | Why |
 |---|---|---|---|
 | 2026-11-26 | The list above | Started | The owner's request of 2026-11-26 |
+| 2026-11-26 | Muck Rack State of Journalism (yearly) | Added, strong | 897 journalists, method stated; the best data on what press answers |
+| 2026-11-26 | Seer Interactive and Ahrefs studies on AI Overviews and AI traffic | Added, strong | Samples and methods stated; read each study's caveats (Seer's one large account) |
+| 2026-11-26 | M+R Benchmarks and the Fundraising Effectiveness Project | Added, strong | Panel data on donor retention, for Clean Streets |
+| 2026-11-26 | Google Search Status Dashboard and Search Central docs changelog | Added | Where core updates and doc changes show first; the blog skipped November's update |
+| 2026-11-26 | Apple Developer News | Added | Store changes and deadlines, dated |
+| 2026-11-26 | Andon Labs (Project Vend, Andon Market) | Added | The closest public case of an agent running a business; few marketing numbers so far |
+| 2026-11-26 | Cold-email vendor benchmarks (Smartlead, Instantly, BuzzStream) | Added, B at best | Large datasets but correlational, and each sells the tool |
+| 2026-11-26 | asha.org, indiehackers.com, support.patreon.com, searchengineland.com | Unreadable | Blocked automated reads (403) on 2026-11-26; try a cached copy or another publisher |
