@@ -137,6 +137,15 @@ export function editableAppInfo(infos) {
   return infos.find(info => EDITABLE_STATES.includes(info.attributes.state || info.attributes.appStoreState || '')) || null;
 }
 
+// nextAppInfo is the App Info of the version on its way: the editable one, else one that is not live (a draft submission
+// or a version with Apple holds READY_FOR_REVIEW, WAITING_FOR_REVIEW and the like), else the live one. `status` compares
+// store data with it; falling back to the live record showed every new subtitle as "differs" while Rhythm 0.17.1's
+// App Info read READY_FOR_REVIEW with the store data's subtitles (2026-11-24).
+export function nextAppInfo(infos) {
+  const state = info => info.attributes.state || info.attributes.appStoreState || '';
+  return editableAppInfo(infos) || infos.find(info => !LIVE_STATES.includes(state(info))) || infos[0] || null;
+}
+
 // awaitEditableInfo re-reads App Info after a version is prepared. Apple makes the next version's editable App Info
 // only when that version exists, so the list read before creating it has none (Füd 1.2.0, 2026-10-30); the record can
 // lag the version briefly, so it reads a few times before giving up with null.
@@ -694,7 +703,7 @@ async function localizationStatus(version, versionLocalizations) {
   const problems = localizationProblems(STORE.listing, listingCharacterProblems);
   for (const problem of problems) console.log('  localization problem:', problem);
   const infos = await listAll('/v1/apps/' + IOS.ascAppId + '/appInfos');
-  const info = editableAppInfo(infos) || infos[0];
+  const info = nextAppInfo(infos);
   const infoLocalizations = info ? await listAll('/v1/appInfos/' + info.id + '/appInfoLocalizations') : [];
   const changes = localizationChanges(STORE.listing, infoLocalizations, versionLocalizations);
   const named = localizationEntries(STORE.listing).length;
@@ -1618,7 +1627,9 @@ export async function fillSubmission(submission, versionId, leaderboards, review
   if (submissionPlan(saved, versionId, reviewTargets).action !== 'submit' || left.version || left.leaderboards.length) {
     throw new Error('Review submission ' + submission.id + ' still lacks configured review targets or holds conflicting items; nothing was submitted.');
   }
-  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions and', reviewTargets.length, 'purchase review versions.');
+  const purchases = reviewTargets.filter(target => target.relation !== 'appEvent').length;
+  console.log('Submission', submission.id, 'holds the app version,', leaderboards.length, 'leaderboard versions,', purchases, 'purchase review versions and',
+    reviewTargets.length - purchases, 'In-App Events.');
 }
 
 // findBuild returns the processed build with the given build number.
@@ -2136,7 +2147,7 @@ async function readAppEvents() {
 
 // eventTargets reads which store-data events go to App Review with this version (lib/app-events.mjs).
 async function eventTargets() {
-  if (!(STORE.events || []).length) return { targets: [], held: [], missing: [], skipped: [] };
+  if (!(STORE.events || []).length) return { targets: [], held: [], missing: [], skipped: [], unlinked: [] };
   return eventReviewTargets(STORE.events, await readAppEvents(), STORE.version, Date.now());
 }
 
@@ -2149,6 +2160,10 @@ async function submitTargets(report) {
   if (events.missing.length) {
     throw new Error('Store data lists In-App Events for version ' + STORE.version + ' that App Store Connect does not hold yet: ' + events.missing.join(', ')
       + '. Run `asc.mjs events --confirm` first; nothing was submitted.');
+  }
+  if (events.unlinked.length) {
+    throw new Error('In-App Events for version ' + STORE.version + ' have no deep link in App Store Connect, which App Review refuses: '
+      + events.unlinked.join(', ') + '. Set deepLink in store data (a URL scheme or universal link the build declares), run `asc.mjs events --confirm`; nothing was submitted.');
   }
   if (report) {
     for (const line of events.skipped) console.log('In-App Event not sent:', line);
@@ -2289,6 +2304,10 @@ export function standaloneEventTargets(entries, existing, liveVersion, now) {
     if (!live || !EDITABLE_EVENT_STATES.includes(live.attributes.eventState) || Date.parse(entry.start) <= now) continue;
     if (entry.shipsWith !== undefined && (!liveVersion || compareVersions(liveVersion, entry.shipsWith) < 0)) {
       waiting.push(entry.referenceName + ' waits for version ' + entry.shipsWith + ' (live: ' + (liveVersion || 'none') + ')');
+      continue;
+    }
+    if (!live.attributes.deepLink) {
+      waiting.push(entry.referenceName + ' has no deep link in App Store Connect, which App Review refuses; set deepLink and run `events --confirm`');
       continue;
     }
     send.push(live.id);

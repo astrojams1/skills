@@ -1,8 +1,31 @@
 # App release skill ledger
 
-Skill version **2.39.0**. This index preserves sanitized outcomes and lessons across
+Skill version **2.39.4**. This index preserves sanitized outcomes and lessons across
 apps; each application's repository remains authoritative for current progress.
 Dates describe observations, not guarantees that provider state remains unchanged.
+
+## Lessons incorporated into v2.39.4 (2026-11-24)
+
+- `submit` counted Rhythm's Winter Glow event among "purchase review versions" when it reported what the submission
+  holds. It now counts purchases and In-App Events apart.
+
+## Lessons incorporated into v2.39.3 (2026-11-24)
+
+- With the deep link fixed, Rhythm's next `submit --confirm` attached the Winter Glow event to the draft submission and
+  then stopped: "Review item attachment did not read back". The item read asked only for sparse relationship fields,
+  and Apple omits an event item's linkage unless `appEvent` is included (read back both ways). `reviewItemsQuery`
+  now includes `appEvent`.
+- After a failed submit left version and App Info at `READY_FOR_REVIEW`, `status` compared store data with the live
+  App Info and showed every language's new subtitle as "differs", though the record on its way held them. `status`
+  now reads the App Info of the version on its way (`nextAppInfo`).
+
+## Lessons incorporated into v2.39.2 (2026-11-24)
+
+- The first In-App Event sent with a version (Rhythm's Winter Glow, 0.17.1) was created as a draft without a deep link,
+  because promotion.md called it optional, and `submit --confirm` then failed inside the open submission: App Review
+  answered 409 `ENTITY_ERROR.ATTRIBUTE.REQUIRED` for `deepLink`, leaving an unsent `READY_FOR_REVIEW` draft. Rhythm had
+  no URL scheme, so it needed a new build. `eventProblems` now requires `deepLink`, and `submit` and `events submit`
+  refuse an editable event whose App Store Connect draft has none before any write.
 
 ## Lessons incorporated into v2.39.0 (2026-11-20)
 

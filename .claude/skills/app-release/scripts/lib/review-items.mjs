@@ -8,11 +8,12 @@ export const REVIEW_RELATIONSHIPS = [
 ];
 
 // Apple rejects including both experiment variants. Request every linkage field, but explicitly include
-// supported targets too: live image-item responses omit their linkage when only sparse fields request it.
+// supported targets too: live image-item responses omit their linkage when only sparse fields request it, and so do
+// In-App Event items (Rhythm's Winter Glow read back with no linkage until appEvent was included, 2026-11-24).
 // Missing/unknown linkage still fails the conflict guards; never infer a resource from an encoded item ID.
 export function reviewItemsQuery() {
   return new URLSearchParams({
-    include: 'appStoreVersion,appAssetLibraryImage,gameCenterLeaderboardVersion,inAppPurchaseVersion,subscriptionVersion,subscriptionGroupVersion',
+    include: 'appStoreVersion,appAssetLibraryImage,appEvent,gameCenterLeaderboardVersion,inAppPurchaseVersion,subscriptionVersion,subscriptionGroupVersion',
     'fields[reviewSubmissionItems]': ['state', ...REVIEW_RELATIONSHIPS].join(','),
     limit: '200',
   }).toString();

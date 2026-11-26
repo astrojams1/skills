@@ -53,8 +53,13 @@ and the API's [`POST /v1/appEvents`](https://developer.apple.com/documentation/a
 - **Limits:** 10 published per app at once, 15 approved per app in App Store Connect, 10 with overlapping starts.
 - **Review:** with an app version (reviewed together) or on its own once the app is approved (reviewed with the
   latest version). Apple says most submissions finish within 24 hours.
-- **Deep link:** optional in the API. A universal link or custom URL opens the event's content; when the content is
-  on the app's first screen during the event, leave it out and the Open button starts the app.
+- **Deep link: required.** The API's create call takes an event without one, but App Review does not: adding Rhythm's
+  Winter Glow to its 0.17.1 submission answered 409 `ENTITY_ERROR.ATTRIBUTE.REQUIRED`, "You must provide a value for
+  the attribute 'deepLink'" (2026-11-24). Give every event a universal link or a custom URL scheme the build itself
+  declares (`CFBundleURLTypes`, for example `com.astrojams.rhythm://winter-glow`); when the content is on the app's
+  first screen during the event, a link that only opens the app is enough. An app with no scheme needs one in the
+  build that ships with the event. `events` refuses an event without `deepLink`, and `submit` and `events submit`
+  refuse one whose App Store Connect draft has none, before opening a submission.
 
 **How a run makes one.** List it in store data `events` ([config](config.md)): the in-app change ships first, gated to
 the event's dates, and `shipsWith` names the first version that carries it. `asc.mjs events` shows Apple's events and
