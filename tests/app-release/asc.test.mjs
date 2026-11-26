@@ -24,6 +24,8 @@ test('screenshot reconciliation removes sets and files the manifest no longer li
   const set = (id, type) => ({ id: id, attributes: { screenshotDisplayType: type } });
   const manifest = [{ displayType: 'APP_IPHONE_67', files: ['shots/iphone-1.jpg'] }];
   assert.deepEqual(asc.staleScreenshotSets([set('phone', 'APP_IPHONE_67'), set('old', 'APP_IPHONE_65')], manifest).map(item => item.id), ['old']);
+  // The Duo set comes from `assets place`, not from `screenshots`, so pruning never deletes it.
+  assert.deepEqual(asc.staleScreenshotSets([set('phone', 'APP_IPHONE_67'), set('duo', 'APP_IPHONE_DUO')], manifest).map(item => item.id), []);
   assert.deepEqual(asc.staleScreenshots([shot('iphone-1.jpg', 'x', 'COMPLETE'), shot('iphone-9.jpg', 'y', 'COMPLETE')], manifest[0].files).map(item => item.attributes.fileName), ['iphone-9.jpg']);
 });
 

@@ -32,9 +32,15 @@ export function screenshotAction(existing, fileName, checksum) {
 }
 
 // staleScreenshotSets returns the sets whose display type the manifest no longer lists.
+// ASSET_LIBRARY_SET_TYPES are screenshot sets that `assets place` fills from the Asset Library (the iPhone Duo profile
+// has no display type of its own in store data `screenshots`). They are never stale here: on 2026-11-26 `screenshots`
+// with ios.pruneScreenshots deleted Space Worms 1.0.5's placed APP_IPHONE_DUO set, and only `assets place` restored it.
+export const ASSET_LIBRARY_SET_TYPES = ['APP_IPHONE_DUO'];
+
 export function staleScreenshotSets(sets, manifest) {
   const types = manifest.map(group => group.displayType);
-  return sets.filter(set => !types.includes(set.attributes.screenshotDisplayType));
+  return sets.filter(set => !types.includes(set.attributes.screenshotDisplayType)
+    && !ASSET_LIBRARY_SET_TYPES.includes(set.attributes.screenshotDisplayType));
 }
 
 // staleScreenshots returns the screenshots in a listed set whose file names its manifest group no longer lists.
