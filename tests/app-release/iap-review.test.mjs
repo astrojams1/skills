@@ -23,6 +23,16 @@ test('only explicit IAP review versions add API reads, and multiple products bin
     [target, { ...target, id: 'iv2' }]);
 });
 
+test('an approved IAP version is not sent for review again', async () => {
+  const map = collections();
+  map.set('/v2/inAppPurchases/iap1/versions?limit=200', [{ id: 'iv1', attributes: { state: 'APPROVED' } }]);
+  map.set('/v2/inAppPurchases/iap2/versions?limit=200', [{ id: 'iv2', attributes: { state: 'PREPARE_FOR_SUBMISSION' } }]);
+  assert.deepEqual(await verifyInAppPurchaseReview([purchase, { appStoreId: 'iap2', productId: 'com.example.unlock', reviewVersionId: 'iv2' }], 'app', reader(map)),
+    [{ ...target, id: 'iv2' }]);
+  map.set('/v2/inAppPurchases/iap1/versions?limit=200', [{ id: 'foreign', attributes: { state: 'APPROVED' } }]);
+  await assert.rejects(verifyInAppPurchaseReview([purchase], 'app', reader(map)), /ownership mismatch/, 'identity is still checked first');
+});
+
 test('invalid or duplicate selected IAP configuration fails before any provider reads', async () => {
   const mustNotRead = async () => { assert.fail('must not read'); };
   for (const invalid of [null, {}, [null], [[purchase]], [{ reviewVersionId: '' }], [{ ...purchase, appStoreId: '' }], [{ ...purchase, productId: '' }], [purchase, purchase]]) {

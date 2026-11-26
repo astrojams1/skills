@@ -100,7 +100,11 @@ export async function verifyInAppPurchaseReview(purchases, appId, readAll) {
   for (const purchase of selected) {
     const product = one(products, purchase.appStoreId, 'In-app purchase/app');
     if (product.attributes?.productId !== purchase.productId) throw new Error('In-app purchase productId mismatch; nothing was attached or submitted.');
-    one(await readAll('/v2/inAppPurchases/' + purchase.appStoreId + '/versions?limit=200'), purchase.reviewVersionId, 'In-app purchase version/product');
+    const version = one(await readAll('/v2/inAppPurchases/' + purchase.appStoreId + '/versions?limit=200'), purchase.reviewVersionId, 'In-app purchase version/product');
+    // An approved version has nothing left to review, and Apple refuses it as a review item (409 IAP_NOT_SUBMITTABLE:
+    // "Only versions in 'Prepare for Submission' or 'Developer Rejected' state can be submitted"; Giraffe Stretch
+    // 1.0.1, 2026-11-26, whose store data still named the Shapes version approved with 1.0). Leave it out.
+    if (version.attributes?.state === 'APPROVED') continue;
     targets.push({ relation: 'inAppPurchaseVersion', type: 'inAppPurchaseVersions', id: purchase.reviewVersionId });
   }
   return targets;
