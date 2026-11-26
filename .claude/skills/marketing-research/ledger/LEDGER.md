@@ -18,3 +18,4 @@ The skill's own record. Append rows; never rewrite them. The briefs are in `brie
 
 | date | lesson |
 |---|---|
+| 2026-11-26 | Four research agents in parallel (outreach, AI search, agents at work, channels) covered 83 sources in about ten minutes. Spot-check the numbers behind the top findings: Seer's "not cited" figure is 0.94% with its one large account and about 1.61% without it; only the source gave the second number. |

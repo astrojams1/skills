@@ -72,6 +72,15 @@ When `next` lists `judge-<id>`, read the measure, then add a verdict to the expe
   date. An experiment changes once. The next verdict is `keep` or `retire`; `check` refuses a second `change`.
 - **`retire`:** it did not move the number. Take it down if it costs anything to keep, and say why in `evidence`.
 
+How to judge (marketing-research brief of 2026-11-23, P-006 and P-007):
+
+- **Judge on the `judge` date, not before.** Checking early and stopping when it looks good finds false winners
+  (Evan Miller's simulation: 26.1% of no-effect tests called winners instead of 5%).
+- **The number decides, never a model's opinion of the work.** A model that made the page or pitch is not a fair
+  judge of it: judges wrongly pass their own failed work more than 50% more often (Pombal et al., COLM 2026). Write
+  the counts in `evidence`. When the counts are too small to show anything either way, say "too few to tell" in
+  `evidence` beside the verdict.
+
 ## Keep the catalog alive
 
 - **Add a pattern** when a kept experiment does not fit any below. Write it in the same shape.
