@@ -2,7 +2,7 @@
 name: app-marketing
 description: Grow downloads of the owner's apps without the owner. Keeps one strategy per app (Space Worms, Newsworthy, Giraffe Stretch and any app added later), works every open item for every app each day, and records everything in an append-only ledger. Judges every channel on App Store downloads and stops the ones that bring none. Runs unattended as a cloud routine three times a day (a full morning run, then a midday and a late pass for replies and deferred work, chosen by the Pacific hour); work needing 1Password (App Store changes, metrics, Shorts) runs in a daily Mac pass. Use for "marketing", "more downloads", "grow the app", "how is marketing going", a new app to promote, and both scheduled runs. Writes and sends pitch emails to people who cover each kind of app. Developer tools also get a Show HN posted to Hacker News. Pairs with app-shorts and youtube-growth for video, and app-release for store submissions.
 metadata:
-  version: "1.37.1"
+  version: "1.38.0"
   ledger: ledger/LEDGER.md
 ---
 
@@ -28,7 +28,7 @@ is left open. Each channel's effect on downloads is measured.
 | Store submissions | `app-release`. This skill changes promotional text and prepares store data; it never submits or releases |
 | Mac pass steps | [The Mac pass](references/mac-pass.md) |
 | Show HN steps | [Hacker News](references/hacker-news.md) |
-| New ideas and experiments | [Invent](references/invent.md): the weekly Invent step, judging, and the pattern catalog. Each profile's `ideas` and `experiments` |
+| New ideas and experiments | [Invent](references/invent.md): the weekly Invent step, judging, and the pattern catalog. Each profile's `ideas` and `experiments`. Invent reads this week's brief from `marketing-research` |
 | Pitch emails | [Pitch emails](references/pitches.md): the standard, the queue `marketing/pitches.jsonl`, and the sender `/api/pitches` on the astrojams site |
 | Project home | `/Volumes/ssd/projects/app-marketing/` |
 

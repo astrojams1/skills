@@ -103,6 +103,11 @@ skills/                                    # Skill definitions (Agent Skills spe
     assets/rule-sources.json               # Where each app's or business's written rules live, for the reviewer pack
     ledger/verdicts.md                     # The owner's verdicts on past Shorts, loaded by every review
     ledger/LEDGER.md                       # Versions and lessons
+  marketing-research/
+    SKILL.md                               # Weekly research arm of all marketing: grade case studies, papers and talks on agents in marketing, hand ideas to each business, read results back
+    references/{sources,brief}.md          # Where to look and how to grade it; the brief's shape and each business's registers
+    ledger/briefs/                         # Weekly briefs (latest.md is the current one every Invent step reads)
+    ledger/practices.md, ledger/LEDGER.md  # Practices register; versions, runs and lessons
   youtube-growth/
     SKILL.md                               # Read each Short's metrics, judge its downloads, retire what does not work
     references/{api,metrics,policy}.md     # API setup and limits; what each metric means and the evidence; YouTube policy risks for a templated pipeline
@@ -178,6 +183,7 @@ Every scheduled skill carries the short run rules block from `skills/skill-writi
 | `uncommitted-work-weekly` | Weekly | `skills/uncommitted-work/SKILL.md`, "Start the weekly task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
 | `app-store-review-submissions-daily` | Daily 09:05 Pacific | `skills/app-release/references/daily-review-run.md`, "Start the daily task", read from the main checkout `/Volumes/ssd/code/skills` (since 2026-11-12) |
 | `vegas-microworks-marketing` | Paused; `app-marketing-mac` carries it on Wednesdays, or when the last completed weekly pass is over 7 days old (2026-11-12) | `skills/vegas-microworks-marketing/SKILL.md`, "The old weekly task is paused" (it ran in the default permission mode and stalled on its first prompt) |
+| Cloud routine "Marketing research (weekly)" | Mondays 03:17 Pacific | `skills/marketing-research/SKILL.md`, "A run" (Claude only; it takes no outward action, so it has no Codex gate) |
 | Cloud routine "Vegas Microworks outreach (daily)" | Weekdays 10:23 Pacific | `astrojams1/vegas-microworks` `docs/outreach.md`, "Each daily run" |
 | `mac-memory-maintenance` | Daily 03:00 Pacific | Codex invokes `$mac-memory-maintenance` through its installed symlink |
 | `money-coaching-lead-gen` | Paused; the cloud routine "Money coaching lead gen (daily)" replaced it | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md`, "The Mac task's prompt" |
@@ -386,6 +392,20 @@ format with 3 no-effect Shorts in a row is retired.
 Invoke with `/app-shorts`, or ask to make or post Shorts for an app. Run
 `node skills/app-shorts/scripts/shorts.mjs status` to see where every app stands. After changing the script, run
 `node --test tests/app-shorts/*.test.mjs`.
+
+### Marketing Research — The Weekly Research Arm
+
+**Skill:** `skills/marketing-research/SKILL.md`
+
+The owner asked on 2026-11-26 for marketing to stay "endlessly curious" about how agents drive marketing. Each Monday a
+cloud routine reads and grades case studies, success stories, platform news, papers and talks by credible people,
+writes a dated brief (`ledger/briefs/latest.md`), keeps a practices register, and hands every business graded ideas
+tagged `research:`. Each business's Invent step reads the brief and builds what scores best; the next research run
+reads the results back. Findings that change how agents should run become skill changes.
+
+#### How to use
+
+Ask for "marketing research" or "what's new in agent marketing", or let the Monday routine run it.
 
 ### YouTube Growth — Read the Numbers, Decide, Repeat
 

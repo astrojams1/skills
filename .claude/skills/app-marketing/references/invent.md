@@ -21,7 +21,7 @@ experiment with its state: `DUE`, `in flight` or its last verdict.
 
 Do it for every app `next` names, in the same run.
 
-1. **Read four things.**
+1. **Read five things.**
    - **The catalog** below.
    - **What the app uniquely has:** its data, its users, its physical presence, its content, its screens, its
      highest-traffic page (from `site-visits` or the site's analytics).
@@ -35,8 +35,16 @@ Do it for every app `next` names, in the same run.
      `invent` action's `evidence`, never a reason to stop.
    - **The news and the calendar:** a season, a holiday, a local event, an exam date, a policy or platform change
      that fits the app's audience. Search for it that day.
+   - **This week's research brief** from `marketing-research`:
+     `https://raw.githubusercontent.com/astrojams1/skills/main/skills/marketing-research/ledger/briefs/latest.md`
+     (in a checkout of this repository, `skills/marketing-research/ledger/briefs/latest.md`). Read its "Top three"
+     and the "Apps" handoff (the owner, 2026-11-26: "researching the latest best practices of using agents to drive
+     marketing"). A brief you cannot read is noted in `evidence`, never a reason to stop.
 2. **Write at least five new ideas** for the app into its profile's `ideas`. At least three are neither cold email
    nor Shorts. An idea already in `ideas` or `experiments` is not new.
+   At least one comes from the brief's "Apps" handoff, or from a brief finding that fits the app better. Keep its
+   tag (`source: "research:YYYY-MM-DD#P-NNN"`) on the idea and on any experiment built from it, so the research run
+   can read the result back.
 3. **Score each honestly** with these fields: `reaches` (who), `size` (about how many, with where the number came
    from), `effort` (1 to 5), `moves` (the one number it should move, such as page visits, downloads, sign-ups or
    links in). Add `pattern` (a catalog name, or `new`).
