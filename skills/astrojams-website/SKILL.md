@@ -2,7 +2,7 @@
 name: astrojams-website
 description: Keep the astrojams apps website (https://astrojams-apps.vercel.app, sites/astrojams in repository astrojams1/app-sites, which it shares with the Ouro site) true to the App Store without being asked. Audit every app on the owner's personal James Thompson App Store Connect team (team CWQ9AWJF8T), add or exclude new apps, flip "Coming soon" to the App Store badge on release, refresh names, subtitles, copy, screenshots, icons and theme colours, and deploy. Use whenever an app record on the personal team is created, uploaded, submitted, approved, released, renamed or its listing or screenshots change; when the "astrojams website needs an update" issue opens; when someone asks whether the site is current or to change its pages, copy or design; and at the end of any app-release run for a personal-team app.
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
   ledger: ledger/LEDGER.md
 ---
 

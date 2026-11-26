@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compare, parseArgs, pem, serviceToken } from '../../skills/ouro-website/scripts/audit.mjs';
+import { compare, englishLocalization, parseArgs, pem, serviceToken } from '../../skills/ouro-website/scripts/audit.mjs';
 
 const catalog = {
   site: { url: 'https://ouro-apps.vercel.app' },
@@ -57,4 +57,12 @@ test('pem restores armor and line breaks', () => {
 test('arguments', () => {
   assert.deepEqual(parseArgs(['--pull', '123', '--out', '/tmp/x', '--json']), { site: '/Volumes/ssd/code/app-sites/sites/ouro', code: '/Volumes/ssd/code', json: true, pull: '123', out: '/tmp/x' });
   assert.throws(() => parseArgs(['--nope']), /Unknown argument/);
+});
+
+test('englishLocalization prefers en-US and never falls back to another language', () => {
+  const loc = (id, locale) => ({ id, type: 'appInfoLocalizations', attributes: { locale } });
+  assert.equal(englishLocalization([loc('de', 'de-DE'), loc('gb', 'en-GB'), loc('us', 'en-US')], 'appInfoLocalizations').id, 'us');
+  assert.equal(englishLocalization([loc('tr', 'tr'), loc('gb', 'en-GB')], 'appInfoLocalizations').id, 'gb');
+  assert.equal(englishLocalization([loc('vi', 'vi')], 'appInfoLocalizations'), null);
+  assert.equal(englishLocalization(undefined, 'appInfoLocalizations'), null);
 });
