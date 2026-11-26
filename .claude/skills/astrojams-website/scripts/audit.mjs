@@ -107,8 +107,8 @@ async function readTeam(api) {
   const rows = [];
   for (const app of apps.data) {
     const versions = await api(`/v1/apps/${app.id}/appStoreVersions?limit=5&fields[appStoreVersions]=versionString,appVersionState,appStoreState,platform`);
-    const infos = await api(`/v1/apps/${app.id}/appInfos?include=appInfoLocalizations&limit=5`);
-    const localization = (infos.included || []).find(x => x.type === 'appInfoLocalizations' && /^en/.test(x.attributes.locale)) || (infos.included || [])[0];
+    const infos = await api(`/v1/apps/${app.id}/appInfos?include=appInfoLocalizations&limit=5&limit[appInfoLocalizations]=50`);
+    const localization = englishLocalization(infos.included, 'appInfoLocalizations');
     const ios = versions.data.find(v => v.attributes.platform === 'IOS') || versions.data[0];
     const copies = ios ? await api(`/v1/appStoreVersions/${ios.id}/appStoreVersionLocalizations?fields[appStoreVersionLocalizations]=locale,marketingUrl,supportUrl&limit=50`) : { data: [] };
     const copy = copies.data.find(v => v.attributes.locale === 'en-US') || copies.data.find(v => /^en/.test(v.attributes.locale)) || copies.data[0];
@@ -128,6 +128,14 @@ async function readTeam(api) {
 }
 
 // compare turns App Store Connect's view and the site's catalog into a list of actions. Pure, so it is tested.
+// englishLocalization picks the English (U.S.) localization the site is written from, else another English one. Apple
+// includes only the first 10 related localizations unless asked for more, and an app listed in 25 languages returned
+// German, Turkish or Vietnamese names first (2026-11-26 daily run), which the audit then reported as renames.
+export function englishLocalization(included, type) {
+  const items = (included || []).filter(x => x.type === type);
+  return items.find(x => x.attributes.locale === 'en-US') || items.find(x => /^en/.test(x.attributes.locale)) || null;
+}
+
 export function compare(team, catalog, store, configs) {
   const listed = new Map(catalog.apps.map(app => [app.appStoreId, app]));
   const excluded = new Map((catalog.excluded || []).map(app => [app.appStoreId, app]));
@@ -213,8 +221,8 @@ async function pull(api, appStoreId, out) {
     await save(fill(icon, icon.width, icon.height), 'build-icon.png');
     console.log(`note: build icons are only ${icon.width}px; use the app repository's 1024px AppIcon or the App Store artwork instead`);
   }
-  const versions = await api(`/v1/apps/${appStoreId}/appStoreVersions?limit=1&include=appStoreVersionLocalizations`);
-  const localization = (versions.included || []).find(x => x.type === 'appStoreVersionLocalizations');
+  const versions = await api(`/v1/apps/${appStoreId}/appStoreVersions?limit=1&include=appStoreVersionLocalizations&limit[appStoreVersionLocalizations]=50`);
+  const localization = englishLocalization(versions.included, 'appStoreVersionLocalizations');
   if (!localization) return console.log('no version localization, so no screenshots');
   const sets = await api(`/v1/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?include=appScreenshots&limit=50`);
   const shots = new Map((sets.included || []).map(s => [s.id, s]));
