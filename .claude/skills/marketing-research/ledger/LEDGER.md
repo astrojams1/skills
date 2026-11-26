@@ -14,6 +14,7 @@ The skill's own record. Append rows; never rewrite them. The briefs are in `brie
 
 | week | run | sources read | case studies | ideas handed off | results read back | PR | left open |
 |---|---|---|---|---|---|---|---|
+| 2026-11-23 | 2026-11-26, cloud | 83 (8 in part) | 9 | 13 ideas (apps 3, Vegas Microworks 3, money coaching 3, Clean Streets 2, Pipsqueak 2), 1 store task, 3 cross-business skill changes handed off; 2 skill changes made here | none: first brief, no `research:` tags yet | skills#338 | nothing left open |
 
 ## Lessons
 
