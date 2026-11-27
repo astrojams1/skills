@@ -71,7 +71,7 @@ the re-pin procedure in the private `marketing-orchestration/README.md`.
 | Money coaching lead gen (daily) | Claude cloud, then Codex | 04:40, 12:40, 16:40; also on new issues | `money-coaching` / `money-coaching-lead-gen` | `skills/lead-gen/SKILL.md` |
 | Clean Streets Patreon growth | Claude cloud, then Codex | Hourly 07:20 to 20:20 (09:20 full, 13:20 midday, 18:20 builds the next day's queue) | `cleanstreets` / `cs-patreon-growth` | `.claude/skills/README.md`, "A routine run" |
 | Clean Streets inbox processor | Claude cloud, then Codex | 07:00, 10:00, 13:00, 16:00 | `cleanstreets` / `cs-inbox-processor` | the same |
-| Clean Streets field updates | Claude cloud, then Codex | 10:30, 14:30, 18:30 daily (two routines split the week) | `cleanstreets` / `cs-field-updates`, `cs-field-updates-other` | the same |
+| Clean Streets field updates | Claude cloud, then Codex | 10:30, 14:30, 18:30 daily (two routines split the week). Each pass checks its configured Buffer X channel at startup and reuses the result for dry runs and submissions. | `cleanstreets` / `cs-field-updates`, `cs-field-updates-other` | the same |
 | Clean Streets site refresh | Claude cloud, then Codex | 11:40 on the 1st and 15th | `cleanstreets` / `cs-site-refresh` | the same |
 | Clean Streets skill improver | See `.claude/skills/README.md` | Weekly | none | `.claude/skills/skill-improver/SKILL.md` |
 | Pipsqueak go-to-market (daily) | Claude cloud, then Codex | 06:40 full, 12:40 midday, 16:40 late; also on new issues | `pipsqueak` / `pipsqueak-gtm` | `docs/go-to-market.md`, "Each daily run" |
@@ -115,6 +115,7 @@ to `docs/marketing-system-history.md` when this list passes about 60 lines.
 
 | Date | Engine | Change | Where |
 |---|---|---|---|
+| 2026-11-27 | Codex | Clean Streets field updates now reuse the live channel check within each pass. This removes repeated Buffer lookups and keeps the budget for hourly X posts in line with the API calls the sender makes. | [skills#343](https://github.com/astrojams1/skills/pull/343) |
 | 2026-11-27 | Codex | Clean Streets counts recorded human answers through the Pacific review date when comparing outreach. Price questions count as positive responses. | [cleanstreets#829](https://github.com/astrojams1/cleanstreets/pull/829) |
 | 2026-11-26 | Claude | First research brief (week of 2026-11-23). From its findings: `app-marketing` 1.39.0 judges experiments on the judge date by the measured number, never by the maker's opinion of its own work; `youtube-growth` 1.14.1 notes that public views now add TV co-views, so Shorts are compared on engaged views | skills#338 |
 | 2026-11-26 | Claude | This map added, with the rule that every marketing change updates it, `tests/test_marketing_map.py`, and pointers from every business's `AGENTS.md`, the shared `AGENTS.md` and the Codex worker protocol | skills#336, app-sites#328, vegas-microworks#178, money-coaching#204, cleanstreets#821, pipsqueak#83 |
