@@ -409,6 +409,12 @@ test('a Shorts item rests for the registry\'s cadence, which youtube-growth owns
   assert.equal(itemState(i, [], 'x', NOW, { episodes: [{ id: 'other', status: 'live', postedAt: ago(3) }], cadenceDays: 7 }).state, 'resting');
   assert.equal(itemState(i, [deferred], 'x', NOW, { episodes: [{ id: 'other', status: 'live', postedAt: ago(8) }], cadenceDays: 7 }).state, 'open');
   assert.equal(itemState(i, [deferred], 'x', NOW, { episodes: [{ id: 'other', status: 'pulled', postedAt: ago(3) }], cadenceDays: 7 }).state, 'open');
+  // A one-off Shorts item stays done while its Short stands, whatever the cadence (LOB short-title-address, 2026-11-27).
+  const once = item({ id: 'short-title-address', channel: 'youtube-shorts', runner: 'mac' });
+  const fixed = event({ app: 'x', item: 'short-title-address', ts: ago(13), operation: 'retitled lob-rings-01' });
+  const rings = [{ id: 'lob-rings-01', status: 'live', postedAt: ago(14) }];
+  assert.equal(itemState(once, [fixed], 'x', NOW, { episodes: rings, cadenceDays: 7 }).state, 'done');
+  assert.equal(itemState(once, [fixed], 'x', NOW, { episodes: [{ ...rings[0], status: 'pulled' }], cadenceDays: 7 }).state, 'open', 'its Short gone reopens it');
 });
 
 test('a pitch approach with 30 sent and no positive reply is retired; one positive keeps it working', () => {

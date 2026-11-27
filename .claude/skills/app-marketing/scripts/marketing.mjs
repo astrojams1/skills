@@ -382,7 +382,9 @@ export const hnSubmitLink = (url, title) => `https://news.ycombinator.com/submit
 // cadence, so the pace of each app's Shorts has one owner.
 export function itemState(item, events, app, now = Date.now(), shorts) {
   const episodes = Array.isArray(shorts) ? shorts : shorts?.episodes;
-  if (item.channel === 'youtube-shorts' && shorts?.cadenceDays) item = { ...item, repeat_days: shorts.cadenceDays };
+  // Only the recurring `shorts` item takes the cadence. A one-off Shorts item (re-title one video, say) is done once
+  // its Short stands: on 2026-11-27 LOB's short-title-address, done 2026-11-14, had reopened with the 7-day cadence.
+  if (item.channel === 'youtube-shorts' && item.id === 'shorts' && shorts?.cadenceDays) item = { ...item, repeat_days: shorts.cadenceDays };
   const mine = events.filter(e => e.event === 'action' && e.app === app && e.item === item.id && e.status !== 'running');
   const last = mine[mine.length - 1];
   // A Short made under another item or run (an app-shorts run, a carried job) still rests the item for the cadence:
