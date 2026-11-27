@@ -37,7 +37,7 @@ recipients and business numbers stay private: on the Mac in `/Volumes/ssd/projec
 | Apps: every released app on the Ouro and personal teams | People who download small apps | `app-marketing` in this repository (`skills/app-marketing/SKILL.md`). State in `astrojams1/app-sites` `marketing/` | `marketing/apps/<id>.json` in app-sites | Pitch emails through `/api/pitches` on the astrojams site |
 | Vegas Microworks | Las Vegas small businesses | `astrojams1/vegas-microworks` `docs/outreach.md` (daily) and `docs/marketing.md` (weekly) | `docs/experiments.md` | The site's `/api/outreach`, from the personal Gmail, under its gate |
 | Money coaching | 18 to 29 year olds in Las Vegas | `astrojams1/money-coaching` `skills/lead-gen/SKILL.md` | `content/growth/experiments.json` | The site's `/api/outreach`, from the personal Gmail |
-| Clean Streets | Patrons, contracts and grants in San Francisco | `astrojams1/cleanstreets` `.claude/skills/` (`patreon-growth`, `inbox-processor`, `field-updates`, `site-refresh`, `skill-improver`; shared rules in `README.md`) | `idea:` and `experiment:` lines in `.claude/skills/patreon-growth/LEDGER.md` | The Clean Streets Gmail only |
+| Clean Streets | Patrons, contracts and grants in San Francisco | `astrojams1/cleanstreets` `.claude/skills/` (`patreon-growth`, `inbox-processor`, `field-updates`, `site-refresh`, `skill-improver`, with shared rules in `README.md`) | `idea:` and `experiment:` lines in `.claude/skills/patreon-growth/LEDGER.md`. `scripts/ledger.py arms --skill patreon-growth --on YYYY-MM-DD` counts recorded human replies through the Pacific review date. | The Clean Streets Gmail only |
 | Pipsqueak | School speech-language pathologists | `astrojams1/pipsqueak` `docs/go-to-market.md` | `marketing/gtm/experiments.json` | `website/api/outreach.js`, from the personal Gmail, until its own service exists |
 
 Every business judges each new tactic as a provisional experiment, kept only if it works (James, 2026-11-13). Mailbox
@@ -115,6 +115,7 @@ to `docs/marketing-system-history.md` when this list passes about 60 lines.
 
 | Date | Engine | Change | Where |
 |---|---|---|---|
+| 2026-11-27 | Codex | Clean Streets counts recorded human answers through the Pacific review date when comparing outreach. Price questions count as positive responses. | [cleanstreets#829](https://github.com/astrojams1/cleanstreets/pull/829) |
 | 2026-11-26 | Claude | First research brief (week of 2026-11-23). From its findings: `app-marketing` 1.39.0 judges experiments on the judge date by the measured number, never by the maker's opinion of its own work; `youtube-growth` 1.14.1 notes that public views now add TV co-views, so Shorts are compared on engaged views | skills#338 |
 | 2026-11-26 | Claude | This map added, with the rule that every marketing change updates it, `tests/test_marketing_map.py`, and pointers from every business's `AGENTS.md`, the shared `AGENTS.md` and the Codex worker protocol | skills#336, app-sites#328, vegas-microworks#178, money-coaching#204, cleanstreets#821, pipsqueak#83 |
 | 2026-11-26 | Claude | New weekly research arm `marketing-research` and its Monday routine; the Invent steps of apps, Vegas Microworks, money coaching, Clean Streets and Pipsqueak read its brief and take at least one idea from it | skills#335, vegas-microworks#177, money-coaching#203, cleanstreets#820, pipsqueak#82 |
